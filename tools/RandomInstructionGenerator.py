@@ -24,7 +24,7 @@ class RandomInstructionGenerator:
 	def __init__(self):
 		self.lfsr = LFSR(0xF82F,1)
 		self.probabilityToCreateNode = 0.01
-		self.probabilityToDestroyNode = 0.01
+		self.probabilityToDeleteNode = 0.01
 
 		print "# lfsr of order %d, with range 1-%d" % (self.lfsr.Order(), self.lfsr.MaxVal())
 
@@ -37,21 +37,21 @@ class RandomInstructionGenerator:
 		self.numChains = 0
 		self.avgChainLength = 0
 		self.numNodesCreated = 0
-		self.numNodesDestroyed = 0
+		self.numNodesDeleted = 0
 		self.maxNumParallelChains = 0
 
 	def ComputeRanges(self,numNodes):
 		self.numNodes = numNodes
 		self.createRange = int( round(self.lfsr.MaxVal()*self.probabilityToCreateNode) )
-		self.destroyRange = int( round(self.lfsr.MaxVal()*self.probabilityToDestroyNode) )
+		self.deleteRange = int( round(self.lfsr.MaxVal()*self.probabilityToDeleteNode) )
 
-		print "# createRange = %d, destroyRange = %d" % (self.createRange,self.destroyRange)
+		print "# createRange = %d, deleteRange = %d" % (self.createRange,self.deleteRange)
 
-		self.chainRange = ((self.lfsr.MaxVal()-self.createRange-self.destroyRange)/self.numNodes) * self.numNodes
-		self.noopRange = self.lfsr.MaxVal()-self.createRange-self.destroyRange-self.chainRange
+		self.chainRange = ((self.lfsr.MaxVal()-self.createRange-self.deleteRange)/self.numNodes) * self.numNodes
+		self.noopRange = self.lfsr.MaxVal()-self.createRange-self.deleteRange-self.chainRange
 
 		print "# chainRange = %d, noopRange = %d" % (self.chainRange,self.noopRange)
-		totalRange = self.createRange+self.destroyRange + self.chainRange + self.noopRange
+		totalRange = self.createRange+self.deleteRange + self.chainRange + self.noopRange
 #		print "# totalRange = %d" % totalRange
 
 		if self.chainRange==0:
@@ -60,7 +60,7 @@ class RandomInstructionGenerator:
 
 	def NumParallelChains(self):
 		# (slowly) count the number of chains that could be running in parallel
-		# -- this ignores create and destroy
+		# -- this ignores create and delete
 		# 1 (a single chain) is not parallel
 		if len(self.allChains)<=1: return len(self.allChains)
 		maxIdx = len(self.allChains)-1
@@ -100,23 +100,23 @@ class RandomInstructionGenerator:
 		idx = 0
 		while idx<sequenceLength:
 			idx += 1
-			prnum = self.lfsr.GetResult()
-#			prnum = self.createRange+self.destroyRange+1
+			prnum = self.lfsr.GetResult()	# pseudo-random number
+#			prnum = self.createRange+self.deleteRange+1
 
 			opcode = ''
 			arg1 = ''
-		
+			
 			if (self.createRange>0) & (prnum <= self.createRange):
 				opcode = 'create'
 				arg1 = self.lfsr.seed
-			elif (self.destroyRange>0) & (prnum-self.createRange <= self.destroyRange):
-				opcode = 'destroy'
+			elif (self.deleteRange>0) & (prnum-self.createRange <= self.deleteRange):
+				opcode = 'delete'
 				prnum = self.lfsr.GetResult()
 				arg1 = (prnum-1) % self.numNodes # slightly biased toward the low end
-			elif (prnum-self.createRange-self.destroyRange <= self.chainRange):
+			elif (prnum-self.createRange-self.deleteRange <= self.chainRange):
 				opcode = 'chain'
-				arg1 = (prnum-self.createRange-self.destroyRange-1) % self.numNodes
-			elif (prnum-self.createRange-self.destroyRange-self.chainRange <= self.noopRange):
+				arg1 = (prnum-self.createRange-self.deleteRange-1) % self.numNodes
+			elif (prnum-self.createRange-self.deleteRange-self.chainRange <= self.noopRange):
 				opcode = 'noop'
 			else:
 				opcode = 'unknown'
@@ -132,16 +132,16 @@ class RandomInstructionGenerator:
 			elif opcode == 'create':
 				self.EndCurrentChain()
 				self.numNodesCreated += 1
-			elif opcode == 'destroy':
+			elif opcode == 'delete':
 				self.EndCurrentChain()
-				self.numNodesDestroyed += 1
+				self.numNodesDeleted += 1
 			#	else:
 			#		do nothing
 		self.EndCurrentChain()
 		
 		print "# program statistics"
 		print "# numChains %d, avgChainLength %f" % (self.numChains,self.avgChainLength)
-		print "# numNodesCreated %d, numNodesDestroyed %d" % (self.numNodesCreated,self.numNodesDestroyed)
+		print "# numNodesCreated %d, numNodesDeleted %d" % (self.numNodesCreated,self.numNodesDeleted)
 		print "# maxNumParallelChains %d" % (self.maxNumParallelChains)
 
 #		print self.allChains
