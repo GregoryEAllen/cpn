@@ -20,6 +20,10 @@ class LFSR:
 		return self.seed
 
 
+# the nodes are numbered 0 to numNodes-1, but there may be missing nodes that
+# are in the deletedNodes list
+
+
 class RandomInstructionGenerator:
 	def __init__(self):
 		self.lfsr = LFSR(0xF82F,1)
@@ -31,6 +35,7 @@ class RandomInstructionGenerator:
 		numNodes = 100
 		self.ComputeRanges(numNodes)
 		self.currentChain = []
+		self.deletedNodes = []
 		self.allChains = []
 		
 		# some (perhaps) interesting stats
@@ -96,6 +101,36 @@ class RandomInstructionGenerator:
 			if numParallelChains>self.maxNumParallelChains:
 				self.maxNumParallelChains = numParallelChains
 
+	def DoCreateNode(self):
+		self.numNodesCreated += 1
+		if len(self.deletedNodes):
+			# recycle a deleted nodeID
+			newNodeID = self.deletedNodes.pop(0)
+		else:
+			numNodes = self.numNodes
+			newNodeID = numNodes
+			self.ComputeRanges(numNodes+1)
+			print "## numNodes is now %d" % (self.numNodes)
+		print "DoCreateNode %d" % (newNodeID)
+		print "## %d nodes in deletedNodes" % len(self.deletedNodes)
+		
+	def DoDeleteNode(self,nodeID):
+		if self.deletedNodes.count(nodeID)>0:
+			print "## nodeID %d is already deleted!" % (nodeID)
+			return
+		print "DoDeleteNode %d" % (nodeID)
+		self.deletedNodes.append(nodeID)
+		self.numNodesDeleted += 1
+		print "## %d nodes in deletedNodes" % len(self.deletedNodes)
+		
+		# check to see if we should reduce numNodes
+		newNumNodes = self.numNodes
+		while self.deletedNodes.count(newNumNodes-1)>0:
+			newNumNodes -= 1
+		if newNumNodes<self.numNodes:
+			print "## newNumNodes %d, numNodes %d" % (newNumNodes, self.numNodes)
+
+
 	def Run(self, sequenceLength = 10):
 		idx = 0
 		while idx<sequenceLength:
@@ -105,7 +140,9 @@ class RandomInstructionGenerator:
 
 			opcode = ''
 			arg1 = ''
-			
+	
+			# determine the "raw" operation based on the prnum
+			# (without knowing anything about the sequence or state)	
 			if (self.createRange>0) & (prnum <= self.createRange):
 				opcode = 'create'
 				arg1 = self.lfsr.seed
@@ -123,26 +160,33 @@ class RandomInstructionGenerator:
 		
 #			print "#", prnum, opcode, arg1
 		
+			# now interpret the operation based on the current state
 			if opcode == 'chain':
 				if self.currentChain.count(arg1)>0:
 					# already in the current chain, end the chain
+					self.EndCurrentChain()
+				elif self.deletedNodes.count(arg1)>0:
+					# can't add a deleted node, end the chain
 					self.EndCurrentChain()
 				else:
 					self.currentChain.append(arg1)
 			elif opcode == 'create':
 				self.EndCurrentChain()
-				self.numNodesCreated += 1
+				self.DoCreateNode()
 			elif opcode == 'delete':
 				self.EndCurrentChain()
-				self.numNodesDeleted += 1
+				self.DoDeleteNode(arg1)
 			#	else:
 			#		do nothing
 		self.EndCurrentChain()
 		
 		print "# program statistics"
+		print "# numNodes %d, len(deletedNodes) %d" % (self.numNodes, len(self.deletedNodes))
 		print "# numChains %d, avgChainLength %f" % (self.numChains,self.avgChainLength)
 		print "# numNodesCreated %d, numNodesDeleted %d" % (self.numNodesCreated,self.numNodesDeleted)
 		print "# maxNumParallelChains %d" % (self.maxNumParallelChains)
+
+		print "# deletedNodes =", self.deletedNodes
 
 #		print self.allChains
 
