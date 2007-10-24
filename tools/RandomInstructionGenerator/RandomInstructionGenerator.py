@@ -87,6 +87,7 @@ class RandomInstructionGenerator:
 	def EndCurrentChain(self):
 		if len(self.currentChain)<=1:
 			print "# discarding a chain of length %d" % len(self.currentChain)
+			del self.currentChain[:]
 		else:
 			avgLen = self.numChains * self.avgChainLength + len(self.currentChain)
 			self.allChains.append(self.currentChain[:])
