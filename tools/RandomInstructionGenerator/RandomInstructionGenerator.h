@@ -27,6 +27,7 @@
 
 
 #include "LFSR.h"
+#include <deque>
 
 
 class RandomInstructionGenerator
@@ -42,11 +43,15 @@ class RandomInstructionGenerator
 	float probabilityToCreateNode, probabilityToDeleteNode;
 	unsigned numNodes;
 	unsigned createRange, deleteRange, chainRange, noopRange;
-	// current chain
-	// deleted nodes
+	
+	std::deque<unsigned> currentChain;
+	std::deque<unsigned> deletedNodes;
+
+	void EndCurrentChain(void);
 
 	void ComputeRanges(unsigned nmNodes);
-	
+	void DoCreateNode(void);
+	void DoDeleteNode(unsigned nodeID);
 };
 
 

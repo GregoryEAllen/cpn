@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
+#include <algorithm>
 
 
 //-----------------------------------------------------------------------------
@@ -35,14 +36,14 @@ RandomInstructionGenerator::RandomInstructionGenerator()
 //-----------------------------------------------------------------------------
 :	lfsr(0xF82F,1)
 {
-	probabilityToCreateNode = 0.01;
-	probabilityToDeleteNode = 0.01;
+	probabilityToCreateNode = 0.0;
+	probabilityToDeleteNode = 0.0;
 	
 	printf("# lfsr of order %d, with range 1-%d\n", lfsr.Order(), lfsr.MaxVal());
 
 	unsigned numNodes = 100;
 	ComputeRanges(numNodes);
-//		self.currentChain = []
+	
 //		self.deletedNodes = []
 }
 
@@ -76,75 +77,94 @@ void RandomInstructionGenerator::ComputeRanges(unsigned nmNodes)
 
 
 //-----------------------------------------------------------------------------
+void RandomInstructionGenerator::EndCurrentChain(void)
+//-----------------------------------------------------------------------------
+{
+	if (currentChain.size()<=1) {
+		printf("# discarding a chain of length %d\n", currentChain.size());
+		currentChain.clear();
+	} else {
+		printf("create chain: ");
+		while (currentChain.size()>0) {
+			printf("%lu ", currentChain[0]);
+			currentChain.pop_front();
+		}
+		printf("\n");
+	}
+}
+
+
+//-----------------------------------------------------------------------------
+void RandomInstructionGenerator::DoCreateNode(void)
+//-----------------------------------------------------------------------------
+{
+}
+
+
+//-----------------------------------------------------------------------------
+void RandomInstructionGenerator::DoDeleteNode(unsigned nodeID)
+//-----------------------------------------------------------------------------
+{
+}
+
+
+//-----------------------------------------------------------------------------
 int RandomInstructionGenerator::Run(unsigned sequenceLength)
 //-----------------------------------------------------------------------------
 {
+	typedef enum { opNULL=0, opCREATE, opDELETE, opCHAIN, opNOOP, opUNKNOWN } opcode_t;
+	const char* opcodeStr[] = { "", "create", "delete", "chain", "noop", "unknown" };
+	
 	int idx = 0;
 	while (idx<sequenceLength) {
 		idx++;
 		LFSR_t prnum = lfsr.GetResult();	// pseudo-random number
-//		prnum = self.createRange+self.deleteRange+1
+	
+		opcode_t opcode = opNULL;
+		LFSR_t arg1;
+	
+		// determine the "raw" operation based on the prnum
+		// (without knowing anything about the sequence or state)	
+		if ((createRange>0) & (prnum <= createRange)) {
+			opcode = opCREATE;
+			arg1 = lfsr.Seed();
+		} else if ((deleteRange>0) & (prnum-createRange <= deleteRange)) {
+			opcode = opDELETE;
+			prnum = lfsr.GetResult();
+			arg1 = (prnum-1) % numNodes; // slightly biased toward the low end
+		} else if (prnum-createRange-deleteRange <= chainRange) {
+			opcode = opCHAIN;
+			arg1 = (prnum-createRange-deleteRange-1) % numNodes;
+		} else if (prnum-createRange-deleteRange-chainRange <= noopRange) {
+			opcode = opNOOP;
+		} else {
+			opcode = opUNKNOWN;
+		}
 
-		printf("prnum %d\n",prnum);
+//		printf("# %d %s %lu\n", prnum, opcodeStr[opcode], arg1);
+		
+		// now interpret the operation based on the current state
+		if (opcode == opCHAIN) {
+			if ( find( currentChain.begin(), currentChain.end(), arg1 ) != currentChain.end()  ) {
+				// already in the current chain, end the chain
+				EndCurrentChain();
+			} else if ( find( deletedNodes.begin(), deletedNodes.end(), arg1 ) != deletedNodes.end()  ) {
+				// can't add a deleted node, end the chain
+				printf("## not chaining deleted node %lu\n", arg1);
+//				EndCurrentChain()
+			} else {
+				currentChain.push_back(arg1);
+			}
+		} else if (opcode == opCREATE) {
+			EndCurrentChain();
+			DoCreateNode();
+		} else if (opcode == opDELETE) {
+			EndCurrentChain();
+			DoDeleteNode(arg1);
+		} // else {} do nothing
 	}
-	
-#if 0
-
-			opcode = ''
-			arg1 = ''
-	
-			//# determine the "raw" operation based on the prnum
-			//# (without knowing anything about the sequence or state)	
-			if (self.createRange>0) & (prnum <= self.createRange):
-				opcode = 'create'
-				arg1 = self.lfsr.seed
-			elif (self.deleteRange>0) & (prnum-self.createRange <= self.deleteRange):
-				opcode = 'delete'
-				prnum = self.lfsr.GetResult()
-				arg1 = (prnum-1) % self.numNodes //# slightly biased toward the low end
-			elif (prnum-self.createRange-self.deleteRange <= self.chainRange):
-				opcode = 'chain'
-				arg1 = (prnum-self.createRange-self.deleteRange-1) % self.numNodes
-			elif (prnum-self.createRange-self.deleteRange-self.chainRange <= self.noopRange):
-				opcode = 'noop'
-			else:
-				opcode = 'unknown'
-		
-//#			print "#", prnum, opcode, arg1
-		
-			//# now interpret the operation based on the current state
-			if opcode == 'chain':
-				if self.currentChain.count(arg1)>0:
-					//# already in the current chain, end the chain
-					self.EndCurrentChain()
-				elif self.deletedNodes.count(arg1)>0:
-					//# can't add a deleted node, end the chain
-					print "## not chaining deleted node %d" % (arg1)
-//#					self.EndCurrentChain()
-				else:
-					self.currentChain.append(arg1)
-			elif opcode == 'create':
-				self.EndCurrentChain()
-				self.DoCreateNode()
-			elif opcode == 'delete':
-				self.EndCurrentChain()
-				self.DoDeleteNode(arg1)
-			//#	else:
-			//#		do nothing
-		self.EndCurrentChain()
-		
-		print "# program statistics"
-		print "# numNodes %d, len(deletedNodes) %d" % (self.numNodes, len(self.deletedNodes))
-		print "# numChains %d, avgChainLength %f" % (self.numChains,self.avgChainLength)
-		print "# numNodesCreated %d, numNodesDeleted %d" % (self.numNodesCreated,self.numNodesDeleted)
-		print "# maxNumParallelChains %d" % (self.maxNumParallelChains)
-
-		print "# deletedNodes =", self.deletedNodes
-
-//#		print self.allChains
-
-#endif
-
+	EndCurrentChain();
+	return 0;
 }
 
 
@@ -154,5 +174,5 @@ int main()
 //-----------------------------------------------------------------------------
 {
 	RandomInstructionGenerator rig;
-	rig.Run(100);
+	rig.Run(100000);
 }
