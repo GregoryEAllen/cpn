@@ -34,6 +34,8 @@ class LFSR {
 	LFSR_t MaxVal(void);
 	LFSR_t GetResult(void) { return seed = (seed & 1) ? (seed>>1 ^ feed) : (seed>>1); }
 
+	LFSR_t Seed(void) { return seed; }
+
   protected:
 	LFSR_t feed, seed;
 };
