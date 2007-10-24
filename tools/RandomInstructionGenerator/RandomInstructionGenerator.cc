@@ -36,15 +36,13 @@ RandomInstructionGenerator::RandomInstructionGenerator()
 //-----------------------------------------------------------------------------
 :	lfsr(0xF82F,1)
 {
-	probabilityToCreateNode = 0.0;
-	probabilityToDeleteNode = 0.0;
+	probabilityToCreateNode = 0.01;
+	probabilityToDeleteNode = 0.01;
 	
 	printf("# lfsr of order %d, with range 1-%d\n", lfsr.Order(), lfsr.MaxVal());
 
 	unsigned numNodes = 100;
 	ComputeRanges(numNodes);
-	
-//		self.deletedNodes = []
 }
 
 
@@ -98,6 +96,25 @@ void RandomInstructionGenerator::EndCurrentChain(void)
 void RandomInstructionGenerator::DoCreateNode(void)
 //-----------------------------------------------------------------------------
 {
+	// the lowest-numbered non-deleted node could create right away
+	unsigned responsibleNode = 0;
+	// this could probably be much faster by sorting first
+	while ( find( deletedNodes.begin(), deletedNodes.end(), responsibleNode ) != deletedNodes.end() ) {
+		responsibleNode += 1;
+	}
+	
+	unsigned newNodeID = 0;
+	
+	if (deletedNodes.size()>0) {
+		newNodeID = deletedNodes[0];
+		deletedNodes.pop_front();
+	} else {
+		newNodeID = numNodes;
+		ComputeRanges(numNodes+1);
+		printf("## numNodes is now %d\n", numNodes);
+	}
+	printf("DoCreateNode %d, responsibleNode %d\n", newNodeID, responsibleNode);
+	printf("## len(deletedNodes) %d\n", deletedNodes.size());
 }
 
 
@@ -105,6 +122,37 @@ void RandomInstructionGenerator::DoCreateNode(void)
 void RandomInstructionGenerator::DoDeleteNode(unsigned nodeID)
 //-----------------------------------------------------------------------------
 {
+	if ( find( deletedNodes.begin(), deletedNodes.end(), nodeID ) != deletedNodes.end() ) {
+		printf("## nodeID %d is already deleted!\n", nodeID);
+		return;
+	}
+	// don't delete the last node
+	if ( deletedNodes.size()==numNodes-1 ) {
+		printf("## refusing to delete final node, %d\n", nodeID);
+		return;
+	}
+	printf("DoDeleteNode %d\n", nodeID);
+	deletedNodes.push_back(nodeID);
+	printf("## len(deletedNodes) %d\n", deletedNodes.size());
+
+	// check to see if we should reduce numNodes
+	unsigned newNumNodes = numNodes;
+	while ( find( deletedNodes.begin(), deletedNodes.end(), newNumNodes-1 ) != deletedNodes.end() ) {
+		newNumNodes -= 1;
+	}
+	if (newNumNodes>=numNodes) {
+		return;
+	}
+	printf("## newNumNodes %d, numNodes %d\n", newNumNodes, numNodes);
+	// reduce the number of nodes
+
+	// remove from deletedNodes
+	for (unsigned node=newNumNodes; node<numNodes; node++) {
+		std::deque<unsigned>::iterator idx = find(deletedNodes.begin(), deletedNodes.end(), node);
+		deletedNodes.erase(idx);
+	}
+	// and recompute
+	ComputeRanges(newNumNodes);
 }
 
 
