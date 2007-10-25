@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <algorithm>
 
 
@@ -36,13 +37,29 @@ RandomInstructionGenerator::RandomInstructionGenerator()
 //-----------------------------------------------------------------------------
 :	lfsr(0xF82F,1)
 {
+	debugLevel = 2;
+	
 	probabilityToCreateNode = 0.01;
 	probabilityToDeleteNode = 0.01;
 	
-	printf("# lfsr of order %d, with range 1-%d\n", lfsr.Order(), lfsr.MaxVal());
+	dbprintf(2,"# lfsr of order %d, with range 1-%d\n", lfsr.Order(), lfsr.MaxVal());
 
 	unsigned numNodes = 100;
 	ComputeRanges(numNodes);
+}
+
+
+//-----------------------------------------------------------------------------
+int RandomInstructionGenerator::dbprintf(int dbLevel, const char *fmt, ...)
+//-----------------------------------------------------------------------------
+{
+	int result = 0;
+	va_list args;
+	va_start( args, fmt );
+	if (dbLevel<=debugLevel)
+		result = vprintf(fmt, args);
+	va_end( args );
+	return result;
 }
 
 
@@ -56,19 +73,19 @@ void RandomInstructionGenerator::ComputeRanges(unsigned nmNodes)
 	createRange = unsigned( floor(maxVal*probabilityToCreateNode+0.5) );
 	deleteRange = unsigned( floor(maxVal*probabilityToDeleteNode+0.5) );
 
-	printf("# numNodes = %d\n", numNodes);
-	printf("# createRange = %d, deleteRange = %d\n", createRange, deleteRange);
+	dbprintf(2,"# numNodes = %d\n", numNodes);
+	dbprintf(2,"# createRange = %d, deleteRange = %d\n", createRange, deleteRange);
 
 	chainRange = ((maxVal-createRange-deleteRange)/numNodes) * numNodes; // int math
 	noopRange = maxVal-createRange-deleteRange-chainRange;
 
-	printf("# chainRange = %d, noopRange = %d\n", chainRange, noopRange);
+	dbprintf(2,"# chainRange = %d, noopRange = %d\n", chainRange, noopRange);
 	
 //	unsigned totalRange = createRange + deleteRange + chainRange + noopRange;
-//	printf("# totalRange = %d\n", totalRange);
+//	dbprintf(3,"# totalRange = %d\n", totalRange);
 
 	if (chainRange==0) {
-		printf("Error: lfsr seed order is too small");
+		dbprintf(0,"Error: lfsr seed order is too small");
 		exit(-1);
 	}
 }
@@ -79,15 +96,15 @@ void RandomInstructionGenerator::EndCurrentChain(void)
 //-----------------------------------------------------------------------------
 {
 	if (currentChain.size()<=1) {
-		printf("# discarding a chain of length %d\n", currentChain.size());
+		dbprintf(2,"# discarding a chain of length %d\n", currentChain.size());
 		currentChain.clear();
 	} else {
-		printf("create chain: ");
+		dbprintf(1,"create chain: ");
 		while (currentChain.size()>0) {
-			printf("%lu ", currentChain[0]);
+			dbprintf(1,"%lu ", currentChain[0]);
 			currentChain.pop_front();
 		}
-		printf("\n");
+		dbprintf(1,"\n");
 	}
 }
 
@@ -101,7 +118,7 @@ void RandomInstructionGenerator::HandleChainOp(unsigned nodeID)
 		EndCurrentChain();
 	} else if ( find( deletedNodes.begin(), deletedNodes.end(), nodeID ) != deletedNodes.end()  ) {
 		// can't add a deleted node, end the chain
-		printf("## not chaining deleted node %lu\n", nodeID);
+		dbprintf(2,"## not chaining deleted node %lu\n", nodeID);
 //		EndCurrentChain()
 	} else {
 		currentChain.push_back(nodeID);
@@ -130,10 +147,10 @@ void RandomInstructionGenerator::HandleCreateOp(void)
 	} else {
 		newNodeID = numNodes;
 		ComputeRanges(numNodes+1);
-		printf("## numNodes is now %d\n", numNodes);
+		dbprintf(2,"## numNodes is now %d\n", numNodes);
 	}
-	printf("DoCreateNode %d, responsibleNode %d\n", newNodeID, responsibleNode);
-	printf("## len(deletedNodes) %d\n", deletedNodes.size());
+	dbprintf(1,"DoCreateNode %d, responsibleNode %d\n", newNodeID, responsibleNode);
+	dbprintf(2,"## len(deletedNodes) %d\n", deletedNodes.size());
 }
 
 
@@ -144,17 +161,17 @@ void RandomInstructionGenerator::HandleDeleteOp(unsigned nodeID)
 	EndCurrentChain();
 
 	if ( find( deletedNodes.begin(), deletedNodes.end(), nodeID ) != deletedNodes.end() ) {
-		printf("## nodeID %d is already deleted!\n", nodeID);
+		dbprintf(2,"## nodeID %d is already deleted!\n", nodeID);
 		return;
 	}
 	// don't delete the last node
 	if ( deletedNodes.size()==numNodes-1 ) {
-		printf("## refusing to delete final node, %d\n", nodeID);
+		dbprintf(2,"## refusing to delete final node, %d\n", nodeID);
 		return;
 	}
-	printf("DoDeleteNode %d\n", nodeID);
+	dbprintf(1,"DoDeleteNode %d\n", nodeID);
 	deletedNodes.push_back(nodeID);
-	printf("## len(deletedNodes) %d\n", deletedNodes.size());
+	dbprintf(2,"## len(deletedNodes) %d\n", deletedNodes.size());
 
 	// check to see if we should reduce numNodes
 	unsigned newNumNodes = numNodes;
@@ -164,7 +181,7 @@ void RandomInstructionGenerator::HandleDeleteOp(unsigned nodeID)
 	if (newNumNodes>=numNodes) {
 		return;
 	}
-	printf("## newNumNodes %d, numNodes %d\n", newNumNodes, numNodes);
+	dbprintf(2,"## newNumNodes %d, numNodes %d\n", newNumNodes, numNodes);
 	// reduce the number of nodes
 
 	// remove from deletedNodes
@@ -210,7 +227,7 @@ int RandomInstructionGenerator::Run(unsigned sequenceLength)
 			opcode = opUNKNOWN;
 		}
 
-//		printf("# %d %s %lu\n", prnum, opcodeStr[opcode], arg1);
+		dbprintf(3,"# %d %s %lu\n", prnum, opcodeStr[opcode], arg1);
 		
 		// now interpret the operation based on the current state
 		if (opcode == opCHAIN) HandleChainOp(arg1);

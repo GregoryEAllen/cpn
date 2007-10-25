@@ -53,6 +53,9 @@ class RandomInstructionGenerator
 	void HandleChainOp(unsigned nodeID);
 	void HandleCreateOp(void);
 	void HandleDeleteOp(unsigned nodeID);
+	
+	int debugLevel;
+	int dbprintf(int dbLevel, const char *fmt, ...);
 };
 
 
