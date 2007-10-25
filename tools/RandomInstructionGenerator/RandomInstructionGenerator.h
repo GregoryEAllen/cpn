@@ -56,6 +56,13 @@ class RandomInstructionGenerator
 	
 	int debugLevel;
 	int dbprintf(int dbLevel, const char *fmt, ...);
+	
+	// functions to be overridden
+	virtual void DoCreateNode(unsigned newNodeID, unsigned creatorNodeID);
+	virtual void DoDeleteNode(unsigned nodeID);
+	virtual void DoProducerNode(unsigned nodeID, unsigned dstNodeID);
+	virtual void DoTransmuterNode(unsigned nodeID, unsigned srcNodeID, unsigned dstNodeID);
+	virtual void DoConsumerNode(unsigned nodeID, unsigned srcNodeID);
 };
 
 

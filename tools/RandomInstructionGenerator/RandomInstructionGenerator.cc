@@ -99,12 +99,13 @@ void RandomInstructionGenerator::EndCurrentChain(void)
 		dbprintf(2,"# discarding a chain of length %d\n", currentChain.size());
 		currentChain.clear();
 	} else {
-		dbprintf(1,"create chain: ");
-		while (currentChain.size()>0) {
-			dbprintf(1,"%lu ", currentChain[0]);
+		dbprintf(1,"create chain: [");
+		while (currentChain.size()>1) {
+			dbprintf(1,"%lu, ", currentChain[0]);
 			currentChain.pop_front();
 		}
-		dbprintf(1,"\n");
+		dbprintf(1,"%lu]\n", currentChain[0]);
+		currentChain.pop_front();
 	}
 }
 
@@ -133,10 +134,10 @@ void RandomInstructionGenerator::HandleCreateOp(void)
 	EndCurrentChain();
 
 	// the lowest-numbered non-deleted node could create right away
-	unsigned responsibleNode = 0;
+	unsigned creatorNodeID = 0;
 	// this could probably be much faster by sorting first
-	while ( find( deletedNodes.begin(), deletedNodes.end(), responsibleNode ) != deletedNodes.end() ) {
-		responsibleNode += 1;
+	while ( find( deletedNodes.begin(), deletedNodes.end(), creatorNodeID ) != deletedNodes.end() ) {
+		creatorNodeID += 1;
 	}
 	
 	unsigned newNodeID = 0;
@@ -149,8 +150,8 @@ void RandomInstructionGenerator::HandleCreateOp(void)
 		ComputeRanges(numNodes+1);
 		dbprintf(2,"## numNodes is now %d\n", numNodes);
 	}
-	dbprintf(1,"DoCreateNode %d, responsibleNode %d\n", newNodeID, responsibleNode);
 	dbprintf(2,"## len(deletedNodes) %d\n", deletedNodes.size());
+	DoCreateNode(newNodeID, creatorNodeID);
 }
 
 
@@ -169,7 +170,7 @@ void RandomInstructionGenerator::HandleDeleteOp(unsigned nodeID)
 		dbprintf(2,"## refusing to delete final node, %d\n", nodeID);
 		return;
 	}
-	dbprintf(1,"DoDeleteNode %d\n", nodeID);
+	DoDeleteNode(nodeID);
 	deletedNodes.push_back(nodeID);
 	dbprintf(2,"## len(deletedNodes) %d\n", deletedNodes.size());
 
@@ -191,6 +192,39 @@ void RandomInstructionGenerator::HandleDeleteOp(unsigned nodeID)
 	}
 	// and recompute
 	ComputeRanges(newNumNodes);
+}
+
+
+//-----------------------------------------------------------------------------
+void RandomInstructionGenerator::DoCreateNode(unsigned newNodeID, unsigned creatorNodeID)
+//-----------------------------------------------------------------------------
+{	
+	dbprintf(1,"DoCreateNode %d, creatorNodeID %d\n", newNodeID, creatorNodeID);
+}
+
+//-----------------------------------------------------------------------------
+void RandomInstructionGenerator::DoDeleteNode(unsigned nodeID)
+//-----------------------------------------------------------------------------
+{
+	dbprintf(1,"DoDeleteNode %d\n", nodeID);
+}
+
+//-----------------------------------------------------------------------------
+void RandomInstructionGenerator::DoProducerNode(unsigned nodeID, unsigned dstNodeID)
+//-----------------------------------------------------------------------------
+{	
+}
+
+//-----------------------------------------------------------------------------
+void RandomInstructionGenerator::DoTransmuterNode(unsigned nodeID, unsigned srcNodeID, unsigned dstNodeID)
+//-----------------------------------------------------------------------------
+{	
+}
+
+//-----------------------------------------------------------------------------
+void RandomInstructionGenerator::DoConsumerNode(unsigned nodeID, unsigned srcNodeID)
+//-----------------------------------------------------------------------------
+{	
 }
 
 

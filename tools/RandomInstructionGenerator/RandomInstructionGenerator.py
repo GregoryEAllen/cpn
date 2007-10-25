@@ -92,9 +92,8 @@ class RandomInstructionGenerator:
 			avgLen = self.numChains * self.avgChainLength + len(self.currentChain)
 			self.allChains.append(self.currentChain[:])
 			print "create chain:",
-			while len(self.currentChain):
-				print self.currentChain.pop(0),
-			print ""
+			print self.currentChain
+			del self.currentChain[:]
 			self.numChains += 1
 			self.avgChainLength = avgLen * 1. / self.numChains
 #			print "avgChainLength %f" % self.avgChainLength
@@ -118,9 +117,9 @@ class RandomInstructionGenerator:
 	def HandleCreateOp(self):
 		self.EndCurrentChain()
 		# the lowest-numbered non-deleted node could create right away
-		responsibleNode = 0
-		while self.deletedNodes.count(responsibleNode)>0:
-			responsibleNode += 1
+		creatorNodeID = 0
+		while self.deletedNodes.count(creatorNodeID)>0:
+			creatorNodeID += 1
 	
 		self.numNodesCreated += 1
 		if len(self.deletedNodes):
@@ -131,8 +130,8 @@ class RandomInstructionGenerator:
 			newNodeID = numNodes
 			self.ComputeRanges(numNodes+1)
 			print "## numNodes is now %d" % (self.numNodes)
-		print "DoCreateNode %d, responsibleNode %d" % (newNodeID, responsibleNode)
 		print "## len(deletedNodes) %d" % len(self.deletedNodes)
+		self.DoCreateNode(newNodeID,creatorNodeID)
 		
 		
 	def HandleDeleteOp(self,nodeID):
@@ -144,7 +143,7 @@ class RandomInstructionGenerator:
 		if len(self.deletedNodes)==self.numNodes-1:
 			print "## refusing to delete final node, %d" % (nodeID)
 			return
-		print "DoDeleteNode %d" % (nodeID)
+		self.DoDeleteNode(nodeID)
 		self.deletedNodes.append(nodeID)
 		self.numNodesDeleted += 1
 		print "## len(deletedNodes) %d" % len(self.deletedNodes)
@@ -164,6 +163,22 @@ class RandomInstructionGenerator:
 		# and recompute
 		self.ComputeRanges(newNumNodes)
 
+
+#	def DoCreateNode(self, newNodeID, creatorNodeID, seedVal, sequenceLength):
+	def DoCreateNode(self, newNodeID, creatorNodeID):
+		print "DoCreateNode %d, creatorNodeID %d" % (newNodeID, creatorNodeID)
+	
+	def DoDeleteNode(self, nodeID):
+		print "DoDeleteNode %d" % (nodeID)
+	
+	def DoProducerNode(self, nodeID, dstNodeID):
+		pass
+	
+	def DoTransmuterNode(self, nodeID, srcNodeID, dstNodeID):
+		pass
+	
+	def DoConsumerNode(self, nodeID, srcNodeID):
+		pass
 
 	def Run(self, sequenceLength = 10):
 		idx = 0
