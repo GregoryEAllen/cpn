@@ -93,9 +93,28 @@ void RandomInstructionGenerator::EndCurrentChain(void)
 
 
 //-----------------------------------------------------------------------------
-void RandomInstructionGenerator::DoCreateNode(void)
+void RandomInstructionGenerator::HandleChainOp(unsigned nodeID)
 //-----------------------------------------------------------------------------
 {
+	if ( find( currentChain.begin(), currentChain.end(), nodeID ) != currentChain.end()  ) {
+		// already in the current chain, end the chain
+		EndCurrentChain();
+	} else if ( find( deletedNodes.begin(), deletedNodes.end(), nodeID ) != deletedNodes.end()  ) {
+		// can't add a deleted node, end the chain
+		printf("## not chaining deleted node %lu\n", nodeID);
+//		EndCurrentChain()
+	} else {
+		currentChain.push_back(nodeID);
+	}
+}
+
+
+//-----------------------------------------------------------------------------
+void RandomInstructionGenerator::HandleCreateOp(void)
+//-----------------------------------------------------------------------------
+{
+	EndCurrentChain();
+
 	// the lowest-numbered non-deleted node could create right away
 	unsigned responsibleNode = 0;
 	// this could probably be much faster by sorting first
@@ -119,9 +138,11 @@ void RandomInstructionGenerator::DoCreateNode(void)
 
 
 //-----------------------------------------------------------------------------
-void RandomInstructionGenerator::DoDeleteNode(unsigned nodeID)
+void RandomInstructionGenerator::HandleDeleteOp(unsigned nodeID)
 //-----------------------------------------------------------------------------
 {
+	EndCurrentChain();
+
 	if ( find( deletedNodes.begin(), deletedNodes.end(), nodeID ) != deletedNodes.end() ) {
 		printf("## nodeID %d is already deleted!\n", nodeID);
 		return;
@@ -192,24 +213,10 @@ int RandomInstructionGenerator::Run(unsigned sequenceLength)
 //		printf("# %d %s %lu\n", prnum, opcodeStr[opcode], arg1);
 		
 		// now interpret the operation based on the current state
-		if (opcode == opCHAIN) {
-			if ( find( currentChain.begin(), currentChain.end(), arg1 ) != currentChain.end()  ) {
-				// already in the current chain, end the chain
-				EndCurrentChain();
-			} else if ( find( deletedNodes.begin(), deletedNodes.end(), arg1 ) != deletedNodes.end()  ) {
-				// can't add a deleted node, end the chain
-				printf("## not chaining deleted node %lu\n", arg1);
-//				EndCurrentChain()
-			} else {
-				currentChain.push_back(arg1);
-			}
-		} else if (opcode == opCREATE) {
-			EndCurrentChain();
-			DoCreateNode();
-		} else if (opcode == opDELETE) {
-			EndCurrentChain();
-			DoDeleteNode(arg1);
-		} // else {} do nothing
+		if (opcode == opCHAIN) HandleChainOp(arg1);
+		else if (opcode == opCREATE) HandleCreateOp();
+		else if (opcode == opDELETE) HandleDeleteOp(arg1);
+//		else {} do nothing
 	}
 	EndCurrentChain();
 	return 0;

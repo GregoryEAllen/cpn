@@ -50,8 +50,9 @@ class RandomInstructionGenerator
 	void EndCurrentChain(void);
 
 	void ComputeRanges(unsigned nmNodes);
-	void DoCreateNode(void);
-	void DoDeleteNode(unsigned nodeID);
+	void HandleChainOp(unsigned nodeID);
+	void HandleCreateOp(void);
+	void HandleDeleteOp(unsigned nodeID);
 };
 
 

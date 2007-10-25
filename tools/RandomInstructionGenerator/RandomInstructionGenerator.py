@@ -103,7 +103,20 @@ class RandomInstructionGenerator:
 			if numParallelChains>self.maxNumParallelChains:
 				self.maxNumParallelChains = numParallelChains
 
-	def DoCreateNode(self):
+	def HandleChainOp(self,nodeID):
+		if self.currentChain.count(nodeID)>0:
+			# already in the current chain, end the chain
+			self.EndCurrentChain()
+		elif self.deletedNodes.count(nodeID)>0:
+			# can't add a deleted node, end the chain
+			print "## not chaining deleted node %d" % (nodeID)
+#			self.EndCurrentChain()
+		else:
+			self.currentChain.append(nodeID)
+
+
+	def HandleCreateOp(self):
+		self.EndCurrentChain()
 		# the lowest-numbered non-deleted node could create right away
 		responsibleNode = 0
 		while self.deletedNodes.count(responsibleNode)>0:
@@ -122,7 +135,8 @@ class RandomInstructionGenerator:
 		print "## len(deletedNodes) %d" % len(self.deletedNodes)
 		
 		
-	def DoDeleteNode(self,nodeID):
+	def HandleDeleteOp(self,nodeID):
+		self.EndCurrentChain()
 		if self.deletedNodes.count(nodeID)>0:
 			print "## nodeID %d is already deleted!" % (nodeID)
 			return
@@ -181,24 +195,10 @@ class RandomInstructionGenerator:
 #			print "#", prnum, opcode, arg1
 		
 			# now interpret the operation based on the current state
-			if opcode == 'chain':
-				if self.currentChain.count(arg1)>0:
-					# already in the current chain, end the chain
-					self.EndCurrentChain()
-				elif self.deletedNodes.count(arg1)>0:
-					# can't add a deleted node, end the chain
-					print "## not chaining deleted node %d" % (arg1)
-#					self.EndCurrentChain()
-				else:
-					self.currentChain.append(arg1)
-			elif opcode == 'create':
-				self.EndCurrentChain()
-				self.DoCreateNode()
-			elif opcode == 'delete':
-				self.EndCurrentChain()
-				self.DoDeleteNode(arg1)
-			#	else:
-			#		do nothing
+			if opcode == 'chain': self.HandleChainOp(arg1)
+			elif opcode == 'create': self.HandleCreateOp()
+			elif opcode == 'delete': self.HandleDeleteOp(arg1)
+#			else: do nothing
 		self.EndCurrentChain()
 		
 		print "# program statistics"
