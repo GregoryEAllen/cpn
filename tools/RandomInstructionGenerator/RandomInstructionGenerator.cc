@@ -100,12 +100,18 @@ void RandomInstructionGenerator::EndCurrentChain(void)
 		currentChain.clear();
 	} else {
 		dbprintf(1,"create chain: [");
-		while (currentChain.size()>1) {
-			dbprintf(1,"%lu, ", currentChain[0]);
-			currentChain.pop_front();
+		int idx;
+		for (idx=0; idx<currentChain.size()-1; idx++) {
+			dbprintf(1,"%lu, ", currentChain[idx]);
 		}
-		dbprintf(1,"%lu]\n", currentChain[0]);
-		currentChain.pop_front();
+		dbprintf(1,"%lu]\n", currentChain[idx]);
+		// create the chain
+		DoProducerNode(currentChain[0], currentChain[1]);
+		for (idx=1; idx<currentChain.size()-1; idx++) {
+			DoTransmuterNode(currentChain[idx], currentChain[idx-1], currentChain[idx+1]);
+		}
+		DoConsumerNode(currentChain[idx], currentChain[idx-1]);
+		currentChain.clear();
 	}
 }
 
@@ -212,19 +218,22 @@ void RandomInstructionGenerator::DoDeleteNode(unsigned nodeID)
 //-----------------------------------------------------------------------------
 void RandomInstructionGenerator::DoProducerNode(unsigned nodeID, unsigned dstNodeID)
 //-----------------------------------------------------------------------------
-{	
+{
+	dbprintf(1,"DoProducerNode (%d) -> %d\n", nodeID, dstNodeID);
 }
 
 //-----------------------------------------------------------------------------
 void RandomInstructionGenerator::DoTransmuterNode(unsigned nodeID, unsigned srcNodeID, unsigned dstNodeID)
 //-----------------------------------------------------------------------------
-{	
+{
+	dbprintf(1,"DoTransmuterNode %d -> (%d) -> %d\n", srcNodeID, nodeID, dstNodeID);
 }
 
 //-----------------------------------------------------------------------------
 void RandomInstructionGenerator::DoConsumerNode(unsigned nodeID, unsigned srcNodeID)
 //-----------------------------------------------------------------------------
-{	
+{
+	dbprintf(1,"DoConsumerNode %d -> (%d)\n", srcNodeID, nodeID);
 }
 
 

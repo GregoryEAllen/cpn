@@ -93,6 +93,11 @@ class RandomInstructionGenerator:
 			self.allChains.append(self.currentChain[:])
 			print "create chain:",
 			print self.currentChain
+			# create the chain
+			self.DoProducerNode(self.currentChain[0], self.currentChain[1])
+			for idx in range(1,len(self.currentChain)-1):
+				self.DoTransmuterNode(self.currentChain[idx], self.currentChain[idx-1], self.currentChain[idx+1])
+			self.DoConsumerNode(self.currentChain[-1], self.currentChain[-2])
 			del self.currentChain[:]
 			self.numChains += 1
 			self.avgChainLength = avgLen * 1. / self.numChains
@@ -172,13 +177,13 @@ class RandomInstructionGenerator:
 		print "DoDeleteNode %d" % (nodeID)
 	
 	def DoProducerNode(self, nodeID, dstNodeID):
-		pass
+		print "DoProducerNode (%d) -> %d" % (nodeID, dstNodeID)
 	
 	def DoTransmuterNode(self, nodeID, srcNodeID, dstNodeID):
-		pass
+		print "DoTransmuterNode %d -> (%d) -> %d" % (srcNodeID, nodeID, dstNodeID)
 	
 	def DoConsumerNode(self, nodeID, srcNodeID):
-		pass
+		print "DoConsumerNode %d -> (%d)" % (srcNodeID, nodeID)
 
 	def Run(self, sequenceLength = 10):
 		idx = 0
