@@ -1,0 +1,18 @@
+# use glob syntax
+syntax: glob
+
+.DS_Store
+._*
+.svn
+_Darwin-powerpc
+_Darwin-i386
+_Linux-ppc
+_Linux-ppc64
+_Linux-i686
+_Linux-x86_64
+.*.swp
+
+# individual executables
+
+# use regexp syntax
+# syntax: regexp
