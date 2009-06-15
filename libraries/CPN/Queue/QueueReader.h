@@ -2,9 +2,9 @@
  * The definition of reader end of the queue.
  */
 
-#ifndef CPN_QUEUE_QUEUEREADER_H
-#define CPN_QUEUE_QUEUEREADER_H
-namespace CPN::Queue {
+#ifndef CPN_QUEUEREADER_H
+#define CPN_QUEUEREADER_H
+namespace ::CPN {
 	/**
 	 * \brief Definition of the reader portion of the CPN queue class.
 	 * \note There is no requirement on this interface to be reentrant or

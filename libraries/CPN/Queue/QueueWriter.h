@@ -2,10 +2,10 @@
  * Definition for the Queue writer inteface.
  */
 
-#ifndef CPN_QUEUE_QUEUEWRITER_H
-#define CPN_QUEUE_QUEUEWRITER_H
+#ifndef CPN_QUEUEWRITER_H
+#define CPN_QUEUEWRITER_H
 
-namespace CPN::Queue {
+namespace ::CPN {
 
 	/**
 	 * \brief Definition of the writer portion of the CPN queue class.

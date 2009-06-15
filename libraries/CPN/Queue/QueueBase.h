@@ -1,12 +1,12 @@
 /** \file
  * \brief Top Representations of generic queues for the CPN library.
  */
-#ifndef CPN_QUEUE_QUEUEBASE_H
-#define CPN_QUEUE_QUEUEBASE_H
+#ifndef CPN_QUEUEBASE_H
+#define CPN_QUEUEBASE_H
 
 #include "common.h"
 
-namespace CPN::Queue {
+namespace ::CPN {
 	/**
 	 * The base class for all queues in the CPN library.
 	 */
