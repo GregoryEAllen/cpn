@@ -10,9 +10,17 @@ _Linux-ppc
 _Linux-ppc64
 _Linux-i686
 _Linux-x86_64
+# vim temporary file
 .*.swp
 
+# Ignore the documentation directory
+documentation
 # individual executables
 
 # use regexp syntax
-# syntax: regexp
+syntax: regexp
+# Ignore all files/directories that have the exact same
+# name as thier parent directory.
+# I.e the default executable name for jmake
+([^/]+)/\1$
+

@@ -8,27 +8,29 @@ namespace CPN::Queue {
 	/**
 	 * \brief Definition of the reader portion of the CPN queue class.
 	 * \note There is no requirement on this interface to be reentrant or
-	 * synchronized. That is to say an instance of this class should only
+	 * synchronized. That is to say, an instance of this class should only
 	 * be accessed from one thread.
 	 */
 	class QueueReader {
 	public:
 		/**
-		 * Get a pointer to a buffer containing elements.
-		 * This function will block until there are thresh elements available.
+		 * Get a pointer to a buffer containing elements.  This
+		 * function will block until there are thresh elements
+		 * available.
 		 *
-		 * \note a call to this function without an accompanying call to Dequeue
-		 * is undefined.
-		 * \note access to the memory locations pointed to by the returned pointer
-		 * after Dequeue has been called is undefined.
-		 * \note Two calls to this function back to back may return different
-		 * pointers.
+		 * \note a call to this function without an accompanying call
+		 * to Dequeue is undefined. 
+		 * \note access to the memory locations pointed to by the
+		 * returned pointer after Dequeue has been called is undefined.
+		 * \note Two calls to this function back to back may return
+		 * different pointers.
 		 *
-		 * \param thresh the number of elements to get
-		 * \param chan the channel to use
-		 * \return A void* to a block of memory containing thresh elements
+		 * \param thresh the number of elements to get \param chan the
+		 * channel to use \return A void* to a block of memory
+		 * containing thresh elements
 		 */
-		virtual const void* GetRawDequeuePtr(ulong thresh, ulong chan=0) = 0;
+		virtual const void* GetRawDequeuePtr(ulong thresh, ulong
+				chan=0) = 0;
 
 		/**
 		 * This function is used to remove elements from the queue.
@@ -42,7 +44,8 @@ namespace CPN::Queue {
 		 * This function can be used instead of GetRawDequeuePtr and Dequeue
 		 * if a buffer to place the data is available already.
 		 * This function will remove count elements from the queue (blocking
-		 * if fewer elements available) and places them consecutavely in data.
+		 * if fewer elements available) and places them in the memory locations
+		 * starting at the point data points to.
 		 * \param data a pointer to the memory location to place elements
 		 * \param count the number of elements to remove from the queue
 		 * \param chan the channel to use

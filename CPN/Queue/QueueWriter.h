@@ -47,7 +47,7 @@ namespace CPN::Queue {
 		/**
 		 * This function can be used instead of GetRawenqueuePtr and
 		 * Enqueue if we already have the data available.
-		 * This function will block untill data can be completely written
+		 * This function will block until data can be completely written
 		 * to the queue.
 		 *
 		 * \note A call to this function between a call to GetRawEnqueuePtr
