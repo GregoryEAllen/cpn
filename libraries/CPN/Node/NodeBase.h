@@ -14,6 +14,7 @@ namespace ::CPN {
 	// Forward declarations
 	class QueueWriter;
 	class QueueReader;
+	class Kernel;
 	/**
 	 * \brief The definition common to all nodes in the process network.
 	 *
@@ -34,8 +35,14 @@ namespace ::CPN {
 
 		virtual void Process(void);
 	protected:
-		QueueWriter &getOutput(::std::string portname);
-		QueueReader &getInput(::std::string portname);
+		/**
+		 * \brief Get the writer queue for the given port name.
+		 */
+		QueueWriter &GetOutput(::std::string portname);
+		/**
+		 * \brief Get the writer queue for the given port name.
+		 */
+		QueueReader &GetInput(::std::string portname);
 	private:
 		void* EntryPoint(void);
 
