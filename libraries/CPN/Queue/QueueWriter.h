@@ -44,21 +44,6 @@ namespace CPN::Queue {
 		 * \invariant count <= thresh from GetRawEnqueuePtr
 		 */
 		virtual void Enqueue(ulong count) = 0;
-		/**
-		 * This function can be used instead of GetRawenqueuePtr and
-		 * Enqueue if we already have the data available.
-		 * This function will block until data can be completely written
-		 * to the queue.
-		 *
-		 * \note A call to this function between a call to GetRawEnqueuePtr
-		 * and Enqueue is undefined.
-		 *
-		 * \param data a void* to the data to enqueue
-		 * \param count the number of entries in the memory pointed to by
-		 * data
-		 * \param chan the channel to use
-		 */
-		virtual void RawEnqueue(void* data, ulong count, ulong chan=0) = 0;
 
 		/**
 		 * \return the number of channels supported by this queue.

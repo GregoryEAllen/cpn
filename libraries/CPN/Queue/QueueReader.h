@@ -41,18 +41,6 @@ namespace CPN::Queue {
 		virtual void Dequeue(ulong count) = 0;
 
 		/**
-		 * This function can be used instead of GetRawDequeuePtr and Dequeue
-		 * if a buffer to place the data is available already.
-		 * This function will remove count elements from the queue (blocking
-		 * if fewer elements available) and places them in the memory locations
-		 * starting at the point data points to.
-		 * \param data a pointer to the memory location to place elements
-		 * \param count the number of elements to remove from the queue
-		 * \param chan the channel to use
-		 */
-		virtual void RawDequeue(void* data, ulong count, ulong chan = 0) = 0;
-
-		/**
 		 * \return the number of channels supported by this queue.
 		 */
 		virtual ulong NumChannels(void) const = 0;
