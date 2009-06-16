@@ -5,6 +5,7 @@
 #define CPN_QUEUEBASE_H
 
 #include "common.h"
+#include "QueueAttr.h"
 
 namespace ::CPN {
 	/**
@@ -12,15 +13,14 @@ namespace ::CPN {
 	 */
 	class QueueBase {
 	public:
-		QueueBase(QueueID id) : queueID(id) {}
+		QueueBase(const QueueAttr &qattr) : qattr(qattr) {}
 
 		virtual ~QueueBase() {}
 
 		/**
-		 * Return the ID for this queue
-		 * \return QueueID the unique identifier for this queue.
+		 * \return the QueueAttr for this queue.
 		 */
-		QueueID getID(void) const { return queueID; }
+		const QueueAttr &GetAttr(void) const { return qattr; }
 
 		virtual QueueWriter getWriter() = 0;
 		virtual QueueReader getReader() = 0;
@@ -38,10 +38,8 @@ namespace ::CPN {
 		 * \return the number of elements.
 		 */
 		virtual ulong ElementsDequeued(void) const = 0;
-
 	private:
-		QueueID queueID;
-
+		const QueueAttr qattr;
 	};
 
 }

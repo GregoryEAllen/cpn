@@ -67,6 +67,10 @@ namespace ::CPN {
 		 */
 		virtual bool Empty(void) const = 0;
 		
+		/**
+		 * \return the QueueAttr for the queue this reader belongs to.
+		 */
+		virtual const QueueAttr &GetQueueAttr(void) const = 0;
 	};
 }
 #endif

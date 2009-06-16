@@ -1,0 +1,7 @@
+
+OS_LIBS += `cppunit-config --libs`
+OS_INCDIR += `cppunit-config --cflags`
+
+CC_OTHER += -Wall
+#CXX_OTHER += -Wall
+LD_OTHER += -Wall --static

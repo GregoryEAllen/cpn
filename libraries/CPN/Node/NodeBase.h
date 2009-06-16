@@ -27,27 +27,31 @@ namespace ::CPN {
 		/**
 		 * \brief Assign the given writer queue end to the given port name.
 		 */
-		void ConnectQueue(::std::string portname, QueueWriter &qwriter);
+		void ConnectQueue(const ::std::string &portname, QueueWriter &qwriter);
 		/**
 		 * \brief Assign the given reader queue end to the given port name.
 		 */
-		void ConnectQueue(::std::string portname, QueueReader &qreader);
+		void ConnectQueue(const ::std::string &portname, QueueReader &qreader);
 
-		virtual void Process(void);
+		const NodeAttr &GetAttr(void) const { return attr; }
+
 	protected:
+		virtual void Process(void) = 0;
+
 		/**
 		 * \brief Get the writer queue for the given port name.
 		 */
-		QueueWriter &GetOutput(::std::string portname);
+		QueueWriter &GetOutput(const ::std::string &portname) const;
 		/**
 		 * \brief Get the writer queue for the given port name.
 		 */
-		QueueReader &GetInput(::std::string portname);
+		QueueReader &GetInput(const ::std::string &portname) const;
 	private:
 		void* EntryPoint(void);
 
 		Kernel &kernel;
-		NodeAttr attr;
+
+		const NodeAttr attr;
 	};
 }
 #endif
