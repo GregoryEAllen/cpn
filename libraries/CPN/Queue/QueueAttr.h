@@ -7,7 +7,7 @@
 
 #include "CPNAttr.h"
 
-namespace ::CPN {
+namespace CPN {
 	
 	class QueueAttr : public CPNAttr {
 	public:

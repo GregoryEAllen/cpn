@@ -10,7 +10,7 @@
 #include "KernelAttr.h"
 #include <string>
 
-namespace ::CPN {
+namespace CPN {
 	// Forward class declarations.
 	class NodeBase;
 	class QueueBase;

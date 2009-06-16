@@ -7,7 +7,7 @@
 #include "common.h"
 #include "QueueAttr.h"
 
-namespace ::CPN {
+namespace CPN {
 	/**
 	 * The base class for all queues in the CPN library.
 	 */

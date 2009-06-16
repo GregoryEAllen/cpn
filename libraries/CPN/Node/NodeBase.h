@@ -10,7 +10,8 @@
 #include <string>
 
 
-namespace ::CPN {
+namespace CPN {
+
 	// Forward declarations
 	class QueueWriter;
 	class QueueReader;

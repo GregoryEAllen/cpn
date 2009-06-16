@@ -7,11 +7,11 @@
 
 #include "CPNAttr.h"
 
-namespace ::CPN {
+namespace CPN {
 	class KernelAttr : public CPNAttr {
 	public:
 		KernelAttr(const ulong id, const ::std::string &name)
-			: CPNAttr(ID, name) {}
+			: CPNAttr(id, name) {}
 	};
 }
 #endif

@@ -6,7 +6,7 @@
 
 #include "CPNAttr.h"
 
-namespace ::CPN {
+namespace CPN {
 
 	/**
 	 * \brief Attributes for a node.

@@ -6,7 +6,7 @@
 #include <string>
 #include "common.h"
 
-namespace ::CPN {
+namespace CPN {
 
 	/**
 	 * \brief Generic declarations for all attributes.
@@ -16,16 +16,16 @@ namespace ::CPN {
 	 */
 	class CPNAttr {
 	public:
-		CPNAttr(const ulong ID, const ::std::string &name)
-			: ID(ID), name(name) {}
+		CPNAttr(const ulong id, const ::std::string &name)
+			: id(id), name(name) {}
 
-		ulong GetID(void) const { return ID; }
+		ulong GetID(void) const { return id; }
 
-		const ::std::string &GetName(void) const { return name }
+		const ::std::string &GetName(void) const { return name; }
 
 	private:
 		/// \brief Unique id
-		const ulong ID;
+		const ulong id;
 		/// \brief Name
 		const ::std::string name;
 	};

@@ -5,7 +5,7 @@
 #ifndef CPN_QUEUEWRITER_H
 #define CPN_QUEUEWRITER_H
 
-namespace ::CPN {
+namespace CPN {
 
 	/**
 	 * \brief Definition of the writer portion of the CPN queue class.
