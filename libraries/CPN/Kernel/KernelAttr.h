@@ -5,13 +5,13 @@
 #ifndef CPN_KERNELATTR_H
 #define CPN_KERNELATTR_H
 
-#include "CPNAttr.h"
+#include "Attribute.h"
 
 namespace CPN {
-	class KernelAttr : public CPNAttr {
+	class KernelAttr : public Attribute {
 	public:
 		KernelAttr(const ulong id, const ::std::string &name)
-			: CPNAttr(id, name) {}
+			: Attribute(id, name) {}
 	};
 }
 #endif
