@@ -15,6 +15,7 @@
  */
 template<class T>
 class AttrMap {
+public:
 	typedef unsigned long ulong;
 
 	void Insert(Attribute attr, T t) {
@@ -27,11 +28,11 @@ class AttrMap {
 	}
 
 	T Get(std::string name) {
-		std::map::iterator it = namemap.find(name);
+		std::map<std::string, ulong>::iterator it = namemap.find(name);
 		if (it == namemap.end()) {
 			return T();
 		}
-		return Get(*it);
+		return Get((*it).second);
 	}
 
 	void Clear(void) {
