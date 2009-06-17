@@ -15,8 +15,6 @@ void Kernel::Start(void) {}
 
 void Kernel::Wait(void) {}
 
-void Kernel::Terminate(void) {}
-	
 NodeBase* Kernel::CreateNode(const NodeAttr &nattr) {}
 
 NodeBase* Kernel::GetNode(const ::std::string &name) const {}

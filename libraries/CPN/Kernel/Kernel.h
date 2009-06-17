@@ -25,11 +25,20 @@ namespace CPN {
 	 */
 	class Kernel {
 	public:
+		/**
+		 * Construct a new kernel object with the given name and id.
+		 */
 		Kernel(const KernelAttr &kattr);
 		~Kernel();
+		/**
+		 * Start the process network.
+		 */
 		void Start(void);
+		/**
+		 * Wait for the process network to end.
+		 * May wait 'forever'.
+		 */
 		void Wait(void);
-		void Terminate(void);
 		
 		NodeBase* CreateNode(const NodeAttr &nattr);
 		NodeBase* GetNode(const ::std::string &name) const;
