@@ -5,6 +5,8 @@
 #ifndef CPN_QUEUEWRITER_H
 #define CPN_QUEUEWRITER_H
 
+#include "common.h"
+
 namespace CPN {
 
 	/**

@@ -14,10 +14,8 @@ namespace CPN {
 	 */
 	class NodeAttr : public Attribute {
 	public:
-		NodeAttr(const ulong ID, const ::std::string &name)
-			: Attribute(ID, name) {}
+		NodeAttr(const ulong ID, const ::std::string &name) : Attribute(ID, name) {}
 	private:
-		// List of input and output ports?
 	};
 }
 #endif

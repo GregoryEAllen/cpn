@@ -29,7 +29,11 @@ namespace CPN {
 	 */
 	class NodeBase: public Pthread {
 	public:
-		NodeBase(Kernel &ker, NodeAttr &attr) : kernel(ker), attr(attr) {}
+		NodeBase(Kernel &ker, const NodeAttr &attr,
+			       	const ::std::string* const inputnames,
+				const ulong numinputs,
+			       	const ::std::string* const outputnames,
+				const ulong numoutputs);
 		/**
 		 * \brief Assign the given writer queue end to the given port name.
 		 */
@@ -53,12 +57,14 @@ namespace CPN {
 		virtual void Process(void) = 0;
 	protected:
 	private:
-		virtual void* EntryPoint(void);
+		void* EntryPoint(void);
 
 		Kernel &kernel;
-
 		const NodeAttr attr;
-
+		const ::std::string* const inputnames;
+		const ulong numinputs;
+		const ::std::string* const outputnames;
+		const ulong numoutputs;
 		std::map<std::string, QueueWriter*> writerqlist;
 		std::map<std::string, QueueReader*> readerqlist;
 	};

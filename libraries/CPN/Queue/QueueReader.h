@@ -4,6 +4,9 @@
 
 #ifndef CPN_QUEUEREADER_H
 #define CPN_QUEUEREADER_H
+
+#include "common.h"
+
 namespace CPN {
 	/**
 	 * \brief Definition of the reader portion of the CPN queue class.

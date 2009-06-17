@@ -4,9 +4,10 @@
 
 #include "ThresholdQueue.h"
 
-CPN::ThresholdQueue::ThresholdQueue(ulong queueLen, ulong maxThresh, ulong numChans=1) :
+CPN::ThresholdQueue::ThresholdQueue(const QueueAttr &attr, ulong queueLen, ulong maxThresh, ulong numChans) :
 // ThresholdQueueBase(ulong elemSize, ulong queueLen, ulong maxThresh, ulong numChans=1);
-	queue(1, queueLen, maxThresh, numChans)
+	queue(1, queueLen, maxThresh, numChans),
+	QueueBase(attr)
 {
 }
 
@@ -15,7 +16,7 @@ CPN::ThresholdQueue::~ThresholdQueue() {
 
 // From QueueWriter
 
-void* CPN::ThresholdQueue::GetRawEnqueuePtr(ulong thresh, ulong chan=0) {
+void* CPN::ThresholdQueue::GetRawEnqueuePtr(ulong thresh, ulong chan) {
 	PthreadMutexProtected protectqlock(qlock);
 	void* ptr = queue.GetRawEnqueuePtr(thresh, chan);
 	while (0 == ptr) {
@@ -53,9 +54,9 @@ bool CPN::ThresholdQueue::Full(void) const {
 
 
 // From QueueReader
-const void* CPN::ThresholdQueue::GetRawDequeuePtr(ulong thresh, ulong chan=0) {
+const void* CPN::ThresholdQueue::GetRawDequeuePtr(ulong thresh, ulong chan) {
 	PthreadMutexProtected protectqlock(qlock);
-	void* ptr = queue.GetRawDequeuePtr(thresh, chan);
+	const void* ptr = queue.GetRawDequeuePtr(thresh, chan);
 	while (0 == ptr) {
 		qwritten.Wait(qlock);
 		ptr = queue.GetRawDequeuePtr(thresh, chan);
@@ -67,16 +68,6 @@ void CPN::ThresholdQueue::Dequeue(ulong count) {
 	PthreadMutexProtected protectqlock(qlock);
 	queue.Dequeue(count);
 	qread.Signal();
-}
-
-ulong CPN::ThresholdQueue::NumChannels(void) const {
-	PthreadMutexProtected protectqlock(qlock);
-	return queue.NumChannels();
-}
-
-ulong CPN::ThresholdQueue::ChannelStride(void) const {
-	PthreadMutexProtected protectqlock(qlock);
-	return queue.ChannelStride();
 }
 
 ulong CPN::ThresholdQueue::Count(void) const {
@@ -92,11 +83,11 @@ bool CPN::ThresholdQueue::Empty(void) const {
 
 // From QueueBase
 
-QueueWriter *CPN::ThresholdQueue::getWriter() {
+CPN::QueueWriter *CPN::ThresholdQueue::GetWriter() {
 	return this;
 }
 
-QueueReader *CPN::ThresholdQueue::getReader() {
+CPN::QueueReader *CPN::ThresholdQueue::GetReader() {
 	return this;
 }
 

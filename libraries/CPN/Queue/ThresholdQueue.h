@@ -23,7 +23,7 @@ namespace CPN {
 		public QueueBase
 	{
 	public:
-		ThresholdQueue(ulong queueLen, ulong maxThresh, ulong numChans=1);
+		ThresholdQueue(const QueueAttr &attr, ulong queueLen, ulong maxThresh, ulong numChans=1);
 		~ThresholdQueue();
 
 		// From QueueWriter
@@ -37,20 +37,20 @@ namespace CPN {
 		// From QueueReader
 		const void* GetRawDequeuePtr(ulong thresh, ulong chan=0);
 		void Dequeue(ulong count);
-		ulong NumChannels(void) const;
-		ulong ChannelStride(void) const;
+		//ulong NumChannels(void) const;
+		//ulong ChannelStride(void) const;
 		ulong Count(void) const;
 		bool Empty(void) const;
 
 		// From QueueBase
-		QueueWriter *getWriter();
-		QueueReader *getReader();
+		QueueWriter *GetWriter();
+		QueueReader *GetReader();
 		ulong ElementsEnqueued(void) const;
 		ulong ElementsDequeued(void) const;
 
 	private:
 		ThresholdQueueBase queue;
-		PthreadMutex qlock;
+		mutable PthreadMutex qlock;
 		PthreadCondition qwritten;
 		PthreadCondition qread;
 	};
