@@ -20,10 +20,10 @@ namespace CPN {
 		/**
 		 * \return the QueueAttr for this queue.
 		 */
-		const QueueAttr &GetAttr(void) const { return qattr; }
+		virtual const QueueAttr &GetAttr(void) const { return qattr; }
 
-		virtual QueueWriter getWriter() = 0;
-		virtual QueueReader getReader() = 0;
+		virtual QueueWriter *getWriter() = 0;
+		virtual QueueReader *getReader() = 0;
 
 		/**
 		 * Get the total number of elements enqueued over the 

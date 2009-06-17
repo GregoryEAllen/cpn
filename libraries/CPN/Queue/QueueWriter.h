@@ -70,11 +70,6 @@ namespace CPN {
 		 * \return true if the queue is full, false otherwise
 		 */
 		virtual bool Full(void) const = 0;
-
-		/**
-		 * \return The QueueAttr for the queue this end point belongs to.
-		 */
-		virtual const QueueAttr &GetQueueAttr(void) const = 0;
 	};
 
 }
