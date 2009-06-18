@@ -1,0 +1,65 @@
+/** \file
+ * \brief Provide a very simple semaphore class.
+ */
+
+#ifndef SEMAPHORE_H
+#define SEMAPHORE_H
+
+#include "PthreadMutex.h"
+#include "PthreadCondition.h"
+
+/**
+ * A very simple semaphore implemented using a mutex
+ * and a condition variable.
+ * No timed wait or try wait functionality provided.
+ *
+ * This implementation allows one to do bulk post to
+ * the semaphore.
+ */
+class Semaphore {
+public:
+	typedef unsigned long ulong;
+	Semaphore() : value(0) { }
+
+	Semaphore(ulong value) : value(value) { }
+
+	/**
+	 * Post to num to the semaphore.
+	 *
+	 * \param num how many to add to the semaphore (default 1)
+	 */
+	void Post(ulong num = 1) {
+		PthreadMutexProtected l(lock);
+		value += num;
+		// broadcast because we might have
+		// more than one thread waiting
+		cond.Broadcast();
+	}
+
+	/**
+	 * Wait for the semaphore to be greater than 0
+	 * and then decrement by one.
+	 */
+	void Wait(void) {
+		PthreadMutexProtected l(lock);
+		while (0 == value) {
+			cond.Wait(lock);
+		}
+		--value;
+	}
+
+	/**
+	 * \return the current value of the semaphore.
+	 */
+	ulong GetValue(void) {
+		PthreadMutexProtected l(lock);
+		return value;
+	}
+private:
+	ulong value;
+	PthreadMutex lock;
+	PthreadCondition cond;
+};
+
+#endif
+

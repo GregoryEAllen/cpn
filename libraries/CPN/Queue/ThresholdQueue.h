@@ -29,16 +29,16 @@ namespace CPN {
 		// From QueueWriter
 		void* GetRawEnqueuePtr(ulong thresh, ulong chan=0);
 		void Enqueue(ulong count);
+		bool RawEnqueue(void* data, ulong count, ulong chan=0);
 		ulong NumChannels(void) const;
-		ulong ChannelStride(void) const;
 		ulong Freespace(void) const;
 		bool Full(void) const;
 
 		// From QueueReader
 		const void* GetRawDequeuePtr(ulong thresh, ulong chan=0);
 		void Dequeue(ulong count);
+		bool RawDequeue(void * data, ulong count, ulong chan = 0);
 		//ulong NumChannels(void) const;
-		//ulong ChannelStride(void) const;
 		ulong Count(void) const;
 		bool Empty(void) const;
 
@@ -48,6 +48,7 @@ namespace CPN {
 		ulong ElementsEnqueued(void) const;
 		ulong ElementsDequeued(void) const;
 
+		ulong ChannelStride(void) const;
 	private:
 		ThresholdQueueBase queue;
 		mutable PthreadMutex qlock;

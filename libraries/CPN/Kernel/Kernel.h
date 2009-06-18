@@ -11,9 +11,9 @@
 #include <string>
 
 namespace CPN {
-	// Forward class declarations.
-	class NodeBase;
-	class QueueBase;
+
+	class QueueReader;
+	class QueueWriter;
 
 	/**
 	 * \brief The Kernel declaration.
@@ -30,25 +30,32 @@ namespace CPN {
 		 */
 		Kernel(const KernelAttr &kattr);
 		~Kernel();
-		/**
-		 * Start the process network.
-		 */
-		void Start(void);
+
 		/**
 		 * Wait for the process network to end.
 		 * May wait 'forever'.
 		 */
 		void Wait(void);
 		
-		NodeBase* CreateNode(const NodeAttr &nattr);
-		NodeBase* GetNode(const ::std::string &name) const;
-		NodeBase* GetNode(const ulong id) const;
+		void CreateNode(const NodeAttr &nattr);
 
-		QueueBase* CreateQueue(const QueueAttr &qattr);
-		QueueBase* GetQueue(const ::std::string &name) const;
-		QueueBase* GetQueue(const ulong id) const;
+		void CreateQueue(const QueueAttr &qattr);
 
-		void NodeTerminated(NodeBase* node);
+		void ConnectWriteEndpoint(const ::std::string &qname,
+				const ::std::string &nodename,
+				const ::std::string &portname);
+
+		void ConnectReadEndpoint(const ::std::string &qname,
+				const ::std::string &nodename,
+				const ::std::string &portname);
+
+		QueueReader* GetReader(const ::std::string &nodename,
+				const ::std::string &portname);
+
+		QueueWriter* GetWriter(const ::std::string &nodename,
+				const ::std::string &portname);
+
+		void NodeTerminated(const NodeAttr &attr);
 
 		const KernelAttr &GetAttr(void) const { return kattr; }
 	private:
