@@ -17,20 +17,15 @@ namespace CPN {
 	class QueueReader {
 	public:
 		/**
-		 * Get a pointer to a buffer containing elements.  This
-		 * function will block until there are thresh elements
-		 * available.
+		 * Get a pointer to a buffer containing elements.
 		 *
-		 * \note a call to this function without an accompanying call
-		 * to Dequeue is undefined. 
 		 * \note access to the memory locations pointed to by the
 		 * returned pointer after Dequeue has been called is undefined.
-		 * \note Two calls to this function back to back may return
-		 * different pointers.
 		 *
-		 * \param thresh the number of elements to get \param chan the
-		 * channel to use \return A void* to a block of memory
-		 * containing thresh elements
+		 * \param thresh the number of bytes to get
+		 * \param chan the channel to use
+		 * \return A void* to a block of memory containing thresh bytes
+		 * or 0 if there are not thresh bytes available.
 		 */
 		virtual const void* GetRawDequeuePtr(ulong thresh, ulong
 				chan=0) = 0;
@@ -39,20 +34,32 @@ namespace CPN {
 		 * This function is used to remove elements from the queue.
 		 * count elements will be removed from the queue when this function is
 		 * called.
-		 * \param count the number of elements to remove from the queue
+		 * \param count the number of bytes to remove from the queue
 		 */
 		virtual void Dequeue(ulong count) = 0;
+
+		/**
+		 * Dequeue data from the queue directly into the memory pointed to by
+		 * data.
+		 * This function shall be equivalent to
+		 * <code>
+		 * void* dest = q->GetRawDequeuePtr(count, chan);
+		 * if (!dest) return false;
+		 * memcpy(dest, data, count);
+		 * q->Dequeue(count);
+		 * return true;
+		 * </code>
+		 * \param data poiner to memory to dequeue to
+		 * \param count the number of bytes to copy into data
+		 * \param chan the channel
+		 * \return true on success false on failure
+		 */
+		virtual bool RawDequeue(void * data, ulong count, ulong chan = 0);
 
 		/**
 		 * \return the number of channels supported by this queue.
 		 */
 		virtual ulong NumChannels(void) const = 0;
-
-		/**
-		 * The distance in memory in elements between channels.
-		 * !!! Confirm
-		 */
-		virtual ulong ChannelStride(void) const = 0;
 
 		/**
 		 * An accessor method for the number of elements currently in
