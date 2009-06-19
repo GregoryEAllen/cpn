@@ -9,12 +9,18 @@
 #include "QueueAttr.h"
 #include "KernelAttr.h"
 #include <string>
+#include <map>
 
 namespace CPN {
 
 	class QueueReader;
 	class QueueWriter;
+	class QueueBase;
+	class NodeInfo;
+	class NodeBase;
 
+	typedef NodeBase* (*NodeFactory_t)(const void* const);
+	typedef void (*NodeDestructor_t)(NodeBase*);
 	/**
 	 * \brief The Kernel declaration.
 	 * The purpose of the kernel object is to keep track
@@ -37,9 +43,16 @@ namespace CPN {
 		 */
 		void Wait(void);
 		
-		void CreateNode(const NodeAttr &nattr);
+		void RegisterNodeType(const ::std::string &nodetype,
+				NodeFactory_t factory,
+				NodeDestructor_t destructor);
 
-		void CreateQueue(const QueueAttr &qattr);
+		void CreateNode(const ::std::string &nodename,
+				const ::std::string &nodetype,
+				const void* const arg);
+
+		void CreateQueue(const ::std::string &queuename,
+				const ::std::string &queuetype);
 
 		void ConnectWriteEndpoint(const ::std::string &qname,
 				const ::std::string &nodename,
@@ -60,6 +73,10 @@ namespace CPN {
 		const KernelAttr &GetAttr(void) const { return kattr; }
 	private:
 		const KernelAttr kattr;
+
+		::std::map<std::string, NodeInfo*> nodeMap;
+		::std::map<std::string, QueueBase*> queueMap;
+		::std::map<std::string, std::pair<NodeFactory_t, NodeDestructor_t> > factoryMap;
 	};
 }
 #endif

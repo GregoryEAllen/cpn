@@ -35,5 +35,6 @@ namespace CPN {
 
 		const NodeAttr attr;
 	};
+
 }
 #endif

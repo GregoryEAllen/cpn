@@ -14,8 +14,13 @@ namespace CPN {
 	 */
 	class NodeAttr : public Attribute {
 	public:
-		NodeAttr(const ulong ID, const ::std::string &name) : Attribute(ID, name) {}
+		NodeAttr(const ulong id_, const ::std::string &name_,
+				const ::std::string &nodetype_) :
+		       	Attribute(id_, name_), nodetype(nodetype_) {}
+
+		const ::std::string &GetNodeType(void) const { return nodetype; }
 	private:
+		const ::std::string nodetype;
 	};
 }
 #endif

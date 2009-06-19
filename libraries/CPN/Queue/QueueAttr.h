@@ -13,6 +13,10 @@ namespace CPN {
 	public:
 		QueueAttr(const ulong ID, const ::std::string &name)
 			: Attribute(ID, name) {}
+	private:
+		const ulong queueLength;
+		const ulong queueMaxThreshold;
+		const ulong numChannels;
 	};
 }
 #endif
