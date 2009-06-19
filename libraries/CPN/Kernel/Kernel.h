@@ -5,9 +5,9 @@
 #ifndef CPN_KERNEL_H
 #define CPN_KERNEL_H
 
-#include "NodeAttr.h"
-#include "QueueAttr.h"
 #include "KernelAttr.h"
+#include "NodeFactory.h"
+#include "QueueFactory.h"
 #include <string>
 #include <map>
 
@@ -15,12 +15,9 @@ namespace CPN {
 
 	class QueueReader;
 	class QueueWriter;
-	class QueueBase;
 	class NodeInfo;
-	class NodeBase;
+	class QueueInfo;
 
-	typedef NodeBase* (*NodeFactory_t)(const void* const);
-	typedef void (*NodeDestructor_t)(NodeBase*);
 	/**
 	 * \brief The Kernel declaration.
 	 * The purpose of the kernel object is to keep track
@@ -43,16 +40,20 @@ namespace CPN {
 		 */
 		void Wait(void);
 		
-		void RegisterNodeType(const ::std::string &nodetype,
-				NodeFactory_t factory,
-				NodeDestructor_t destructor);
+		void RegisterNodeType(const ::std::string &nodetype, NodeFactory &factory);
+
+		void RegisterQueueType(const ::std::string &queuetype, QueueFactory &factory);
 
 		void CreateNode(const ::std::string &nodename,
 				const ::std::string &nodetype,
-				const void* const arg);
+				const void* const arg,
+				const ulong argsize);
 
 		void CreateQueue(const ::std::string &queuename,
-				const ::std::string &queuetype);
+				const ::std::string &queuetype,
+				const ulong queueLength,
+				const ulong maxThreshold,
+				const ulong numChannels);
 
 		void ConnectWriteEndpoint(const ::std::string &qname,
 				const ::std::string &nodename,
@@ -75,8 +76,12 @@ namespace CPN {
 		const KernelAttr kattr;
 
 		::std::map<std::string, NodeInfo*> nodeMap;
-		::std::map<std::string, QueueBase*> queueMap;
-		::std::map<std::string, std::pair<NodeFactory_t, NodeDestructor_t> > factoryMap;
+		::std::map<std::string, QueueInfo*> queueMap;
+		::std::map<std::string, NodeFactory> nodeFactories;
+		::std::map<std::string, QueueFactory> queueFactories;
+
+		Kernel(const Kernel&) {};
+		Kernel &operator=(const Kernel&) {};
 	};
 }
 #endif

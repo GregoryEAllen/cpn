@@ -50,7 +50,7 @@ namespace CPN {
 		 * <code>
 		 * void* dest = q->GetRawEnqueuePtr(count, chan);
 		 * if (!dest) return false;
-		 * memcpy(data, dest, count);
+		 * memcpy(dest, data, count);
 		 * q->Enqueue(count);
 		 * return true;
 		 * </code>
@@ -58,6 +58,10 @@ namespace CPN {
 		 * The underlying implementatin may implement ether the
 		 * GetRawEnqueuePtr and Enqueue or RawEnqueue and
 		 * then implement the other in terms of the one implemented.
+		 *
+		 * This function does not make sense when there is more than
+		 * one channel.
+		 *
 		 * \param data pointer to the memory to enqueue
 		 * \param count the number of bytes to enqueue
 		 * \param chan the channel to enqueue

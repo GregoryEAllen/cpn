@@ -43,12 +43,16 @@ namespace CPN {
 		 * data.
 		 * This function shall be equivalent to
 		 * <code>
-		 * void* dest = q->GetRawDequeuePtr(count, chan);
-		 * if (!dest) return false;
-		 * memcpy(dest, data, count);
+		 * void* src = q->GetRawDequeuePtr(count, chan);
+		 * if (!src) return false;
+		 * memcpy(data, src, count);
 		 * q->Dequeue(count);
 		 * return true;
 		 * </code>
+		 *
+		 * This function does not make sense when there is more
+		 * than one channel.
+		 *
 		 * \param data poiner to memory to dequeue to
 		 * \param count the number of bytes to copy into data
 		 * \param chan the channel

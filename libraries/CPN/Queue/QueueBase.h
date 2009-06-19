@@ -6,12 +6,20 @@
 
 #include "common.h"
 #include "QueueAttr.h"
+#include "QueueWriter.h"
+#include "QueueReader.h"
 
 namespace CPN {
+
+	class PthreadCondition;
+
 	/**
 	 * The base class for all queues in the CPN library.
 	 */
-	class QueueBase {
+	class QueueBase :
+		public QueueReader,
+		public QueueWriter
+	{
 	public:
 		QueueBase(const QueueAttr &qattr) : qattr(qattr) {}
 
@@ -21,9 +29,6 @@ namespace CPN {
 		 * \return the QueueAttr for this queue.
 		 */
 		virtual const QueueAttr &GetAttr(void) const { return qattr; }
-
-		virtual QueueWriter *GetWriter() = 0;
-		virtual QueueReader *GetReader() = 0;
 
 		/**
 		 * Get the total number of elements enqueued over the 
@@ -38,6 +43,19 @@ namespace CPN {
 		 * \return the number of elements.
 		 */
 		virtual ulong ElementsDequeued(void) const = 0;
+
+		/*
+		// Possible implementation for D4R message passing. 
+		virtual void PutReaderMessage(void* data, ulong count);
+		virtual bool GetReaderMessage(void* data, ulong count);
+		virtual void PutWriterMessage(void* data, ulong count);
+		virtual bool GetReaderMessage(void* data, ulong count);
+		*/
+
+		// Implementation for unblocking...
+		virtual void RegisterReaderEvent(PthreadCondition* evt);
+		virtual void RegisterWriterEvent(PthreadCondition* evt);
+
 	private:
 		const QueueAttr qattr;
 	};

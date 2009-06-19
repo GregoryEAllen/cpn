@@ -4,10 +4,11 @@
 
 #include "ThresholdQueue.h"
 
-CPN::ThresholdQueue::ThresholdQueue(const QueueAttr &attr, ulong queueLen, ulong maxThresh, ulong numChans) :
+CPN::ThresholdQueue::ThresholdQueue(const QueueAttr &attr) :
 // ThresholdQueueBase(ulong elemSize, ulong queueLen, ulong maxThresh, ulong numChans=1);
-	queue(1, queueLen, maxThresh, numChans),
-	QueueBase(attr)
+	queue(1, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels()),
+	QueueBase(attr),
+	readerEvent(0), writerEvent(0)
 {
 }
 
@@ -18,18 +19,23 @@ CPN::ThresholdQueue::~ThresholdQueue() {
 
 void* CPN::ThresholdQueue::GetRawEnqueuePtr(ulong thresh, ulong chan) {
 	PthreadMutexProtected protectqlock(qlock);
-	void* ptr = queue.GetRawEnqueuePtr(thresh, chan);
-	while (0 == ptr) {
-		qread.Wait(qlock);
-		ptr = queue.GetRawEnqueuePtr(thresh, chan);
-	}
-	return ptr;
+	return queue.GetRawEnqueuePtr(thresh, chan);
 }
 
 void CPN::ThresholdQueue::Enqueue(ulong count) {
 	PthreadMutexProtected protectqlock(qlock);
 	queue.Enqueue(count);
-	qwritten.Signal();
+	if (readerEvent) readerEvent.Signal();
+}
+
+bool CPN::ThresholdQueue::RawEnqueue(void * data, ulong count, ulong chan) {
+	PthreadMutexProtected protectqlock(qlock);
+	void* dest = queue.GetRawEnqueuePtr(count, chan);
+	if (!dest) return false;
+	memcpy(dest, data, count);
+	queue.Enqueue(count);
+	if (readerEvent) readerEvent.Signal();
+	return true;
 }
 
 ulong CPN::ThresholdQueue::NumChannels(void) const {
@@ -56,18 +62,23 @@ bool CPN::ThresholdQueue::Full(void) const {
 // From QueueReader
 const void* CPN::ThresholdQueue::GetRawDequeuePtr(ulong thresh, ulong chan) {
 	PthreadMutexProtected protectqlock(qlock);
-	const void* ptr = queue.GetRawDequeuePtr(thresh, chan);
-	while (0 == ptr) {
-		qwritten.Wait(qlock);
-		ptr = queue.GetRawDequeuePtr(thresh, chan);
-	}
-	return ptr;
+	return queue.GetRawDequeuePtr(thresh, chan);
 }
 
 void CPN::ThresholdQueue::Dequeue(ulong count) {
 	PthreadMutexProtected protectqlock(qlock);
 	queue.Dequeue(count);
-	qread.Signal();
+	if (writerEvent) writerEvent.Signal();
+}
+
+bool CPN::ThresholdQueue::RawDequeue(void * data, ulong count, ulong chan) {
+	PthreadMutexProtected protectqlock(qlock);
+	void* src = queue.GetRawDequeuePtr(count, chan);
+	if (!src) return false;
+	memcpy(data, src, count);
+	queue.Dequeue(count);
+	if (writerEvent) writerEvent.Signal();
+	return true;
 }
 
 ulong CPN::ThresholdQueue::Count(void) const {
@@ -83,14 +94,6 @@ bool CPN::ThresholdQueue::Empty(void) const {
 
 // From QueueBase
 
-CPN::QueueWriter *CPN::ThresholdQueue::GetWriter() {
-	return this;
-}
-
-CPN::QueueReader *CPN::ThresholdQueue::GetReader() {
-	return this;
-}
-
 ulong CPN::ThresholdQueue::ElementsEnqueued(void) const {
 	PthreadMutexProtected protectqlock(qlock);
 	return queue.ElementsEnqueued();
@@ -100,5 +103,4 @@ ulong CPN::ThresholdQueue::ElementsDequeued(void) const {
 	PthreadMutexProtected protectqlock(qlock);
 	return queue.ElementsDequeued();
 }
-
 
