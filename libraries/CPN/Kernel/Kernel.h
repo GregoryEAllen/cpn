@@ -8,6 +8,7 @@
 #include "KernelAttr.h"
 #include "NodeFactory.h"
 #include "QueueFactory.h"
+#include "PthreadMutex.h"
 #include <string>
 #include <map>
 
@@ -40,9 +41,9 @@ namespace CPN {
 		 */
 		void Wait(void);
 		
-		void RegisterNodeType(const ::std::string &nodetype, NodeFactory &factory);
+		//void RegisterNodeType(const ::std::string &nodetype, NodeFactory &factory);
 
-		void RegisterQueueType(const ::std::string &queuetype, QueueFactory &factory);
+		//void RegisterQueueType(const ::std::string &queuetype, QueueFactory &factory);
 
 		void CreateNode(const ::std::string &nodename,
 				const ::std::string &nodetype,
@@ -73,15 +74,15 @@ namespace CPN {
 
 		const KernelAttr &GetAttr(void) const { return kattr; }
 	private:
+		PthreadMutex lock;
+
 		const KernelAttr kattr;
 
 		::std::map<std::string, NodeInfo*> nodeMap;
 		::std::map<std::string, QueueInfo*> queueMap;
-		::std::map<std::string, NodeFactory> nodeFactories;
-		::std::map<std::string, QueueFactory> queueFactories;
 
-		Kernel(const Kernel&) {};
-		Kernel &operator=(const Kernel&) {};
+		Kernel(const Kernel&);
+		Kernel &operator=(const Kernel&);
 	};
 }
 #endif

@@ -45,7 +45,7 @@ namespace CPN {
 		ulong NumChannels(void) const {
 			PthreadMutexProtected protectlock(lock);
 			CheckQueue();
-			return queue->NumChannels();
+			return ((QueueReader*)queue)->NumChannels();
 		}
 		ulong Count(void) const {
 			PthreadMutexProtected protectlock(lock);
@@ -62,7 +62,7 @@ namespace CPN {
 			PthreadMutexProtected protectlock(lock);
 			if (queue) queue->RegisterReaderEvent(0);
 			queue = queue_;
-			if (queue) queue->RegisterReaderEvent(event);
+			if (queue) queue->RegisterReaderEvent(&event);
 			event.Signal();
 		}
 
@@ -70,7 +70,7 @@ namespace CPN {
 		void CheckQueue(void) const {
 			while (!queue) event.Wait(lock);
 		}
-		PthreadCondition event;
+		mutable PthreadCondition event;
 		mutable PthreadMutex lock;
 		QueueBase* queue;
 	};

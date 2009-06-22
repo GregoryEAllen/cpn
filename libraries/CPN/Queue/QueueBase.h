@@ -9,9 +9,9 @@
 #include "QueueWriter.h"
 #include "QueueReader.h"
 
-namespace CPN {
+class PthreadCondition;
 
-	class PthreadCondition;
+namespace CPN {
 
 	/**
 	 * The base class for all queues in the CPN library.

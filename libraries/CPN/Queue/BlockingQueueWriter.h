@@ -18,7 +18,7 @@ namespace CPN {
 		void* GetRawEnqueuePtr(ulong thresh, ulong chan=0) {
 			PthreadMutexProtected protectlock(lock);
 			CheckQueue();
-			const void* ptr = queue->GetRawEnqueuePtr(thresh, chan);
+			void* ptr = queue->GetRawEnqueuePtr(thresh, chan);
 			while (!ptr) {
 				event.Wait(lock);
 				ptr = queue->GetRawEnqueuePtr(thresh, chan);
@@ -42,7 +42,7 @@ namespace CPN {
 		ulong NumChannels(void) const {
 			PthreadMutexProtected protectlock(lock);
 			CheckQueue();
-			return queue->NumChannels();
+			return ((QueueWriter*)queue)->NumChannels();
 		}
 		ulong Freespace(void) const {
 			PthreadMutexProtected protectlock(lock);
@@ -59,15 +59,16 @@ namespace CPN {
 			PthreadMutexProtected protectlock(lock);
 			if (queue) queue->RegisterWriterEvent(0);
 			queue = queue_;
-			if (queue) queue->RegisterWriterEvent(event);
+			if (queue) queue->RegisterWriterEvent(&event);
 			event.Signal();
 		}
 
 	private:
 		void CheckQueue(void) const {
 			while (!queue) event.Wait(lock);
-		}
-		PthreadCondition event;
+		};
+
+		mutable PthreadCondition event;
 		mutable PthreadMutex lock;
 		QueueBase* queue;
 	};

@@ -15,8 +15,8 @@ namespace Examples {
 		~ExClass() {
 			printf("ExClass(%4d) destroyed\n", id);
 		}
-		void func1(void);
-	private:
+		virtual void func1(void);
+	protected:
 		static int ids;
 		int id;
 	};

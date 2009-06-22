@@ -16,6 +16,9 @@ namespace CPN {
 	 */
 	class QueueReader {
 	public:
+
+		virtual ~QueueReader() {}
+
 		/**
 		 * Get a pointer to a buffer containing elements.
 		 *
@@ -58,7 +61,7 @@ namespace CPN {
 		 * \param chan the channel
 		 * \return true on success false on failure
 		 */
-		virtual bool RawDequeue(void * data, ulong count, ulong chan = 0);
+		virtual bool RawDequeue(void * data, ulong count, ulong chan = 0) = 0;
 
 		/**
 		 * \return the number of channels supported by this queue.

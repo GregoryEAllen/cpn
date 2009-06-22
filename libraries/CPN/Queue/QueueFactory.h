@@ -15,6 +15,8 @@ namespace CPN {
 	class QueueFactory {
 	public:
 
+		virtual ~QueueFactory() {}
+
 		virtual QueueBase* Create(const QueueAttr &attr);
 
 		virtual void Destroy(QueueBase* Queue);

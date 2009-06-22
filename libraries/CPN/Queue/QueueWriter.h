@@ -18,6 +18,8 @@ namespace CPN {
 	class QueueWriter {
 	public:
 
+		virtual ~QueueWriter() {}
+
 		/**
 		 * Return a pointer to a buffer of memory that contains
 		 * thresh entries that we can write into.
@@ -67,7 +69,7 @@ namespace CPN {
 		 * \param chan the channel to enqueue
 		 * \return true on success false if not enough space available
 		 */
-		virtual bool RawEnqueue(void* data, ulong count, ulong chan=0);
+		virtual bool RawEnqueue(void* data, ulong count, ulong chan=0) = 0;
 
 		/**
 		 * \return the number of channels supported by this queue.

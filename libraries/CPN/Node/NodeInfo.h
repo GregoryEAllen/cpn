@@ -18,38 +18,38 @@ namespace CPN {
 	 */
 	class NodeInfo {
 	public:
-		NodeInfo(Kernel &ker, NodeFactory& factory_, const NodeAttr attr,
+		NodeInfo(Kernel &ker, NodeFactory* factory_, const NodeAttr attr,
 			const void* const arg, const ulong argsize)
 	       : factory(factory_)
 		{
-			node = factory.Create(ker, attr, arg, argsize);
+			node = factory->Create(ker, attr, arg, argsize);
 		}
 
 		~NodeInfo() {
-			factory.Destroy(node);
+			factory->Destroy(node);
 			node = 0;
 		}
 
 		void SetWriter(std::string name, QueueWriter* qwriter) {
-			inputs[name] = qwriter;
+			outputs[name] = qwriter;
 		}
 
 		QueueWriter* GetWriter(std::string name) {
-			return inputs[name];
+			return outputs[name];
 		}
 
 		void SetReader(std::string name, QueueReader* qreader) {
-			outputs[name] = qreader;
+			inputs[name] = qreader;
 		}
 
 		QueueReader* GetReader(std::string name) {
-			return outputs[name];
+			return inputs[name];
 		}
 
 		NodeBase* GetNode(void) { return node; }
 
 	private:
-		NodeFactory factory;
+		NodeFactory* factory;
 		NodeBase* node;
 		std::map<std::string, QueueReader*> inputs;
 		std::map<std::string, QueueWriter*> outputs;

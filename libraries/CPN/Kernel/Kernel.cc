@@ -22,21 +22,27 @@ Kernel::~Kernel() {}
 
 void Kernel::Wait(void) {}
 
+/*
 void Kernel::RegisterNodeType(const ::std::string &nodetype, NodeFactory &factory) {
+	PthreadMutexProtected plock(lock); 
 	// !!! Add error checking?
 	nodeFactories[nodetype] = factory;
 }
 
 void Kernel::RegisterQueueType(const ::std::string &queuetype, QueueFactory &factory) {
+	PthreadMutexProtected plock(lock); 
 	// !!! Add error checking?
 	queueFactories[queuetype] = factory;
 }
+*/
 
 void Kernel::CreateNode(const ::std::string &nodename,
 		const ::std::string &nodetype,
 		const void* const arg,
 		const ulong argsize) {
+	PthreadMutexProtected plock(lock); 
 	// Verify that nodename doesn't already exist.
+	if (nodeMap[nodename]) return;
 	// Verify that we know what nodetype is.
 	// Create the NodeAttr object.
 	// Create the NodeInfo structure (which creates the node)
@@ -48,6 +54,7 @@ void Kernel::CreateQueue(const ::std::string &queuename,
 		const ulong queueLength,
 		const ulong maxThreshold,
 		const ulong numChannels) {
+	PthreadMutexProtected plock(lock); 
 	// Verify that queuename doesn't already exist.
 	// Verify that we know what queuetype is.
 	// Generate the QueueAttr object.
@@ -58,6 +65,7 @@ void Kernel::CreateQueue(const ::std::string &queuename,
 void Kernel::ConnectWriteEndpoint(const ::std::string &qname,
 		const ::std::string &nodename,
 		const ::std::string &portname) {
+	PthreadMutexProtected plock(lock); 
 	// Validate that qname and nodename exist
 	// Lookup the queue
 	// Unregister the write end of the queue from it's registered
@@ -68,6 +76,7 @@ void Kernel::ConnectWriteEndpoint(const ::std::string &qname,
 void Kernel::ConnectReadEndpoint(const ::std::string &qname,
 		const ::std::string &nodename,
 		const ::std::string &portname) {
+	PthreadMutexProtected plock(lock); 
 	// Validate qname and nodename.
 	// Look up the queue
 	// Unregister the queue from it's read port if applicable.
@@ -76,23 +85,28 @@ void Kernel::ConnectReadEndpoint(const ::std::string &qname,
 
 QueueReader* Kernel::GetReader(const ::std::string &nodename,
 		const ::std::string &portname) {
+	PthreadMutexProtected plock(lock); 
 	// Validate nodename
 	// Lookup nodeinfo
 	// Check if reader exists.
 	// If not create new reader and add it.
 	// return the reader.
+	return 0;
 }
 
 QueueWriter* Kernel::GetWriter(const ::std::string &nodename,
 		const ::std::string &portname) {
+	PthreadMutexProtected plock(lock); 
 	// Validate nodename
 	// lookup nodeinfo.
 	// check if writer exists.
 	// if not create new writer and add it.
 	// return the writer.
+	return 0;
 }
 
 void Kernel::NodeTerminated(const NodeAttr &attr) {
+	PthreadMutexProtected plock(lock); 
 	// Lookup the nodeinfo
 	// Unregister all ports.
 	// delete the nodeinfo object.
