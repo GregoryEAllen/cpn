@@ -19,6 +19,8 @@ namespace CPN {
 
 		virtual QueueInfo* GetQueue(void) = 0;
 
+		virtual PthreadCondition* GetEvent(void) = 0;
+
 		NodeInfo* GetNodeInfo(void) const { return nodeinfo; }
 
 		const std::string &GetPortName(void) const { return portname; }

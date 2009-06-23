@@ -15,9 +15,11 @@ namespace CPN {
 		NodeQueueReader(const NodeInfo* nodeinfo_, const std::string &portname_)
 			: nodeinfo(nodeinfo_), portname(portname_) {}
 
-		virtual void SetQueue(QueueInfo* queue_) = 0;
+		virtual void SetQueue(QueueInfo* queueinfo_) = 0;
 
 		virtual QueueInfo* GetQueue(void) = 0;
+
+		virtual PthreadCondition* GetEvent(void) = 0;
 
 		NodeInfo* GetNodeInfo(void) const { return nodeinfo; }
 

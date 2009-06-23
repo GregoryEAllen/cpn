@@ -7,6 +7,7 @@
 
 #include "PthreadMutex.h"
 #include "PthreadCondition.h"
+#include "MutexBase.h"
 
 /**
  * A very simple semaphore implemented using a mutex
@@ -16,7 +17,7 @@
  * This implementation allows one to do bulk post to
  * the semaphore.
  */
-class Semaphore {
+class Semaphore : public MutexBase {
 public:
 	typedef unsigned long ulong;
 	Semaphore() : value(0) { }
@@ -35,6 +36,8 @@ public:
 		// more than one thread waiting
 		cond.Broadcast();
 	}
+
+	void Release(void) { Post(); }
 
 	/**
 	 * Wait for the semaphore to be greater than 0

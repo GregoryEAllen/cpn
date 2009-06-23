@@ -5,80 +5,51 @@
 #define CPN_BLOCKINGQUEUEWRITER_H
 
 #include "NodeQueueWriter.h"
-#include "QueueBase.h"
 #include "PthreadMutex.h"
 #include "PthreadCondition.h"
 
 namespace CPN {
 
+	class QueueInfo;
+	class NodeInfo;
+	class QueueBase;
+
 	class BlockingQueueWriter : public NodeQueueWriter {
 	public:
-		BlockingQueueWriter() : queue(0) {}
+		BlockingQueueWriter(const NodeInfo* nodeinf, const std::string &portname)
+		       	: NodeQueueWriter(nodeinfo, portname), queueinfo(0) {}
 
-		~BlockingQueueWriter() {
-			SetQueue(0);
-		}
+		~BlockingQueueWriter() { SetQueue(0); }
 
-		void* GetRawEnqueuePtr(ulong thresh, ulong chan=0) {
-			PthreadMutexProtected protectlock(lock);
-			CheckQueue();
-			void* ptr = queue->GetRawEnqueuePtr(thresh, chan);
-			while (!ptr) {
-				event.Wait(lock);
-				ptr = queue->GetRawEnqueuePtr(thresh, chan);
-			}
-			return ptr;
-		}
-		void Enqueue(ulong count) {
-			PthreadMutexProtected protectlock(lock);
-			CheckQueue();
-			queue->Enqueue(count);
-		}
-		bool RawEnqueue(void* data, ulong count, ulong chan=0) {
-			PthreadMutexProtected protectlock(lock);
-			CheckQueue();
-			while (!queue->RawEnqueue(data, count, chan)) {
-				event.Wait(lock);
-			}
-			return true;
+		// From QueueWriter
+		void* GetRawEnqueuePtr(ulong thresh, ulong chan=0);
 
-		}
-		ulong NumChannels(void) const {
-			PthreadMutexProtected protectlock(lock);
-			CheckQueue();
-			return ((QueueWriter*)queue)->NumChannels();
-		}
-		ulong Freespace(void) const {
-			PthreadMutexProtected protectlock(lock);
-			CheckQueue();
-			return queue->Freespace();
-		}
-		bool Full(void) const {
-			PthreadMutexProtected protectlock(lock);
-			CheckQueue();
-			return queue->Full();
-		}
+		void Enqueue(ulong count);
 
-		/**
-		 * Set the queue that this writer uses.
-		 * \param queue_ the queue to use or 0 to remove
-		 */
-		void SetQueue(QueueBase* queue_) {
-			PthreadMutexProtected protectlock(lock);
-			if (queue) queue->RegisterWriterEvent(0);
-			queue = queue_;
-			if (queue) queue->RegisterWriterEvent(&event);
-			event.Signal();
-		}
+		bool RawEnqueue(void* data, ulong count, ulong chan=0);
+
+		ulong NumChannels(void) const;
+
+		ulong Freespace(void) const;
+
+		bool Full(void) const;
+
+		// From NodeQueueWriter
+		void SetQueue(QueueInfo* queueinfo_);
+
+		QueueInfo* GetQueue(void);
+
+		PthreadCondition* GetEvent(void) { return event; }
 
 	private:
-		void CheckQueue(void) const {
-			while (!queue) event.Wait(lock);
+		QueueBase* CheckQueue(void) const {
+			while (!queueinfo) event.Wait(lock);
+			return queueinfo->GetQueue();
 		};
 
 		mutable PthreadCondition event;
 		mutable PthreadMutex lock;
-		QueueBase* queue;
+		QueueInfo* queueinfo;
 	};
 }
 

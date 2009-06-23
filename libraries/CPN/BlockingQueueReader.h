@@ -5,82 +5,50 @@
 #define CPN_BLOCKINGQUEUEREADER_H
 
 #include "NodeQueueReader.h"
-#include "QueueBase.h"
 #include "PthreadMutex.h"
 #include "PthreadCondition.h"
 
 namespace CPN {
 
+	class QueueInfo;
+	class QueueBase;
+	class NodeInfo;
+
 	class BlockingQueueReader : public NodeQueueReader {
 	public:
-		BlockingQueueReader() : queue(0) {}
+		BlockingQueueReader(const NodeInfo* nodeinfo, const std::string &portname)
+		       	: NodeQueueReader(nodeinfo, portname), queueinfo(0) {}
 
-		~BlockingQueueReader() {
-			SetQueue(0);
-		}
+		~BlockingQueueReader() { SetQueue(0); }
 
 		// From QueueReader
-		const void* GetRawDequeuePtr(ulong thresh, ulong chan=0) {
-			PthreadMutexProtected protectlock(lock);
-			CheckQueue();
-			const void* ptr = queue->GetRawDequeuePtr(thresh, chan);
-			while (!ptr) {
-				event.Wait(lock);
-				ptr = queue->GetRawDequeuePtr(thresh, chan);
-			}
-			return ptr;
-		}
+		const void* GetRawDequeuePtr(ulong thresh, ulong chan=0);
 
-		void Dequeue(ulong count) {
-			PthreadMutexProtected protectlock(lock);
-			CheckQueue();
-			queue->Dequeue(count);
-		}
+		void Dequeue(ulong count);
 
-		bool RawDequeue(void * data, ulong count, ulong chan=0) {
-			PthreadMutexProtected protectlock(lock);
-			CheckQueue();
-			while (!queue->RawDequeue(data, count, chan)) {
-				event.Wait(lock);
-			}
-			return true;
-		}
+		bool RawDequeue(void * data, ulong count, ulong chan=0);
 
-		ulong NumChannels(void) const {
-			PthreadMutexProtected protectlock(lock);
-			CheckQueue();
-			return ((QueueReader*)queue)->NumChannels();
-		}
-		ulong Count(void) const {
-			PthreadMutexProtected protectlock(lock);
-			CheckQueue();
-			return queue->Count();
-		}
-		bool Empty(void) const {
-			PthreadMutexProtected protectlock(lock);
-			CheckQueue();
-			return queue->Empty();
-		}
+		ulong NumChannels(void) const;
 
-		/**
-		 * Set the queue that this reader uses.
-		 * \param queue_ the queue to use or 0 to remove.
-		 */
-		void SetQueue(QueueBase* queue_) {
-			PthreadMutexProtected protectlock(lock);
-			if (queue) queue->RegisterReaderEvent(0);
-			queue = queue_;
-			if (queue) queue->RegisterReaderEvent(&event);
-			event.Signal();
-		}
+		ulong Count(void) const;
+
+		bool Empty(void) const;
+
+		// From NodeQueueReader
+		void SetQueue(QueueInfo* queueinfo_);
+
+		QueueInfo* GetQueue(void);
+
+		PthreadCondition* GetEvent(void) { return event; }
 
 	private:
-		void CheckQueue(void) const {
-			while (!queue) event.Wait(lock);
+		QueueBase* CheckQueue(void) const {
+			while (!queueinfo) event.Wait(lock);
+			return queueinfo->GetQueue();
 		}
 		mutable PthreadCondition event;
 		mutable PthreadMutex lock;
-		QueueBase* queue;
+		QueueInfo* queueinfo;
 	};
 }
 

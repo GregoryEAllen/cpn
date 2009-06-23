@@ -20,17 +20,13 @@ CPN::QueueInfo::~QueueInfo() {
 }
 
 void CPN::QueueInfo::SetReader(NodeQueueReader* reader_) {
-	if (reader_->GetQueue() == this) {
-		reader = reader_;
-	} else {
-		reader_->SetQueue(this);
-	}
+	queue->RegisterReaderEvent(0);
+	reader = reader_;
+	if (reader) queue->RegisterReaderEvent(reader->GetEvent());
 }
 
 void CPN::QueueInfo::SetWriter(NodeQueueWriter* writer_) {
-	if (writer_->GetQueue() == this) {
-		writer = writer_;
-	} else {
-		writer_->SetQueue(this);
-	}
+	queue->RegisterWriterEvent(0);
+	writer = writer_;
+	if (writer) queue->RegisterWriterEvent(writer->GetEvent());
 }

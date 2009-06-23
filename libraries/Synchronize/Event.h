@@ -9,6 +9,7 @@
 
 #include "PthreadMutex.h"
 #include "PthreadCondition.h"
+#include "MutexBase.h"
 
 /**
  * A very simple "event" similar in some ways to the
@@ -24,7 +25,7 @@
  * succeed immediately until Reset is called.
  * 
  */
-class Event {
+class Event : public MutexBase {
 public:
 	/**
 	 * Default constructor creates a manual reset
@@ -48,6 +49,8 @@ public:
 		signaled = true;
 		cond.Broadcast();
 	}
+
+	void Release(void) { Signal(); }
 
 	/**
 	 * Reset this event.
