@@ -14,6 +14,7 @@ namespace CPN {
 	class NodeFactory;
 	class Kernel;
 	class NodeAttr;
+	class QueueInfo;
 
 	/**
 	 * This class holds the node reference and information
@@ -21,7 +22,7 @@ namespace CPN {
 	 */
 	class NodeInfo {
 	public:
-		NodeInfo(Kernel &ker, const NodeAttr attr,
+		NodeInfo(Kernel &ker, const NodeAttr &attr,
 			const void* const arg, const ulong argsize);
 
 		~NodeInfo();

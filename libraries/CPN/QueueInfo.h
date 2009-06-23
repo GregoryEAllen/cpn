@@ -6,7 +6,10 @@
 
 namespace CPN {
 	class NodeQueueReader;
-	class NodequeueWriter;
+	class NodeQueueWriter;
+	class QueueFactory;
+	class QueueBase;
+	class QueueAttr;
 
 	class QueueInfo {
 	public:

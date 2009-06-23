@@ -2,9 +2,10 @@
  */
 
 #include "BlockingQueueReader.h"
+#include "QueueBase.h"
 
 
-const void* CPN::BlockingQueueReader::GetRawDequeuePtr(ulong thresh, ulong chan=0) {
+const void* CPN::BlockingQueueReader::GetRawDequeuePtr(ulong thresh, ulong chan) {
 	PthreadMutexProtected protectlock(lock);
 	QueueBase* queue = CheckQueue();
 	const void* ptr = queue->GetRawDequeuePtr(thresh, chan);
@@ -20,7 +21,7 @@ void CPN::BlockingQueueReader::Dequeue(ulong count) {
 	queue->Dequeue(count);
 }
 
-bool CPN::BlockingQueueReader::RawDequeue(void * data, ulong count, ulong chan=0) {
+bool CPN::BlockingQueueReader::RawDequeue(void * data, ulong count, ulong chan) {
 	PthreadMutexProtected protectlock(lock);
 	QueueBase* queue = CheckQueue();
 	while (!queue->RawDequeue(data, count, chan)) {

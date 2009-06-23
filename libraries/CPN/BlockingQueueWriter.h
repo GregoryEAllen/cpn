@@ -7,16 +7,16 @@
 #include "NodeQueueWriter.h"
 #include "PthreadMutex.h"
 #include "PthreadCondition.h"
+#include "QueueInfo.h"
 
 namespace CPN {
 
-	class QueueInfo;
 	class NodeInfo;
 	class QueueBase;
 
 	class BlockingQueueWriter : public NodeQueueWriter {
 	public:
-		BlockingQueueWriter(const NodeInfo* nodeinf, const std::string &portname)
+		BlockingQueueWriter(NodeInfo* nodeinfo, const std::string &portname)
 		       	: NodeQueueWriter(nodeinfo, portname), queueinfo(0) {}
 
 		~BlockingQueueWriter() { SetQueue(0); }
@@ -39,7 +39,7 @@ namespace CPN {
 
 		QueueInfo* GetQueue(void);
 
-		PthreadCondition* GetEvent(void) { return event; }
+		PthreadCondition* GetEvent(void) { return &event; }
 
 	private:
 		QueueBase* CheckQueue(void) const {

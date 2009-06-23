@@ -5,6 +5,9 @@
 #define CPN_NODEQUEUEREADER_H
 
 #include "QueueReader.h"
+#include <string>
+
+class PthreadCondition;
 
 namespace CPN {
 	class QueueInfo;
@@ -12,7 +15,7 @@ namespace CPN {
 
 	class NodeQueueReader : public QueueReader {
 	public:
-		NodeQueueReader(const NodeInfo* nodeinfo_, const std::string &portname_)
+		NodeQueueReader(NodeInfo* nodeinfo_, const std::string &portname_)
 			: nodeinfo(nodeinfo_), portname(portname_) {}
 
 		virtual void SetQueue(QueueInfo* queueinfo_) = 0;
@@ -21,12 +24,12 @@ namespace CPN {
 
 		virtual PthreadCondition* GetEvent(void) = 0;
 
-		NodeInfo* GetNodeInfo(void) const { return nodeinfo; }
+		NodeInfo* GetNodeInfo(void) { return nodeinfo; }
 
 		const std::string &GetPortName(void) const { return portname; }
 	private:
+		NodeInfo* nodeinfo;
 		const std::string portname;
-		const NodeInfo* nodeinfo;
 	};
 }
 

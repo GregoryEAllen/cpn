@@ -3,6 +3,7 @@
 
 #include "NodeFactory.h"
 #include "NodeInfo.h"
+#include "NodeAttr.h"
 #include "BlockingQueueWriter.h"
 #include "BlockingQueueReader.h"
 #include <stdexcept>
@@ -10,17 +11,17 @@
 
 
 
-static void DeleteReader(std::pair<std::string, NodeQueueReader*> qr) {
+static void DeleteReader(std::pair<std::string, CPN::NodeQueueReader*> qr) {
 	delete qr.second;
 }
 
-static void DeleteWriter(std::pair<std::string, NodeQueueWriter*> qw) {
+static void DeleteWriter(std::pair<std::string, CPN::NodeQueueWriter*> qw) {
 	delete qw.second;
 }
 
 
 
-CPN::NodeInfo::NodeInfo(Kernel &ker, const NodeAttr attr,
+CPN::NodeInfo::NodeInfo(Kernel &ker, const NodeAttr &attr,
 	       	const void* const arg, const ulong argsize)
 {
 	factory = CPN::NodeFactory::GetFactory(attr.GetTypeName());
@@ -43,7 +44,7 @@ void CPN::NodeInfo::SetWriter(QueueInfo* queue, std::string portname) {
 
 CPN::NodeQueueWriter* CPN::NodeInfo::GetWriter(std::string name) {
 	if (!outputs[name]) {
-		outputs[name] = new CPN::BlockingQueueWriter();
+		outputs[name] = new CPN::BlockingQueueWriter(this, name);
 	}
 	return outputs[name];
 }
@@ -54,7 +55,7 @@ void CPN::NodeInfo::SetReader(QueueInfo* queue, std::string portname) {
 
 CPN::NodeQueueReader* CPN::NodeInfo::GetReader(std::string name) {
 	if (!inputs[name]) {
-		inputs[name] = new CPN::BlockingQueueReader();
+		inputs[name] = new CPN::BlockingQueueReader(this, name);
 	}
 	return inputs[name];
 }

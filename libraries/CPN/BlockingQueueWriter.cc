@@ -2,10 +2,9 @@
  */
 
 #include "BlockingQueueWriter.h"
+#include "QueueBase.h"
 
-
-
-void* CPN::BlockingQueueWriter::GetRawEnqueuePtr(ulong thresh, ulong chan=0) {
+void* CPN::BlockingQueueWriter::GetRawEnqueuePtr(ulong thresh, ulong chan) {
 	PthreadMutexProtected protectlock(lock);
 	QueueBase* queue = CheckQueue();
 	void* ptr = queue->GetRawEnqueuePtr(thresh, chan);
@@ -20,7 +19,7 @@ void CPN::BlockingQueueWriter::Enqueue(ulong count) {
 	QueueBase* queue = CheckQueue();
 	queue->Enqueue(count);
 }
-bool CPN::BlockingQueueWriter::RawEnqueue(void* data, ulong count, ulong chan=0) {
+bool CPN::BlockingQueueWriter::RawEnqueue(void* data, ulong count, ulong chan) {
 	PthreadMutexProtected protectlock(lock);
 	QueueBase* queue = CheckQueue();
 	while (!queue->RawEnqueue(data, count, chan)) {
@@ -53,7 +52,7 @@ void CPN::BlockingQueueWriter::SetQueue(QueueInfo* queueinfo_) {
 	event.Signal();
 }
 
-QueueInfo* CPN::BlockingQueueWriter::GetQueue(void) {
+CPN::QueueInfo* CPN::BlockingQueueWriter::GetQueue(void) {
 	PthreadMutexProtected protectlock(lock);
 	return queueinfo;
 }

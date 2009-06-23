@@ -5,6 +5,9 @@
 #define CPN_NODEQUEUEWRITER_H
 
 #include "QueueWriter.h"
+#include <string>
+
+class PthreadCondition;
 
 namespace CPN {
 	class QueueInfo;
@@ -12,7 +15,7 @@ namespace CPN {
 
 	class NodeQueueWriter : public QueueWriter {
 	public:
-		NodeQueueWriter(const NodeInfo* nodeinfo_, const std::string &portname_) 
+		NodeQueueWriter(NodeInfo* nodeinfo_, const std::string &portname_) 
 			: nodeinfo(nodeinfo_), portname(portname_) {}
 
 		virtual void SetQueue(QueueInfo* queue_) = 0;
@@ -21,12 +24,12 @@ namespace CPN {
 
 		virtual PthreadCondition* GetEvent(void) = 0;
 
-		NodeInfo* GetNodeInfo(void) const { return nodeinfo; }
+		NodeInfo* GetNodeInfo(void) { return nodeinfo; }
 
 		const std::string &GetPortName(void) const { return portname; }
 	private:
+		NodeInfo* nodeinfo;
 		const std::string portname;
-		const NodeInfo* nodeinfo;
 	};
 }
 

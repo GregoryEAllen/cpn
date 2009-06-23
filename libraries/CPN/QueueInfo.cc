@@ -4,6 +4,9 @@
 #include "QueueInfo.h"
 #include "QueueAttr.h"
 #include "QueueFactory.h"
+#include "QueueBase.h"
+#include "NodeQueueReader.h"
+#include "NodeQueueWriter.h"
 #include <stdexcept>
 
 

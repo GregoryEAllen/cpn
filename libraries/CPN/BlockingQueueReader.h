@@ -7,16 +7,16 @@
 #include "NodeQueueReader.h"
 #include "PthreadMutex.h"
 #include "PthreadCondition.h"
+#include "QueueInfo.h"
 
 namespace CPN {
 
-	class QueueInfo;
 	class QueueBase;
 	class NodeInfo;
 
 	class BlockingQueueReader : public NodeQueueReader {
 	public:
-		BlockingQueueReader(const NodeInfo* nodeinfo, const std::string &portname)
+		BlockingQueueReader(NodeInfo* nodeinfo, const std::string &portname)
 		       	: NodeQueueReader(nodeinfo, portname), queueinfo(0) {}
 
 		~BlockingQueueReader() { SetQueue(0); }
@@ -39,7 +39,7 @@ namespace CPN {
 
 		QueueInfo* GetQueue(void);
 
-		PthreadCondition* GetEvent(void) { return event; }
+		PthreadCondition* GetEvent(void) { return &event; }
 
 	private:
 		QueueBase* CheckQueue(void) const {
