@@ -8,27 +8,25 @@
 
 CPPUNIT_TEST_SUITE_REGISTRATION( NodeFactoryTest );
 
-using namespace CPN;
-
-class TestNode : public NodeBase {
+class TestNode : public CPN::NodeBase {
 public:
-	TestNode(Kernel &ker, const NodeAttr &attr) : NodeBase(ker, attr) {}
+	TestNode(CPN::Kernel &ker, const CPN::NodeAttr &attr) : CPN::NodeBase(ker, attr) {}
 
 	void Process(void) {
 		printf("Process");
 	}
 };
 
-class TestNodeFactory : public NodeFactory {
+class TestNodeFactory : public CPN::NodeFactory {
 public:
-	TestNodeFactory(std::string name) : NodeFactory(name) {}
+	TestNodeFactory(std::string name) : CPN::NodeFactory(name) {}
 
-	NodeBase* Create(Kernel &ker, const NodeAttr &attr, const void* const arg,
-				const ulong argsize) {
+	CPN::NodeBase* Create(CPN::Kernel &ker, const CPN::NodeAttr &attr, const void* const arg,
+				const CPN::ulong argsize) {
 		return new TestNode(ker, attr);
 	}
 
-	void Destroy(NodeBase* node) {
+	void Destroy(CPN::NodeBase* node) {
 		delete node;
 	}
 
@@ -44,24 +42,24 @@ void NodeFactoryTest::tearDown(void) {
 
 /// Test that a factory was stored correctly
 void NodeFactoryTest::TestFactoryStore(void) {
-	NodeFactory* fact = NodeFactory::GetFactory("TestNode");
-	NodeFactory* fact2 = &theFactory;
+	CPN::NodeFactory* fact = CPN::NodeFactory::GetFactory("TestNode");
+	CPN::NodeFactory* fact2 = &theFactory;
 	CPPUNIT_ASSERT_EQUAL(fact, fact2);
 }
 
 /// Test that an invalid name returns the expected value
 void NodeFactoryTest::TestInvalidName(void) {
-	NodeFactory* fact = NodeFactory::GetFactory("AnInvalidName1234556");
-	NodeFactory* fact2 = 0;
+	CPN::NodeFactory* fact = CPN::NodeFactory::GetFactory("AnInvalidName1234556");
+	CPN::NodeFactory* fact2 = 0;
 	CPPUNIT_ASSERT_EQUAL(fact, fact2);
 }
 
 /// Test that on factory deletion the factory is successfully removed
 void NodeFactoryTest::TestCleanUp(void) {
-	NodeFactory* fact = new TestNodeFactory("Testing12345");
-	CPPUNIT_ASSERT_EQUAL(fact, NodeFactory::GetFactory("Testing12345"));
+	CPN::NodeFactory* fact = new TestNodeFactory("Testing12345");
+	CPPUNIT_ASSERT_EQUAL(fact, CPN::NodeFactory::GetFactory("Testing12345"));
 	delete fact;
 	fact = 0;
-	CPPUNIT_ASSERT_EQUAL(fact, NodeFactory::GetFactory("Testing12345"));
+	CPPUNIT_ASSERT_EQUAL(fact, CPN::NodeFactory::GetFactory("Testing12345"));
 }
 

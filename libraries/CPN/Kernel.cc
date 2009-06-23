@@ -102,7 +102,7 @@ void CPN::Kernel::NodeTerminated(const NodeAttr &attr) {
 	// delete the nodeinfo object.
 }
 
-ulong CPN::Kernel::GenerateId(const ::std::string& name) {
+CPN::ulong CPN::Kernel::GenerateId(const ::std::string& name) {
 	return idcounter++;
 }
 

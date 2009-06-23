@@ -4,6 +4,7 @@
 #ifndef CPN_BLOCKINGQUEUEREADER_H
 #define CPN_BLOCKINGQUEUEREADER_H
 
+#include "common.h"
 #include "NodeQueueReader.h"
 #include "PthreadMutex.h"
 #include "PthreadCondition.h"

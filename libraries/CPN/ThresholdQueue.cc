@@ -51,17 +51,17 @@ bool CPN::ThresholdQueue::RawEnqueue(void * data, ulong count, ulong chan) {
 	return true;
 }
 
-ulong CPN::ThresholdQueue::NumChannels(void) const {
+CPN::ulong CPN::ThresholdQueue::NumChannels(void) const {
 	PthreadMutexProtected protectqlock(qlock);
 	return queue.NumChannels();
 }
 
-ulong CPN::ThresholdQueue::ChannelStride(void) const {
+CPN::ulong CPN::ThresholdQueue::ChannelStride(void) const {
 	PthreadMutexProtected protectqlock(qlock);
 	return queue.ChannelStride();
 }
 
-ulong CPN::ThresholdQueue::Freespace(void) const {
+CPN::ulong CPN::ThresholdQueue::Freespace(void) const {
 	PthreadMutexProtected protectqlock(qlock);
 	return queue.Freespace();
 }
@@ -94,7 +94,7 @@ bool CPN::ThresholdQueue::RawDequeue(void * data, ulong count, ulong chan) {
 	return true;
 }
 
-ulong CPN::ThresholdQueue::Count(void) const {
+CPN::ulong CPN::ThresholdQueue::Count(void) const {
 	PthreadMutexProtected protectqlock(qlock);
 	return queue.Count();
 }
@@ -107,12 +107,12 @@ bool CPN::ThresholdQueue::Empty(void) const {
 
 // From QueueBase
 
-ulong CPN::ThresholdQueue::ElementsEnqueued(void) const {
+CPN::ulong CPN::ThresholdQueue::ElementsEnqueued(void) const {
 	PthreadMutexProtected protectqlock(qlock);
 	return queue.ElementsEnqueued();
 }
 
-ulong CPN::ThresholdQueue::ElementsDequeued(void) const {
+CPN::ulong CPN::ThresholdQueue::ElementsDequeued(void) const {
 	PthreadMutexProtected protectqlock(qlock);
 	return queue.ElementsDequeued();
 }

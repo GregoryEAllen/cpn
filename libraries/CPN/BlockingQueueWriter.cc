@@ -28,12 +28,12 @@ bool CPN::BlockingQueueWriter::RawEnqueue(void* data, ulong count, ulong chan) {
 	return true;
 
 }
-ulong CPN::BlockingQueueWriter::NumChannels(void) const {
+CPN::ulong CPN::BlockingQueueWriter::NumChannels(void) const {
 	PthreadMutexProtected protectlock(lock);
 	QueueBase* queue = CheckQueue();
 	return ((QueueWriter*)queue)->NumChannels();
 }
-ulong CPN::BlockingQueueWriter::Freespace(void) const {
+CPN::ulong CPN::BlockingQueueWriter::Freespace(void) const {
 	PthreadMutexProtected protectlock(lock);
 	QueueBase* queue = CheckQueue();
 	return queue->Freespace();

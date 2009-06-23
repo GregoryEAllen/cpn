@@ -4,6 +4,7 @@
 #ifndef CPN_NODEFACTORY_H
 #define CPN_NODEFACTORY_H
 
+#include "common.h"
 #include <string>
 
 namespace CPN {

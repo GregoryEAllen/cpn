@@ -30,12 +30,12 @@ bool CPN::BlockingQueueReader::RawDequeue(void * data, ulong count, ulong chan) 
 	return true;
 }
 
-ulong CPN::BlockingQueueReader::NumChannels(void) const {
+CPN::ulong CPN::BlockingQueueReader::NumChannels(void) const {
 	PthreadMutexProtected protectlock(lock);
 	QueueBase* queue = CheckQueue();
 	return ((QueueReader*)queue)->NumChannels();
 }
-ulong CPN::BlockingQueueReader::Count(void) const {
+CPN::ulong CPN::BlockingQueueReader::Count(void) const {
 	PthreadMutexProtected protectlock(lock);
 	QueueBase* queue = CheckQueue();
 	return queue->Count();
