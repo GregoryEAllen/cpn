@@ -11,6 +11,8 @@
 #include "PthreadCondition.h"
 
 namespace CPN {
+
+	const ::std::string THRESHOLD_QUEUE_TYPE_NAME = "CPN::ThresholdQueue";
 	/**
 	 * A version of the ThresholdQueue that provides the
 	 * CPN Queue interface

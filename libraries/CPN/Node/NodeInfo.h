@@ -5,8 +5,12 @@
 #define CPN_NODEINFO_H
 
 #include "NodeFactory.h"
+#include "BlockingQueueWriter.h"
+#include "BlockingQueueReader.h"
 #include <map>
 #include <string>
+#include <stdexcept>
+#include <algorithm>
 
 namespace CPN {
 	class NodeBase;
@@ -18,37 +22,48 @@ namespace CPN {
 	 */
 	class NodeInfo {
 	public:
-		NodeInfo(Kernel &ker, NodeFactory* factory_, const NodeAttr attr,
+		NodeInfo(Kernel &ker, const NodeAttr attr,
 			const void* const arg, const ulong argsize)
-	       : factory(factory_)
 		{
+			factory = NodeFactory::GetFactory(attr.GetTypeName());
+			if (!factory) throw ::std::invalid_argument("Node type name must be a valid registered type.");
 			node = factory->Create(ker, attr, arg, argsize);
 		}
 
 		~NodeInfo() {
 			factory->Destroy(node);
 			node = 0;
-		}
-
-		void SetWriter(std::string name, QueueWriter* qwriter) {
-			outputs[name] = qwriter;
+			for_each(inputs.begin(), inputs.end(), DeleteReader);
+			inputs.clear();
+			for_each(outputs.begin(), outputs.end(), DeleteWriter);
+			outputs.clear();
 		}
 
 		QueueWriter* GetWriter(std::string name) {
+			if (!outputs[name]) {
+				outputs[name] = new BlockingQueueWriter();
+			}
 			return outputs[name];
 		}
 
-		void SetReader(std::string name, QueueReader* qreader) {
-			inputs[name] = qreader;
-		}
-
 		QueueReader* GetReader(std::string name) {
+			if (!inputs[name]) {
+				inputs[name] = new BlockingQueueReader();
+			}
 			return inputs[name];
 		}
 
 		NodeBase* GetNode(void) { return node; }
 
 	private:
+		static void DeleteReader(std::pair<std::string, QueueReader*> qr) {
+			delete qr.second;
+		}
+
+		static void DeleteWriter(std::pair<std::string, QueueWriter*> qw) {
+			delete qw.second;
+		}
+
 		NodeFactory* factory;
 		NodeBase* node;
 		std::map<std::string, QueueReader*> inputs;

@@ -18,7 +18,7 @@ namespace CPN {
 				const ::std::string &nodetype_) :
 		       	Attribute(id_, name_), nodetype(nodetype_) {}
 
-		const ::std::string &GetNodeType(void) const { return nodetype; }
+		const ::std::string &GetTypeName(void) const { return nodetype; }
 	private:
 		const ::std::string nodetype;
 	};

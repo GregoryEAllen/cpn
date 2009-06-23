@@ -15,6 +15,11 @@ namespace CPN {
 	public:
 		BlockingQueueReader() : queue(0) {}
 
+		~BlockingQueueReader() {
+			PthreadMutexProtected protectlock(lock);
+			SetQueue(0);
+		}
+
 		// From QueueReader
 		const void* GetRawDequeuePtr(ulong thresh, ulong chan=0) {
 			PthreadMutexProtected protectlock(lock);

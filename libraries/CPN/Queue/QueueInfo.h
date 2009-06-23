@@ -11,16 +11,9 @@ namespace CPN {
 
 	class QueueInfo {
 	public:
-		QueueInfo(QueueFactory factory_, const QueueAttr &attr)
-	       : factory(factory_)
-		{
-			queue = factory.Create(attr);
-		}
-
-		~QueueInfo() {
-			factory.Destroy(queue);
-			queue = 0;
-		}
+		QueueInfo(const QueueAttr &attr);
+		
+		~QueueInfo();
 
 		const ::std::string &ReaderEnd(const ::std::string readerEnd_) {
 			return readerEnd = readerEnd_;
@@ -37,7 +30,7 @@ namespace CPN {
 		QueueBase* GetQueue(void) { return queue; }
 
 	private:
-		QueueFactory factory;
+		QueueFactory* factory;
 		QueueBase* queue;
 		::std::string readerEnd;
 		::std::string writerEnd;

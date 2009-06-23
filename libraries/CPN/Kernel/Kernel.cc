@@ -8,61 +8,50 @@
 #include "NodeBase.h"
 #include "QueueBase.h"
 #include "NodeInfo.h"
-#include "BlockingQueueWriter.h"
-#include "BlockingQueueReader.h"
+#include "QueueInfo.h"
 
 
-using namespace CPN;
 
-Kernel::Kernel(const KernelAttr &kattr)
-	: kattr(kattr) {}
+CPN::Kernel::Kernel(const KernelAttr &kattr)
+	: kattr(kattr), idcounter(0) {}
 
-Kernel::~Kernel() {}
+CPN::Kernel::~Kernel() {}
 
 
-void Kernel::Wait(void) {}
+void CPN::Kernel::Wait(void) {}
 
-/*
-void Kernel::RegisterNodeType(const ::std::string &nodetype, NodeFactory &factory) {
-	PthreadMutexProtected plock(lock); 
-	// !!! Add error checking?
-	nodeFactories[nodetype] = factory;
-}
-
-void Kernel::RegisterQueueType(const ::std::string &queuetype, QueueFactory &factory) {
-	PthreadMutexProtected plock(lock); 
-	// !!! Add error checking?
-	queueFactories[queuetype] = factory;
-}
-*/
-
-void Kernel::CreateNode(const ::std::string &nodename,
+void CPN::Kernel::CreateNode(const ::std::string &nodename,
 		const ::std::string &nodetype,
 		const void* const arg,
 		const ulong argsize) {
 	PthreadMutexProtected plock(lock); 
 	// Verify that nodename doesn't already exist.
 	if (nodeMap[nodename]) return;
-	// Verify that we know what nodetype is.
 	// Create the NodeAttr object.
+	CPN::NodeAttr attr(GenerateId(nodename), nodename, nodetype);
 	// Create the NodeInfo structure (which creates the node)
+	CPN::NodeInfo* nodeinfo = new CPN::NodeInfo(*this, attr, arg, argsize);	
 	// Put the NodeInfo into our map.
+	nodeMap[nodename] = nodeinfo;
 }
 
-void Kernel::CreateQueue(const ::std::string &queuename,
+void CPN::Kernel::CreateQueue(const ::std::string &queuename,
 		const ::std::string &queuetype,
 		const ulong queueLength,
 		const ulong maxThreshold,
 		const ulong numChannels) {
 	PthreadMutexProtected plock(lock); 
 	// Verify that queuename doesn't already exist.
-	// Verify that we know what queuetype is.
+	if (queueMap[queuename]) return;
 	// Generate the QueueAttr object.
+	CPN::QueueAttr attr(GenerateId(queuename), queuename, queuetype, queueLength, maxThreshold, numChannels);
 	// Create the QueueInfo which creates the queue
+	CPN::QueueInfo* queueinfo = new CPN::QueueInfo(attr);
 	// Put QueueInfo in our map.
+	queueMap[queuename] = queueinfo;
 }
 
-void Kernel::ConnectWriteEndpoint(const ::std::string &qname,
+void CPN::Kernel::ConnectWriteEndpoint(const ::std::string &qname,
 		const ::std::string &nodename,
 		const ::std::string &portname) {
 	PthreadMutexProtected plock(lock); 
@@ -73,17 +62,17 @@ void Kernel::ConnectWriteEndpoint(const ::std::string &qname,
 	// Register the write end with the new place.
 }
 
-void Kernel::ConnectReadEndpoint(const ::std::string &qname,
+void CPN::Kernel::ConnectReadEndpoint(const ::std::string &qname,
 		const ::std::string &nodename,
 		const ::std::string &portname) {
 	PthreadMutexProtected plock(lock); 
 	// Validate qname and nodename.
 	// Look up the queue
-	// Unregister the queue from it's read port if applicable.
-	// Register the read port with it's new port.
+	// Unregister the queue from its read port if applicable.
+	// Register the read port with its new port.
 }
 
-QueueReader* Kernel::GetReader(const ::std::string &nodename,
+CPN::QueueReader* CPN::Kernel::GetReader(const ::std::string &nodename,
 		const ::std::string &portname) {
 	PthreadMutexProtected plock(lock); 
 	// Validate nodename
@@ -94,7 +83,7 @@ QueueReader* Kernel::GetReader(const ::std::string &nodename,
 	return 0;
 }
 
-QueueWriter* Kernel::GetWriter(const ::std::string &nodename,
+CPN::QueueWriter* CPN::Kernel::GetWriter(const ::std::string &nodename,
 		const ::std::string &portname) {
 	PthreadMutexProtected plock(lock); 
 	// Validate nodename
@@ -105,11 +94,14 @@ QueueWriter* Kernel::GetWriter(const ::std::string &nodename,
 	return 0;
 }
 
-void Kernel::NodeTerminated(const NodeAttr &attr) {
+void CPN::Kernel::NodeTerminated(const NodeAttr &attr) {
 	PthreadMutexProtected plock(lock); 
 	// Lookup the nodeinfo
 	// Unregister all ports.
 	// delete the nodeinfo object.
 }
 
+ulong CPN::Kernel::GenerateId(const ::std::string& name) {
+	return idcounter++;
+}
 

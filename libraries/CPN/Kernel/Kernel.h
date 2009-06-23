@@ -74,6 +74,9 @@ namespace CPN {
 
 		const KernelAttr &GetAttr(void) const { return kattr; }
 	private:
+
+		ulong GenerateId(const ::std::string& name);
+
 		PthreadMutex lock;
 
 		const KernelAttr kattr;
@@ -83,6 +86,8 @@ namespace CPN {
 
 		Kernel(const Kernel&);
 		Kernel &operator=(const Kernel&);
+
+		ulong idcounter;
 	};
 }
 #endif

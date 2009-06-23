@@ -15,6 +15,11 @@ namespace CPN {
 	public:
 		BlockingQueueWriter() : queue(0) {}
 
+		~BlockingQueueWriter() {
+			PthreadMutexProtected protectlock(lock);
+			SetQueue(0);
+		}
+
 		void* GetRawEnqueuePtr(ulong thresh, ulong chan=0) {
 			PthreadMutexProtected protectlock(lock);
 			CheckQueue();

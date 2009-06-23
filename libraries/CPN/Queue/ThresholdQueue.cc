@@ -3,11 +3,24 @@
  */
 
 #include "ThresholdQueue.h"
+#include "QueueBase.h"
+#include "QueueFactory.h"
+
+class ThresholdQueueFactory : public CPN::QueueFactory {
+public:
+	ThresholdQueueFactory() : QueueFactory(CPN::THRESHOLD_QUEUE_TYPE_NAME) {}
+	CPN::QueueBase* Create(const CPN::QueueAttr &attr) {
+		return new CPN::ThresholdQueue(attr);
+	}
+	void Destroy(CPN::QueueBase* queue) {
+		delete queue;
+	}
+} theFactory;
 
 CPN::ThresholdQueue::ThresholdQueue(const QueueAttr &attr) :
+	QueueBase(attr),
 // ThresholdQueueBase(ulong elemSize, ulong queueLen, ulong maxThresh, ulong numChans=1);
 	queue(1, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels()),
-	QueueBase(attr),
 	qwritten(0), qread(0)
 {
 }

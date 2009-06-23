@@ -21,9 +21,9 @@ namespace CPN {
 		public QueueWriter
 	{
 	public:
-		QueueBase(const QueueAttr &qattr) : qattr(qattr) {}
+		QueueBase(const QueueAttr &qattr);
 
-		virtual ~QueueBase() {}
+		virtual ~QueueBase();
 
 		/**
 		 * \return the QueueAttr for this queue.
@@ -53,8 +53,8 @@ namespace CPN {
 		*/
 
 		// Implementation for unblocking...
-		virtual void RegisterReaderEvent(PthreadCondition* evt);
-		virtual void RegisterWriterEvent(PthreadCondition* evt);
+		virtual void RegisterReaderEvent(PthreadCondition* evt) = 0;
+		virtual void RegisterWriterEvent(PthreadCondition* evt) = 0;
 
 	private:
 		const QueueAttr qattr;
