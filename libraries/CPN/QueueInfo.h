@@ -4,10 +4,9 @@
 #ifndef CPN_QUEUEINFO_H
 #define CPN_QUEUEINFO_H
 
-#include "QueueFactory.h"
-#include <string>
-
 namespace CPN {
+	class NodeQueueReader;
+	class NodequeueWriter;
 
 	class QueueInfo {
 	public:
@@ -15,25 +14,21 @@ namespace CPN {
 		
 		~QueueInfo();
 
-		const ::std::string &ReaderEnd(const ::std::string readerEnd_) {
-			return readerEnd = readerEnd_;
-	       	}
+		QueueBase* GetQueue(void) const { return queue; }
 
-		const ::std::string &ReaderEnd(void) const { return readerEnd; }
+		void SetReader(NodeQueueReader* reader_);
 
-		const ::std::string &WriterEnd(const ::std::string writerEnd_) {
-			return writerEnd = writerEnd_;
-		}
+		NodeQueueReader* GetReader(void) const { return reader; }
 
-		const ::std::string &WriterEnd(void) const { return writerEnd; }
+		void SetWriter(NodeQueueWriter* writer_);
 
-		QueueBase* GetQueue(void) { return queue; }
+		NodeQueueWriter* GetWriter(void) const { return writer; }
 
 	private:
 		QueueFactory* factory;
 		QueueBase* queue;
-		::std::string readerEnd;
-		::std::string writerEnd;
+		NodeQueueReader* reader;
+		NodeQueueWriter* writer;
 	};
 }
 

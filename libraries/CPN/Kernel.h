@@ -41,9 +41,6 @@ namespace CPN {
 		 */
 		void Wait(void);
 		
-		//void RegisterNodeType(const ::std::string &nodetype, NodeFactory &factory);
-
-		//void RegisterQueueType(const ::std::string &queuetype, QueueFactory &factory);
 
 		void CreateNode(const ::std::string &nodename,
 				const ::std::string &nodetype,

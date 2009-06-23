@@ -4,19 +4,18 @@
 #ifndef CPN_BLOCKINGQUEUEWRITER_H
 #define CPN_BLOCKINGQUEUEWRITER_H
 
-#include "QueueWriter.h"
+#include "NodeQueueWriter.h"
 #include "QueueBase.h"
 #include "PthreadMutex.h"
 #include "PthreadCondition.h"
 
 namespace CPN {
 
-	class BlockingQueueWriter : public QueueWriter {
+	class BlockingQueueWriter : public NodeQueueWriter {
 	public:
 		BlockingQueueWriter() : queue(0) {}
 
 		~BlockingQueueWriter() {
-			PthreadMutexProtected protectlock(lock);
 			SetQueue(0);
 		}
 
@@ -60,6 +59,10 @@ namespace CPN {
 			return queue->Full();
 		}
 
+		/**
+		 * Set the queue that this writer uses.
+		 * \param queue_ the queue to use or 0 to remove
+		 */
 		void SetQueue(QueueBase* queue_) {
 			PthreadMutexProtected protectlock(lock);
 			if (queue) queue->RegisterWriterEvent(0);

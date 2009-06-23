@@ -19,3 +19,18 @@ CPN::QueueInfo::~QueueInfo() {
 	queue = 0;
 }
 
+void CPN::QueueInfo::SetReader(NodeQueueReader* reader_) {
+	if (reader_->GetQueue() == this) {
+		reader = reader_;
+	} else {
+		reader_->SetQueue(this);
+	}
+}
+
+void CPN::QueueInfo::SetWriter(NodeQueueWriter* writer_) {
+	if (writer_->GetQueue() == this) {
+		writer = writer_;
+	} else {
+		writer_->SetQueue(this);
+	}
+}

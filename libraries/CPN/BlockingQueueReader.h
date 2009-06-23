@@ -4,19 +4,18 @@
 #ifndef CPN_BLOCKINGQUEUEREADER_H
 #define CPN_BLOCKINGQUEUEREADER_H
 
-#include "QueueReader.h"
+#include "NodeQueueReader.h"
 #include "QueueBase.h"
 #include "PthreadMutex.h"
 #include "PthreadCondition.h"
 
 namespace CPN {
 
-	class BlockingQueueReader : public QueueReader {
+	class BlockingQueueReader : public NodeQueueReader {
 	public:
 		BlockingQueueReader() : queue(0) {}
 
 		~BlockingQueueReader() {
-			PthreadMutexProtected protectlock(lock);
 			SetQueue(0);
 		}
 
@@ -63,6 +62,10 @@ namespace CPN {
 			return queue->Empty();
 		}
 
+		/**
+		 * Set the queue that this reader uses.
+		 * \param queue_ the queue to use or 0 to remove.
+		 */
 		void SetQueue(QueueBase* queue_) {
 			PthreadMutexProtected protectlock(lock);
 			if (queue) queue->RegisterReaderEvent(0);

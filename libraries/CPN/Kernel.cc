@@ -44,7 +44,8 @@ void CPN::Kernel::CreateQueue(const ::std::string &queuename,
 	// Verify that queuename doesn't already exist.
 	if (queueMap[queuename]) return;
 	// Generate the QueueAttr object.
-	CPN::QueueAttr attr(GenerateId(queuename), queuename, queuetype, queueLength, maxThreshold, numChannels);
+	CPN::QueueAttr attr(GenerateId(queuename), queuename, queuetype,
+		       	queueLength, maxThreshold, numChannels);
 	// Create the QueueInfo which creates the queue
 	CPN::QueueInfo* queueinfo = new CPN::QueueInfo(attr);
 	// Put QueueInfo in our map.

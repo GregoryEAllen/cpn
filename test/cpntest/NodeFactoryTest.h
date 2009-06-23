@@ -11,9 +11,13 @@ public:
 	void tearDown(void);
 
 	CPPUNIT_TEST_SUITE( NodeFactoryTest );
-	CPPUNIT_TEST( test1 );
+	CPPUNIT_TEST( TestFactoryStore );
+	CPPUNIT_TEST( TestInvalidName );
+	CPPUNIT_TEST( TestCleanUp );
 	CPPUNIT_TEST_SUITE_END();
 
-	void test1(void);
+	void TestFactoryStore(void);
+	void TestInvalidName(void);
+	void TestCleanUp(void);
 };
 #endif
