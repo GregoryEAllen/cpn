@@ -1,38 +1,13 @@
 
 #include "NodeFactoryTest.h"
-#include "NodeFactory.h"
-#include "NodeBase.h"
-#include "NodeAttr.h"
+#include "MockNodeFactory.h"
+#include "MockNode.h"
 #include <cppunit/TestAssert.h>
 #include <cstdio>
 
 CPPUNIT_TEST_SUITE_REGISTRATION( NodeFactoryTest );
 
-class TestNode : public CPN::NodeBase {
-public:
-	TestNode(CPN::Kernel &ker, const CPN::NodeAttr &attr) : CPN::NodeBase(ker, attr) {}
-
-	void Process(void) {
-		printf("Process");
-	}
-};
-
-class TestNodeFactory : public CPN::NodeFactory {
-public:
-	TestNodeFactory(std::string name) : CPN::NodeFactory(name) {}
-
-	CPN::NodeBase* Create(CPN::Kernel &ker, const CPN::NodeAttr &attr, const void* const arg,
-				const CPN::ulong argsize) {
-		return new TestNode(ker, attr);
-	}
-
-	void Destroy(CPN::NodeBase* node) {
-		delete node;
-	}
-
-};
-
-TestNodeFactory theFactory("TestNode");
+MockNodeFactory theFactory("TestNode");
 
 void NodeFactoryTest::setUp(void) {
 }
@@ -56,7 +31,7 @@ void NodeFactoryTest::TestInvalidName(void) {
 
 /// Test that on factory deletion the factory is successfully removed
 void NodeFactoryTest::TestCleanUp(void) {
-	CPN::NodeFactory* fact = new TestNodeFactory("Testing12345");
+	CPN::NodeFactory* fact = new MockNodeFactory("Testing12345");
 	CPPUNIT_ASSERT_EQUAL(fact, CPN::NodeFactory::GetFactory("Testing12345"));
 	delete fact;
 	fact = 0;

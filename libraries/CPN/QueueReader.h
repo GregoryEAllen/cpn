@@ -45,13 +45,7 @@ namespace CPN {
 		 * Dequeue data from the queue directly into the memory pointed to by
 		 * data.
 		 * This function shall be equivalent to
-		 * <code>
-		 * void* src = q->GetRawDequeuePtr(count, chan);
-		 * if (!src) return false;
-		 * memcpy(data, src, count);
-		 * q->Dequeue(count);
-		 * return true;
-		 * </code>
+		 * a call to GetRawDequeuePtr then a memcpy and then a call to Dequeue.
 		 *
 		 * This function does not make sense when there is more
 		 * than one channel.

@@ -1,5 +1,5 @@
 
-/**
+/*
  * :%s/TESTTEMPLATE_H/NEWNAME_H/g
  * :%s/TestTemplate/NewName/g
  * And add

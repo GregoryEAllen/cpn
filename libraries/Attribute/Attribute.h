@@ -8,9 +8,9 @@
 
 /**
  * \brief Generic declarations for all attributes.
- * \node Implementation: All members are const.
+ * \note Implementation: All members are const.
  * 
- * \node All derived classes should have all const members.
+ * \note All derived classes should have all const members.
  */
 class Attribute {
 public:

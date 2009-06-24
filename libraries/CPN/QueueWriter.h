@@ -49,13 +49,8 @@ namespace CPN {
 
 		/**
 		 * This function shall be equivalent to
-		 * <code>
-		 * void* dest = q->GetRawEnqueuePtr(count, chan);
-		 * if (!dest) return false;
-		 * memcpy(dest, data, count);
-		 * q->Enqueue(count);
-		 * return true;
-		 * </code>
+		 * a call to GetRqwEnqueuePtr and a memcpy and then
+		 * a call to Enqueue
 		 *
 		 * The underlying implementatin may implement ether the
 		 * GetRawEnqueuePtr and Enqueue or RawEnqueue and

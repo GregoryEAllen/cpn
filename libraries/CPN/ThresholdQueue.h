@@ -1,5 +1,5 @@
 /** \file
- * \breif Default threshold queue implementation.
+ * \brief Default threshold queue implementation.
  */
 
 #ifndef CPN_QUEUE_THRESHOLDQUEUE_H

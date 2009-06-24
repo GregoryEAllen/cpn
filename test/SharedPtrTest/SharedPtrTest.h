@@ -1,5 +1,4 @@
-
-/**
+/*
  * And add
  * #include <cppunit/TestAssert.h>
  * CPPUNIT_TEST_SUITE_REGISTRATION( NewName );

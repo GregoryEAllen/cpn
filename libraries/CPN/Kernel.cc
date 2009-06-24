@@ -5,6 +5,8 @@
 #include "Kernel.h"
 #include "QueueReader.h"
 #include "QueueWriter.h"
+#include "NodeQueueReader.h"
+#include "NodeQueueWriter.h"
 #include "NodeBase.h"
 #include "QueueBase.h"
 #include "NodeInfo.h"
@@ -58,9 +60,12 @@ void CPN::Kernel::ConnectWriteEndpoint(const ::std::string &qname,
 	PthreadMutexProtected plock(lock); 
 	// Validate that qname and nodename exist
 	// Lookup the queue
+	QueueInfo* qinfo = queueMap[qname];
+	NodeInfo* ninfo = nodeMap[nodename];
 	// Unregister the write end of the queue from it's registered
 	// place if it is already registered.
 	// Register the write end with the new place.
+	ninfo->SetWriter(qinfo, portname);
 }
 
 void CPN::Kernel::ConnectReadEndpoint(const ::std::string &qname,
@@ -69,8 +74,11 @@ void CPN::Kernel::ConnectReadEndpoint(const ::std::string &qname,
 	PthreadMutexProtected plock(lock); 
 	// Validate qname and nodename.
 	// Look up the queue
+	QueueInfo* qinfo = queueMap[qname];
+	NodeInfo* ninfo = nodeMap[nodename];
 	// Unregister the queue from its read port if applicable.
 	// Register the read port with its new port.
+	ninfo->SetReader(qinfo, portname);
 }
 
 CPN::QueueReader* CPN::Kernel::GetReader(const ::std::string &nodename,
@@ -78,10 +86,12 @@ CPN::QueueReader* CPN::Kernel::GetReader(const ::std::string &nodename,
 	PthreadMutexProtected plock(lock); 
 	// Validate nodename
 	// Lookup nodeinfo
+	NodeInfo* ninfo = nodeMap[nodename];
 	// Check if reader exists.
 	// If not create new reader and add it.
 	// return the reader.
-	return 0;
+	QueueReader* qreader = ninfo->GetReader(portname);
+	return qreader;
 }
 
 CPN::QueueWriter* CPN::Kernel::GetWriter(const ::std::string &nodename,
@@ -89,17 +99,23 @@ CPN::QueueWriter* CPN::Kernel::GetWriter(const ::std::string &nodename,
 	PthreadMutexProtected plock(lock); 
 	// Validate nodename
 	// lookup nodeinfo.
+	NodeInfo* ninfo = nodeMap[nodename];
 	// check if writer exists.
 	// if not create new writer and add it.
 	// return the writer.
-	return 0;
+	QueueWriter* qwriter = ninfo->GetWriter(portname);
+	return qwriter;
 }
 
 void CPN::Kernel::NodeTerminated(const NodeAttr &attr) {
 	PthreadMutexProtected plock(lock); 
 	// Lookup the nodeinfo
+	NodeInfo* ninfo = nodeMap[attr.GetName()];
 	// Unregister all ports.
 	// delete the nodeinfo object.
+	delete ninfo;
+	ninfo = 0;
+	nodeMap.erase(attr.GetName());
 }
 
 CPN::ulong CPN::Kernel::GenerateId(const ::std::string& name) {

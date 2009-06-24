@@ -1,0 +1,24 @@
+
+#ifndef MOCKNODE_H
+#define MOCKNODE_H
+
+#include "NodeBase.h"
+/**
+ * A mock node for testing general testing.
+ * Takes a mode to define it's behavior.
+ */
+class MockNode : public CPN::NodeBase {
+public:
+	enum Mode_t { MODE_SOURCE = 1, MODE_TRANSMUTE, MODE_SINK };
+
+	MockNode(CPN::Kernel &ker, const CPN::NodeAttr &attr, const Mode_t &mode_) 
+		: CPN::NodeBase(ker, attr), mode(mode_) {}
+
+	void Process(void);
+
+private:
+	const Mode_t mode;
+};
+
+
+#endif

@@ -62,7 +62,7 @@ namespace CPN {
 
 		/**
 		 * Return the a pointer to the factory for the given node type.
-		 * \param name the name of the node type
+		 * \param ntypename the name of the node type
 		 * \return a pointer to an implementation of this class
 		 */
 		static NodeFactory* GetFactory(const ::std::string &ntypename);
