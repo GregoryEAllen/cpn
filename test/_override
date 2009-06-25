@@ -5,4 +5,4 @@ OS_INCDIR += `cppunit-config --cflags`
 CC_OTHER += -Wall
 #CXX_OTHER += -Wall
 #LD_OTHER += -Wall --static -rdynamic
-LD_OTHER += -Wall
+LD_OTHER += -Wall 

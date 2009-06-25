@@ -4,18 +4,22 @@
 
 #include "ThresholdQueue.h"
 #include "QueueBase.h"
-#include "QueueFactory.h"
 
 class ThresholdQueueFactory : public CPN::QueueFactory {
 public:
 	ThresholdQueueFactory() : QueueFactory(CPN::THRESHOLD_QUEUE_TYPE_NAME) {}
+
 	CPN::QueueBase* Create(const CPN::QueueAttr &attr) {
 		return new CPN::ThresholdQueue(attr);
 	}
+
 	void Destroy(CPN::QueueBase* queue) {
 		delete queue;
 	}
-} theFactory;
+};
+
+
+static ThresholdQueueFactory theFactory;
 
 CPN::ThresholdQueue::ThresholdQueue(const QueueAttr &attr) :
 	QueueBase(attr),

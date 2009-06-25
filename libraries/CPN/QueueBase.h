@@ -28,7 +28,7 @@ namespace CPN {
 		/**
 		 * \return the QueueAttr for this queue.
 		 */
-		virtual const QueueAttr &GetAttr(void) const { return qattr; }
+		const QueueAttr &GetAttr(void) const { return qattr; }
 
 		/**
 		 * Get the total number of elements enqueued over the 

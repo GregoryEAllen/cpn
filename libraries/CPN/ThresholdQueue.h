@@ -9,10 +9,11 @@
 #include "QueueBase.h"
 #include "PthreadMutex.h"
 #include "PthreadCondition.h"
+#include "common.h"
+#include "QueueFactory.h"
 
 namespace CPN {
 
-	const ::std::string THRESHOLD_QUEUE_TYPE_NAME = "CPN::ThresholdQueue";
 	/**
 	 * A version of the ThresholdQueue that provides the
 	 * CPN Queue interface
@@ -59,5 +60,6 @@ namespace CPN {
 		PthreadCondition* qwritten;
 		PthreadCondition* qread;
 	};
+
 }
 #endif

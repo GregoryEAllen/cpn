@@ -1,11 +1,14 @@
 
 #include "MockNode.h"
+#include "MockNodeFactory.h"
 #include "NodeAttr.h"
 #include "QueueWriterAdapter.h"
 #include "QueueReaderAdapter.h"
 #include "Kernel.h"
 #include <cstdio>
 #include <string>
+
+static MockNodeFactory theFactory("MockNode");
 
 void MockNode::Process(void) {
 	std::string ourname = GetAttr().GetName();

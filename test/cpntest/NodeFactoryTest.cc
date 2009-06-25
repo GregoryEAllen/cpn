@@ -7,7 +7,6 @@
 
 CPPUNIT_TEST_SUITE_REGISTRATION( NodeFactoryTest );
 
-MockNodeFactory theFactory("TestNode");
 
 void NodeFactoryTest::setUp(void) {
 }
@@ -17,9 +16,8 @@ void NodeFactoryTest::tearDown(void) {
 
 /// Test that a factory was stored correctly
 void NodeFactoryTest::TestFactoryStore(void) {
-	CPN::NodeFactory* fact = CPN::NodeFactory::GetFactory("TestNode");
-	CPN::NodeFactory* fact2 = &theFactory;
-	CPPUNIT_ASSERT_EQUAL(fact, fact2);
+	CPN::NodeFactory* fact = CPN::NodeFactory::GetFactory("MockNode");
+	CPPUNIT_ASSERT(fact != 0);
 }
 
 /// Test that an invalid name returns the expected value

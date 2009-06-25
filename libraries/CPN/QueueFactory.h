@@ -19,7 +19,7 @@ namespace CPN {
 	 */
 	class QueueFactory {
 	public:
-		QueueFactory(const ::std::string name_);
+		QueueFactory(const ::std::string &name_);
 
 		virtual ~QueueFactory();
 

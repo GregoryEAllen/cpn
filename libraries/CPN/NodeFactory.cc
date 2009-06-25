@@ -5,6 +5,7 @@
 #include "NodeFactory.h"
 #include "PthreadMutex.h"
 #include <map>
+#include <cstdio>
 
 /// Lock to protect the factoryMap
 static PthreadMutex lock;
@@ -16,11 +17,13 @@ static ::std::map< ::std::string, ::CPN::NodeFactory* > factoryMap;
 CPN::NodeFactory::NodeFactory(const ::std::string &name_) : name(name_) {
 	PthreadMutexProtected plock(lock);
 	factoryMap[name] = this;
+	printf("Added node type %s\n", name.c_str());
 }
 
 CPN::NodeFactory::~NodeFactory() {
 	PthreadMutexProtected plock(lock);
 	factoryMap.erase(name);
+	printf("Removed node type %s\n", name.c_str());
 }
 
 CPN::NodeFactory* CPN::NodeFactory::GetFactory(const ::std::string &ntypename) {
