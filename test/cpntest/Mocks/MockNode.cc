@@ -39,6 +39,9 @@ void MockNode::Process(void) {
 				++counter;
 			}
 			break;
+		case MODE_NOP:
+			// Do nothing!
+			break;
 		default:
 			break;
 	}

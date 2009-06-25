@@ -9,7 +9,7 @@
  */
 class MockNode : public CPN::NodeBase {
 public:
-	enum Mode_t { MODE_SOURCE = 1, MODE_TRANSMUTE, MODE_SINK };
+	enum Mode_t { MODE_SOURCE = 1, MODE_TRANSMUTE, MODE_SINK, MODE_NOP };
 
 	MockNode(CPN::Kernel &ker, const CPN::NodeAttr &attr, const Mode_t &mode_) 
 		: CPN::NodeBase(ker, attr), mode(mode_) {}

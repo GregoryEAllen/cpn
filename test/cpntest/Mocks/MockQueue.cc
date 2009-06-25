@@ -13,10 +13,10 @@ void MockQueue::Enqueue(CPN::ulong count) {
 bool MockQueue::RawEnqueue(void* data, CPN::ulong count, CPN::ulong chan) {
 	return false;
 }
-ulong MockQueue::NumChannels(void) const {
+CPN::ulong MockQueue::NumChannels(void) const {
 	return 0;
 }
-ulong MockQueue::Freespace(void) const {
+CPN::ulong MockQueue::Freespace(void) const {
 	return 0;
 }
 bool MockQueue::Full(void) const {
@@ -27,7 +27,7 @@ bool MockQueue::Full(void) const {
 const void* MockQueue::GetRawDequeuePtr(CPN::ulong thresh, CPN::ulong chan) {
 	return 0;
 }
-void MockQueue::Dequeue(ulong count) {
+void MockQueue::Dequeue(CPN::ulong count) {
 }
 bool MockQueue::RawDequeue(void * data, CPN::ulong count, CPN::ulong chan) {
 	return false;

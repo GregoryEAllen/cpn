@@ -17,12 +17,14 @@ void NodeFactoryTest::tearDown(void) {
 
 /// Test that a factory was stored correctly
 void NodeFactoryTest::TestFactoryStore(void) {
+	printf("%s\n",__PRETTY_FUNCTION__);
 	CPN::NodeFactory* fact = CPNGetNodeFactory("MockNode");
 	CPPUNIT_ASSERT(fact != 0);
 }
 
 /// Test that an invalid name returns the expected value
 void NodeFactoryTest::TestInvalidName(void) {
+	printf("%s\n",__PRETTY_FUNCTION__);
 	CPN::NodeFactory* fact = CPNGetNodeFactory("AnInvalidName1234556");
 	CPN::NodeFactory* fact2 = 0;
 	CPPUNIT_ASSERT_EQUAL(fact, fact2);
@@ -30,6 +32,7 @@ void NodeFactoryTest::TestInvalidName(void) {
 
 /// Test that on factory deletion the factory is successfully removed
 void NodeFactoryTest::TestCleanUp(void) {
+	printf("%s\n",__PRETTY_FUNCTION__);
 	CPN::NodeFactory* fact = new MockNodeFactory("Testing12345");
 	CPNRegisterNodeFactory(fact);
 	CPPUNIT_ASSERT_EQUAL(fact, CPNGetNodeFactory("Testing12345"));
@@ -39,6 +42,7 @@ void NodeFactoryTest::TestCleanUp(void) {
 }
 
 void NodeFactoryTest::TestCleanUp2(void) {
+	printf("%s\n",__PRETTY_FUNCTION__);
 	CPN::NodeFactory* fact = new MockNodeFactory("Testing12345");
 	CPNRegisterNodeFactory(fact);
 	CPPUNIT_ASSERT_EQUAL(fact, CPNGetNodeFactory("Testing12345"));

@@ -14,24 +14,24 @@ public:
 	~MockQueue() {}
 
 	// From QueueWriter
-	void* GetRawEnqueuePtr(ulong thresh, ulong chan=0);
-	void Enqueue(ulong count);
-	bool RawEnqueue(void* data, ulong count, ulong chan=0);
-	ulong NumChannels(void) const;
-	ulong Freespace(void) const;
+	void* GetRawEnqueuePtr(CPN::ulong thresh, CPN::ulong chan=0);
+	void Enqueue(CPN::ulong count);
+	bool RawEnqueue(void* data, CPN::ulong count, CPN::ulong chan=0);
+	CPN::ulong NumChannels(void) const;
+	CPN::ulong Freespace(void) const;
 	bool Full(void) const;
 
 	// From QueueReader
-	const void* GetRawDequeuePtr(ulong thresh, ulong chan=0);
-	void Dequeue(ulong count);
-	bool RawDequeue(void * data, ulong count, ulong chan=0);
+	const void* GetRawDequeuePtr(CPN::ulong thresh, CPN::ulong chan=0);
+	void Dequeue(CPN::ulong count);
+	bool RawDequeue(void * data, CPN::ulong count, CPN::ulong chan=0);
 	//ulong NumChannels(void) const;
-	ulong Count(void) const;
+	CPN::ulong Count(void) const;
 	bool Empty(void) const;
 
 	// From QueueBase
-	ulong ElementsEnqueued(void) const;
-	ulong ElementsDequeued(void) const;
+	CPN::ulong ElementsEnqueued(void) const;
+	CPN::ulong ElementsDequeued(void) const;
 
 	void RegisterReaderEvent(PthreadCondition* evt);
 

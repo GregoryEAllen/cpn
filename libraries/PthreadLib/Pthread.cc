@@ -68,6 +68,9 @@ Pthread::~Pthread(void)
 	// Is it safe to do this to a thread that has already terminated?
 	pthread_cancel(theThread);
 
+	if (state == created) {
+		Start();
+	}
 	// Now wait.
 	Join();
 //	Detach();
@@ -82,6 +85,7 @@ void* Pthread::PthreadEntryPoint(void* arg)
 	Pthread* ptr = (Pthread*) arg;
 	ptr->startMutex.Lock();
 	ptr->state = running;
+	TestCancel();
 	pthread_cleanup_push( PthreadCleanup, ptr);
 	result = ptr->EntryPoint();
 	pthread_cleanup_pop(1);

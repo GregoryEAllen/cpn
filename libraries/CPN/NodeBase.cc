@@ -7,7 +7,6 @@
 
 void* CPN::NodeBase::EntryPoint(void) {
 	Process();
-	kernel.NodeTerminated(attr);
 	return 0;
 }
 

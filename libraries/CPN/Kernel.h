@@ -35,6 +35,8 @@ namespace CPN {
 		Kernel(const KernelAttr &kattr);
 		~Kernel();
 
+		void Start(void);
+
 		/**
 		 * Wait for the process network to end.
 		 * May wait 'forever'.
@@ -67,7 +69,7 @@ namespace CPN {
 		QueueWriter* GetWriter(const ::std::string &nodename,
 				const ::std::string &portname);
 
-		void NodeTerminated(const NodeAttr &attr);
+		//void NodeTerminated(const NodeAttr &attr);
 
 		const KernelAttr &GetAttr(void) const { return kattr; }
 	private:
@@ -85,6 +87,8 @@ namespace CPN {
 		Kernel &operator=(const Kernel&);
 
 		ulong idcounter;
+		bool started;
+
 	};
 }
 #endif
