@@ -12,7 +12,7 @@
 
 CPN::QueueInfo::QueueInfo(const CPN::QueueAttr &attr)
 {
-	factory = CPN::QueueFactory::GetFactory(attr.GetTypeName());
+	factory = CPNGetQueueFactory(attr.GetTypeName());
 	if (!factory) throw ::std::invalid_argument("The queue type name must be a valid registered name.");
 	queue = factory->Create(attr);
 }

@@ -17,10 +17,6 @@ namespace CPN {
 	 * The node factory provides a method for the kernel to
 	 * create arbitrary user defined Nodes.
 	 *
-	 * This class should be used by defining a class that inherits this
-	 * class and implements the virtual functions. Then define a
-	 * static global variable of this class in the implementation
-	 * of the node this factory is for.
 	 */
 	class NodeFactory {
 	public:
@@ -60,17 +56,34 @@ namespace CPN {
 		 */
 		const ::std::string &GetName(void) const { return name; }
 
-		/**
-		 * Return the a pointer to the factory for the given node type.
-		 * \param ntypename the name of the node type
-		 * \return a pointer to an implementation of this class
-		 */
-		static NodeFactory* GetFactory(const ::std::string &ntypename);
-
 	private:
 		const ::std::string name;
 	};
 
+}
+
+extern "C" {
+	/**
+	 * Return the a pointer to the factory for the given node type.
+	 * \param ntypename the name of the node type
+	 * \return a pointer to an implementation of this class
+	 */
+	CPN::NodeFactory* CPNGetNodeFactory(const ::std::string &ntypename);
+
+	/**
+	 * Add the given node to the NodeFactory Registry.
+	 * If one adds different factory with the same name
+	 * it will replace the current factory by that name.
+	 * \param fact pointer to the factory to add.
+	 */
+	void CPNRegisterNodeFactory(CPN::NodeFactory* fact);
+
+	/**
+	 * Remove the factory with the given name from the registry.
+	 * It is alright to remove the same node factory more than once.
+	 * \param ntypename the name of the factory
+	 */
+	void CPNUnregisterNodeFactory(const ::std::string &ntypename);
 }
 
 #endif

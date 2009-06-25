@@ -41,16 +41,21 @@ namespace CPN {
 		 */
 		const ::std::string& GetName(void) const { return name; }
 
-		/**
-		 * \param qtypename the type of the queue factory to get
-		 * \return the QueueFactory for the given queue type.
-		 */
-		static QueueFactory* GetFactory(const ::std::string& qtypename);
-
 	private:
 		const ::std::string name;
 	};
 
 }
 
+extern "C" {
+	/**
+	 * \param qtypename the type of the queue factory to get
+	 * \return the QueueFactory for the given queue type.
+	 */
+	CPN::QueueFactory* CPNGetQueueFactory(const ::std::string& qtypename);
+
+	void CPNRegisterQueueFactory(CPN::QueueFactory* fact);
+
+	void CPNUnregisterQueueFactory(const ::std::string& qtypename);
+}
 #endif

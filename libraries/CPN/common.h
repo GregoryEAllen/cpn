@@ -14,7 +14,8 @@
 namespace CPN {
 	typedef unsigned long ulong;
 
-	/// The name for the default threshold queue type.
-	const ::std::string THRESHOLD_QUEUE_TYPE_NAME = "CPN::ThresholdQueue";
 }
+
+/// The name for the default threshold queue type.
+#define CPN_QUEUETYPE_THRESHOLD "CPN::ThresholdQueue"
 #endif

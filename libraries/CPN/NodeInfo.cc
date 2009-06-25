@@ -24,7 +24,7 @@ static void DeleteWriter(std::pair<std::string, CPN::NodeQueueWriter*> qw) {
 CPN::NodeInfo::NodeInfo(Kernel &ker, const NodeAttr &attr,
 	       	const void* const arg, const ulong argsize)
 {
-	factory = CPN::NodeFactory::GetFactory(attr.GetTypeName());
+	factory = CPNGetNodeFactory(attr.GetTypeName());
 	if (!factory) throw ::std::invalid_argument("Node type name must be a valid registered type.");
 	node = factory->Create(ker, attr, arg, argsize);
 }

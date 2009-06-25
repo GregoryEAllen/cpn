@@ -10,7 +10,6 @@
 #include "PthreadMutex.h"
 #include "PthreadCondition.h"
 #include "common.h"
-#include "QueueFactory.h"
 
 namespace CPN {
 

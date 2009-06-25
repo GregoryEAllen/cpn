@@ -12,7 +12,9 @@ public:
 
 	void Destroy(CPN::QueueBase* queue);
 
+	static CPN::QueueFactory* GetInstance() { return &instance; }
 private:
+	static MockQueueFactory instance;
 };
 
 #endif

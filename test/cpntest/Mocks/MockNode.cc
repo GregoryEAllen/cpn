@@ -8,7 +8,6 @@
 #include <cstdio>
 #include <string>
 
-static MockNodeFactory theFactory("MockNode");
 
 void MockNode::Process(void) {
 	std::string ourname = GetAttr().GetName();

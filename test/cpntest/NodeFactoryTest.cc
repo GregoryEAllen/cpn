@@ -9,6 +9,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION( NodeFactoryTest );
 
 
 void NodeFactoryTest::setUp(void) {
+	CPNRegisterNodeFactory(MockNodeFactory::GetInstance());
 }
 
 void NodeFactoryTest::tearDown(void) {
@@ -16,13 +17,13 @@ void NodeFactoryTest::tearDown(void) {
 
 /// Test that a factory was stored correctly
 void NodeFactoryTest::TestFactoryStore(void) {
-	CPN::NodeFactory* fact = CPN::NodeFactory::GetFactory("MockNode");
+	CPN::NodeFactory* fact = CPNGetNodeFactory("MockNode");
 	CPPUNIT_ASSERT(fact != 0);
 }
 
 /// Test that an invalid name returns the expected value
 void NodeFactoryTest::TestInvalidName(void) {
-	CPN::NodeFactory* fact = CPN::NodeFactory::GetFactory("AnInvalidName1234556");
+	CPN::NodeFactory* fact = CPNGetNodeFactory("AnInvalidName1234556");
 	CPN::NodeFactory* fact2 = 0;
 	CPPUNIT_ASSERT_EQUAL(fact, fact2);
 }
@@ -30,9 +31,20 @@ void NodeFactoryTest::TestInvalidName(void) {
 /// Test that on factory deletion the factory is successfully removed
 void NodeFactoryTest::TestCleanUp(void) {
 	CPN::NodeFactory* fact = new MockNodeFactory("Testing12345");
-	CPPUNIT_ASSERT_EQUAL(fact, CPN::NodeFactory::GetFactory("Testing12345"));
+	CPNRegisterNodeFactory(fact);
+	CPPUNIT_ASSERT_EQUAL(fact, CPNGetNodeFactory("Testing12345"));
 	delete fact;
 	fact = 0;
-	CPPUNIT_ASSERT_EQUAL(fact, CPN::NodeFactory::GetFactory("Testing12345"));
+	CPPUNIT_ASSERT_EQUAL(fact, CPNGetNodeFactory("Testing12345"));
+}
+
+void NodeFactoryTest::TestCleanUp2(void) {
+	CPN::NodeFactory* fact = new MockNodeFactory("Testing12345");
+	CPNRegisterNodeFactory(fact);
+	CPPUNIT_ASSERT_EQUAL(fact, CPNGetNodeFactory("Testing12345"));
+	CPNUnregisterNodeFactory("Testing12345");
+	delete fact;
+	fact = 0;
+	CPPUNIT_ASSERT_EQUAL(fact, CPNGetNodeFactory("Testing12345"));
 }
 

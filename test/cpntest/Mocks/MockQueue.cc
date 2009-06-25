@@ -3,7 +3,6 @@
 #include "MockQueueFactory.h"
 #include <cstdio>
 
-static MockQueueFactory theFactory("MockQueue");
 
 // From QueueWriter
 void* MockQueue::GetRawEnqueuePtr(CPN::ulong thresh, CPN::ulong chan) {

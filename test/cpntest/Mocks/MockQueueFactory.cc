@@ -4,7 +4,7 @@
 #include "MockQueue.h"
 
 
-
+MockQueueFactory MockQueueFactory::instance("MockQueue");
 
 CPN::QueueBase* MockQueueFactory::Create(const CPN::QueueAttr &attr) {
 	return new MockQueue(attr);

@@ -13,6 +13,9 @@ public:
 
 	void Destroy(CPN::NodeBase* node);
 
+	static CPN::NodeFactory* GetInstance() { return &instance; }
+private:
+	static MockNodeFactory instance;
 };
 
 #endif

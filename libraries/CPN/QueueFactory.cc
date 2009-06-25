@@ -15,20 +15,25 @@ static PthreadMutex lock;
 static ::std::map< ::std::string, CPN::QueueFactory* > queueMap;
 
 CPN::QueueFactory::QueueFactory(const ::std::string &name_) : name(name_) {
-	PthreadMutexProtected plock(lock);
-	printf("Added queue type %s\n", name.c_str());
-	queueMap[name] = this;
 }
 
 CPN::QueueFactory::~QueueFactory() {
-	PthreadMutexProtected plock(lock);
-	queueMap.erase(name);
-	printf("Removed queue type %s\n", name.c_str());
+	CPNUnregisterQueueFactory(name);
 }
 
-CPN::QueueFactory* CPN::QueueFactory::GetFactory(const ::std::string& qtypename) {
+CPN::QueueFactory* CPNGetQueueFactory(const ::std::string& qtypename) {
 	PthreadMutexProtected plock(lock);
 	return queueMap[qtypename];
 }
 
+
+void CPNRegisterQueueFactory(CPN::QueueFactory* fact) {
+	PthreadMutexProtected plock(lock);
+	queueMap[fact->GetName()] = fact;
+}
+
+void CPNUnregisterQueueFactory(const ::std::string& qtypename) {
+	PthreadMutexProtected plock(lock);
+	queueMap.erase(qtypename);
+}
 
