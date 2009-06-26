@@ -9,8 +9,10 @@
 #include "NodeFactory.h"
 #include "QueueFactory.h"
 #include "PthreadMutex.h"
+#include "PthreadCondition.h"
 #include <string>
 #include <map>
+#include <deque>
 
 namespace CPN {
 
@@ -35,14 +37,14 @@ namespace CPN {
 		Kernel(const KernelAttr &kattr);
 		~Kernel();
 
-		void Start(void);
-
 		/**
-		 * Wait for the process network to end.
-		 * May wait 'forever'.
+		 * Start the nodes in the process network.
+		 * Does not return until all nodes have
+		 * terminated.
+		 * At least one node must exist. Calling
+		 * Start more than once is an error.
 		 */
-		void Wait(void);
-		
+		void Start(void);
 
 		void CreateNode(const ::std::string &nodename,
 				const ::std::string &nodetype,
@@ -70,11 +72,14 @@ namespace CPN {
 				const ::std::string &portname);
 
 		const KernelAttr &GetAttr(void) const { return kattr; }
+
+		void NodeShutdown(const ::std::string &nodename);
 	private:
 
 		ulong GenerateId(const ::std::string& name);
 
 		PthreadMutex lock;
+		PthreadCondition nodeTermination;
 
 		const KernelAttr kattr;
 
@@ -85,9 +90,10 @@ namespace CPN {
 		Kernel &operator=(const Kernel&);
 
 		ulong idcounter;
-		enum Status_t { INITIALIZED, STARTED, SHUTTINGDOWN };
+		enum Status_t { INITIALIZED, STARTED, STOPPED, SHUTTINGDOWN };
 		Status_t status;
 
+		std::deque<NodeInfo*> nodesToDelete;
 	};
 }
 #endif

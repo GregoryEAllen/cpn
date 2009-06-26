@@ -10,6 +10,12 @@
 
 CPPUNIT_TEST_SUITE_REGISTRATION( QueueFactoryTest );
 
+#if _DEBUG
+#define DEBUG(frmt, ...) printf(frmt, __VA_ARGS__)
+#else
+#define DEBUG(frmt, ...)
+#endif
+
 
 void QueueFactoryTest::setUp(void) {
 
@@ -18,9 +24,9 @@ void QueueFactoryTest::setUp(void) {
 void QueueFactoryTest::tearDown(void) {}
 
 void QueueFactoryTest::TestMockStore(void) {
-	printf("%s\n",__PRETTY_FUNCTION__);
+	DEBUG("%s\n",__PRETTY_FUNCTION__);
 	CPNRegisterQueueFactory(MockQueueFactory::GetInstance());
-	CPN::QueueFactory* fact = CPNGetQueueFactory("MockQueue");
+	CPN::QueueFactory* fact = CPNGetQueueFactory(QUEUETYPE_MOCKQUEUE);
 	CPPUNIT_ASSERT(fact != 0);
 	CPN::QueueBase* q = fact->Create(CPN::QueueAttr(1, "dummy", "dummy", 1,1,1));
 	CPPUNIT_ASSERT(q != 0);
@@ -29,7 +35,7 @@ void QueueFactoryTest::TestMockStore(void) {
 }
 
 void QueueFactoryTest::TestFactoryStore(void) {
-	printf("%s\n",__PRETTY_FUNCTION__);
+	DEBUG("%s\n",__PRETTY_FUNCTION__);
 	CPNRegisterQueueFactory(CPN::ThresholdQueueFactory::GetInstance());
 	// Test for the existance of the default queue type
 	CPN::QueueFactory* fact = CPNGetQueueFactory( CPN_QUEUETYPE_THRESHOLD );
@@ -41,14 +47,14 @@ void QueueFactoryTest::TestFactoryStore(void) {
 }
 
 void QueueFactoryTest::TestInvalidName(void) {
-	printf("%s\n",__PRETTY_FUNCTION__);
+	DEBUG("%s\n",__PRETTY_FUNCTION__);
 	CPN::QueueFactory* fact = CPNGetQueueFactory(
 			"AnInvalidQueueName;kahsdfgha");
 	CPPUNIT_ASSERT(fact == 0);
 }
 
 void QueueFactoryTest::TestCleanUp(void) {
-	printf("%s\n",__PRETTY_FUNCTION__);
+	DEBUG("%s\n",__PRETTY_FUNCTION__);
 	CPN::QueueFactory* fact = new MockQueueFactory("Testing12345");
 	CPNRegisterQueueFactory(fact);
 	CPN::QueueFactory* fact2 = CPNGetQueueFactory("Testing12345");

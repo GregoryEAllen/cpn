@@ -7,29 +7,30 @@
 
 #include "MutexBase.h"
 
-class AutoLock : public MutexBase {
-public:
-	AutoLock(MutexBase& mutex_) : mutex(mutex_), count(0) {
-		Wait();
-	}
-	~AutoLock() {
-		while (!count)
-			Release();
-	}
+namespace Sync {
+	class AutoLock : public MutexBase {
+	public:
+		AutoLock(MutexBase& mutex_) throw() : mutex(mutex_), count(0) {
+			Wait();
+		}
+		~AutoLock() throw() {
+			while (!count)
+				Release();
+		}
 
-	void Release() {
-		--count;
-		mutex.Release();
-	}
+		void Release() throw() {
+			--count;
+			mutex.Release();
+		}
 
-	void Wait() {
-		mutex.Wait();
-		++count;
-	}
+		void Wait() throw() {
+			mutex.Wait();
+			++count;
+		}
 
-private:
-	MutexBase& mutex;
-	unsigned long count;
-};
-
+	private:
+		MutexBase& mutex;
+		unsigned long count;
+	};
+}
 #endif

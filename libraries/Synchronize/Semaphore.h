@@ -9,60 +9,61 @@
 #include "PthreadCondition.h"
 #include "MutexBase.h"
 
-/**
- * A very simple semaphore implemented using a mutex
- * and a condition variable.
- * No timed wait or try wait functionality provided.
- *
- * This implementation allows one to do bulk post to
- * the semaphore.
- */
-class Semaphore : public MutexBase {
-public:
-	typedef unsigned long ulong;
-	Semaphore() : value(0) { }
-
-	Semaphore(ulong value) : value(value) { }
-
+namespace Sync {
 	/**
-	 * Post to num to the semaphore.
+	 * A very simple semaphore implemented using a mutex
+	 * and a condition variable.
+	 * No timed wait or try wait functionality provided.
 	 *
-	 * \param num how many to add to the semaphore (default 1)
+	 * This implementation allows one to do bulk post to
+	 * the semaphore.
 	 */
-	void Post(ulong num = 1) {
-		PthreadMutexProtected l(lock);
-		value += num;
-		// broadcast because we might have
-		// more than one thread waiting
-		cond.Broadcast();
-	}
+	class Semaphore : public MutexBase {
+	public:
+		typedef unsigned long ulong;
+		Semaphore() throw() : value(0) { }
 
-	void Release(void) { Post(); }
+		Semaphore(ulong value) throw() : value(value) { }
 
-	/**
-	 * Wait for the semaphore to be greater than 0
-	 * and then decrement by one.
-	 */
-	void Wait(void) {
-		PthreadMutexProtected l(lock);
-		while (0 == value) {
-			cond.Wait(lock);
+		/**
+		 * Post to num to the semaphore.
+		 *
+		 * \param num how many to add to the semaphore (default 1)
+		 */
+		void Post(ulong num = 1) throw() {
+			PthreadMutexProtected l(lock);
+			value += num;
+			// broadcast because we might have
+			// more than one thread waiting
+			cond.Broadcast();
 		}
-		--value;
-	}
 
-	/**
-	 * \return the current value of the semaphore.
-	 */
-	ulong GetValue(void) {
-		PthreadMutexProtected l(lock);
-		return value;
-	}
-private:
-	ulong value;
-	PthreadMutex lock;
-	PthreadCondition cond;
-};
+		void Release(void) throw() { Post(); }
 
+		/**
+		 * Wait for the semaphore to be greater than 0
+		 * and then decrement by one.
+		 */
+		void Wait(void) throw() {
+			PthreadMutexProtected l(lock);
+			while (0 == value) {
+				cond.Wait(lock);
+			}
+			--value;
+		}
+
+		/**
+		 * \return the current value of the semaphore.
+		 */
+		ulong GetValue(void) throw() {
+			PthreadMutexProtected l(lock);
+			return value;
+		}
+	private:
+		ulong value;
+		PthreadMutex lock;
+		PthreadCondition cond;
+	};
+}
 #endif
 

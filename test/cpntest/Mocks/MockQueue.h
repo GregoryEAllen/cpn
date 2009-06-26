@@ -4,10 +4,6 @@
 
 #include "QueueBase.h"
 
-namespace CPN {
-	class QueueFactory;
-}
-
 class MockQueue : public CPN::QueueBase {
 public:
 	MockQueue(const CPN::QueueAttr &qattr) : QueueBase(qattr) {}

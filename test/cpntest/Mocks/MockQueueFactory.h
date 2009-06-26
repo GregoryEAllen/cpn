@@ -4,6 +4,8 @@
 
 #include "QueueFactory.h"
 
+#define QUEUETYPE_MOCKQUEUE "MockQueue"
+
 class MockQueueFactory : public CPN::QueueFactory {
 public:
 	MockQueueFactory(const std::string &name) : QueueFactory(name) {}

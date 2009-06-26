@@ -11,6 +11,7 @@ void* CPN::NodeBase::EntryPoint(void) {
 		Process();
 	} catch (CPN::KernelShutdownException e) {
 	}
+	kernel.NodeShutdown(GetAttr().GetName());
 	return 0;
 }
 

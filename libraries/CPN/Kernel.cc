@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <cassert>
 #include <vector>
+#include <stdexcept>
 
 template<class thetype>
 class Deleter {
@@ -55,16 +56,24 @@ void CPN::Kernel::Start(void) {
 	PthreadMutexProtected plock(lock); 
 	status = STARTED;
 	for_each(nodeMap.begin(), nodeMap.end(), NodeStarter);
+	while (nodeMap.size()) {
+		nodeTermination.Wait(lock);
+		while (nodesToDelete.size()) {
+			NodeInfo* nodeinfo = nodesToDelete.front();
+			nodesToDelete.pop_front();
+			delete nodeinfo;
+		}
+	}
+	status = STOPPED;
 }
 
-void CPN::Kernel::Wait(void) {}
 
 void CPN::Kernel::CreateNode(const ::std::string &nodename,
 		const ::std::string &nodetype,
 		const void* const arg,
 		const ulong argsize) {
 	PthreadMutexProtected plock(lock); 
-	if (status == SHUTTINGDOWN) {
+	if (status == SHUTTINGDOWN || status == STOPPED) {
 		throw CPN::KernelShutdownException("Cannot create new nodes after kernel shutdown.");
 	}
 	// Verify that nodename doesn't already exist.
@@ -73,7 +82,6 @@ void CPN::Kernel::CreateNode(const ::std::string &nodename,
 	CPN::NodeAttr attr(GenerateId(nodename), nodename, nodetype);
 	// Create the NodeInfo structure (which creates the node)
 	CPN::NodeInfo* nodeinfo = new CPN::NodeInfo(*this, attr, arg, argsize);	
-	assert(nodeinfo);
 	// Put the NodeInfo into our map.
 	nodeMap[nodename] = nodeinfo;
 	if (status == STARTED) nodeinfo->GetNode()->Start();
@@ -85,7 +93,7 @@ void CPN::Kernel::CreateQueue(const ::std::string &queuename,
 		const ulong maxThreshold,
 		const ulong numChannels) {
 	PthreadMutexProtected plock(lock); 
-	if (status == SHUTTINGDOWN) {
+	if (status == SHUTTINGDOWN || status == STOPPED) {
 		throw CPN::KernelShutdownException("Cannot create new queue after kernel shutdown.");
 	}
 	// Verify that queuename doesn't already exist.
@@ -95,7 +103,6 @@ void CPN::Kernel::CreateQueue(const ::std::string &queuename,
 		       	queueLength, maxThreshold, numChannels);
 	// Create the QueueInfo which creates the queue
 	CPN::QueueInfo* queueinfo = new CPN::QueueInfo(attr);
-	assert(queueinfo);
 	// Put QueueInfo in our map.
 	queueMap[queuename] = queueinfo;
 }
@@ -104,15 +111,19 @@ void CPN::Kernel::ConnectWriteEndpoint(const ::std::string &qname,
 		const ::std::string &nodename,
 		const ::std::string &portname) {
 	PthreadMutexProtected plock(lock); 
-	if (status == SHUTTINGDOWN) {
+	if (status == SHUTTINGDOWN || status == STOPPED) {
 		throw CPN::KernelShutdownException("Cannot create connection while kernel shutdown.");
 	}
 	// Validate that qname and nodename exist
 	// Lookup the queue
 	QueueInfo* qinfo = queueMap[qname];
+	if (!qinfo) {
+		throw std::invalid_argument("No such queue: " + qname);
+	}
 	NodeInfo* ninfo = nodeMap[nodename];
-	assert(qinfo);
-	assert(ninfo);
+	if (!ninfo) {
+		throw std::invalid_argument("No such node: " + nodename);
+	}
 	// Unregister the write end of the queue from it's registered
 	// place if it is already registered.
 	// Register the write end with the new place.
@@ -123,15 +134,19 @@ void CPN::Kernel::ConnectReadEndpoint(const ::std::string &qname,
 		const ::std::string &nodename,
 		const ::std::string &portname) {
 	PthreadMutexProtected plock(lock); 
-	if (status == SHUTTINGDOWN) {
+	if (status == SHUTTINGDOWN || status == STOPPED) {
 		throw CPN::KernelShutdownException("Cannot create connection while kernel shutdown.");
 	}
 	// Validate qname and nodename.
 	// Look up the queue
 	QueueInfo* qinfo = queueMap[qname];
+	if (!qinfo) {
+		throw std::invalid_argument("No such queue: " + qname);
+	}
 	NodeInfo* ninfo = nodeMap[nodename];
-	assert(qinfo);
-	assert(ninfo);
+	if (!ninfo) {
+		throw std::invalid_argument("No such node: " + nodename);
+	}
 	// Unregister the queue from its read port if applicable.
 	// Register the read port with its new port.
 	ninfo->SetReader(qinfo, portname);
@@ -140,7 +155,7 @@ void CPN::Kernel::ConnectReadEndpoint(const ::std::string &qname,
 CPN::QueueReader* CPN::Kernel::GetReader(const ::std::string &nodename,
 		const ::std::string &portname) {
 	PthreadMutexProtected plock(lock); 
-	if (status == SHUTTINGDOWN) {
+	if (status == SHUTTINGDOWN || status == STOPPED) {
 		throw CPN::KernelShutdownException("Kernel shutting down.");
 	}
 	// Validate nodename
@@ -158,7 +173,7 @@ CPN::QueueReader* CPN::Kernel::GetReader(const ::std::string &nodename,
 CPN::QueueWriter* CPN::Kernel::GetWriter(const ::std::string &nodename,
 		const ::std::string &portname) {
 	PthreadMutexProtected plock(lock); 
-	if (status == SHUTTINGDOWN) {
+	if (status == SHUTTINGDOWN || status == STOPPED) {
 		throw CPN::KernelShutdownException("Kernel shutting down.");
 	}
 	// Validate nodename
@@ -176,4 +191,13 @@ CPN::QueueWriter* CPN::Kernel::GetWriter(const ::std::string &nodename,
 CPN::ulong CPN::Kernel::GenerateId(const ::std::string& name) {
 	return idcounter++;
 }
+
+void CPN::Kernel::NodeShutdown(const std::string &nodename) {
+	PthreadMutexProtected plock(lock); 
+	NodeInfo* ninfo = nodeMap[nodename];
+	nodeMap.erase(nodename);
+	nodesToDelete.push_back(ninfo);
+	nodeTermination.Signal();
+}
+
 

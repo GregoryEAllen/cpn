@@ -16,6 +16,8 @@ public:
 	CPPUNIT_TEST( TestStartNoOps );
 	CPPUNIT_TEST( TestStartNoOps2 );
 	CPPUNIT_TEST( TestCreateQueues );
+	CPPUNIT_TEST( TestConnectQueues );
+	CPPUNIT_TEST( TestConnectQueuesFailure );
 	CPPUNIT_TEST_SUITE_END();
 
 	void TestInvalidNodeCreationType(void);
@@ -24,6 +26,8 @@ public:
 	void TestStartNoOps(void);
 	void TestStartNoOps2(void);
 	void TestCreateQueues(void);
+	void TestConnectQueues(void);
+	void TestConnectQueuesFailure(void);
 
 
 	// Support functions

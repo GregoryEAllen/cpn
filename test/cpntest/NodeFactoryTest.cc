@@ -7,6 +7,12 @@
 
 CPPUNIT_TEST_SUITE_REGISTRATION( NodeFactoryTest );
 
+#if _DEBUG
+#define DEBUG(frmt, ...) printf(frmt, __VA_ARGS__)
+#else
+#define DEBUG(frmt, ...)
+#endif
+
 
 void NodeFactoryTest::setUp(void) {
 	CPNRegisterNodeFactory(MockNodeFactory::GetInstance());
@@ -17,21 +23,21 @@ void NodeFactoryTest::tearDown(void) {
 
 /// Test that a factory was stored correctly
 void NodeFactoryTest::TestFactoryStore(void) {
-	printf("%s\n",__PRETTY_FUNCTION__);
+	DEBUG("%s\n",__PRETTY_FUNCTION__);
 	CPN::NodeFactory* fact = CPNGetNodeFactory("MockNode");
 	CPPUNIT_ASSERT(fact != 0);
 }
 
 /// Test that an invalid name returns the expected value
 void NodeFactoryTest::TestInvalidName(void) {
-	printf("%s\n",__PRETTY_FUNCTION__);
+	DEBUG("%s\n",__PRETTY_FUNCTION__);
 	CPN::NodeFactory* fact = CPNGetNodeFactory("AnInvalidName1234556");
 	CPN::NodeFactory* fact2 = 0;
 	CPPUNIT_ASSERT_EQUAL(fact, fact2);
 }
 
 void NodeFactoryTest::TestCleanUp(void) {
-	printf("%s\n",__PRETTY_FUNCTION__);
+	DEBUG("%s\n",__PRETTY_FUNCTION__);
 	CPN::NodeFactory* fact = new MockNodeFactory("Testing12345");
 	CPNRegisterNodeFactory(fact);
 	CPPUNIT_ASSERT_EQUAL(fact, CPNGetNodeFactory("Testing12345"));
