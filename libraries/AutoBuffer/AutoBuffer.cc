@@ -7,6 +7,9 @@
 #include <cstdlib>
 #include <cstring>
 
+typedef unsigned long ulong;
+typedef char* caddr_t;
+
 AutoBuffer::AutoBuffer(ulong initialsize)
 	: buffer(0), size(0) {
 	ChangeSize(initialsize);
@@ -44,6 +47,7 @@ void AutoBuffer::ChangeSize(ulong newsize) {
 	if (0 == newbuffer && newsize != 0) {
 		throw std::bad_alloc();
 	}
+	buffer = newbuffer;
 	size = newsize;
 }
 

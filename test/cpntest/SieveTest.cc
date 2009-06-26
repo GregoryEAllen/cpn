@@ -172,9 +172,10 @@ void SieveTest::tearDown(void) {
 
 void SieveTest::RunTest(void) {
 	AutoBuffer buffer(NUMPRIMES*sizeof(unsigned long));
+	CPPUNIT_ASSERT(buffer.GetBuffer());
 	kernel->CreateNode("TheProducer", "SieveProducerNode", 0, 0);
 	kernel->CreateNode("Filter 1+", "SieveFilterNode", 0, 0);
-	kernel->CreateNode("TheResult", "SieveResultNode", buffer, NUMPRIMES);
+	kernel->CreateNode("TheResult", "SieveResultNode", buffer.GetBuffer(), NUMPRIMES);
 	kernel->CreateQueue("consumerqueue", CPN_QUEUETYPE_THRESHOLD, 100, 100, 1);
 	kernel->CreateQueue("producerqueue", CPN_QUEUETYPE_THRESHOLD, 100, 100, 1);
 	kernel->ConnectWriteEndpoint("producerqueue", "TheProducer", "y");
