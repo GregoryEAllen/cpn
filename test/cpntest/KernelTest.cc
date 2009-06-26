@@ -53,16 +53,26 @@ void KernelTest::TestStartNoOps2(void) {
 	AddNoOps();
 }
 
+void KernelTest::TestCreateQueues(void) {
+	printf("%s\n",__PRETTY_FUNCTION__);
+	AddDefaultQueues();
+}
+
 void KernelTest::AddNoOps(void) {
 	// Make sure we have access to the given types
-	CPNRegisterQueueFactory(CPN::ThresholdQueueFactory::GetInstance());
 	CPNRegisterNodeFactory(MockNodeFactory::GetInstance());
 	MockNode::Mode_t mode = MockNode::MODE_NOP;
 	// Create some nodes...
 	kernel->CreateNode("no op 1", "MockNode", &mode, sizeof(mode));
 	kernel->CreateNode("no op 2", "MockNode", &mode, sizeof(mode));
 	kernel->CreateNode("no op 3", "MockNode", &mode, sizeof(mode));
+}
 
+void KernelTest::AddDefaultQueues(void) {
+	CPNRegisterQueueFactory(CPN::ThresholdQueueFactory::GetInstance());
+	kernel->CreateQueue("p", CPN_QUEUETYPE_THRESHOLD, 100, 50, 1);
+	kernel->CreateQueue("q", CPN_QUEUETYPE_THRESHOLD, 100, 50, 1);
+	kernel->CreateQueue("r", CPN_QUEUETYPE_THRESHOLD, 100, 50, 1);
 }
 
 

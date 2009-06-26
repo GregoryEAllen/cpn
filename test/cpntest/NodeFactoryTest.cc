@@ -30,18 +30,7 @@ void NodeFactoryTest::TestInvalidName(void) {
 	CPPUNIT_ASSERT_EQUAL(fact, fact2);
 }
 
-/// Test that on factory deletion the factory is successfully removed
 void NodeFactoryTest::TestCleanUp(void) {
-	printf("%s\n",__PRETTY_FUNCTION__);
-	CPN::NodeFactory* fact = new MockNodeFactory("Testing12345");
-	CPNRegisterNodeFactory(fact);
-	CPPUNIT_ASSERT_EQUAL(fact, CPNGetNodeFactory("Testing12345"));
-	delete fact;
-	fact = 0;
-	CPPUNIT_ASSERT_EQUAL(fact, CPNGetNodeFactory("Testing12345"));
-}
-
-void NodeFactoryTest::TestCleanUp2(void) {
 	printf("%s\n",__PRETTY_FUNCTION__);
 	CPN::NodeFactory* fact = new MockNodeFactory("Testing12345");
 	CPNRegisterNodeFactory(fact);

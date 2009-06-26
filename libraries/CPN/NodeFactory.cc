@@ -18,8 +18,6 @@ CPN::NodeFactory::NodeFactory(const ::std::string &name_) : name(name_) {
 }
 
 CPN::NodeFactory::~NodeFactory() {
-	// Has no effect if we are already unregistered.
-	CPNUnregisterNodeFactory(name);
 }
 
 CPN::NodeFactory* CPNGetNodeFactory(const ::std::string &ntypename) {

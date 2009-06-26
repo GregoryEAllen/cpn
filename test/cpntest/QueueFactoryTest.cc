@@ -34,7 +34,7 @@ void QueueFactoryTest::TestFactoryStore(void) {
 	// Test for the existance of the default queue type
 	CPN::QueueFactory* fact = CPNGetQueueFactory( CPN_QUEUETYPE_THRESHOLD );
 	CPPUNIT_ASSERT(fact != 0);
-	CPN::QueueBase* q = fact->Create(CPN::QueueAttr(1, "dummy", "dummy", 1,1,1));
+	CPN::QueueBase* q = fact->Create(CPN::QueueAttr(1, "dummy", "dummy", 1000,150,1));
 	CPPUNIT_ASSERT(q != 0);
 	fact->Destroy(q);
 	q = 0;
@@ -48,18 +48,6 @@ void QueueFactoryTest::TestInvalidName(void) {
 }
 
 void QueueFactoryTest::TestCleanUp(void) {
-	printf("%s\n",__PRETTY_FUNCTION__);
-	CPN::QueueFactory* fact = new MockQueueFactory("Testing12345");
-	CPNRegisterQueueFactory(fact);
-	CPN::QueueFactory* fact2 = CPNGetQueueFactory("Testing12345");
-	CPPUNIT_ASSERT_EQUAL(fact, fact2);
-	delete fact;
-	fact = 0;
-	fact2 = CPNGetQueueFactory("Testing12345");
-	CPPUNIT_ASSERT_EQUAL(fact, fact2);
-}
-
-void QueueFactoryTest::TestCleanUp2(void) {
 	printf("%s\n",__PRETTY_FUNCTION__);
 	CPN::QueueFactory* fact = new MockQueueFactory("Testing12345");
 	CPNRegisterQueueFactory(fact);

@@ -49,13 +49,25 @@ namespace CPN {
 
 extern "C" {
 	/**
+	 * Get the factory for the given queue type.
+	 * \warning all factories must have static program lifetime.
 	 * \param qtypename the type of the queue factory to get
 	 * \return the QueueFactory for the given queue type.
 	 */
 	CPN::QueueFactory* CPNGetQueueFactory(const ::std::string& qtypename);
 
+	/**
+	 * Register the given factory in our registry
+	 * \warning all factories must have static program lifetime.
+	 * \param fact the factory to register
+	 */
 	void CPNRegisterQueueFactory(CPN::QueueFactory* fact);
 
+	/**
+	 * Unregister a given factory from the regisry.
+	 * \warning all factories must have static program lifetime.
+	 * \param qtypename the name of the factory
+	 */
 	void CPNUnregisterQueueFactory(const ::std::string& qtypename);
 }
 #endif

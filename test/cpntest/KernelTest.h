@@ -15,6 +15,7 @@ public:
 	CPPUNIT_TEST( TestCreateNodes );
 	CPPUNIT_TEST( TestStartNoOps );
 	CPPUNIT_TEST( TestStartNoOps2 );
+	CPPUNIT_TEST( TestCreateQueues );
 	CPPUNIT_TEST_SUITE_END();
 
 	void TestInvalidNodeCreationType(void);
@@ -22,8 +23,12 @@ public:
 	void TestCreateNodes(void);
 	void TestStartNoOps(void);
 	void TestStartNoOps2(void);
+	void TestCreateQueues(void);
 
+
+	// Support functions
 	void AddNoOps(void);
+	void AddDefaultQueues(void);
 
 private:
 	CPN::Kernel* kernel;

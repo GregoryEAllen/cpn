@@ -18,7 +18,6 @@ CPN::QueueFactory::QueueFactory(const ::std::string &name_) : name(name_) {
 }
 
 CPN::QueueFactory::~QueueFactory() {
-	CPNUnregisterQueueFactory(name);
 }
 
 CPN::QueueFactory* CPNGetQueueFactory(const ::std::string& qtypename) {

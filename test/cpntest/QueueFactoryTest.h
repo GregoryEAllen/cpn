@@ -19,13 +19,11 @@ public:
 	CPPUNIT_TEST( TestInvalidName );
 	CPPUNIT_TEST( TestMockStore );
 	CPPUNIT_TEST( TestCleanUp );
-	CPPUNIT_TEST( TestCleanUp2 );
 	CPPUNIT_TEST_SUITE_END();
 
 	void TestFactoryStore(void);
 	void TestMockStore(void);
 	void TestInvalidName(void);
 	void TestCleanUp(void);
-	void TestCleanUp2(void);
 };
 #endif
