@@ -3,6 +3,7 @@
  */
 
 #include "AutoBuffer.h"
+#include <new>
 #include <cstdlib>
 #include <cstring>
 
@@ -39,7 +40,10 @@ void* AutoBuffer::GetBuffer(ulong offset) {
 }
 
 void AutoBuffer::ChangeSize(ulong newsize) {
-	buffer = realloc(buffer, newsize);
+	void *newbuffer = realloc(buffer, newsize);
+	if (0 == newbuffer && newsize != 0) {
+		throw std::bad_alloc();
+	}
 	size = newsize;
 }
 
