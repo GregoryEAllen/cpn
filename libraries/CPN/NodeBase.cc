@@ -4,9 +4,13 @@
 
 #include "NodeBase.h"
 #include "Kernel.h"
+#include "KernelShutdownException.h"
 
 void* CPN::NodeBase::EntryPoint(void) {
-	Process();
+	try {
+		Process();
+	} catch (CPN::KernelShutdownException e) {
+	}
 	return 0;
 }
 

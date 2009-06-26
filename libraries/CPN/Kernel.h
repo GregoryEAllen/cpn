@@ -69,8 +69,6 @@ namespace CPN {
 		QueueWriter* GetWriter(const ::std::string &nodename,
 				const ::std::string &portname);
 
-		//void NodeTerminated(const NodeAttr &attr);
-
 		const KernelAttr &GetAttr(void) const { return kattr; }
 	private:
 
@@ -87,7 +85,8 @@ namespace CPN {
 		Kernel &operator=(const Kernel&);
 
 		ulong idcounter;
-		bool started;
+		enum Status_t { INITIALIZED, STARTED, SHUTTINGDOWN };
+		Status_t status;
 
 	};
 }
