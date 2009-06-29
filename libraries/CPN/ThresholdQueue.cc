@@ -106,3 +106,15 @@ CPN::ulong CPN::ThresholdQueue::ElementsDequeued(void) const {
 	return queue.ElementsDequeued();
 }
 
+void CPN::ThresholdQueue::RegisterReaderEvent(PthreadCondition* evt) {
+	PthreadMutexProtected protectqlock(qlock);
+	qwritten = evt;
+	if (qwritten) qwritten->Signal();
+}
+
+void CPN::ThresholdQueue::RegisterWriterEvent(PthreadCondition* evt) {
+	PthreadMutexProtected protectqlock(qlock);
+	qread = evt;
+	if (qread) qread->Signal();
+}
+

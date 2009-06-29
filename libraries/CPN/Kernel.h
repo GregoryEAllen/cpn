@@ -39,12 +39,20 @@ namespace CPN {
 
 		/**
 		 * Start the nodes in the process network.
-		 * Does not return until all nodes have
-		 * terminated.
-		 * At least one node must exist. Calling
-		 * Start more than once is an error.
 		 */
 		void Start(void);
+		/**
+		 * Wait for all nodes to terminate.
+		 * Has no effect if not started.
+		 */
+		void Wait(void);
+		/**
+		 * Force all running nodes to terminate.
+		 * Returns immediately use Wait if one wishes
+		 * to wait for the nodes to terminate.
+		 * Has no effect if not started.
+		 */
+		void Terminate(void);
 
 		void CreateNode(const ::std::string &nodename,
 				const ::std::string &nodetype,

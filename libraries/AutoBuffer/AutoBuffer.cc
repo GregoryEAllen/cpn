@@ -61,11 +61,13 @@ void AutoBuffer::Put(const void* other, const ulong othersize, const ulong offse
 }
 
 ulong AutoBuffer::Get(void* other, const ulong othersize, const ulong offset) const {
-	caddr_t spot = (caddr_t)buffer + offset;
 	ulong copysize = othersize;
-	if (offset + othersize > size) {
+	if (offset >= size) {
+		return 0;
+	} else if (offset + othersize >= size) {
 		copysize = size - offset;
 	}
+	caddr_t spot = (caddr_t)buffer + offset;
 	memcpy(other, spot, copysize);
 	return copysize;
 }

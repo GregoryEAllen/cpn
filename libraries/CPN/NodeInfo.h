@@ -28,6 +28,13 @@ namespace CPN {
 		~NodeInfo();
 
 		/**
+		 * Start the node.
+		 */
+		void Start(void);
+
+		void Terminate(void);
+
+		/**
 		 * Connect the given queue to the given portname.
 		 * This function will call the necessary function
 		 * in the queue info to setup the connection.

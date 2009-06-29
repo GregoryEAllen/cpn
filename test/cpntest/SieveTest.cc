@@ -105,7 +105,6 @@ void SieveFilterNode::Process(void) {
 			break;
 		}
 	}
-
 }
 
 class SieveProducerNode : public CPN::NodeBase {
@@ -171,6 +170,7 @@ void SieveTest::tearDown(void) {
 }
 
 void SieveTest::RunTest(void) {
+	DEBUG("%s\n",__PRETTY_FUNCTION__);
 	AutoBuffer buffer(NUMPRIMES*sizeof(unsigned long));
 	CPPUNIT_ASSERT(buffer.GetBuffer());
 	kernel->CreateNode("TheProducer", "SieveProducerNode", 0, 0);
@@ -183,6 +183,7 @@ void SieveTest::RunTest(void) {
 	kernel->ConnectReadEndpoint("producerqueue", "Filter 1+", "x");
 	kernel->ConnectReadEndpoint("consumerqueue", "TheResult", "x");
 	kernel->Start();
+	kernel->Wait();
 	unsigned long* result = (unsigned long*) buffer.GetBuffer();
 	for (unsigned long i = 0; i < NUMPRIMES; i++) {
 		CPPUNIT_ASSERT_EQUAL(result[i], PRIMES[i]);

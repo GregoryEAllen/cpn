@@ -12,31 +12,19 @@
 #include "NodeInfo.h"
 #include "QueueInfo.h"
 #include "KernelShutdownException.h"
+#include "MapDeleter.h"
+#include "MapInvoke.h"
 #include <algorithm>
 #include <cassert>
 #include <vector>
 #include <stdexcept>
 
-template<class thetype>
-class Deleter {
-public:
-	void operator() (std::pair<std::string, thetype*> o) {
-		if (o.second) {
-			delete o.second;
-		}
-	}
-};
-
-void NodeStarter(std::pair<std::string, CPN::NodeInfo*> o) {
-	if (o.second) {
-		o.second->GetNode()->Start();
-	}
-}
-
 CPN::Kernel::Kernel(const KernelAttr &kattr)
 	: kattr(kattr), idcounter(0), status(INITIALIZED) {}
 
 CPN::Kernel::~Kernel() {
+	Terminate();
+	Wait();
 	std::vector<std::pair<std::string, CPN::NodeInfo*> > nodelist;
 	std::vector<std::pair<std::string, CPN::QueueInfo*> > queuelist;
 
@@ -48,14 +36,22 @@ CPN::Kernel::~Kernel() {
 		queuelist.assign(queueMap.begin(), queueMap.end());
 		queueMap.clear();
 	}
-	for_each(nodelist.begin(), nodelist.end(), Deleter<CPN::NodeInfo>());
-	for_each(queuelist.begin(), queuelist.end(), Deleter<CPN::QueueInfo>());
+	for_each(nodelist.begin(), nodelist.end(), MapDeleter<std::string, CPN::NodeInfo>());
+	for_each(queuelist.begin(), queuelist.end(), MapDeleter<std::string, CPN::QueueInfo>());
 }
 
 void CPN::Kernel::Start(void) {
 	PthreadMutexProtected plock(lock); 
+	if (status != INITIALIZED) return;
 	status = STARTED;
-	for_each(nodeMap.begin(), nodeMap.end(), NodeStarter);
+	for_each(nodeMap.begin(), nodeMap.end(),
+		       	MapInvoke<std::string, CPN::NodeInfo, void(CPN::NodeInfo::*)(void)>(
+				&CPN::NodeInfo::Start));
+}
+
+void CPN::Kernel::Wait(void) {
+	PthreadMutexProtected plock(lock); 
+	if (status == INITIALIZED) return;
 	while (nodeMap.size()) {
 		nodeTermination.Wait(lock);
 		while (nodesToDelete.size()) {
@@ -67,6 +63,14 @@ void CPN::Kernel::Start(void) {
 	status = STOPPED;
 }
 
+void CPN::Kernel::Terminate(void) {
+	PthreadMutexProtected plock(lock); 
+	if (status == INITIALIZED) return;
+	for_each(nodeMap.begin(), nodeMap.end(),
+		       	MapInvoke<std::string, CPN::NodeInfo, void(CPN::NodeInfo::*)(void)>(
+				&CPN::NodeInfo::Terminate));
+	status = STOPPED;
+}
 
 void CPN::Kernel::CreateNode(const ::std::string &nodename,
 		const ::std::string &nodetype,

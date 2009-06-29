@@ -3,6 +3,7 @@
 
 #include "BlockingQueueReader.h"
 #include "QueueBase.h"
+#include "KernelShutdownException.h"
 
 
 const void* CPN::BlockingQueueReader::GetRawDequeuePtr(ulong thresh, ulong chan) {
@@ -11,6 +12,7 @@ const void* CPN::BlockingQueueReader::GetRawDequeuePtr(ulong thresh, ulong chan)
 	const void* ptr = queue->GetRawDequeuePtr(thresh, chan);
 	while (!ptr) {
 		event.Wait(lock);
+		queue = CheckQueue();
 		ptr = queue->GetRawDequeuePtr(thresh, chan);
 	}
 	return ptr;
@@ -26,6 +28,7 @@ bool CPN::BlockingQueueReader::RawDequeue(void * data, ulong count, ulong chan) 
 	QueueBase* queue = CheckQueue();
 	while (!queue->RawDequeue(data, count, chan)) {
 		event.Wait(lock);
+		queue = CheckQueue();
 	}
 	return true;
 }
@@ -46,16 +49,30 @@ bool CPN::BlockingQueueReader::Empty(void) const {
 	return queue->Empty();
 }
 
-void CPN::BlockingQueueReader::SetQueue(QueueInfo* queueinfo_) {
+void CPN::BlockingQueueReader::SetQueueInfo(QueueInfo* queueinfo_) {
 	PthreadMutexProtected protectlock(lock);
-	if (queueinfo) queueinfo->SetReader(0);
 	queueinfo = queueinfo_;
-	if (queueinfo) queueinfo->SetReader(this);
 	event.Signal();
 }
 
-CPN::QueueInfo* CPN::BlockingQueueReader::GetQueue(void) {
+CPN::QueueInfo* CPN::BlockingQueueReader::GetQueueInfo(void) {
 	PthreadMutexProtected protectlock(lock);
 	return queueinfo;
 }
+
+void CPN::BlockingQueueReader::Terminate(void) {
+	PthreadMutexProtected protectlock(lock);
+	shutdown = true;
+	event.Signal();
+}
+
+CPN::QueueBase* CPN::BlockingQueueReader::CheckQueue(void) const {
+	while (!queueinfo) {
+		event.Wait(lock);
+		if (shutdown) throw CPN::KernelShutdownException("Shutting down.");
+	}
+	return queueinfo->GetQueue();
+}
+
+
 

@@ -12,6 +12,10 @@
  * An AutoBuffer handles a dynamically sized buffer of raw memory
  * automatically. This class also provides a few convenience
  * methods for dealing with the raw memory.
+ *
+ * \note The automatic resize routine resizes the memory to just enough
+ * each time. This is incredibly inefficient if we are growing the
+ * amount of memory often. Use ChangeSize to preallocate space.
  */
 class AutoBuffer {
 public:
@@ -54,6 +58,11 @@ public:
 	 */
 	void Put(const void* other, const ulong othersize, const ulong offset=0);
 
+	template <class T>
+	void Put(const ulong offset, const T* other, ulong count = 1) {
+		Put(other, sizeof(T) * count, offset);
+	}
+
 	/**
 	 * Copy up to othersize bytes into other starting at offset.
 	 * If othersize+offset is larger than our size then only copy up to the
@@ -64,6 +73,11 @@ public:
 	 * \return the number of bytes actually copied
 	 */
 	ulong Get(void* other, const ulong othersize, const ulong offset=0) const;
+
+	template <class T>
+	ulong Get(const ulong offset, T* other, ulong count = 1) const {
+		return Get(other, sizeof(T) * count, offset);
+	}
 
 private:
 	void* buffer;

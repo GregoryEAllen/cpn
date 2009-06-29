@@ -53,11 +53,13 @@ void KernelTest::TestStartNoOps(void) {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
 	AddNoOps();
 	kernel->Start();
+	kernel->Wait();
 }
 
 void KernelTest::TestStartNoOps2(void) {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
 	kernel->Start();
+	kernel->Wait();
 	CPPUNIT_ASSERT_THROW(AddNoOps(), CPN::KernelShutdownException);
 }
 

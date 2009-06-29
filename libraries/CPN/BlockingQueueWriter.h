@@ -15,12 +15,18 @@ namespace CPN {
 	class NodeInfo;
 	class QueueBase;
 
+	/**
+	 * Simple blocking implementation of NodeQueueWriter.
+	 * TODO: Fix the problem associated with setting a new
+	 * queue inbetween calls to GetRawEnqueuePtr and Enqueue.
+	 */
 	class BlockingQueueWriter : public NodeQueueWriter {
 	public:
 		BlockingQueueWriter(NodeInfo* nodeinfo, const std::string &portname)
-		       	: NodeQueueWriter(nodeinfo, portname), queueinfo(0) {}
+		       	: NodeQueueWriter(nodeinfo, portname), queueinfo(0), shutdown(false)
+		{}
 
-		~BlockingQueueWriter() { SetQueue(0); }
+		~BlockingQueueWriter() {}
 
 		// From QueueWriter
 		void* GetRawEnqueuePtr(ulong thresh, ulong chan=0);
@@ -36,21 +42,21 @@ namespace CPN {
 		bool Full(void) const;
 
 		// From NodeQueueWriter
-		void SetQueue(QueueInfo* queueinfo_);
+		void SetQueueInfo(QueueInfo* queueinfo_);
 
-		QueueInfo* GetQueue(void);
+		QueueInfo* GetQueueInfo(void);
 
 		PthreadCondition* GetEvent(void) { return &event; }
 
+		void Terminate(void);
+
 	private:
-		QueueBase* CheckQueue(void) const {
-			while (!queueinfo) event.Wait(lock);
-			return queueinfo->GetQueue();
-		};
+		QueueBase* CheckQueue(void) const;
 
 		mutable PthreadCondition event;
 		mutable PthreadMutex lock;
 		QueueInfo* queueinfo;
+		bool shutdown;
 	};
 }
 

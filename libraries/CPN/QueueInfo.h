@@ -11,6 +11,9 @@ namespace CPN {
 	class QueueBase;
 	class QueueAttr;
 
+	/**
+	 * Helper queue container object for the Kernel.
+	 */
 	class QueueInfo {
 	public:
 		QueueInfo(const QueueAttr &attr);
