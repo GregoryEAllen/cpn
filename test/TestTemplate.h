@@ -1,10 +1,12 @@
 
 /*
- * :%s/TESTTEMPLATE_H/NEWNAME_H/g
+ * Do the following ex commands
+ * :%s/TESTTEMPLATE/NEWNAME/g
  * :%s/TestTemplate/NewName/g
  * And add
- * #include <cppunit/TestAssert.h>
- * CPPUNIT_TEST_SUITE_REGISTRATION( NewName );
+#include "TestTemplate.h"
+#include <cppunit/TestAssert.h>
+CPPUNIT_TEST_SUITE_REGISTRATION( TestTemplate );
  * to the source file.
  */
 #ifndef TESTTEMPLATE_H
