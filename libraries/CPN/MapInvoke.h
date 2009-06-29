@@ -6,7 +6,7 @@
 #define MAPINVOKE_H
 
 /**
- * Functor to invoke a class method.
+ * \brief Functor to invoke a class method.
  */
 template<class keytype, class valuetype, class membertype>
 class MapInvoke {

@@ -10,7 +10,8 @@
 
 namespace CPN {
 	/**
-	 * This template class does type conversion.
+	 * \brief A template class to do type conversion for the
+	 * writer end of the queue.
 	 */
 	template<class T>
 	class QueueWriterAdapter {

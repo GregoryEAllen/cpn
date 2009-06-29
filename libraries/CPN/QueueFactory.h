@@ -12,8 +12,8 @@ namespace CPN {
 	class QueueAttr;
 
 	/**
-	 * QueueFactory implements both a repository of node types
-	 * and an easy way for the kernel to create user defined nodes.
+	 * \brief QueueFactory implements an easy way for the kernel to 
+	 * create user defined nodes.
 	 *
 	 * \see NodeFactory
 	 */

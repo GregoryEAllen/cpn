@@ -11,6 +11,7 @@ namespace CPN {
 
 	/**
 	 * \brief Definition of the writer portion of the CPN queue class.
+	 *
 	 * \note There is no requirement on this interface be reentrant or
 	 * synchronized. That is to say an instance of this class should be
 	 * accessed by only one thread.

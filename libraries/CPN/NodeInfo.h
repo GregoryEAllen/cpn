@@ -17,8 +17,11 @@ namespace CPN {
 	class QueueInfo;
 
 	/**
-	 * This class holds the node reference and information
+	 * \brief This class holds the node reference and information
 	 * about the node's connections.
+	 *
+	 * This class is only used by NodeQueueReader, NodeQueueWriter,
+	 * QueueInfo, and the Kernel.
 	 */
 	class NodeInfo {
 	public:
@@ -32,6 +35,9 @@ namespace CPN {
 		 */
 		void Start(void);
 
+		/**
+		 * Terminate the node
+		 */
 		void Terminate(void);
 
 		/**

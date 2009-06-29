@@ -16,7 +16,8 @@ namespace CPN {
 	class NodeInfo;
 
 	/**
-	 * Simple blocking implementation of the NodeQueueReader.
+	 * \brief Simple blocking implementation of the NodeQueueReader.
+	 *
 	 * TODO: Fix the problem associated with setting a new queue
 	 * inbetween calls to GetRawDequeuePtr and Dequeue.
 	 */

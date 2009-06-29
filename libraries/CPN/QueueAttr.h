@@ -9,6 +9,10 @@
 
 namespace CPN {
 	
+	/**
+	 * \brief The attributes for a queue.
+	 *
+	 */
 	class QueueAttr : public Attribute {
 	public:
 		QueueAttr(const ulong ID,

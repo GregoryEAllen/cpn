@@ -10,6 +10,9 @@
 
 namespace CPN {
 
+	/**
+	 * \brief An exception indicating that the Kernel has shut down.
+	 */
 	class KernelShutdownException : public std::exception {
 	public:
 		KernelShutdownException(const std::string& msg) throw() : message(msg) {}

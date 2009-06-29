@@ -9,6 +9,9 @@
 #include "QueueFactory.h"
 
 namespace CPN {
+	/**
+	 * \brief A QueueFactory for the ThresholdQueue.
+	 */
 	class ThresholdQueueFactory : public CPN::QueueFactory {
 	public:
 		~ThresholdQueueFactory();

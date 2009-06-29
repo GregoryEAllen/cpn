@@ -14,7 +14,7 @@ class PthreadCondition;
 namespace CPN {
 
 	/**
-	 * The base class for all queues in the CPN library.
+	 * \brief The base class for all queues in the CPN library.
 	 */
 	class QueueBase :
 		public QueueReader,

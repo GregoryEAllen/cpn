@@ -10,6 +10,7 @@ namespace CPN {
 
 	/**
 	 * \brief Attributes for a node.
+	 *
 	 * \note Implementation: All members are const.
 	 */
 	class NodeAttr : public Attribute {

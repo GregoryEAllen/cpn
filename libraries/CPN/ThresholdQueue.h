@@ -14,7 +14,7 @@
 namespace CPN {
 
 	/**
-	 * A version of the ThresholdQueue that provides the
+	 * \brief A version of the ThresholdQueue that provides the
 	 * CPN Queue interface
 	 */
 	class ThresholdQueue : public QueueBase {

@@ -14,9 +14,8 @@ namespace CPN {
 	class Kernel;
 
 	/**
-	 * The node factory provides a method for the kernel to
+	 * \brief The node factory provides a method for the kernel to
 	 * create arbitrary user defined Nodes.
-	 *
 	 */
 	class NodeFactory {
 	public:

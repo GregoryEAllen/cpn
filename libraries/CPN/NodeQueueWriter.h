@@ -14,7 +14,8 @@ namespace CPN {
 	class NodeInfo;
 
 	/**
-	 * The queue writer as the Kernel and NodeInfo see it.
+	 * \brief The queue writer as the Kernel and NodeInfo see it.
+	 *
 	 * Contains getter and setter methods for blocking
 	 * and keeping track of who is connected to who.
 	 */
@@ -23,16 +24,37 @@ namespace CPN {
 		NodeQueueWriter(NodeInfo* nodeinfo_, const std::string &portname_) 
 			: nodeinfo(nodeinfo_), portname(portname_) {}
 
-		virtual void SetQueueInfo(QueueInfo* queue_) = 0;
+		/**
+		 * Set the queue that the writer should use to write with.
+		 * \param queueinfo_ the QueueInfo object that holds the queue
+		 */
+		virtual void SetQueueInfo(QueueInfo* queueinfo_) = 0;
 
+		/**
+		 * \return the QueueInfo object registered with us or 0
+		 */
 		virtual QueueInfo* GetQueueInfo(void) = 0;
 
+		/**
+		 * \return a pointer to an event for the queue to signal when
+		 * space is available to write.
+		 */
 		virtual PthreadCondition* GetEvent(void) = 0;
 
+		/**
+		 * Sets the reader to terminate. Next call to a reader
+		 * function will cause the node to stop.
+		 */
 		virtual void Terminate(void) = 0;
 
+		/**
+		 * \return a pointer to the NodeInfo we are associated with
+		 */
 		NodeInfo* GetNodeInfo(void) { return nodeinfo; }
 
+		/**
+		 * \return our name
+		 */
 		const std::string &GetPortName(void) const { return portname; }
 	private:
 		NodeInfo* nodeinfo;

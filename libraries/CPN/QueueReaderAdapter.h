@@ -9,7 +9,7 @@
 
 namespace CPN {
 	/** 
-	 * Template class to do type conversion for reader end of the queue.
+	 * \brief Template class to do type conversion for reader end of the queue.
 	 */
 	template<class T>
 	class QueueReaderAdapter {

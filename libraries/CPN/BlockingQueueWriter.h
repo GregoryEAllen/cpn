@@ -16,7 +16,8 @@ namespace CPN {
 	class QueueBase;
 
 	/**
-	 * Simple blocking implementation of NodeQueueWriter.
+	 * \brief Simple blocking implementation of NodeQueueWriter.
+	 *
 	 * TODO: Fix the problem associated with setting a new
 	 * queue inbetween calls to GetRawEnqueuePtr and Enqueue.
 	 */

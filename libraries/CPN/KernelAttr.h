@@ -8,6 +8,9 @@
 #include "Attribute.h"
 
 namespace CPN {
+	/**
+	 * \brief The attribute for the Kernel.
+	 */
 	class KernelAttr : public Attribute {
 	public:
 		KernelAttr(const ulong id, const ::std::string &name)
