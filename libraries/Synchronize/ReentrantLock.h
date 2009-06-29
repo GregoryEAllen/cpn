@@ -11,6 +11,9 @@
 #include <pthread.h>
 
 namespace Sync {
+	/**
+	 * A reentrant lock.
+	 */
 	class ReentrantLock : public MutexBase {
 	public:
 		ReentrantLock() throw() : count(0) {}
@@ -21,18 +24,7 @@ namespace Sync {
 			cond.Signal();
 		}
 
-		void Wait(void) throw() {
-			PthreadMutexProtected l(lock);
-			if ( count && ( pthread_equal(owner, pthread_self()) ) ) {
-				++count;
-				return;
-			}
-			while (count) {
-				cond.Wait(lock);
-			}
-			++count;
-			owner = pthread_self();
-		}
+		void Wait(void) throw();
 
 	private:
 		PthreadMutex lock;

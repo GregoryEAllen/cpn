@@ -44,13 +44,7 @@ namespace Sync {
 		 * Wait for the semaphore to be greater than 0
 		 * and then decrement by one.
 		 */
-		void Wait(void) throw() {
-			PthreadMutexProtected l(lock);
-			while (0 == value) {
-				cond.Wait(lock);
-			}
-			--value;
-		}
+		void Wait(void) throw();
 
 		/**
 		 * \return the current value of the semaphore.

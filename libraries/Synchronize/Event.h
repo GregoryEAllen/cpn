@@ -67,15 +67,7 @@ namespace Sync {
 		 * This method will reset the event if the event
 		 * is an automatic event.
 		 */
-		void Wait(void) throw() {
-			PthreadMutexProtected l(lock);
-			while (!signaled) {
-				cond.Wait(lock);
-			}
-			if (automatic) {
-				signaled = false;
-			}
-		}
+		void Wait(void) throw();
 
 	private:
 		const bool automatic;

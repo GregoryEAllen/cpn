@@ -186,17 +186,61 @@ void QueueSwitchTest::ReaderSwitch(void) {
 	}
 	kernel->Terminate();
 	kernel->Wait();
-	CPPUNIT_ASSERT_EQUAL(listB.size(), firstSegmentSize);
+	CPPUNIT_ASSERT_EQUAL(firstSegmentSize, listB.size());
 	for (unsigned long i = 0; i < firstSegmentSize; ++i) {
 		CPPUNIT_ASSERT_EQUAL(listB[i], i);
 	}
-	CPPUNIT_ASSERT_EQUAL(listC.size(), secondSegmentSize);
+	CPPUNIT_ASSERT_EQUAL(secondSegmentSize, listC.size());
 	for (unsigned long i = 0; i < secondSegmentSize; ++i) {
 		CPPUNIT_ASSERT_EQUAL(listC[i], i);
 	}
 }
 
+/*
+ * A -> C
+ * B
+ * Then mid way
+ * A
+ * B -> C
+ */ 
 void QueueSwitchTest::WriterSwitch(void) {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
-	CPPUNIT_FAIL("Unimplemented.");
+	std::vector<unsigned long> listA;
+	std::vector<unsigned long> listB;
+	std::vector<unsigned long> listC;
+	Sync::Semaphore sema;
+	unsigned long firstSegmentSize = 10;
+	unsigned long secondSegmentSize = 20;
+	for (unsigned long i = 0; i < firstSegmentSize; ++i) {
+		listA.push_back(i);
+	}
+	for (unsigned long i = 0; i < secondSegmentSize; ++i) {
+		listB.push_back(i);
+	}
+	listB.push_back(SwitchNode::ENDOFQUEUE);
+	NodeParam paramA(SWITCH_PRODUCER, &listA, "thequeue", "B", &sema);
+	NodeParam paramB(PRODUCER, &listB, "", "", &sema);
+	NodeParam paramC(CONSUMER, &listC, "", "", &sema);
+	kernel->CreateNode("A", SwitchNodeFactory::NAME, &paramA, 0);
+	kernel->CreateNode("B", SwitchNodeFactory::NAME, &paramB, 0);
+	kernel->CreateNode("C", SwitchNodeFactory::NAME, &paramC, 0);
+	kernel->CreateQueue("thequeue", CPN_QUEUETYPE_THRESHOLD, 1024, 1024, 1);
+	kernel->ConnectWriteEndpoint("thequeue", "A", "y");
+	kernel->ConnectReadEndpoint("thequeue", "C", "x");
+	kernel->Start();
+	for (int i = 0; i < 3; ++i) {
+		sema.Wait();
+	}
+	kernel->Terminate();
+	kernel->Wait();
+	CPPUNIT_ASSERT_EQUAL(firstSegmentSize + secondSegmentSize, listC.size());
+	for (unsigned long i = 0; i < firstSegmentSize; ++i) {
+		CPPUNIT_ASSERT_EQUAL(listC[i], i);
+	}
+	for (unsigned long i = 0; i < secondSegmentSize; ++i) {
+		CPPUNIT_ASSERT_EQUAL(listC[firstSegmentSize + i], i);
+	}
 }
+
+
+
