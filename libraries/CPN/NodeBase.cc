@@ -7,9 +7,12 @@
 #include "KernelShutdownException.h"
 
 void* CPN::NodeBase::EntryPoint(void) {
-	try {
-		Process();
-	} catch (CPN::KernelShutdownException e) {
+	Kernel::Status_t status = kernel.CompareStatusAndWait(Kernel::READY);
+	if (status == Kernel::RUNNING) {
+		try {
+			Process();
+		} catch (CPN::KernelShutdownException e) {
+		}
 	}
 	kernel.NodeShutdown(GetAttr().GetName());
 	return 0;

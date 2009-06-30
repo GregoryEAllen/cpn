@@ -31,11 +31,6 @@ namespace CPN {
 		~NodeInfo();
 
 		/**
-		 * Start the node.
-		 */
-		void Start(void);
-
-		/**
 		 * Terminate the node
 		 */
 		void Terminate(void);

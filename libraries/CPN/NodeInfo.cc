@@ -20,9 +20,11 @@ CPN::NodeInfo::NodeInfo(Kernel &ker, const NodeAttr &attr,
 	factory = CPNGetNodeFactory(attr.GetTypeName());
 	if (!factory) throw ::std::invalid_argument("Node type name must be a valid registered type.");
 	node = factory->Create(ker, attr, arg, argsize);
+	node->Start();
 }
 
 CPN::NodeInfo::~NodeInfo() {
+	Terminate();
 	factory->Destroy(node);
 	node = 0;
 	std::map<std::string, NodeQueueReader*>::iterator inputsIter = inputs.begin();
@@ -43,10 +45,6 @@ CPN::NodeInfo::~NodeInfo() {
 		delete (*outputsIter).second;
 	}
 	outputs.clear();
-}
-
-void CPN::NodeInfo::Start(void) {
-	node->Start();
 }
 
 void CPN::NodeInfo::Terminate(void) {

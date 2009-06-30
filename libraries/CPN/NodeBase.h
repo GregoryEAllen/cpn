@@ -23,7 +23,11 @@ namespace CPN {
 	class NodeBase: public Pthread {
 	public:
 		NodeBase(Kernel &ker, const NodeAttr &attr) :
-			kernel(ker), attr(attr) {}
+			kernel(ker), attr(attr) {
+		}
+
+		virtual ~NodeBase() {
+		}
 
 		const NodeAttr &GetAttr(void) const { return attr; }
 

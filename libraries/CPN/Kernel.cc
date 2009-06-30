@@ -20,19 +20,16 @@
 #include <stdexcept>
 
 CPN::Kernel::Kernel(const KernelAttr &kattr)
-	: kattr(kattr), idcounter(0), status(INITIALIZED) {}
+	: kattr(kattr), statusHandler(READY), idcounter(0) {}
 
 CPN::Kernel::~Kernel() {
 	Terminate();
-	Wait();
+	// Delete any remaining objects.
 	std::vector<std::pair<std::string, CPN::NodeInfo*> > nodelist;
 	std::vector<std::pair<std::string, CPN::QueueInfo*> > queuelist;
-
 	{
 		PthreadMutexProtected plock(lock); 
-		status = SHUTTINGDOWN;
-		nodelist.assign(nodeMap.begin(), nodeMap.end());
-		nodeMap.clear();
+		InternalWait();
 		queuelist.assign(queueMap.begin(), queueMap.end());
 		queueMap.clear();
 	}
@@ -41,35 +38,40 @@ CPN::Kernel::~Kernel() {
 }
 
 void CPN::Kernel::Start(void) {
-	PthreadMutexProtected plock(lock); 
-	if (status != INITIALIZED) return;
-	status = STARTED;
-	for_each(nodeMap.begin(), nodeMap.end(),
-		       	MapInvoke<std::string, CPN::NodeInfo, void(CPN::NodeInfo::*)(void)>(
-				&CPN::NodeInfo::Start));
+	statusHandler.CompareAndPost(READY, RUNNING);
 }
 
 void CPN::Kernel::Wait(void) {
 	PthreadMutexProtected plock(lock); 
-	if (status == INITIALIZED) return;
-	while (nodeMap.size()) {
-		nodeTermination.Wait(lock);
+	InternalWait();
+}
+
+/**
+ * Wait untill all nodes have terminated.
+ * Also deletes all the terminated nodes.
+ *
+ * Post condition: nodeMap is empty.
+ */
+void CPN::Kernel::InternalWait(void) {
+	while (true) {
 		while (nodesToDelete.size()) {
 			NodeInfo* nodeinfo = nodesToDelete.front();
 			nodesToDelete.pop_front();
 			delete nodeinfo;
 		}
+		if (0 == nodeMap.size()) break;
+		nodeTermination.Wait(lock);
 	}
-	status = STOPPED;
+	statusHandler.Post(STOPPED);
 }
 
 void CPN::Kernel::Terminate(void) {
 	PthreadMutexProtected plock(lock); 
-	if (status == INITIALIZED) return;
+	if (STOPPED == statusHandler.Get()) return;
 	for_each(nodeMap.begin(), nodeMap.end(),
 		       	MapInvoke<std::string, CPN::NodeInfo, void(CPN::NodeInfo::*)(void)>(
 				&CPN::NodeInfo::Terminate));
-	status = STOPPED;
+	statusHandler.Post(TERMINATING);
 }
 
 void CPN::Kernel::CreateNode(const ::std::string &nodename,
@@ -77,18 +79,11 @@ void CPN::Kernel::CreateNode(const ::std::string &nodename,
 		const void* const arg,
 		const ulong argsize) {
 	PthreadMutexProtected plock(lock); 
-	if (status == SHUTTINGDOWN || status == STOPPED) {
-		throw CPN::KernelShutdownException("Cannot create new nodes after kernel shutdown.");
-	}
+	ReadyOrRunningCheck();
 	// Verify that nodename doesn't already exist.
-	if (nodeMap[nodename]) return;
-	// Create the NodeAttr object.
+	if (nodeMap.find(nodename) != nodeMap.end()) return;
 	CPN::NodeAttr attr(GenerateId(nodename), nodename, nodetype);
-	// Create the NodeInfo structure (which creates the node)
-	CPN::NodeInfo* nodeinfo = new CPN::NodeInfo(*this, attr, arg, argsize);	
-	// Put the NodeInfo into our map.
-	nodeMap[nodename] = nodeinfo;
-	if (status == STARTED) nodeinfo->GetNode()->Start();
+	nodeMap.insert(make_pair(nodename, new CPN::NodeInfo(*this, attr, arg, argsize)));
 }
 
 void CPN::Kernel::CreateQueue(const ::std::string &queuename,
@@ -97,37 +92,22 @@ void CPN::Kernel::CreateQueue(const ::std::string &queuename,
 		const ulong maxThreshold,
 		const ulong numChannels) {
 	PthreadMutexProtected plock(lock); 
-	if (status == SHUTTINGDOWN || status == STOPPED) {
-		throw CPN::KernelShutdownException("Cannot create new queue after kernel shutdown.");
-	}
+	ReadyOrRunningCheck();
 	// Verify that queuename doesn't already exist.
-	if (queueMap[queuename]) return;
-	// Generate the QueueAttr object.
+	if (queueMap.find(queuename) != queueMap.end()) return;
 	CPN::QueueAttr attr(GenerateId(queuename), queuename, queuetype,
 		       	queueLength, maxThreshold, numChannels);
-	// Create the QueueInfo which creates the queue
-	CPN::QueueInfo* queueinfo = new CPN::QueueInfo(attr);
-	// Put QueueInfo in our map.
-	queueMap[queuename] = queueinfo;
+	queueMap.insert(make_pair(queuename, new CPN::QueueInfo(attr)));
 }
 
 void CPN::Kernel::ConnectWriteEndpoint(const ::std::string &qname,
 		const ::std::string &nodename,
 		const ::std::string &portname) {
 	PthreadMutexProtected plock(lock); 
-	if (status == SHUTTINGDOWN || status == STOPPED) {
-		throw CPN::KernelShutdownException("Cannot create connection while kernel shutdown.");
-	}
+	ReadyOrRunningCheck();
 	// Validate that qname and nodename exist
-	// Lookup the queue
-	QueueInfo* qinfo = queueMap[qname];
-	if (!qinfo) {
-		throw std::invalid_argument("No such queue: " + qname);
-	}
-	NodeInfo* ninfo = nodeMap[nodename];
-	if (!ninfo) {
-		throw std::invalid_argument("No such node: " + nodename);
-	}
+	QueueInfo* qinfo = GetQueueInfo(qname);
+	NodeInfo* ninfo = GetNodeInfo(nodename);
 	// Unregister the write end of the queue from it's registered
 	// place if it is already registered.
 	// Register the write end with the new place.
@@ -138,19 +118,10 @@ void CPN::Kernel::ConnectReadEndpoint(const ::std::string &qname,
 		const ::std::string &nodename,
 		const ::std::string &portname) {
 	PthreadMutexProtected plock(lock); 
-	if (status == SHUTTINGDOWN || status == STOPPED) {
-		throw CPN::KernelShutdownException("Cannot create connection while kernel shutdown.");
-	}
+	ReadyOrRunningCheck();
 	// Validate qname and nodename.
-	// Look up the queue
-	QueueInfo* qinfo = queueMap[qname];
-	if (!qinfo) {
-		throw std::invalid_argument("No such queue: " + qname);
-	}
-	NodeInfo* ninfo = nodeMap[nodename];
-	if (!ninfo) {
-		throw std::invalid_argument("No such node: " + nodename);
-	}
+	QueueInfo* qinfo = GetQueueInfo(qname);
+	NodeInfo* ninfo = GetNodeInfo(nodename);
 	// Unregister the queue from its read port if applicable.
 	// Register the read port with its new port.
 	ninfo->SetReader(qinfo, portname);
@@ -159,13 +130,10 @@ void CPN::Kernel::ConnectReadEndpoint(const ::std::string &qname,
 CPN::QueueReader* CPN::Kernel::GetReader(const ::std::string &nodename,
 		const ::std::string &portname) {
 	PthreadMutexProtected plock(lock); 
-	if (status == SHUTTINGDOWN || status == STOPPED) {
-		throw CPN::KernelShutdownException("Kernel shutting down.");
-	}
+	ReadyOrRunningCheck();
 	// Validate nodename
 	// Lookup nodeinfo
-	NodeInfo* ninfo = nodeMap[nodename];
-	assert(ninfo);
+	NodeInfo* ninfo = GetNodeInfo(nodename);
 	// Check if reader exists.
 	// If not create new reader and add it.
 	// return the reader.
@@ -177,23 +145,16 @@ CPN::QueueReader* CPN::Kernel::GetReader(const ::std::string &nodename,
 CPN::QueueWriter* CPN::Kernel::GetWriter(const ::std::string &nodename,
 		const ::std::string &portname) {
 	PthreadMutexProtected plock(lock); 
-	if (status == SHUTTINGDOWN || status == STOPPED) {
-		throw CPN::KernelShutdownException("Kernel shutting down.");
-	}
+	ReadyOrRunningCheck();
 	// Validate nodename
 	// lookup nodeinfo.
-	NodeInfo* ninfo = nodeMap[nodename];
-	assert(ninfo);
+	NodeInfo* ninfo = GetNodeInfo(nodename);
 	// check if writer exists.
 	// if not create new writer and add it.
 	// return the writer.
 	QueueWriter* qwriter = ninfo->GetWriter(portname);
 	assert(qwriter);
 	return qwriter;
-}
-
-CPN::ulong CPN::Kernel::GenerateId(const ::std::string& name) {
-	return idcounter++;
 }
 
 void CPN::Kernel::NodeShutdown(const std::string &nodename) {
@@ -204,4 +165,32 @@ void CPN::Kernel::NodeShutdown(const std::string &nodename) {
 	nodeTermination.Signal();
 }
 
+void CPN::Kernel::ReadyOrRunningCheck(void) {
+	Status_t currentStatus = statusHandler.Get();
+	if (currentStatus != READY && currentStatus != RUNNING) {
+		throw CPN::KernelShutdownException("Kernel shutting down.");
+	}
+}
+
+CPN::ulong CPN::Kernel::GenerateId(const ::std::string& name) {
+	return idcounter++;
+}
+
+CPN::NodeInfo* CPN::Kernel::GetNodeInfo(const std::string& name) {
+	std::map<std::string, NodeInfo*>::iterator nodeItr;
+	nodeItr = nodeMap.find(name);
+	if (nodeItr == nodeMap.end() || (*nodeItr).second == 0) {
+		throw std::invalid_argument("No such node: " + name);
+	}
+	return (*nodeItr).second;
+}
+
+CPN::QueueInfo* CPN::Kernel::GetQueueInfo(const std::string& name) {
+	std::map<std::string, QueueInfo*>::iterator queueItr;
+	queueItr = queueMap.find(name);
+	if (queueItr == queueMap.end() || (*queueItr).second == 0) {
+		throw std::invalid_argument("No such queue: " + name);
+	}
+	return (*queueItr).second;
+}
 

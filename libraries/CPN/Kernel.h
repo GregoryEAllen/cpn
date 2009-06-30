@@ -10,6 +10,7 @@
 #include "QueueFactory.h"
 #include "PthreadMutex.h"
 #include "PthreadCondition.h"
+#include "StatusHandler.h"
 #include <string>
 #include <map>
 #include <deque>
@@ -32,6 +33,8 @@ namespace CPN {
 	 */
 	class Kernel {
 	public:
+		enum Status_t { READY, RUNNING, TERMINATING, STOPPED };
+
 		/**
 		 * Construct a new kernel object with the given name and id.
 		 */
@@ -42,11 +45,12 @@ namespace CPN {
 		 * Start the nodes in the process network.
 		 */
 		void Start(void);
+
 		/**
 		 * Wait for all nodes to terminate.
-		 * Has no effect if not started.
 		 */
 		void Wait(void);
+
 		/**
 		 * Force all running nodes to terminate.
 		 * Returns immediately use Wait if one wishes
@@ -54,6 +58,24 @@ namespace CPN {
 		 * Has no effect if not started.
 		 */
 		void Terminate(void);
+
+		/**
+		 * \return the current status
+		 */
+		Status_t GetStatus(void) const { return statusHandler.Get(); }
+
+		/**
+		 * Compare the current status to oldStatus and wait
+		 * for the status to be different.
+		 *
+		 * \warning No function in the Kernel should EVER
+		 * call this function with the Kernel lock held!
+		 *
+		 * \param oldStatus the status to compare
+		 * \return the new status
+		 */
+		Status_t CompareStatusAndWait(Status_t oldStatus) const {
+			return statusHandler.CompareAndWait(oldStatus); }
 
 		/**
 		 * Create a new node.
@@ -152,25 +174,34 @@ namespace CPN {
 		 */
 		void NodeShutdown(const ::std::string &nodename);
 	private:
+		Kernel(const Kernel&);
+		Kernel &operator=(const Kernel&);
 
-		ulong GenerateId(const ::std::string& name);
+
+		void InternalWait(void);
+		void ReadyOrRunningCheck(void);
+		NodeInfo* GetNodeInfo(const std::string& name);
+		QueueInfo* GetQueueInfo(const std::string& name);
 
 		PthreadMutex lock;
 		PthreadCondition nodeTermination;
 
 		const KernelAttr kattr;
 
-		::std::map<std::string, NodeInfo*> nodeMap;
-		::std::map<std::string, QueueInfo*> queueMap;
-
-		Kernel(const Kernel&);
-		Kernel &operator=(const Kernel&);
-
-		ulong idcounter;
-		enum Status_t { INITIALIZED, STARTED, STOPPED, SHUTTINGDOWN };
-		Status_t status;
-
+		std::map<std::string, NodeInfo*> nodeMap;
+		std::map<std::string, QueueInfo*> queueMap;
 		std::deque<NodeInfo*> nodesToDelete;
+
+		/**
+		 * \warning All functions in the Kernel that
+		 * hold the lock must never call the wait function.
+		 */
+		Sync::StatusHandler<Status_t> statusHandler;
+
+		/// Temporary unique id generator counter.
+		ulong idcounter;
+		/// Temporary unique id generator.
+		ulong GenerateId(const ::std::string& name);
 	};
 }
 #endif
