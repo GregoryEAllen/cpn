@@ -18,13 +18,12 @@ namespace CPN {
 	/**
 	 * \brief Simple blocking implementation of the NodeQueueReader.
 	 *
-	 * TODO: Fix the problem associated with setting a new queue
-	 * inbetween calls to GetRawDequeuePtr and Dequeue.
 	 */
 	class BlockingQueueReader : public NodeQueueReader {
 	public:
 		BlockingQueueReader(NodeInfo* nodeinfo, const std::string &portname)
-		       	: NodeQueueReader(nodeinfo, portname), queueinfo(0), shutdown(false)
+		       	: NodeQueueReader(nodeinfo, portname), queueinfo(0),
+		       	shutdown(false), outstandingDequeue(false)
 	       {}
 
 		~BlockingQueueReader() {}
@@ -57,6 +56,8 @@ namespace CPN {
 		mutable PthreadMutex lock;
 		QueueInfo* queueinfo;
 		bool shutdown;
+		bool outstandingDequeue;
+		PthreadCondition swapQueueEvent;
 	};
 }
 

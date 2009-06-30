@@ -4,6 +4,7 @@
 #include "BlockingQueueWriter.h"
 #include "QueueBase.h"
 #include "KernelShutdownException.h"
+#include <cassert>
 
 void* CPN::BlockingQueueWriter::GetRawEnqueuePtr(ulong thresh, ulong chan) {
 	PthreadMutexProtected protectlock(lock);
@@ -14,16 +15,21 @@ void* CPN::BlockingQueueWriter::GetRawEnqueuePtr(ulong thresh, ulong chan) {
 		queue = CheckQueue();
 		ptr = queue->GetRawEnqueuePtr(thresh, chan);
 	}
+	outstandingEnqueue = true;
 	return ptr;
 }
 void CPN::BlockingQueueWriter::Enqueue(ulong count) {
 	PthreadMutexProtected protectlock(lock);
 	QueueBase* queue = CheckQueue();
+	assert(outstandingEnqueue);
 	queue->Enqueue(count);
+	outstandingEnqueue = false;
+	swapQueueEvent.Signal();
 }
 bool CPN::BlockingQueueWriter::RawEnqueue(void* data, ulong count, ulong chan) {
 	PthreadMutexProtected protectlock(lock);
 	QueueBase* queue = CheckQueue();
+	assert(false == outstandingEnqueue);
 	while (!queue->RawEnqueue(data, count, chan)) {
 		event.Wait(lock);
 		queue = CheckQueue();
@@ -49,6 +55,7 @@ bool CPN::BlockingQueueWriter::Full(void) const {
 
 void CPN::BlockingQueueWriter::SetQueueInfo(QueueInfo* queueinfo_) {
 	PthreadMutexProtected protectlock(lock);
+	while (outstandingEnqueue && !shutdown) { swapQueueEvent.Wait(lock); }
 	queueinfo = queueinfo_;
 	event.Signal();
 }
@@ -62,14 +69,13 @@ void CPN::BlockingQueueWriter::Terminate(void) {
 	PthreadMutexProtected protectlock(lock);
 	shutdown = true;
 	event.Signal();
+	swapQueueEvent.Signal();
 }
 
 
 CPN::QueueBase* CPN::BlockingQueueWriter::CheckQueue(void) const {
-	while (!queueinfo) {
-		event.Wait(lock);
-		if (shutdown) throw CPN::KernelShutdownException("Shutting down.");
-	}
+	while (!queueinfo && !shutdown) { event.Wait(lock); }
+	if (shutdown) throw CPN::KernelShutdownException("Shutting down.");
 	return queueinfo->GetQueue();
 };
 

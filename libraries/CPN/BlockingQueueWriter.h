@@ -18,13 +18,12 @@ namespace CPN {
 	/**
 	 * \brief Simple blocking implementation of NodeQueueWriter.
 	 *
-	 * TODO: Fix the problem associated with setting a new
-	 * queue inbetween calls to GetRawEnqueuePtr and Enqueue.
 	 */
 	class BlockingQueueWriter : public NodeQueueWriter {
 	public:
 		BlockingQueueWriter(NodeInfo* nodeinfo, const std::string &portname)
-		       	: NodeQueueWriter(nodeinfo, portname), queueinfo(0), shutdown(false)
+		       	: NodeQueueWriter(nodeinfo, portname), queueinfo(0),
+		       	shutdown(false), outstandingEnqueue(false)
 		{}
 
 		~BlockingQueueWriter() {}
@@ -58,6 +57,8 @@ namespace CPN {
 		mutable PthreadMutex lock;
 		QueueInfo* queueinfo;
 		bool shutdown;
+		bool outstandingEnqueue;
+		PthreadCondition swapQueueEvent;
 	};
 }
 
