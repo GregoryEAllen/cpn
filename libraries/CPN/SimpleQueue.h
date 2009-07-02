@@ -1,26 +1,30 @@
 /** \file
- * \brief Default threshold queue implementation.
+ * A simple implementation of the QueueBase interface.
  */
 
-#ifndef CPN_QUEUE_THRESHOLDQUEUE_H
-#define CPN_QUEUE_THRESHOLDQUEUE_H
+#ifndef CPN_SIMPLEQUEUE_H
+#define CPN_SIMPLEQUEUE_H
 
-#include "ThresholdQueueBase.h"
 #include "QueueBase.h"
 #include "PthreadMutex.h"
-#include "PthreadCondition.h"
-#include "common.h"
+#include "ReentrantLock.h"
+#include <vector>
+
+#define CPN_QUEUETYPE_SIMPLE "CPN::SimpleQueue"
 
 namespace CPN {
 
 	/**
-	 * \brief A version of the ThresholdQueue that provides the
-	 * CPN Queue interface
+	 * 
+	 * \note This queue type does not support multiple channels.
+	 * the number of channels on creation must be 1 and the channel
+	 * parameter must always be 0.
 	 */
-	class ThresholdQueue : public QueueBase {
+	class SimpleQueue : public QueueBase {
 	public:
-		ThresholdQueue(const QueueAttr &attr);
-		~ThresholdQueue();
+
+		SimpleQueue(const QueueAttr& attr);
+		~SimpleQueue();
 
 		// From QueueWriter
 		void* GetRawEnqueuePtr(ulong thresh, ulong chan=0);
@@ -46,15 +50,20 @@ namespace CPN {
 
 		void RegisterWriterEvent(PthreadCondition* evt);
 
-		ulong ChannelStride(void) const;
-
 		static void RegisterQueueType(void);
 	private:
-		ThresholdQueueBase queue;
-		mutable PthreadMutex qlock;
+		std::vector<char> buffer;
+		unsigned long queueLength;
+		unsigned long maxThreshold;
+		// head points to the next empty byte
+		unsigned long head;
+		// tail points to the next byte to read
+		unsigned long tail;
+		mutable Sync::ReentrantLock qlock;
 		PthreadCondition* qwritten;
 		PthreadCondition* qread;
 	};
-
 }
+
 #endif
+

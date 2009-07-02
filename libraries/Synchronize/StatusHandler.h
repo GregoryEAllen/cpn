@@ -69,6 +69,23 @@ namespace Sync {
 			return status;
 		}
 
+		/**
+		 * This function compares status to oldStatus and if the same
+		 * sets the status to newStatus. Then waits until the status is
+		 * different than newStatus.
+		 * \param oldStatus the status to compare
+		 * \param newStatus the status to set the status to
+		 * \return the status as of the return of this function
+		 */
+		Status_t ComparePostAndWait(Status_t oldStatus, Status_t newStatus) {
+			PthreadMutexProtected l(lock);
+			if (oldStatus == status) {
+				status = newStatus;
+				while (status == newStatus) { cond.Wait(lock); }
+			}
+			return status;
+		}
+
 	private:
 		Status_t status;
 		mutable PthreadMutex lock;

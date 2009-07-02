@@ -14,7 +14,7 @@ namespace Sync {
 			Wait();
 		}
 		~AutoLock() throw() {
-			while (!count)
+			while (count != 0)
 				Release();
 		}
 

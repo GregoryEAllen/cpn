@@ -35,7 +35,7 @@ void CompoundDiff(const unsigned long rhsec, const long rhusec,
 	}
 }
 
-const Time &Time::Add(const TimeInterval& tmv) const {
+const Time Time::Add(const TimeInterval& tmv) const {
 	unsigned long sec;
 	long usec;
 	CompoundAdd(seconds, microseconds,
@@ -44,7 +44,7 @@ const Time &Time::Add(const TimeInterval& tmv) const {
 	return Time(sec, usec);
 }
 
-const Time &Time::Diff(const TimeInterval& tmv) const {
+const Time Time::Diff(const TimeInterval& tmv) const {
 	unsigned long sec;
 	long usec;
 	CompoundDiff(seconds, microseconds,
@@ -53,7 +53,7 @@ const Time &Time::Diff(const TimeInterval& tmv) const {
 	return Time(sec, usec);
 }
 
-const TimeInterval &Time::Diff(const Time& other) const {
+const TimeInterval Time::Diff(const Time& other) const {
 	unsigned long sec;
 	long usec;
 	CompoundDiff(seconds, microseconds,
@@ -68,7 +68,7 @@ TimeInterval::TimeInterval(const Time& first, const Time& second) {
 			seconds, microseconds);
 }
 
-const TimeInterval &TimeInterval::Diff(const TimeInterval& other) const {
+const TimeInterval TimeInterval::Diff(const TimeInterval& other) const {
 	unsigned long sec;
 	long usec;
 	TimeInterval inter;
@@ -78,7 +78,7 @@ const TimeInterval &TimeInterval::Diff(const TimeInterval& other) const {
 	return TimeInterval(sec, usec);
 }
 
-const TimeInterval &TimeInterval::Add(const TimeInterval& other) const {
+const TimeInterval TimeInterval::Add(const TimeInterval& other) const {
 	unsigned long sec;
 	long usec;
 	TimeInterval inter;
@@ -86,5 +86,9 @@ const TimeInterval &TimeInterval::Add(const TimeInterval& other) const {
 			other.Seconds(), other.Microseconds(),
 			sec, usec);
 	return TimeInterval(sec, usec);
+}
+
+const Time operator+(const TimeInterval& first, const Time& second) {
+	return second.Add(first);
 }
 

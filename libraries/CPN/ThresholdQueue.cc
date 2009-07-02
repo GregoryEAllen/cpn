@@ -4,6 +4,7 @@
 
 #include "ThresholdQueue.h"
 #include "QueueBase.h"
+#include "ThresholdQueueFactory.h"
 
 
 CPN::ThresholdQueue::ThresholdQueue(const QueueAttr &attr) :
@@ -117,4 +118,9 @@ void CPN::ThresholdQueue::RegisterWriterEvent(PthreadCondition* evt) {
 	qread = evt;
 	if (qread) qread->Signal();
 }
+
+void CPN::ThresholdQueue::RegisterQueueType(void) {
+	CPNRegisterQueueFactory(ThresholdQueueFactory::GetInstance());
+}
+
 

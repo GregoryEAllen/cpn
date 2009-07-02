@@ -21,7 +21,7 @@ namespace Sync {
 		void Release(void) throw() {
 			PthreadMutexProtected l(lock);
 			--count;
-			cond.Signal();
+			if (count == 0) cond.Signal();
 		}
 
 		void Wait(void) throw();

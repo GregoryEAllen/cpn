@@ -30,6 +30,7 @@ namespace CPN {
 		}
 
 		const NodeAttr &GetAttr(void) const { return attr; }
+		const std::string GetName(void) const { return attr.GetName(); }
 
 		virtual void Process(void) = 0;
 	protected:
