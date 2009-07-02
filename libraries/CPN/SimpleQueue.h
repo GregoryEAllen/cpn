@@ -15,6 +15,13 @@
 namespace CPN {
 
 	/**
+	 * /brief A very simple implementatin of QueueBase.
+	 * 
+	 * No special memory mapping or any other stuff, just a
+	 * plain memory buffer. Multiple calls the Enqueue are not
+	 * checked for invalid input. So the user can try to 
+	 * submit more than there queue space and predictable
+	 * errors will follow.
 	 * 
 	 * \note This queue type does not support multiple channels.
 	 * the number of channels on creation must be 1 and the channel

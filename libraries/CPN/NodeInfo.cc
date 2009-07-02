@@ -79,7 +79,7 @@ CPN::NodeQueueWriter* CPN::NodeInfo::GetWriter(std::string name) {
 void CPN::NodeInfo::SetReader(QueueInfo* queue, std::string portname) {
 	NodeQueueReader* reader = GetReader(portname);
 	QueueInfo* oqinfo = reader->GetQueueInfo();
-	// If an queue is registered with this reader already clear it
+	// If a queue is registered with this reader already clear it
 	if (oqinfo) {
 		oqinfo->SetReader(0);
 	}

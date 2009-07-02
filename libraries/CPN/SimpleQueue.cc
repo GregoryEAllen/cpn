@@ -1,9 +1,6 @@
 /** \file
  * Implementation for the simple queue.
  *
- *
- * Note that the lock only needs to be held while we are
- * accessing head or tail with this implementation.
  */
 
 #include "SimpleQueue.h"
@@ -14,7 +11,7 @@
 
 
 CPN::SimpleQueue::SimpleQueue(const QueueAttr& attr)
-       : CPN::QueueBase(attr), queueLength(attr.GetLength()),
+       : CPN::QueueBase(attr), queueLength(attr.GetLength() + 1),
 	maxThreshold(attr.GetMaxThreshold()), head(0), tail(0),
 	qwritten(0), qread(0) {
 	assert(attr.GetNumChannels() == 1);

@@ -15,6 +15,10 @@ namespace Sync {
 	 * having a status variable in a multi threaded application.
 	 * The StatusHandler can be used much like an atomic variable
 	 * or a blocking queue with size 1.
+	 *
+	 * Future improvements to this might be to use actual
+	 * atomic compare and set primatives for these operations rather
+	 * than a lock and condition.
 	 */
 	template<class Status_t>
 	class StatusHandler {
@@ -29,6 +33,14 @@ namespace Sync {
 			PthreadMutexProtected l(lock);
 			status = newStatus;
 			cond.Broadcast();
+		}
+
+		/**
+		 * \return the current status
+		 */
+		Status_t Get(void) const {
+			PthreadMutexProtected l(lock);
+			return status;
 		}
 
 		/**
@@ -48,12 +60,15 @@ namespace Sync {
 			return false;
 		}
 
-		/**
-		 * \return the current status
-		 */
-		Status_t Get(void) const {
+		template <class Comparator>
+		bool CompareAndPost(Status_t oldStatus, Status_t newStatus, Comparator comp) {
 			PthreadMutexProtected l(lock);
-			return status;
+			if (comp(oldStatus, status)) {
+				status = newStatus;
+				cond.Broadcast();
+				return true;
+			}
+			return false;
 		}
 
 		/**
@@ -69,6 +84,13 @@ namespace Sync {
 			return status;
 		}
 
+		template<class Comparator>
+		Status_t CompareAndWait(Status_t oldStatus, Comparator comp) const {
+			PthreadMutexProtected l(lock);
+			while (comp(oldStatus, status)) { cond.Wait(lock); }
+			return status;
+		}
+
 		/**
 		 * This function compares status to oldStatus and if the same
 		 * sets the status to newStatus. Then waits until the status is
@@ -81,7 +103,19 @@ namespace Sync {
 			PthreadMutexProtected l(lock);
 			if (oldStatus == status) {
 				status = newStatus;
+				cond.Broadcast();
 				while (status == newStatus) { cond.Wait(lock); }
+			}
+			return status;
+		}
+
+		template<class Comparator>
+		Status_t ComparePostAndWait(Status_t oldStatus, Status_t newStatus, Comparator comp) {
+			PthreadMutexProtected l(lock);
+			if (comp(oldStatus, status)) {
+				status = newStatus;
+				cond.Broadcast();
+				while (newStatus == status) { cond.Wait(lock); }
 			}
 			return status;
 		}
