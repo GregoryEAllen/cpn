@@ -14,6 +14,8 @@
 
 namespace CPN {
 
+	class QueueInfo;
+
 	/**
 	 * \brief The base class for all queues in the CPN library.
 	 */
@@ -31,18 +33,61 @@ namespace CPN {
 		 */
 		const QueueAttr &GetAttr(void) const { return qattr; }
 
-		void SetReaderStatusHandler(Sync::StatusHandler<QueueStatus>* rsh);
-		void SetWriterStatusHandler(Sync::StatusHandler<QueueStatus>* wsh);
-
+		/**
+		 * \return the queue name
+		 */
+		const std::string GetName(void) const { return qattr.GetName(); }
 	protected:
+		/**
+		 * Function to notify the reader of a write operation.
+		 * This function should be called by implementations
+		 * when write is success.
+		 */
 		void NotifyReaderOfWrite(void);
+		/**
+		 * Function to notify the writer of a read operation.
+		 * This function should be called by implementations
+		 * when a read is success.
+		 */
 		void NotifyWriterOfRead(void);
 	private:
+		/**
+		 * Send a notification currently to the given status handler.
+		 * \param stathand pointer to status handler
+		 * \param newStatus the status to notify
+		 */
 		void Notify(Sync::StatusHandler<QueueStatus>* stathand, QueueStatus newStatus);
+
+		/**
+		 * Set the status handler to use for this queue.
+		 *
+		 * \param rsh pointer to the status handler.
+		 */
+		void SetReaderStatusHandler(Sync::StatusHandler<QueueStatus>* rsh);
+
+		/**
+		 * Clear the status handler for reading.
+		 */
+		void ClearReaderStatusHandler(void);
+
+		/**
+		 * Set the status handler for writing for this queue.
+		 * \param wsh pointer to the status handler
+		 */
+		void SetWriterStatusHandler(Sync::StatusHandler<QueueStatus>* wsh);
+
+		/**
+		 * Clear the writer status handler.
+		 */
+		void ClearWriterStatusHandler(void);
+
+
 		const QueueAttr qattr;
 		PthreadMutex statusHandlerMutex;
 		Sync::StatusHandler<QueueStatus>* readerStatusHandler;
 		Sync::StatusHandler<QueueStatus>* writerStatusHandler;
+
+		friend class QueueInfo;
 	};
 
 }

@@ -36,6 +36,11 @@ namespace CPN {
 		void SetReader(NodeQueueReader* reader_);
 
 		/**
+		 * Clear the current reader
+		 */
+		void ClearReader(void);
+
+		/**
 		 * \return the currently registered reader or 0 if none.
 		 */
 		NodeQueueReader* GetReader(void) const { return reader; }
@@ -46,6 +51,11 @@ namespace CPN {
 		 * \param writer_ the writer to register
 		 */
 		void SetWriter(NodeQueueWriter* writer_);
+
+		/**
+		 * Clear the current writer.
+		 */
+		void ClearWriter(void);
 
 		/**
 		 * \return the curretnly registered writer or 0 if none

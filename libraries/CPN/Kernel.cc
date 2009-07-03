@@ -20,8 +20,8 @@
 #include <stdexcept>
 
 CPN::Kernel::Kernel(const KernelAttr &kattr)
-	: kattr(kattr), lock(), nodeTermination(false, lock),
-       	statusHandler(READY, lock), idcounter(0) {}
+	: kattr(kattr), lock(), nodeTermination(false, &lock),
+       	statusHandler(READY, &lock), idcounter(0) {}
 
 CPN::Kernel::~Kernel() {
 	Terminate();

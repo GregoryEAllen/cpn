@@ -8,9 +8,14 @@
 
 CPN::BlockingQueueWriter::BlockingQueueWriter(NodeInfo* nodeinfo, const std::string &portname)
 	: NodeQueueWriter(nodeinfo, portname),lock(), queueinfo(0),
-	status(CPN::QueueStatus::DETACHED, lock) {}
+	status(CPN::QueueStatus::DETACHED, &lock) {}
+
+CPN::BlockingQueueWriter::~BlockingQueueWriter() {
+	assert(queueinfo == 0);
+}
 
 void* CPN::BlockingQueueWriter::GetRawEnqueuePtr(ulong thresh, ulong chan) {
+	Sync::AutoLock alock(lock);
 	QueueBase* queue = CheckQueue();
 	status.Post(QueueStatus::QUERY);
 	void* ptr = queue->GetRawEnqueuePtr(thresh, chan);
@@ -62,6 +67,7 @@ bool CPN::BlockingQueueWriter::Full(void) const {
 
 void CPN::BlockingQueueWriter::SetQueueInfo(QueueInfo* queueinfo_) {
 	Sync::AutoLock alock(lock);
+	if (queueinfo == queueinfo_) return;
 	QueueStatus theStatus = status.Get();
 	while (true) {
 		switch (theStatus.status) {
@@ -72,12 +78,10 @@ void CPN::BlockingQueueWriter::SetQueueInfo(QueueInfo* queueinfo_) {
 		case QueueStatus::BLOCKED:
 		case QueueStatus::READY:
 		case QueueStatus::DETACHED:
-			if (queueinfo) {
-				queueinfo->GetQueue()->SetWriterStatusHandler(0);
-			}
+			if (queueinfo) { queueinfo->ClearWriter(); }
 			queueinfo = queueinfo_;
 			if (queueinfo) {
-				queueinfo->GetQueue()->SetWriterStatusHandler(&status);
+				queueinfo->SetWriter(this);
 				status.Post(QueueStatus::READY);
 			} else {
 				status.Post(QueueStatus::DETACHED);
@@ -90,6 +94,10 @@ void CPN::BlockingQueueWriter::SetQueueInfo(QueueInfo* queueinfo_) {
 			assert(false);
 		}
 	}
+}
+
+void CPN::BlockingQueueWriter::ClearQueueInfo() {
+	SetQueueInfo(0);
 }
 
 CPN::QueueInfo* CPN::BlockingQueueWriter::GetQueueInfo(void) {

@@ -24,14 +24,14 @@ namespace CPN {
 	public:
 		BlockingQueueReader(NodeInfo* nodeinfo, const std::string &portname);
 
-		~BlockingQueueReader() {}
+		~BlockingQueueReader();
 
 		// From QueueReader
 		const void* GetRawDequeuePtr(ulong thresh, ulong chan=0);
 
 		void Dequeue(ulong count);
 
-		bool RawDequeue(void * data, ulong count, ulong chan=0);
+		bool RawDequeue(void* data, ulong count, ulong chan=0);
 
 		ulong NumChannels(void) const;
 
@@ -41,6 +41,10 @@ namespace CPN {
 
 		// From NodeQueueReader
 		void SetQueueInfo(QueueInfo* queueinfo_);
+
+		void ClearQueueInfo(void);
+
+		Sync::StatusHandler<QueueStatus>* GetStatusHandler(void) { return &status; }
 
 		QueueInfo* GetQueueInfo(void);
 

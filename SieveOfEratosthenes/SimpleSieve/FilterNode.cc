@@ -8,7 +8,12 @@
 #include "QueueReaderAdapter.h"
 #include "NodeFactory.h"
 
+#if _DEBUG
 #include <cstdio>
+#define DEBUG(frmt, ...) printf(frmt, __VA_ARGS__)
+#else
+#define DEBUG(frmt, ...)
+#endif
 
 class FilterFactory : public CPN::NodeFactory {
 public:
@@ -25,6 +30,7 @@ public:
 static FilterFactory filterFactoryInstance;
 
 void FilterNode::Process(void) {
+	DEBUG("FilterNode %s start\n", GetName().c_str());
 	CPN::QueueWriterAdapter<unsigned long> out = kernel.GetWriter(GetName(), "y");
 	CPN::QueueReaderAdapter<unsigned long> in = kernel.GetReader(GetName(), "x");
 	unsigned long nextFilter = filterval;
@@ -40,6 +46,7 @@ void FilterNode::Process(void) {
 			out.Enqueue(&readVal, 1);
 		}
 	} while (readVal != 0);
+	DEBUG("FilterNode %s end\n", GetName().c_str());
 }
 
 void FilterNode::RegisterNodeType(void) {

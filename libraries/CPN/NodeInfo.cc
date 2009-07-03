@@ -25,13 +25,12 @@ CPN::NodeInfo::NodeInfo(Kernel &ker, const NodeAttr &attr,
 
 CPN::NodeInfo::~NodeInfo() {
 	Terminate();
-	factory->Destroy(node);
-	node = 0;
 	std::map<std::string, NodeQueueReader*>::iterator inputsIter = inputs.begin();
 	for (;inputsIter != inputs.end(); inputsIter++) {
 		QueueInfo *qinfo = (*inputsIter).second->GetQueueInfo();
 		if (qinfo) {
-			qinfo->SetReader(0);
+			qinfo->ClearReader();
+			(*inputsIter).second->ClearQueueInfo();
 		}
 		delete (*inputsIter).second;
 	}
@@ -40,11 +39,14 @@ CPN::NodeInfo::~NodeInfo() {
 	for (;outputsIter != outputs.end(); outputsIter++) {
 		QueueInfo *qinfo = (*outputsIter).second->GetQueueInfo();
 		if (qinfo) {
-			qinfo->SetWriter(0);
+			qinfo->ClearWriter();
+			(*outputsIter).second->ClearQueueInfo();
 		}
 		delete (*outputsIter).second;
 	}
 	outputs.clear();
+	factory->Destroy(node);
+	node = 0;
 }
 
 void CPN::NodeInfo::Terminate(void) {
@@ -56,15 +58,7 @@ void CPN::NodeInfo::Terminate(void) {
 
 void CPN::NodeInfo::SetWriter(QueueInfo* queue, std::string portname) {
 	NodeQueueWriter* writer = GetWriter(portname);
-	QueueInfo* oqinfo = writer->GetQueueInfo();
-	if (oqinfo) {
-		oqinfo->SetWriter(0);
-	}
-	writer->SetQueueInfo(queue);
 	if (queue) {
-		if (queue->GetWriter()) {
-			queue->GetWriter()->SetQueueInfo(0);
-		}
 		queue->SetWriter(writer);
 	}
 }
@@ -78,18 +72,7 @@ CPN::NodeQueueWriter* CPN::NodeInfo::GetWriter(std::string name) {
 
 void CPN::NodeInfo::SetReader(QueueInfo* queue, std::string portname) {
 	NodeQueueReader* reader = GetReader(portname);
-	QueueInfo* oqinfo = reader->GetQueueInfo();
-	// If a queue is registered with this reader already clear it
-	if (oqinfo) {
-		oqinfo->SetReader(0);
-	}
-	reader->SetQueueInfo(queue);
 	if (queue) {
-		// If the queue we are registering is already registered somewhere else
-		// unregister it
-		if (queue->GetReader()) {
-			queue->GetReader()->SetQueueInfo(0);
-		}
 		queue->SetReader(reader);
 	}
 }

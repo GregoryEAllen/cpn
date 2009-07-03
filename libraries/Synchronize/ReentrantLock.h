@@ -20,6 +20,7 @@ namespace Sync {
 	class ReentrantLock : public MutexBase {
 	public:
 		ReentrantLock() throw() : count(0) {}
+		~ReentrantLock() throw() {}
 
 		void Release(void) throw() {
 			PthreadMutexProtected l(lock);

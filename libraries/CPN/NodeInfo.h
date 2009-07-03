@@ -4,6 +4,7 @@
 #ifndef CPN_NODEINFO_H
 #define CPN_NODEINFO_H
 
+#include "NodeBase.h"
 #include <map>
 #include <string>
 
@@ -74,6 +75,8 @@ namespace CPN {
 		 * \return the node
 		 */
 		NodeBase* GetNode(void) { return node; }
+
+		const std::string GetName(void) const { return node->GetName(); }
 
 	private:
 

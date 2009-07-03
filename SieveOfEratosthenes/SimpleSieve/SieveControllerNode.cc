@@ -12,6 +12,14 @@
 #include "ToString.h"
 #include <cmath>
 
+#if _DEBUG
+#include <cstdio>
+#define DEBUG(frmt, ...) printf(frmt, __VA_ARGS__)
+#else
+#define DEBUG(frmt, ...)
+#endif
+
+
 class SCNFactory : public CPN::NodeFactory {
 public:
 	SCNFactory() : CPN::NodeFactory(SIEVECONTROLLERNODE_TYPENAME) {}
@@ -35,6 +43,7 @@ static const char* const IN_PORT = "x";
 static const char* const OUT_PORT = "y";
 
 void SieveControllerNode::Process(void) {
+	DEBUG("SieveControllerNode %s start\n", GetName().c_str());
 	CPN::QueueReaderAdapter<unsigned long> in = kernel.GetReader(GetName(), IN_PORT);
 	Initialize();
 	unsigned long readVal = 0;
@@ -49,6 +58,7 @@ void SieveControllerNode::Process(void) {
 		}
 	} while (readVal != 0 && param.primeBound > readVal);
 	kernel.Terminate();
+	DEBUG("SieveControllerNode %s end\n", GetName().c_str());
 }
 
 void SieveControllerNode::RegisterNodeType(void) {

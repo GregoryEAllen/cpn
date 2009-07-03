@@ -24,7 +24,7 @@ namespace CPN {
 	public:
 		BlockingQueueWriter(NodeInfo* nodeinfo, const std::string &portname);
 
-		~BlockingQueueWriter() {}
+		~BlockingQueueWriter();
 
 		// From QueueWriter
 		void* GetRawEnqueuePtr(ulong thresh, ulong chan=0);
@@ -41,6 +41,10 @@ namespace CPN {
 
 		// From NodeQueueWriter
 		void SetQueueInfo(QueueInfo* queueinfo_);
+
+		void ClearQueueInfo(void);
+
+		Sync::StatusHandler<QueueStatus>* GetStatusHandler(void) { return &status; }
 
 		QueueInfo* GetQueueInfo(void);
 

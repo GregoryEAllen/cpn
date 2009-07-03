@@ -9,7 +9,11 @@
 
 CPN::BlockingQueueReader::BlockingQueueReader(NodeInfo* nodeinfo, const std::string &portname)
 	: NodeQueueReader(nodeinfo, portname), lock(), queueinfo(0),
-	status(CPN::QueueStatus::DETACHED, lock) {}
+	status(CPN::QueueStatus::DETACHED, &lock) {}
+
+CPN::BlockingQueueReader::~BlockingQueueReader() {
+	assert(queueinfo == 0);
+}
 
 const void* CPN::BlockingQueueReader::GetRawDequeuePtr(ulong thresh, ulong chan) {
 	Sync::AutoLock alock(lock);
@@ -66,6 +70,7 @@ bool CPN::BlockingQueueReader::Empty(void) const {
 
 void CPN::BlockingQueueReader::SetQueueInfo(QueueInfo* queueinfo_) {
 	Sync::AutoLock alock(lock);
+	if (queueinfo == queueinfo_) return;
 	QueueStatus theStatus = status.Get();
 	while (true) {
 		switch (theStatus.status) {
@@ -76,12 +81,10 @@ void CPN::BlockingQueueReader::SetQueueInfo(QueueInfo* queueinfo_) {
 		case QueueStatus::BLOCKED:
 		case QueueStatus::READY:
 		case QueueStatus::DETACHED:
-			if (queueinfo) {
-				queueinfo->GetQueue()->SetReaderStatusHandler(0);
-			}
+			if (queueinfo) { queueinfo->ClearReader(); }
 			queueinfo = queueinfo_;
 			if (queueinfo) {
-				queueinfo->GetQueue()->SetReaderStatusHandler(&status);
+				queueinfo->SetReader(this);
 				status.Post(QueueStatus::READY);
 			} else {
 				status.Post(QueueStatus::DETACHED);
@@ -94,6 +97,10 @@ void CPN::BlockingQueueReader::SetQueueInfo(QueueInfo* queueinfo_) {
 			assert(false);
 		}
 	}
+}
+
+void CPN::BlockingQueueReader::ClearQueueInfo() {
+	SetQueueInfo(0);
 }
 
 CPN::QueueInfo* CPN::BlockingQueueReader::GetQueueInfo(void) {
