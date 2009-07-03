@@ -11,6 +11,9 @@
 #include <pthread.h>
 
 namespace Sync {
+
+	template<class Status_t>
+	class StatusHandler;
 	/**
 	 * A reentrant lock.
 	 */
@@ -27,10 +30,13 @@ namespace Sync {
 		void Wait(void) throw();
 
 	private:
+		void Wait(PthreadCondition& c) throw();
 		PthreadMutex lock;
 		PthreadCondition cond;
 		unsigned long count;
 		pthread_t owner;
+
+		template<class T> friend class StatusHandler;
 	};
 }
 #endif

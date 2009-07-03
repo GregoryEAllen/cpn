@@ -6,9 +6,10 @@
 
 #include "common.h"
 #include "NodeQueueReader.h"
-#include "PthreadMutex.h"
-#include "PthreadCondition.h"
 #include "QueueInfo.h"
+#include "QueueStatus.h"
+#include "ReentrantLock.h"
+#include "StatusHandler.h"
 
 namespace CPN {
 
@@ -21,10 +22,7 @@ namespace CPN {
 	 */
 	class BlockingQueueReader : public NodeQueueReader {
 	public:
-		BlockingQueueReader(NodeInfo* nodeinfo, const std::string &portname)
-		       	: NodeQueueReader(nodeinfo, portname), queueinfo(0),
-		       	shutdown(false), outstandingDequeue(false)
-	       {}
+		BlockingQueueReader(NodeInfo* nodeinfo, const std::string &portname);
 
 		~BlockingQueueReader() {}
 
@@ -46,18 +44,14 @@ namespace CPN {
 
 		QueueInfo* GetQueueInfo(void);
 
-		PthreadCondition* GetEvent(void) { return &event; }
-
 		void Terminate(void);
 
 	private:
 		QueueBase* CheckQueue(void) const;
-		mutable PthreadCondition event;
-		mutable PthreadMutex lock;
+
+		mutable Sync::ReentrantLock lock;
 		QueueInfo* queueinfo;
-		bool shutdown;
-		bool outstandingDequeue;
-		PthreadCondition swapQueueEvent;
+		Sync::StatusHandler<QueueStatus> status;
 	};
 }
 

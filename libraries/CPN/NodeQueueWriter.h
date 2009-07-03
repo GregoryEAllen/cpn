@@ -7,8 +7,6 @@
 #include "QueueWriter.h"
 #include <string>
 
-class PthreadCondition;
-
 namespace CPN {
 	class QueueInfo;
 	class NodeInfo;
@@ -34,12 +32,6 @@ namespace CPN {
 		 * \return the QueueInfo object registered with us or 0
 		 */
 		virtual QueueInfo* GetQueueInfo(void) = 0;
-
-		/**
-		 * \return a pointer to an event for the queue to signal when
-		 * space is available to write.
-		 */
-		virtual PthreadCondition* GetEvent(void) = 0;
 
 		/**
 		 * Sets the reader to terminate. Next call to a reader

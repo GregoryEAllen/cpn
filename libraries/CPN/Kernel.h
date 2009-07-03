@@ -8,9 +8,9 @@
 #include "KernelAttr.h"
 #include "NodeFactory.h"
 #include "QueueFactory.h"
-#include "PthreadMutex.h"
-#include "PthreadCondition.h"
 #include "StatusHandler.h"
+#include "ReentrantLock.h"
+#include "AutoLock.h"
 #include <string>
 #include <map>
 #include <deque>
@@ -68,13 +68,11 @@ namespace CPN {
 		 * Compare the current status to oldStatus and wait
 		 * for the status to be different.
 		 *
-		 * \warning No function in the Kernel should EVER
-		 * call this function with the Kernel lock held!
-		 *
 		 * \param oldStatus the status to compare
 		 * \return the new status
 		 */
 		Status_t CompareStatusAndWait(Status_t oldStatus) const {
+			Sync::AutoLock plock(lock); 
 			return statusHandler.CompareAndWait(oldStatus); }
 
 		/**
@@ -183,10 +181,10 @@ namespace CPN {
 		NodeInfo* GetNodeInfo(const std::string& name);
 		QueueInfo* GetQueueInfo(const std::string& name);
 
-		PthreadMutex lock;
-		PthreadCondition nodeTermination;
-
 		const KernelAttr kattr;
+
+		mutable Sync::ReentrantLock lock;
+		Sync::StatusHandler<bool> nodeTermination;
 
 		std::map<std::string, NodeInfo*> nodeMap;
 		std::map<std::string, QueueInfo*> queueMap;

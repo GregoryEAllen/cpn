@@ -10,8 +10,7 @@
 CPN::ThresholdQueue::ThresholdQueue(const QueueAttr &attr) :
 	QueueBase(attr),
 // ThresholdQueueBase(ulong elemSize, ulong queueLen, ulong maxThresh, ulong numChans=1);
-	queue(1, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels()),
-	qwritten(0), qread(0)
+	queue(1, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels())
 {
 }
 
@@ -28,7 +27,7 @@ void* CPN::ThresholdQueue::GetRawEnqueuePtr(ulong thresh, ulong chan) {
 void CPN::ThresholdQueue::Enqueue(ulong count) {
 	PthreadMutexProtected protectqlock(qlock);
 	queue.Enqueue(count);
-	if (qwritten) qwritten->Signal();
+	NotifyReaderOfWrite();
 }
 
 bool CPN::ThresholdQueue::RawEnqueue(void * data, ulong count, ulong chan) {
@@ -37,7 +36,7 @@ bool CPN::ThresholdQueue::RawEnqueue(void * data, ulong count, ulong chan) {
 	if (!dest) return false;
 	memcpy(dest, data, count);
 	queue.Enqueue(count);
-	if (qwritten) qwritten->Signal();
+	NotifyReaderOfWrite();
 	return true;
 }
 
@@ -71,7 +70,7 @@ const void* CPN::ThresholdQueue::GetRawDequeuePtr(ulong thresh, ulong chan) {
 void CPN::ThresholdQueue::Dequeue(ulong count) {
 	PthreadMutexProtected protectqlock(qlock);
 	queue.Dequeue(count);
-	if (qread) qread->Signal();
+	NotifyWriterOfRead();
 }
 
 bool CPN::ThresholdQueue::RawDequeue(void * data, ulong count, ulong chan) {
@@ -80,7 +79,7 @@ bool CPN::ThresholdQueue::RawDequeue(void * data, ulong count, ulong chan) {
 	if (!src) return false;
 	memcpy(data, src, count);
 	queue.Dequeue(count);
-	if (qread) qread->Signal();
+	NotifyWriterOfRead();
 	return true;
 }
 
@@ -105,18 +104,6 @@ CPN::ulong CPN::ThresholdQueue::ElementsEnqueued(void) const {
 CPN::ulong CPN::ThresholdQueue::ElementsDequeued(void) const {
 	PthreadMutexProtected protectqlock(qlock);
 	return queue.ElementsDequeued();
-}
-
-void CPN::ThresholdQueue::RegisterReaderEvent(PthreadCondition* evt) {
-	PthreadMutexProtected protectqlock(qlock);
-	qwritten = evt;
-	if (qwritten) qwritten->Signal();
-}
-
-void CPN::ThresholdQueue::RegisterWriterEvent(PthreadCondition* evt) {
-	PthreadMutexProtected protectqlock(qlock);
-	qread = evt;
-	if (qread) qread->Signal();
 }
 
 void CPN::ThresholdQueue::RegisterQueueType(void) {

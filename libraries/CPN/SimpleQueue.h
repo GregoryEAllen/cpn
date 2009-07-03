@@ -49,14 +49,6 @@ namespace CPN {
 		ulong Count(void) const;
 		bool Empty(void) const;
 
-		// From QueueBase
-		ulong ElementsEnqueued(void) const;
-		ulong ElementsDequeued(void) const;
-
-		void RegisterReaderEvent(PthreadCondition* evt);
-
-		void RegisterWriterEvent(PthreadCondition* evt);
-
 		static void RegisterQueueType(void);
 	private:
 		std::vector<char> buffer;

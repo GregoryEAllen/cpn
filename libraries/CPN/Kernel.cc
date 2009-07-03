@@ -20,7 +20,8 @@
 #include <stdexcept>
 
 CPN::Kernel::Kernel(const KernelAttr &kattr)
-	: kattr(kattr), statusHandler(READY), idcounter(0) {}
+	: kattr(kattr), lock(), nodeTermination(false, lock),
+       	statusHandler(READY, lock), idcounter(0) {}
 
 CPN::Kernel::~Kernel() {
 	Terminate();
@@ -28,7 +29,7 @@ CPN::Kernel::~Kernel() {
 	std::vector<std::pair<std::string, CPN::NodeInfo*> > nodelist;
 	std::vector<std::pair<std::string, CPN::QueueInfo*> > queuelist;
 	{
-		PthreadMutexProtected plock(lock); 
+		Sync::AutoLock plock(lock); 
 		InternalWait();
 		queuelist.assign(queueMap.begin(), queueMap.end());
 		queueMap.clear();
@@ -42,7 +43,7 @@ void CPN::Kernel::Start(void) {
 }
 
 void CPN::Kernel::Wait(void) {
-	PthreadMutexProtected plock(lock); 
+	Sync::AutoLock plock(lock); 
 	InternalWait();
 }
 
@@ -60,13 +61,13 @@ void CPN::Kernel::InternalWait(void) {
 			delete nodeinfo;
 		}
 		if (0 == nodeMap.size()) break;
-		nodeTermination.Wait(lock);
+		nodeTermination.CompareWaitAndPost(true, false);
 	}
 	statusHandler.Post(STOPPED);
 }
 
 void CPN::Kernel::Terminate(void) {
-	PthreadMutexProtected plock(lock); 
+	Sync::AutoLock plock(lock); 
 	if (STOPPED == statusHandler.Get()) return;
 	for_each(nodeMap.begin(), nodeMap.end(),
 		       	MapInvoke<std::string, CPN::NodeInfo, void(CPN::NodeInfo::*)(void)>(
@@ -78,7 +79,7 @@ void CPN::Kernel::CreateNode(const ::std::string &nodename,
 		const ::std::string &nodetype,
 		const void* const arg,
 		const ulong argsize) {
-	PthreadMutexProtected plock(lock); 
+	Sync::AutoLock plock(lock); 
 	ReadyOrRunningCheck();
 	// Verify that nodename doesn't already exist.
 	if (nodeMap.find(nodename) != nodeMap.end()) return;
@@ -91,7 +92,7 @@ void CPN::Kernel::CreateQueue(const ::std::string &queuename,
 		const ulong queueLength,
 		const ulong maxThreshold,
 		const ulong numChannels) {
-	PthreadMutexProtected plock(lock); 
+	Sync::AutoLock plock(lock); 
 	ReadyOrRunningCheck();
 	// Verify that queuename doesn't already exist.
 	if (queueMap.find(queuename) != queueMap.end()) return;
@@ -103,7 +104,7 @@ void CPN::Kernel::CreateQueue(const ::std::string &queuename,
 void CPN::Kernel::ConnectWriteEndpoint(const ::std::string &qname,
 		const ::std::string &nodename,
 		const ::std::string &portname) {
-	PthreadMutexProtected plock(lock); 
+	Sync::AutoLock plock(lock); 
 	ReadyOrRunningCheck();
 	// Validate that qname and nodename exist
 	QueueInfo* qinfo = GetQueueInfo(qname);
@@ -117,7 +118,7 @@ void CPN::Kernel::ConnectWriteEndpoint(const ::std::string &qname,
 void CPN::Kernel::ConnectReadEndpoint(const ::std::string &qname,
 		const ::std::string &nodename,
 		const ::std::string &portname) {
-	PthreadMutexProtected plock(lock); 
+	Sync::AutoLock plock(lock); 
 	ReadyOrRunningCheck();
 	// Validate qname and nodename.
 	QueueInfo* qinfo = GetQueueInfo(qname);
@@ -129,7 +130,7 @@ void CPN::Kernel::ConnectReadEndpoint(const ::std::string &qname,
 
 CPN::QueueReader* CPN::Kernel::GetReader(const ::std::string &nodename,
 		const ::std::string &portname) {
-	PthreadMutexProtected plock(lock); 
+	Sync::AutoLock plock(lock); 
 	ReadyOrRunningCheck();
 	// Validate nodename
 	// Lookup nodeinfo
@@ -144,7 +145,7 @@ CPN::QueueReader* CPN::Kernel::GetReader(const ::std::string &nodename,
 
 CPN::QueueWriter* CPN::Kernel::GetWriter(const ::std::string &nodename,
 		const ::std::string &portname) {
-	PthreadMutexProtected plock(lock); 
+	Sync::AutoLock plock(lock); 
 	ReadyOrRunningCheck();
 	// Validate nodename
 	// lookup nodeinfo.
@@ -158,11 +159,11 @@ CPN::QueueWriter* CPN::Kernel::GetWriter(const ::std::string &nodename,
 }
 
 void CPN::Kernel::NodeShutdown(const std::string &nodename) {
-	PthreadMutexProtected plock(lock); 
+	Sync::AutoLock plock(lock); 
 	NodeInfo* ninfo = nodeMap[nodename];
 	nodeMap.erase(nodename);
 	nodesToDelete.push_back(ninfo);
-	nodeTermination.Signal();
+	nodeTermination.Post(true);
 }
 
 void CPN::Kernel::ReadyOrRunningCheck(void) {

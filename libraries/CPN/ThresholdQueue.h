@@ -42,18 +42,12 @@ namespace CPN {
 		ulong ElementsEnqueued(void) const;
 		ulong ElementsDequeued(void) const;
 
-		void RegisterReaderEvent(PthreadCondition* evt);
-
-		void RegisterWriterEvent(PthreadCondition* evt);
-
 		ulong ChannelStride(void) const;
 
 		static void RegisterQueueType(void);
 	private:
 		ThresholdQueueBase queue;
 		mutable PthreadMutex qlock;
-		PthreadCondition* qwritten;
-		PthreadCondition* qread;
 	};
 
 }

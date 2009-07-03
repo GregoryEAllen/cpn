@@ -8,8 +8,9 @@
 #include "QueueAttr.h"
 #include "QueueWriter.h"
 #include "QueueReader.h"
-
-class PthreadCondition;
+#include "StatusHandler.h"
+#include "QueueStatus.h"
+#include "PthreadMutex.h"
 
 namespace CPN {
 
@@ -30,34 +31,18 @@ namespace CPN {
 		 */
 		const QueueAttr &GetAttr(void) const { return qattr; }
 
-		/**
-		 * Get the total number of elements enqueued over the 
-		 * lifetime of this queue.
-		 * \return the number of elements.
-		 */
-		virtual ulong ElementsEnqueued(void) const = 0;
+		void SetReaderStatusHandler(Sync::StatusHandler<QueueStatus>* rsh);
+		void SetWriterStatusHandler(Sync::StatusHandler<QueueStatus>* wsh);
 
-		/**
-		 * Get the total number of elements dequeued over the lifetime
-		 * of this queue.
-		 * \return the number of elements.
-		 */
-		virtual ulong ElementsDequeued(void) const = 0;
-
-		/*
-		// Possible implementation for D4R message passing. 
-		virtual void PutReaderMessage(void* data, ulong count);
-		virtual bool GetReaderMessage(void* data, ulong count);
-		virtual void PutWriterMessage(void* data, ulong count);
-		virtual bool GetReaderMessage(void* data, ulong count);
-		*/
-
-		// Implementation for unblocking...
-		virtual void RegisterReaderEvent(PthreadCondition* evt) = 0;
-		virtual void RegisterWriterEvent(PthreadCondition* evt) = 0;
-
+	protected:
+		void NotifyReaderOfWrite(void);
+		void NotifyWriterOfRead(void);
 	private:
+		void Notify(Sync::StatusHandler<QueueStatus>* stathand, QueueStatus newStatus);
 		const QueueAttr qattr;
+		PthreadMutex statusHandlerMutex;
+		Sync::StatusHandler<QueueStatus>* readerStatusHandler;
+		Sync::StatusHandler<QueueStatus>* writerStatusHandler;
 	};
 
 }

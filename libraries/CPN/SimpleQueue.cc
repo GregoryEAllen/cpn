@@ -12,8 +12,7 @@
 
 CPN::SimpleQueue::SimpleQueue(const QueueAttr& attr)
        : CPN::QueueBase(attr), queueLength(attr.GetLength() + 1),
-	maxThreshold(attr.GetMaxThreshold()), head(0), tail(0),
-	qwritten(0), qread(0) {
+	maxThreshold(attr.GetMaxThreshold()), head(0), tail(0) {
 	assert(attr.GetNumChannels() == 1);
 	buffer.assign(queueLength + maxThreshold, '\0');
 }
@@ -41,7 +40,7 @@ void CPN::SimpleQueue::Enqueue(CPN::ulong count) {
 		memcpy(&buffer[0], &buffer[queueLength], newHead);
 	}
 	head = newHead;
-	if (qwritten) qwritten->Signal();
+	NotifyReaderOfWrite();
 }
 
 bool CPN::SimpleQueue::RawEnqueue(void* data, CPN::ulong count, CPN::ulong chan) {
@@ -95,7 +94,7 @@ void CPN::SimpleQueue::Dequeue(CPN::ulong count) {
 		newTail -= queueLength;
 	}
 	tail = newTail;
-	if (qread) qread->Signal();
+	NotifyWriterOfRead();
 }
 
 bool CPN::SimpleQueue::RawDequeue(void * data, CPN::ulong count, CPN::ulong chan) {
@@ -123,26 +122,6 @@ CPN::ulong CPN::SimpleQueue::Count(void) const {
 bool CPN::SimpleQueue::Empty(void) const {
 	Sync::AutoLock l(qlock);
 	return head == tail;
-}
-
-// From QueueBase
-CPN::ulong CPN::SimpleQueue::ElementsEnqueued(void) const {
-	return 0;
-}
-CPN::ulong CPN::SimpleQueue::ElementsDequeued(void) const {
-	return 0;
-}
-
-void CPN::SimpleQueue::RegisterReaderEvent(PthreadCondition* evt) {
-	Sync::AutoLock l(qlock);
-	qwritten = evt;
-	if (qwritten) qwritten->Signal();
-}
-
-void CPN::SimpleQueue::RegisterWriterEvent(PthreadCondition* evt) {
-	Sync::AutoLock l(qlock);
-	qread = evt;
-	if (qread) qread->Signal();
 }
 
 class SQFactory : public CPN::QueueFactory {

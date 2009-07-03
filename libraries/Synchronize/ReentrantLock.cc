@@ -14,3 +14,14 @@ void Sync::ReentrantLock::Wait(void) throw() {
 	}
 }
 
+void Sync::ReentrantLock::Wait(PthreadCondition& c) throw() {
+	unsigned long oldcount = count;
+	pthread_t oldowner = owner;
+	count = 0;
+	cond.Signal();
+	c.Wait(lock);
+	while (count != 0) { cond.Wait(lock); }
+	count = oldcount;
+	owner = oldowner;
+}
+

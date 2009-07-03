@@ -25,12 +25,8 @@ CPN::QueueInfo::~QueueInfo() {
 
 void CPN::QueueInfo::SetReader(NodeQueueReader* reader_) {
 	reader = reader_;
-	if (reader) queue->RegisterReaderEvent(reader->GetEvent());
-	else queue->RegisterReaderEvent(0);
 }
 
 void CPN::QueueInfo::SetWriter(NodeQueueWriter* writer_) {
 	writer = writer_;
-	if (writer) queue->RegisterWriterEvent(writer->GetEvent());
-	else queue->RegisterWriterEvent(0);
 }
