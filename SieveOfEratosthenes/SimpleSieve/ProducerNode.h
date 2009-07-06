@@ -6,6 +6,7 @@
 #define PRODUCERNODE_H
 
 #include "NodeBase.h"
+#include "SieveControllerNode.h"
 
 #define SIEVE_PRODUCERNODE_TYPENAME "SieveProducerNodeTypeName"
 
@@ -14,25 +15,28 @@
  *
  * This node
  * produces a ramp output starting at 2 and
- * going until cutoff is reached. If cutoff is
+ * going until numberBound is reached. If numberBound is
  * zero then go until terminated.
- * If cutoff is reached then this node will place
+ * If numberBound is reached then this node will place
  * a zero onto the output before exiting.
  *
- * cutoff should be passed as an unsigned long
- * in the arg paramter.
+ * If threshold is greater than 1 then this will produces
+ * threshold - 1 elements at a time with a number at the
+ * front of how many elements it produced. (The last
+ * production could be smaller than maximum.)
  *
  * The output port is labeled y.
  */
 class ProducerNode : public CPN::NodeBase {
 public:
-	ProducerNode(CPN::Kernel& ker, const CPN::NodeAttr& attr, const unsigned long cutoff_)
-		: CPN::NodeBase(ker, attr), cutoff(cutoff_) {}
+	ProducerNode(CPN::Kernel& ker, const CPN::NodeAttr& attr,
+			SieveControllerNode::Param &param_)
+		: CPN::NodeBase(ker, attr), param(param_) {}
 	void Process(void);
 
 	static void RegisterNodeType(void);
 private:
-	const unsigned long cutoff;
+	SieveControllerNode::Param param;
 };
 
 #endif

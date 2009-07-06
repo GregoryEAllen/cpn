@@ -24,12 +24,19 @@
  */
 class FilterNode : public CPN::NodeBase {
 public:
-	FilterNode(CPN::Kernel& ker, const CPN::NodeAttr& attr, unsigned long filterval_)
-		: CPN::NodeBase(ker, attr), filterval(filterval_) {}
+	struct Param {
+		unsigned long filterval;
+		unsigned long threshold;
+	};
+	FilterNode(CPN::Kernel& ker, const CPN::NodeAttr& attr, unsigned long filterval_,
+			unsigned long threshold_)
+		: CPN::NodeBase(ker, attr), filterval(filterval_),
+       		threshold(threshold_) {}
 	void Process(void);
 	static void RegisterNodeType(void);
 private:
 	const unsigned long filterval;
+	const unsigned long threshold;
 };
 
 #endif

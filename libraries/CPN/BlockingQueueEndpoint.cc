@@ -1,6 +1,0 @@
-/** \file
- */
-
-#include "BlockingQueueEndpoint.h"
-
-

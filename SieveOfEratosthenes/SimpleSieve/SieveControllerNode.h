@@ -38,6 +38,8 @@ public:
 		std::string queueTypeName;
 		/// The size of the queues
 		unsigned long queueSize;
+		/// The threshold value to use
+		unsigned long threshold;
 	};
 	SieveControllerNode(CPN::Kernel& ker, const CPN::NodeAttr& attr,
 			Param param_)

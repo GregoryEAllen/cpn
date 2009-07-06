@@ -20,7 +20,8 @@ public:
 	FilterFactory() : CPN::NodeFactory(SIEVE_FILTERNODE_TYPENAME) {}
 	CPN::NodeBase* Create(CPN::Kernel& ker, const CPN::NodeAttr& attr,
 			const void* const arg, const CPN::ulong argsize) {
-		return new FilterNode(ker, attr, *((unsigned long*)arg));
+		FilterNode::Param* p = (FilterNode::Param*)arg;
+		return new FilterNode(ker, attr, p->filterval, p->threshold);
 	}
 	void Destroy(CPN::NodeBase* node) {
 		delete node;

@@ -32,7 +32,7 @@ namespace Sync {
 	public:
 		StatusHandler(Status_t initialStatus, ReentrantLock* lock_)
 		       : status(initialStatus), lock(lock_) {
-			assert(lock > (void*)1024);
+			assert(lock);
 		}
 
 		~StatusHandler() { lock = 0; }

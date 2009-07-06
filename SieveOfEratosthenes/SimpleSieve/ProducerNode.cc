@@ -20,7 +20,8 @@ public:
 
 	CPN::NodeBase* Create(CPN::Kernel& ker, const CPN::NodeAttr &attr,
 		       	const void* const arg, const CPN::ulong argsize) {
-		return new ProducerNode(ker, attr, *((unsigned long*)arg));
+		SieveControllerNode::Param* p = (SieveControllerNode::Param*)arg;
+		return new ProducerNode(ker, attr, *p);
 	}
 
 	void Destroy(CPN::NodeBase* node) {
@@ -33,11 +34,13 @@ static ProducerFactory producerFactoryInstance;
 void ProducerNode::Process(void) {
 	DEBUG("ProducerNode %s start\n", GetName().c_str());
 	CPN::QueueWriterAdapter<unsigned long> out = kernel.GetWriter(GetName(), "y");
+	const unsigned long cutoff = param.numberBound;
 	unsigned long counter = 2;
 	while (cutoff == 0 || counter < cutoff) {
 		out.Enqueue(&counter, 1);
 		++counter;
 	}
+	// Ending marker
 	counter = 0;
 	out.Enqueue(&counter, 1);
 	DEBUG("ProducerNode %s end\n", GetName().c_str());

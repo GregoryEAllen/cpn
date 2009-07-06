@@ -11,7 +11,7 @@
 #include <stdexcept>
 #include <cassert>
 
-#if 1
+#if _DEBUG
 #include <cstdio>
 #define DEBUG(frmt, ...) printf(frmt, __VA_ARGS__)
 #else

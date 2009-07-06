@@ -1,14 +1,5 @@
 
-/*
- * Do the following ex commands
- * :%s/BLOCKINGQUEUETEST/NEWNAME/g
- * :%s/BlockingQueueTest/NewName/g
- * And add
-#include "BlockingQueueTest.h"
-#include <cppunit/TestAssert.h>
-CPPUNIT_TEST_SUITE_REGISTRATION( BlockingQueueTest );
- * to the source file.
- */
+
 #ifndef BLOCKINGQUEUETEST_H
 #define BLOCKINGQUEUETEST_H
 #include <cppunit/extensions/HelperMacros.h>
