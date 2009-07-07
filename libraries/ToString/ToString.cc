@@ -5,7 +5,7 @@
 
 // This code was taken from an example of how
 // to use vsnprintf in the unix man pages.
-std::string toString(const char *fmt, ...)
+std::string ToString(const char *fmt, ...)
 {   
 	/* Guess we need no more than 100 bytes. */
 	int n, size = 100;

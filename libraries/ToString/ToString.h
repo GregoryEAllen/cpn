@@ -10,7 +10,7 @@
  * \param fmt format string like printf
  * \return an std::string result
  */
-std::string toString(const char *fmt, ...);
+std::string ToString(const char *fmt, ...);
 
 #endif
 

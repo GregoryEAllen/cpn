@@ -48,7 +48,7 @@ public:
 	const TimeInterval operator-(const TimeInterval& second) { return Diff(second); }
 	const TimeInterval operator+(const TimeInterval& second) { return Add(second); }
 	std::string ToString() const { 
-		return ::toString("%lu.%06ld", seconds, microseconds); }
+		return ::ToString("%lu.%06ld", seconds, microseconds); }
 private:
 	unsigned long seconds;
 	long microseconds;
@@ -90,7 +90,7 @@ public:
 	const Time operator-(const TimeInterval& second) { return Diff(second); }
 	const Time operator+(const TimeInterval& second) { return Add(second); }
 	std::string ToString() const { 
-		return toString("%lu.%06ld", seconds, microseconds); }
+		return ::ToString("%lu.%06ld", seconds, microseconds); }
 private:
 	unsigned long seconds;
 	long microseconds;
