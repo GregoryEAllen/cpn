@@ -6,16 +6,24 @@
 #include "ThresholdSieveOptions.h"
 #include "ThresholdSieveController.h"
 #include "Time.h"
+#include <sys/times.h>
 #include <unistd.h>
 #include <cstdio>
 
-const char* const VALID_OPTS = "m:q:t:hf:";
+const char* const VALID_OPTS = "Mm:q:t:hf:i:";
 const char* const HELP_OPTS = "Usage: %s -h -m maxprime -q queuesize -t threshold -f filename\n";
+
+struct TestResults {
+	double usertime;
+	double systime;
+	double realtime;
+};
+
+TestResults SieveTest(ThresholdSieveOptions options);
 
 int main(int argc, char **argv) {
 	CPN::ThresholdQueue::RegisterQueueType();
 	ThresholdSieveController::RegisterNodeType();
-	CPN::Kernel kernel(CPN::KernelAttr(1, "Kernel name"));
 	std::vector<unsigned long> results;
 	ThresholdSieveOptions options;
 	options.maxprime = 100;
@@ -23,6 +31,8 @@ int main(int argc, char **argv) {
 	options.threshold = 2;
 	options.queueTypeName = CPN_QUEUETYPE_THRESHOLD;
 	options.results = &results;
+	int numIterations = 1;
+	bool multitest = false;
 	bool tofile = false;
 	std::string filename = "";
 	bool procOpts = true;
@@ -31,6 +41,9 @@ int main(int argc, char **argv) {
 		case 'm':
 			options.maxprime = atoi(optarg);
 			if (options.maxprime < 2) options.maxprime = 2;
+			break;
+		case 'M':
+			multitest = true;
 			break;
 		case 'q':
 			options.queuesize = atoi(optarg);
@@ -44,6 +57,10 @@ int main(int argc, char **argv) {
 			filename = optarg;
 			tofile = true;
 			break;
+		case 'i':
+			numIterations = atoi(optarg);
+			if (numIterations < 0) numIterations = 1;
+			break;
 		case 'h':
 			printf(HELP_OPTS, argv[0]);
 			return 0;
@@ -56,24 +73,67 @@ int main(int argc, char **argv) {
 			return 0;
 		}
 	}
-
-	kernel.CreateNode("controller", THRESHOLDSIEVECONTROLLER_TYPENAME, &options, 0);
-	Time start;
-	kernel.Start();
-	kernel.Wait();
-	Time stop;
-	printf("Duration: %s\n", (start - stop).ToString().c_str());
 	FILE *f = stdout;
 	if (tofile) {
 		f = fopen(filename.c_str(), "w");
 		if (!f) f = stdout;
 	}
-	for (int i = 0; i < results.size(); i++) {
-		fprintf(f, "%lu\n", results[i]);
+	if (multitest) {
+		for (int m = 1000000; m <= 10000000; m += 1000000) {
+			options.maxprime = m;
+			for (int t = 2; t < m/10; t *=2) {
+				options.queuesize = 2*t;
+				options.threshold = t;
+				for (int i = 0; i < numIterations; ++i) {
+					TestResults timeresults = SieveTest(options);
+					fprintf(f, "%lu\t%lu\t%lu\t%f\t%f\t%f\n",
+							options.maxprime,
+							options.queuesize,
+							options.threshold,
+							timeresults.realtime,
+							timeresults.usertime,
+							timeresults.systime);
+					results.clear();
+				}
+			}
+		}
+	} else {
+		for (int i = 0; i < numIterations; ++i) {
+			TestResults timeresults = SieveTest(options);
+			fprintf(f, "%lu\t%lu\t%lu\t%f\t%f\t%f\n",
+					options.maxprime,
+					options.queuesize,
+					options.threshold,
+					timeresults.realtime,
+					timeresults.usertime,
+					timeresults.systime);
+			results.clear();
+		}
 	}
 	if (f != stdout) {
 		fclose(f);
 	}
 	return 0;
 }
+
+
+TestResults SieveTest(ThresholdSieveOptions options) {
+	CPN::Kernel kernel(CPN::KernelAttr(1, "Kernel name"));
+	kernel.CreateNode("controller", THRESHOLDSIEVECONTROLLER_TYPENAME, &options, 0);
+	tms tmsStart;
+	tms tmsStop;
+	times(&tmsStart);
+	Time start;
+	kernel.Start();
+	kernel.Wait();
+	Time stop;
+	times(&tmsStop);
+	TestResults result;
+	TimeInterval rduration = start - stop;
+	result.realtime = rduration.Seconds() + (double)(rduration.Microseconds())/1000000.0;
+	result.usertime = (double)(tmsStop.tms_utime - tmsStart.tms_utime)/(double)sysconf(_SC_CLK_TCK);
+	result.systime = (double)(tmsStop.tms_stime - tmsStart.tms_stime)/(double)sysconf(_SC_CLK_TCK);
+	return result;
+}
+
 
