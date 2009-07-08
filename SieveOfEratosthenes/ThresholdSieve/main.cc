@@ -10,7 +10,7 @@
 #include <unistd.h>
 #include <cstdio>
 
-const char* const VALID_OPTS = "Mm:q:t:hf:i:";
+const char* const VALID_OPTS = "Mm:q:t:hf:i:p:";
 const char* const HELP_OPTS = "Usage: %s -h -m maxprime -q queuesize -t threshold -f filename\n";
 
 struct TestResults {
@@ -29,6 +29,7 @@ int main(int argc, char **argv) {
 	options.maxprime = 100;
 	options.queuesize = 100;
 	options.threshold = 2;
+	options.primesPerFilter = 1;
 	options.queueTypeName = CPN_QUEUETYPE_THRESHOLD;
 	options.results = &results;
 	int numIterations = 1;
@@ -52,6 +53,10 @@ int main(int argc, char **argv) {
 		case 't':
 			options.threshold = atoi(optarg);
 			if (options.threshold < 2) options.threshold = 2;
+			break;
+		case 'p':
+			options.primesPerFilter = atoi(optarg);
+			if (options.primesPerFilter < 1) options.primesPerFilter = 1;
 			break;
 		case 'f':
 			filename = optarg;

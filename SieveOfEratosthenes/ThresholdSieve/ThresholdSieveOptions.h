@@ -8,6 +8,7 @@ struct ThresholdSieveOptions {
 	unsigned long maxprime;
 	unsigned long queuesize;
 	unsigned long threshold;
+	unsigned long primesPerFilter;
 	std::string queueTypeName;
 	std::vector<unsigned long> *results;
 };
