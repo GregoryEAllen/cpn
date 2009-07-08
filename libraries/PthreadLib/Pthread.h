@@ -34,6 +34,7 @@
 
 #include "PthreadBase.h"
 #include "PthreadMutex.h"
+#include "PthreadCondition.h"
 
 
 class Pthread : public PthreadBase {
@@ -42,16 +43,29 @@ class Pthread : public PthreadBase {
 	Pthread(const PthreadAttr& attr);
 	virtual ~Pthread(void);
 
-	void	Start(void)				{ state = started; startMutex.Unlock(); }
-	int		Running(void)			{ return state == running; }
-	int		Done(void)				{ return state == done; }
+	void Start(void) {
+		PthreadMutexProtected p(mutex);
+		if (state == created) {
+			state = started;
+			startCond.Signal();
+		}
+	}
+	int Running(void) {
+		PthreadMutexProtected p(mutex);
+		return state == running;
+	}
+	int Done(void) {
+		PthreadMutexProtected p(mutex);
+		return state == done;
+	}
 
   protected:
 	virtual void* EntryPoint(void) = 0;
 //	virtual void  Cleanup(void)		{ }
 
   private:
-	PthreadMutex	startMutex;
+	PthreadMutex	mutex;
+	PthreadCondition startCond;
 
 	enum PthreadState { uninitialized = 0, created, started, running, done };
 	PthreadState	state;

@@ -34,8 +34,8 @@
 Pthread::Pthread(void)
 //-----------------------------------------------------------------------------
 {
+	PthreadMutexProtected p(mutex);
 	state = uninitialized;
-	startMutex.Lock();
 	TrapError( pthread_create( &theThread, 0, PthreadEntryPoint, this) );
 	state = created;
 }
@@ -45,8 +45,8 @@ Pthread::Pthread(void)
 Pthread::Pthread(const PthreadAttr& attr)
 //-----------------------------------------------------------------------------
 {
+	PthreadMutexProtected p(mutex);
 	state = uninitialized;
-	startMutex.Lock();
 
 	//	It should simply be:
 //	TrapError( pthread_create(&theThread, attr, PthreadEntryPoint, this) );
@@ -66,11 +66,16 @@ Pthread::~Pthread(void)
 {
 	// Force the thread to terminate if it has not already done so.
 	// Is it safe to do this to a thread that has already terminated?
-	pthread_cancel(theThread);
 
-	if (state == created) {
-		Start();
+	// valgrind's memcheck tool claims this allocates a block of 
+	// memory that is never freed.
+	{
+		PthreadMutexProtected p(mutex);
+		if (state != done)
+			Cancel();
 	}
+
+	Start();
 	// Now wait.
 	Join();
 //	Detach();
@@ -83,8 +88,13 @@ void* Pthread::PthreadEntryPoint(void* arg)
 {
 	void* result = 0;
 	Pthread* ptr = (Pthread*) arg;
-	ptr->startMutex.Lock();
-	ptr->state = running;
+	{
+		PthreadMutexProtected p(ptr->mutex);
+		while (ptr->state == created) {
+			ptr->startCond.Wait(ptr->mutex);
+		}
+		ptr->state = running;
+	}
 	TestCancel();
 	pthread_cleanup_push( PthreadCleanup, ptr);
 	result = ptr->EntryPoint();
@@ -98,6 +108,7 @@ void Pthread::PthreadCleanup(void* arg)
 //-----------------------------------------------------------------------------
 {
 	Pthread* ptr = (Pthread*) arg;
+	PthreadMutexProtected p(ptr->mutex);
 //	ptr->Cleanup();		// the sub-classes have already been destructed
 	ptr->state = done;
 }
