@@ -3,29 +3,25 @@
 
 #include "BlockingQueueWriter.h"
 #include "QueueBase.h"
-#include "KernelShutdownException.h"
+#include "AutoLock.h"
 #include <cassert>
 
 CPN::BlockingQueueWriter::BlockingQueueWriter(NodeInfo* nodeinfo, const std::string &portname)
-	: NodeQueueWriter(nodeinfo, portname),lock(), queueinfo(0),
-	status(CPN::QueueStatus::DETACHED, &lock) {}
+	: NodeQueueWriter(nodeinfo, portname) {}
 
 CPN::BlockingQueueWriter::~BlockingQueueWriter() {
-	assert(queueinfo == 0);
 }
 
 void* CPN::BlockingQueueWriter::GetRawEnqueuePtr(ulong thresh, ulong chan) {
 	Sync::AutoLock alock(lock);
-	QueueBase* queue = CheckQueue();
-	status.Post(QueueStatus::QUERY);
+	QueueBase* queue = StartOperation();
 	void* ptr = queue->GetRawEnqueuePtr(thresh, chan);
 	while (!ptr) {
-		status.ComparePostAndWait(QueueStatus::QUERY, QueueStatus::BLOCKED);
-		queue = CheckQueue();
-		status.Post(QueueStatus::QUERY);
+		Block();
+		queue = StartOperation();
 		ptr = queue->GetRawEnqueuePtr(thresh, chan);
 	}
-	status.Post(QueueStatus::TRANSFER);
+	ContinueOperation();
 	return ptr;
 }
 
@@ -33,19 +29,17 @@ void CPN::BlockingQueueWriter::Enqueue(ulong count) {
 	Sync::AutoLock alock(lock);
 	QueueBase* queue = CheckQueue();
 	queue->Enqueue(count);
-	status.Post(QueueStatus::READY);
+	CompleteOperation();
 }
 
 bool CPN::BlockingQueueWriter::RawEnqueue(void* data, ulong count, ulong chan) {
 	Sync::AutoLock alock(lock);
-	QueueBase* queue = CheckQueue();
-	status.Post(QueueStatus::QUERY);
+	QueueBase* queue = StartOperation();
 	while (!queue->RawEnqueue(data, count, chan)) {
-		status.ComparePostAndWait(QueueStatus::QUERY, QueueStatus::BLOCKED);
-		queue = CheckQueue();
-		status.Post(QueueStatus::QUERY);
+		Block();
+		queue =	StartOperation();
 	}
-	status.Post(QueueStatus::READY);
+	CompleteOperation();
 	return true;
 }
 
@@ -64,63 +58,4 @@ bool CPN::BlockingQueueWriter::Full(void) const {
 	QueueBase* queue = CheckQueue();
 	return queue->Full();
 }
-
-void CPN::BlockingQueueWriter::SetQueueInfo(QueueInfo* queueinfo_) {
-	Sync::AutoLock alock(lock);
-	if (queueinfo == queueinfo_) return;
-	QueueStatus theStatus = status.Get();
-	while (true) {
-		switch (theStatus.status) {
-		case QueueStatus::QUERY:
-		case QueueStatus::TRANSFER:
-			theStatus = status.CompareAndWait(theStatus);
-			break;
-		case QueueStatus::BLOCKED:
-		case QueueStatus::READY:
-		case QueueStatus::DETACHED:
-			if (queueinfo) { queueinfo->ClearWriter(); }
-			queueinfo = queueinfo_;
-			if (queueinfo) {
-				queueinfo->SetWriter(this);
-				status.Post(QueueStatus::READY);
-			} else {
-				status.Post(QueueStatus::DETACHED);
-			}
-			return;
-		case QueueStatus::SHUTDOWN:
-			queueinfo = queueinfo_;
-			return;
-		default:
-			assert(false);
-		}
-	}
-}
-
-void CPN::BlockingQueueWriter::ClearQueueInfo() {
-	SetQueueInfo(0);
-}
-
-CPN::QueueInfo* CPN::BlockingQueueWriter::GetQueueInfo(void) {
-	Sync::AutoLock alock(lock);
-	return queueinfo;
-}
-
-void CPN::BlockingQueueWriter::Terminate(void) {
-	Sync::AutoLock alock(lock);
-	status.Post(QueueStatus::SHUTDOWN);
-}
-
-
-CPN::QueueBase* CPN::BlockingQueueWriter::CheckQueue(void) const {
-	QueueStatus newStatus = status.CompareAndWait(QueueStatus::DETACHED);
-	if (newStatus == QueueStatus::SHUTDOWN) {
-		throw KernelShutdownException("Shutting down.");
-	}
-	return queueinfo->GetQueue();
-};
-
-
-
-
-
 

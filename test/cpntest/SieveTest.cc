@@ -88,9 +88,9 @@ void SieveFilterNode::Process(void) {
 	value = input;
 	out.Enqueue(&input, 1);
 	// Add new node
-	std::string nodename = toString("Filter %lu+", value); 
+	std::string nodename = ToString("Filter %lu+", value); 
 	kernel.CreateNode(nodename, "SieveFilterNode", 0, 0);
-	std::string qname = toString("Queue %lu+", value);
+	std::string qname = ToString("Queue %lu+", value);
 	kernel.CreateQueue(qname, CPN_QUEUETYPE_THRESHOLD, 100, 100, 1);
 	kernel.ConnectWriteEndpoint(qname, GetAttr().GetName(), "y");
 	kernel.ConnectReadEndpoint(qname, nodename, "x");

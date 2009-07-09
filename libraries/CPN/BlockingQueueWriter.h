@@ -8,13 +8,10 @@
 #include "NodeQueueWriter.h"
 #include "QueueInfo.h"
 #include "QueueStatus.h"
-#include "ReentrantLock.h"
-#include "StatusHandler.h"
 
 namespace CPN {
 
 	class NodeInfo;
-	class QueueBase;
 
 	/**
 	 * \brief Simple blocking implementation of NodeQueueWriter.
@@ -38,24 +35,6 @@ namespace CPN {
 		ulong Freespace(void) const;
 
 		bool Full(void) const;
-
-		// From NodeQueueWriter
-		void SetQueueInfo(QueueInfo* queueinfo_);
-
-		void ClearQueueInfo(void);
-
-		Sync::StatusHandler<QueueStatus>* GetStatusHandler(void) { return &status; }
-
-		QueueInfo* GetQueueInfo(void);
-
-		void Terminate(void);
-
-	private:
-		QueueBase* CheckQueue(void) const;
-
-		mutable Sync::ReentrantLock lock;
-		QueueInfo* queueinfo;
-		Sync::StatusHandler<QueueStatus> status;
 	};
 }
 

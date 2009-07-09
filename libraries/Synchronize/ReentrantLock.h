@@ -30,6 +30,12 @@ namespace Sync {
 
 		void Wait(void) throw();
 
+		/**
+		 * Use only for testing purposes and asserts.
+		 * \return true if the calling thread has the lock.
+		 */
+		bool HaveLock(void) throw();
+
 	private:
 		void Wait(PthreadCondition& c) throw();
 		PthreadMutex lock;

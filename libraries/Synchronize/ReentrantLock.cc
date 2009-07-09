@@ -25,3 +25,7 @@ void Sync::ReentrantLock::Wait(PthreadCondition& c) throw() {
 	owner = oldowner;
 }
 
+bool Sync::ReentrantLock::HaveLock(void) throw() {
+	PthreadMutexProtected l(lock);
+	return count != 0 && ( pthread_equal(owner, pthread_self()) );
+}
