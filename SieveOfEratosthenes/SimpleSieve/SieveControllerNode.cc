@@ -74,7 +74,7 @@ void SieveControllerNode::Initialize(void) {
 
 void SieveControllerNode::SetupQueue(const std::string& nodename) {
 	queueCounter++;
-	std::string queuename = toString(QUEUE_FORMAT, queueCounter);
+	std::string queuename = ToString(QUEUE_FORMAT, queueCounter);
 	kernel.CreateQueue(queuename, param.queueTypeName,
 			param.queueSize*sizeof(unsigned long),
 			param.threshold*sizeof(unsigned long), 1);
@@ -83,10 +83,10 @@ void SieveControllerNode::SetupQueue(const std::string& nodename) {
 }
 
 void SieveControllerNode::CreateFilter(const unsigned long prime) {
-	std::string nodename = toString(FILTER_FORMAT, prime);
+	std::string nodename = ToString(FILTER_FORMAT, prime);
 	FilterNode::Param p = { prime, param.threshold };
 	kernel.CreateNode(nodename, SIEVE_FILTERNODE_TYPENAME, &p, 0);
-	std::string oldqname = toString(QUEUE_FORMAT, queueCounter);
+	std::string oldqname = ToString(QUEUE_FORMAT, queueCounter);
 	kernel.ConnectReadEndpoint(oldqname, nodename, IN_PORT);
 	SetupQueue(nodename);
 }
