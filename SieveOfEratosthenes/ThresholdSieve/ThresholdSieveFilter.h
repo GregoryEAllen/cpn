@@ -18,7 +18,7 @@ public:
 
 	static void RegisterNodeType(void);
 private:
-	void CreateNewFilter(unsigned long lastprime);
+	void CreateNewFilter(ThresholdSieveOptions::NumberT lastprime);
 
 	const ThresholdSieveOptions opts;
 };

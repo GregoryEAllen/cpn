@@ -15,6 +15,8 @@
 #define DEBUG(frmt, ...)
 #endif
 
+typedef ThresholdSieveOptions::NumberT NumberT;
+
 class ProducerFactory : public CPN::NodeFactory {
 public:
 	ProducerFactory() : CPN::NodeFactory(THRESHOLDSIEVEPRODUCER_TYPENAME) {}
@@ -32,13 +34,13 @@ static ProducerFactory factoryInstance;
 
 void ThresholdSieveProducer::Process(void) {
 	DEBUG("%s started\n", GetName().c_str());
-	CPN::QueueWriterAdapter<unsigned long> out = kernel.GetWriter(GetName(), OUT_PORT);
-	const unsigned long cutoff = opts.maxprime;
+	CPN::QueueWriterAdapter<NumberT> out = kernel.GetWriter(GetName(), OUT_PORT);
+	const NumberT cutoff = opts.maxprime;
 	const unsigned long threshold = opts.threshold;
-	unsigned long counter = 2;
+	NumberT counter = 2;
 	while (counter < cutoff) {
-		unsigned long index = 1;
-		unsigned long *outbuff = out.GetEnqueuePtr(threshold);
+		NumberT index = 1;
+		NumberT *outbuff = out.GetEnqueuePtr(threshold);
 		while (index < threshold && counter < cutoff) {
 			outbuff[index] = counter;
 			++index;

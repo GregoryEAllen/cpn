@@ -5,12 +5,13 @@
 #define THRESHOLDSIEVEOPTIOINS_H
 #include <vector>
 struct ThresholdSieveOptions {
-	unsigned long maxprime;
+	typedef unsigned long long NumberT;
+	NumberT maxprime;
 	unsigned long queuesize;
 	unsigned long threshold;
 	unsigned long primesPerFilter;
 	std::string queueTypeName;
-	std::vector<unsigned long> *results;
+	std::vector<NumberT> *results;
 };
 
 const char* const PRODUCER_NAME = "Producer";
