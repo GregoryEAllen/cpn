@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <algorithm>
+#include <sstream>
 
 
 //-----------------------------------------------------------------------------
@@ -37,17 +38,27 @@ RandomInstructionGenerator::RandomInstructionGenerator()
 //-----------------------------------------------------------------------------
 :	lfsr(0xF82F,1)
 {
-	debugLevel = 2;
-	
-	probabilityToCreateNode = 0.01;
-	probabilityToDeleteNode = 0.01;
-	
-	dbprintf(2,"# lfsr of order %d, with range 1-%d\n", lfsr.Order(), lfsr.MaxVal());
-
-	unsigned numNodes = 100;
-	ComputeRanges(numNodes);
+	Initialize(2, 0.01, 0.01, 100);
 }
 
+//-----------------------------------------------------------------------------
+RandomInstructionGenerator::RandomInstructionGenerator(const State& state)
+//-----------------------------------------------------------------------------
+:	lfsr(state.feed, state.seed)
+{
+	Initialize(state.debugLevel, 0.01, 0.01, state.numNodes);
+	deletedNodes = state.deletedNodes;
+}
+
+void RandomInstructionGenerator::Initialize(int dbglvl, float probToCreateNode,
+		float probToDeleteNode, unsigned startNumNodes)
+{
+	debugLevel = dbglvl;
+	probabilityToCreateNode = probToCreateNode;
+	probabilityToDeleteNode = probToDeleteNode;
+	dbprintf(2,"# lfsr of order %d, with range 1-%d\n", lfsr.Order(), lfsr.MaxVal());
+	ComputeRanges(startNumNodes);
+}
 
 //-----------------------------------------------------------------------------
 int RandomInstructionGenerator::dbprintf(int dbLevel, const char *fmt, ...)
@@ -99,12 +110,18 @@ void RandomInstructionGenerator::EndCurrentChain(void)
 		dbprintf(2,"# discarding a chain of length %d\n", currentChain.size());
 		currentChain.clear();
 	} else {
-		dbprintf(1,"create chain: [");
 		int idx;
-		for (idx=0; idx<currentChain.size()-1; idx++) {
-			dbprintf(1,"%lu, ", currentChain[idx]);
+		if (debugLevel >= 1) {
+			std::ostringstream oss;
+			//dbprintf(1,"create chain: [");
+			oss << "create chain: [";
+			for (idx=0; idx<currentChain.size()-1; idx++) {
+				//dbprintf(1,"%lu, ", currentChain[idx]);
+				oss << currentChain[idx] << ", ";
+			}
+			//dbprintf(1,"%lu]\n", currentChain[idx]);
+			dbprintf(1, "%s%lu]\n", oss.str().c_str(), currentChain[idx]);
 		}
-		dbprintf(1,"%lu]\n", currentChain[idx]);
 		// create the chain
 		DoProducerNode(currentChain[0], currentChain[1]);
 		for (idx=1; idx<currentChain.size()-1; idx++) {
@@ -241,49 +258,66 @@ void RandomInstructionGenerator::DoConsumerNode(unsigned nodeID, unsigned srcNod
 int RandomInstructionGenerator::Run(unsigned sequenceLength)
 //-----------------------------------------------------------------------------
 {
-	typedef enum { opNULL=0, opCREATE, opDELETE, opCHAIN, opNOOP, opUNKNOWN } opcode_t;
-	const char* opcodeStr[] = { "", "create", "delete", "chain", "noop", "unknown" };
-	
 	int idx = 0;
 	while (idx<sequenceLength) {
 		idx++;
-		LFSR_t prnum = lfsr.GetResult();	// pseudo-random number
-	
-		opcode_t opcode = opNULL;
-		LFSR_t arg1;
-	
-		// determine the "raw" operation based on the prnum
-		// (without knowing anything about the sequence or state)	
-		if ((createRange>0) & (prnum <= createRange)) {
-			opcode = opCREATE;
-			arg1 = lfsr.Seed();
-		} else if ((deleteRange>0) & (prnum-createRange <= deleteRange)) {
-			opcode = opDELETE;
-			prnum = lfsr.GetResult();
-			arg1 = (prnum-1) % numNodes; // slightly biased toward the low end
-		} else if (prnum-createRange-deleteRange <= chainRange) {
-			opcode = opCHAIN;
-			arg1 = (prnum-createRange-deleteRange-1) % numNodes;
-		} else if (prnum-createRange-deleteRange-chainRange <= noopRange) {
-			opcode = opNOOP;
-		} else {
-			opcode = opUNKNOWN;
-		}
-
-		dbprintf(3,"# %d %s %lu\n", prnum, opcodeStr[opcode], arg1);
-		
-		// now interpret the operation based on the current state
-		if (opcode == opCHAIN) HandleChainOp(arg1);
-		else if (opcode == opCREATE) HandleCreateOp();
-		else if (opcode == opDELETE) HandleDeleteOp(arg1);
-//		else {} do nothing
+		RunOnce();
 	}
 	EndCurrentChain();
 	return 0;
 }
 
+//-----------------------------------------------------------------------------
+void RandomInstructionGenerator::RunOnce(void)
+//-----------------------------------------------------------------------------
+{
+	typedef enum { opNULL=0, opCREATE, opDELETE, opCHAIN, opNOOP, opUNKNOWN } opcode_t;
+	const char* opcodeStr[] = { "", "create", "delete", "chain", "noop", "unknown" };
+	LFSR_t prnum = lfsr.GetResult();	// pseudo-random number
 
+	opcode_t opcode = opNULL;
+	LFSR_t arg1;
 
+	// determine the "raw" operation based on the prnum
+	// (without knowing anything about the sequence or state)	
+	if ((createRange>0) & (prnum <= createRange)) {
+		opcode = opCREATE;
+		arg1 = lfsr.Seed();
+	} else if ((deleteRange>0) & (prnum-createRange <= deleteRange)) {
+		opcode = opDELETE;
+		prnum = lfsr.GetResult();
+		arg1 = (prnum-1) % numNodes; // slightly biased toward the low end
+	} else if (prnum-createRange-deleteRange <= chainRange) {
+		opcode = opCHAIN;
+		arg1 = (prnum-createRange-deleteRange-1) % numNodes;
+	} else if (prnum-createRange-deleteRange-chainRange <= noopRange) {
+		opcode = opNOOP;
+	} else {
+		opcode = opUNKNOWN;
+	}
+
+	dbprintf(3,"# %d %s %lu\n", prnum, opcodeStr[opcode], arg1);
+	
+	// now interpret the operation based on the current state
+	if (opcode == opCHAIN) HandleChainOp(arg1);
+	else if (opcode == opCREATE) HandleCreateOp();
+	else if (opcode == opDELETE) HandleDeleteOp(arg1);
+//	else {} do nothing
+}
+
+//-----------------------------------------------------------------------------
+RandomInstructionGenerator::State RandomInstructionGenerator::GetState(void)
+//-----------------------------------------------------------------------------
+{
+	State state;
+	state.feed = lfsr.Feed();
+	state.seed = lfsr.Seed();
+	state.numNodes = numNodes;
+	state.debugLevel = debugLevel;
+	state.deletedNodes = deletedNodes;
+	return state;
+}
+/*
 //-----------------------------------------------------------------------------
 int main()
 //-----------------------------------------------------------------------------
@@ -291,4 +325,4 @@ int main()
 	RandomInstructionGenerator rig;
 	rig.Run(100000);
 }
-
+*/

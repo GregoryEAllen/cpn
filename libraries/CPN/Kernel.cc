@@ -82,7 +82,8 @@ void CPN::Kernel::CreateNode(const ::std::string &nodename,
 	Sync::AutoLock plock(lock); 
 	ReadyOrRunningCheck();
 	// Verify that nodename doesn't already exist.
-	if (nodeMap.find(nodename) != nodeMap.end()) return;
+	if (nodeMap.find(nodename) != nodeMap.end())
+	       throw std::invalid_argument(nodename + " already exists");
 	CPN::NodeAttr attr(GenerateId(nodename), nodename, nodetype);
 	nodeMap.insert(make_pair(nodename, new CPN::NodeInfo(*this, attr, arg, argsize)));
 }
@@ -95,7 +96,8 @@ void CPN::Kernel::CreateQueue(const ::std::string &queuename,
 	Sync::AutoLock plock(lock); 
 	ReadyOrRunningCheck();
 	// Verify that queuename doesn't already exist.
-	if (queueMap.find(queuename) != queueMap.end()) return;
+	if (queueMap.find(queuename) != queueMap.end()) 
+		throw std::invalid_argument(queuename + " already exists");
 	CPN::QueueAttr attr(GenerateId(queuename), queuename, queuetype,
 		       	queueLength, maxThreshold, numChannels);
 	queueMap.insert(make_pair(queuename, new CPN::QueueInfo(attr)));

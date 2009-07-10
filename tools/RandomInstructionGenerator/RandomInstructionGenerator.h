@@ -34,8 +34,21 @@ class RandomInstructionGenerator
 {
   public:
 	typedef LFSR::LFSR_t LFSR_t;
+	struct State {
+		State() : feed(0xF82F), seed(1), numNodes(100),
+		debugLevel(0) {}
+		LFSR_t feed, seed;
+		unsigned numNodes;
+		int debugLevel;
+		std::deque<unsigned> deletedNodes;
+	};
+
 	RandomInstructionGenerator();
+	RandomInstructionGenerator(const State& state);
+	virtual ~RandomInstructionGenerator() {}
+	State GetState(void);
 	int Run(unsigned sequenceLength = 10);
+	void RunOnce(void);
 
   protected:
 	LFSR lfsr;
@@ -55,8 +68,11 @@ class RandomInstructionGenerator
 	void HandleDeleteOp(unsigned nodeID);
 	
 	int debugLevel;
-	int dbprintf(int dbLevel, const char *fmt, ...);
+	virtual int dbprintf(int dbLevel, const char *fmt, ...);
 	
+	void Initialize(int dbglvl, float probToCreateNode,
+		float probToDeleteNode, unsigned startNumNodes);
+
 	// functions to be overridden
 	virtual void DoCreateNode(unsigned newNodeID, unsigned creatorNodeID);
 	virtual void DoDeleteNode(unsigned nodeID);

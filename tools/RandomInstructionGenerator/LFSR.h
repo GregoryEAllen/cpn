@@ -35,9 +35,11 @@ class LFSR {
 	LFSR_t GetResult(void) { return seed = (seed & 1) ? (seed>>1 ^ feed) : (seed>>1); }
 
 	LFSR_t Seed(void) { return seed; }
+	LFSR_t Feed(void) const { return feed; }
 
   protected:
-	LFSR_t feed, seed;
+	const LFSR_t feed;
+	LFSR_t seed;
 };
 
 #endif
