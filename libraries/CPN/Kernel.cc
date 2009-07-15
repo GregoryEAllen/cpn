@@ -20,22 +20,21 @@
 #include <stdexcept>
 
 CPN::Kernel::Kernel(const KernelAttr &kattr)
-	: kattr(kattr), lock(), nodeTermination(false, &lock),
+	: kattr(kattr), lock(), cleanupStatus(false, &lock),
        	statusHandler(READY, &lock), idcounter(0) {}
 
 CPN::Kernel::~Kernel() {
+	Sync::AutoLock plock(lock); 
 	Terminate();
 	// Delete any remaining objects.
-	std::vector<std::pair<std::string, CPN::NodeInfo*> > nodelist;
-	std::vector<std::pair<std::string, CPN::QueueInfo*> > queuelist;
-	{
-		Sync::AutoLock plock(lock); 
-		InternalWait();
-		queuelist.assign(queueMap.begin(), queueMap.end());
-		queueMap.clear();
-	}
-	for_each(nodelist.begin(), nodelist.end(), MapDeleter<std::string, CPN::NodeInfo>());
-	for_each(queuelist.begin(), queuelist.end(), MapDeleter<std::string, CPN::QueueInfo>());
+	InternalWait();
+	assert(nodeMap.size() == 0);
+	assert(nodesToDelete.size() == 0);
+	assert(queuesToDelete.size() == 0);
+	// delete orphan queues
+	for_each(queueMap.begin(), queueMap.end(),
+			MapDeleter<std::string, CPN::QueueInfo>());
+	queueMap.clear();
 }
 
 void CPN::Kernel::Start(void) {
@@ -55,13 +54,20 @@ void CPN::Kernel::Wait(void) {
  */
 void CPN::Kernel::InternalWait(void) {
 	while (true) {
-		while (nodesToDelete.size()) {
-			NodeInfo* nodeinfo = nodesToDelete.front();
-			nodesToDelete.pop_front();
-			delete nodeinfo;
+		while (nodesToDelete.size() || queuesToDelete.size()) {
+			if (nodesToDelete.size()) {
+				NodeInfo* nodeinfo = nodesToDelete.front();
+				nodesToDelete.pop_front();
+				delete nodeinfo;
+			}
+			if (queuesToDelete.size()) {
+				QueueInfo* queueinfo = queuesToDelete.front();
+				queuesToDelete.pop_front();
+				delete queueinfo;
+			}
 		}
 		if (0 == nodeMap.size()) break;
-		nodeTermination.CompareWaitAndPost(true, false);
+		cleanupStatus.CompareWaitAndPost(true, false);
 	}
 	statusHandler.Post(STOPPED);
 }
@@ -75,8 +81,8 @@ void CPN::Kernel::Terminate(void) {
 	statusHandler.Post(TERMINATING);
 }
 
-void CPN::Kernel::CreateNode(const ::std::string &nodename,
-		const ::std::string &nodetype,
+void CPN::Kernel::CreateNode(const std::string &nodename,
+		const std::string &nodetype,
 		const void* const arg,
 		const ulong argsize) {
 	Sync::AutoLock plock(lock); 
@@ -88,8 +94,8 @@ void CPN::Kernel::CreateNode(const ::std::string &nodename,
 	nodeMap.insert(make_pair(nodename, new CPN::NodeInfo(*this, attr, arg, argsize)));
 }
 
-void CPN::Kernel::CreateQueue(const ::std::string &queuename,
-		const ::std::string &queuetype,
+void CPN::Kernel::CreateQueue(const std::string &queuename,
+		const std::string &queuetype,
 		const ulong queueLength,
 		const ulong maxThreshold,
 		const ulong numChannels) {
@@ -100,12 +106,12 @@ void CPN::Kernel::CreateQueue(const ::std::string &queuename,
 		throw std::invalid_argument(queuename + " already exists");
 	CPN::QueueAttr attr(GenerateId(queuename), queuename, queuetype,
 		       	queueLength, maxThreshold, numChannels);
-	queueMap.insert(make_pair(queuename, new CPN::QueueInfo(attr)));
+	queueMap.insert(make_pair(queuename, new CPN::QueueInfo(this, attr)));
 }
 
-void CPN::Kernel::ConnectWriteEndpoint(const ::std::string &qname,
-		const ::std::string &nodename,
-		const ::std::string &portname) {
+void CPN::Kernel::ConnectWriteEndpoint(const std::string &qname,
+		const std::string &nodename,
+		const std::string &portname) {
 	Sync::AutoLock plock(lock); 
 	ReadyOrRunningCheck();
 	// Validate that qname and nodename exist
@@ -117,9 +123,17 @@ void CPN::Kernel::ConnectWriteEndpoint(const ::std::string &qname,
 	ninfo->SetWriter(qinfo, portname);
 }
 
-void CPN::Kernel::ConnectReadEndpoint(const ::std::string &qname,
-		const ::std::string &nodename,
-		const ::std::string &portname) {
+void CPN::Kernel::RemoveWriteEndpoint(const std::string &nodename,
+		const std::string &portname) {
+	Sync::AutoLock plock(lock); 
+	ReadyOrRunningCheck();
+	NodeInfo* ninfo = GetNodeInfo(nodename);
+	ninfo->ClearWriter(portname);
+}
+
+void CPN::Kernel::ConnectReadEndpoint(const std::string &qname,
+		const std::string &nodename,
+		const std::string &portname) {
 	Sync::AutoLock plock(lock); 
 	ReadyOrRunningCheck();
 	// Validate qname and nodename.
@@ -130,8 +144,16 @@ void CPN::Kernel::ConnectReadEndpoint(const ::std::string &qname,
 	ninfo->SetReader(qinfo, portname);
 }
 
-CPN::QueueReader* CPN::Kernel::GetReader(const ::std::string &nodename,
-		const ::std::string &portname) {
+void CPN::Kernel::RemoveReadEndpoint(const std::string &nodename,
+		const std::string &portname) {
+	Sync::AutoLock plock(lock); 
+	ReadyOrRunningCheck();
+	NodeInfo* ninfo = GetNodeInfo(nodename);
+	ninfo->ClearReader(portname);
+}
+
+CPN::QueueReader* CPN::Kernel::GetReader(const std::string &nodename,
+		const std::string &portname) {
 	Sync::AutoLock plock(lock); 
 	ReadyOrRunningCheck();
 	// Validate nodename
@@ -145,8 +167,8 @@ CPN::QueueReader* CPN::Kernel::GetReader(const ::std::string &nodename,
 	return qreader;
 }
 
-CPN::QueueWriter* CPN::Kernel::GetWriter(const ::std::string &nodename,
-		const ::std::string &portname) {
+CPN::QueueWriter* CPN::Kernel::GetWriter(const std::string &nodename,
+		const std::string &portname) {
 	Sync::AutoLock plock(lock); 
 	ReadyOrRunningCheck();
 	// Validate nodename
@@ -165,7 +187,15 @@ void CPN::Kernel::NodeShutdown(const std::string &nodename) {
 	NodeInfo* ninfo = nodeMap[nodename];
 	nodeMap.erase(nodename);
 	nodesToDelete.push_back(ninfo);
-	nodeTermination.Post(true);
+	cleanupStatus.Post(true);
+}
+
+void CPN::Kernel::QueueShutdown(const std::string &queuename) {
+	Sync::AutoLock plock(lock); 
+	QueueInfo* qinfo = queueMap[queuename];
+	queueMap.erase(queuename);
+	queuesToDelete.push_back(qinfo);
+	cleanupStatus.Post(true);
 }
 
 void CPN::Kernel::ReadyOrRunningCheck(void) {
@@ -175,7 +205,7 @@ void CPN::Kernel::ReadyOrRunningCheck(void) {
 	}
 }
 
-CPN::ulong CPN::Kernel::GenerateId(const ::std::string& name) {
+CPN::ulong CPN::Kernel::GenerateId(const std::string& name) {
 	return idcounter++;
 }
 

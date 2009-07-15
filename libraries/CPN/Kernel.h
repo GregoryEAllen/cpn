@@ -47,7 +47,9 @@ namespace CPN {
 		void Start(void);
 
 		/**
-		 * Wait for all nodes to terminate.
+		 * Wait for all nodes to terminate and does cleanup.
+		 * Note that no resources will be cleaned up until
+		 * destruction if this function is never called.
 		 */
 		void Wait(void);
 
@@ -86,9 +88,10 @@ namespace CPN {
 		 * type you are creating.
 		 * \throws KernelShutdownException if Wait completed or Terminate
 		 * has been called.
+		 * \throws std::invalid_argument if nodename already exists
 		 */
-		void CreateNode(const ::std::string &nodename,
-				const ::std::string &nodetype,
+		void CreateNode(const std::string &nodename,
+				const std::string &nodetype,
 				const void* const arg,
 				const ulong argsize);
 
@@ -102,9 +105,10 @@ namespace CPN {
 		 * \param numChannels the number of channels for the queue
 		 * \throws KernelShutdownException if Wait completed or
 		 * Terminate has been called.
+		 * \throws std::invalid_argument if queuename already exists.
 		 */
-		void CreateQueue(const ::std::string &queuename,
-				const ::std::string &queuetype,
+		void CreateQueue(const std::string &queuename,
+				const std::string &queuetype,
 				const ulong queueLength,
 				const ulong maxThreshold,
 				const ulong numChannels);
@@ -112,6 +116,8 @@ namespace CPN {
 		/**
 		 * Connects the write endpoint of the given queue to the
 		 * given port on the given node.
+		 * It is an illegal operation to try to connect a queue
+		 * to a port that already has a queue connected to it.
 		 * \param qname the name of the queue to connect
 		 * \param nodename the name of the node to connect
 		 * \param portname the name of the writer port on the node
@@ -120,13 +126,27 @@ namespace CPN {
 		 * \throws std::invalid_argument if the queue or node
 		 * do not exist.
 		 */
-		void ConnectWriteEndpoint(const ::std::string &qname,
-				const ::std::string &nodename,
-				const ::std::string &portname);
+		void ConnectWriteEndpoint(const std::string &qname,
+				const std::string &nodename,
+				const std::string &portname);
 
+		/**
+		 * Remove the writer associated with the given endpoint.
+		 * If as a result of this call the queue is not connected
+		 * on both ends then it will be deleted.
+		 * \param nodename the name of the node
+		 * \param portname the name of the port
+		 * \throws KernelShutdownException if Wait completed or
+		 * Terminate has been called.
+		 * \throws std::invalid_argument if nodename does not exist.
+		 */
+		void RemoveWriteEndpoint(const std::string &nodename,
+				const std::string &portname);
 		/**
 		 * Connects the reader endpoint of the given queue to the
 		 * given port on the given node.
+		 * It is an illegal operation to try to connect a queue
+		 * to a port that already has a queue connected to it.
 		 * \param qname the name of the queue to connect
 		 * \param nodename the name of the node to connect
 		 * \param portname the name of the reader port on the node
@@ -135,10 +155,22 @@ namespace CPN {
 		 * \throws std::invalid_argument if the queue or node
 		 * do not exist.
 		 */
-		void ConnectReadEndpoint(const ::std::string &qname,
-				const ::std::string &nodename,
-				const ::std::string &portname);
+		void ConnectReadEndpoint(const std::string &qname,
+				const std::string &nodename,
+				const std::string &portname);
 
+		/**
+		 * Remove the reader associated with the given endpoint.
+		 * If as a result of this call the queue is not connected
+		 * on both ends then it will be deleted.
+		 * \param nodename the name of the node
+		 * \param portname the name of the port
+		 * \throws KernelShutdownException if Wait completed or
+		 * Terminate has been called.
+		 * \throws std::invalid_argument if nodename does not exist.
+		 */
+		void RemoveReadEndpoint(const std::string &nodename,
+				const std::string &portname);
 		/**
 		 * This function is for the node to get its QueueReader.
 		 * \note This function is designed to only be called by
@@ -147,8 +179,8 @@ namespace CPN {
 		 * \param portname the name of the port
 		 * \return the QueueReader for the given node and port
 		 */
-		QueueReader* GetReader(const ::std::string &nodename,
-				const ::std::string &portname);
+		QueueReader* GetReader(const std::string &nodename,
+				const std::string &portname);
 
 		/**
 		 * This function is for the node to get its QueueWriter.
@@ -157,8 +189,8 @@ namespace CPN {
 		 * \param portname the name of the node
 		 * \return the QueueWriter for the given node and port
 		 */
-		QueueWriter* GetWriter(const ::std::string &nodename,
-				const ::std::string &portname);
+		QueueWriter* GetWriter(const std::string &nodename,
+				const std::string &portname);
 
 		/**
 		 * \return the attributed passed in the constructor.
@@ -170,7 +202,16 @@ namespace CPN {
 		 * process function returns.
 		 * \param nodename the name of the node.
 		 */
-		void NodeShutdown(const ::std::string &nodename);
+		void NodeShutdown(const std::string &nodename);
+		
+		/**
+		 * QueueInfo calls this function when it has determined
+		 * that the queue will not be used again. I.e. both endpoints
+		 * have been connected and are now disconnected.
+		 * \param queuename the name of the queue to delete
+		 */
+		void QueueShutdown(const std::string &queuename);
+
 	private:
 		Kernel(const Kernel&);
 		Kernel &operator=(const Kernel&);
@@ -184,11 +225,12 @@ namespace CPN {
 		const KernelAttr kattr;
 
 		mutable Sync::ReentrantLock lock;
-		Sync::StatusHandler<bool> nodeTermination;
+		Sync::StatusHandler<bool> cleanupStatus;
 
 		std::map<std::string, NodeInfo*> nodeMap;
 		std::map<std::string, QueueInfo*> queueMap;
 		std::deque<NodeInfo*> nodesToDelete;
+		std::deque<QueueInfo*> queuesToDelete;
 
 		/**
 		 * \warning All functions in the Kernel that
@@ -198,8 +240,8 @@ namespace CPN {
 
 		/// Temporary unique id generator counter.
 		ulong idcounter;
-		/// Temporary unique id generator.
-		ulong GenerateId(const ::std::string& name);
+		/// Temporary 'unique' id generator.
+		ulong GenerateId(const std::string& name);
 	};
 }
 #endif

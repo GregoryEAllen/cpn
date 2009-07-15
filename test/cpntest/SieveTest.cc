@@ -49,6 +49,7 @@ SieveResultNode::SieveResultNode(CPN::Kernel& ker, const CPN::NodeAttr& attr,
 
 void SieveResultNode::Process(void) {
 	std::string ourname = GetAttr().GetName();
+	//DEBUG("%s started\n", ourname.c_str());
 	CPN::QueueReaderAdapter<unsigned long> in = kernel.GetReader(ourname, "x");
 	unsigned long index = 0;
 	/*
@@ -62,6 +63,10 @@ void SieveResultNode::Process(void) {
 		in.Dequeue(&result[index], 1);
 		++index;
 	}
+	unsigned long val = -1;
+	in.Dequeue(&val, 1);
+	assert(0 == val);
+	//DEBUG("%s stopped\n", ourname.c_str());
 }
 
 class SieveFilterNode : public CPN::NodeBase {
@@ -76,6 +81,7 @@ SieveFilterNode::SieveFilterNode(CPN::Kernel& ker, const CPN::NodeAttr& attr)
 }
 void SieveFilterNode::Process(void) {
 	std::string ourname = GetAttr().GetName();
+	//DEBUG("%s started\n", ourname.c_str());
 	CPN::QueueWriterAdapter<unsigned long> out = kernel.GetWriter(ourname, "y");
 	CPN::QueueReaderAdapter<unsigned long> in = kernel.GetReader(ourname, "x");
 	unsigned long input = 0;
@@ -92,9 +98,9 @@ void SieveFilterNode::Process(void) {
 	kernel.CreateNode(nodename, "SieveFilterNode", 0, 0);
 	std::string qname = ToString("Queue %lu+", value);
 	kernel.CreateQueue(qname, CPN_QUEUETYPE_THRESHOLD, 100, 100, 1);
-	kernel.ConnectWriteEndpoint(qname, GetAttr().GetName(), "y");
 	kernel.ConnectReadEndpoint(qname, nodename, "x");
 	kernel.ConnectWriteEndpoint("consumerqueue", nodename, "y");
+	kernel.ConnectWriteEndpoint(qname, GetAttr().GetName(), "y");
 	while (true) {
 		in.Dequeue(&input, 1);
 		if (input%value != 0) {
@@ -105,6 +111,7 @@ void SieveFilterNode::Process(void) {
 			break;
 		}
 	}
+	//DEBUG("%s stopped\n", ourname.c_str());
 }
 
 class SieveProducerNode : public CPN::NodeBase {
@@ -118,6 +125,7 @@ SieveProducerNode::SieveProducerNode(CPN::Kernel& ker, const CPN::NodeAttr& attr
 }
 void SieveProducerNode::Process(void) {
 	std::string ourname = GetAttr().GetName();
+	//DEBUG("%s started\n", ourname.c_str());
 	CPN::QueueWriterAdapter<unsigned long> out = kernel.GetWriter(ourname, "y");
 	unsigned long index = 2;
 	while (index <= MAX_PRIME_VALUE) {
@@ -126,6 +134,7 @@ void SieveProducerNode::Process(void) {
 	}
 	index = 0;
 	out.Enqueue(&index, 1);
+	//DEBUG("%s stopped\n", ourname.c_str());
 }
 
 class SieveNodeFactory : public CPN::NodeFactory {

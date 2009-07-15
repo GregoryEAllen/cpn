@@ -82,6 +82,7 @@ void SwitchNode::Process(void) {
 	case SWITCH_PRODUCER:
 		out.Enqueue(&param.buffer->at(0), param.buffer->size());
 		//switch to other here
+		kernel.RemoveWriteEndpoint(ourname, "y");
 		kernel.ConnectWriteEndpoint(param.qname, param.othername, "y");
 		param.sema->Post();
 		out.Enqueue(&value, 1);
@@ -101,6 +102,7 @@ void SwitchNode::Process(void) {
 				param.buffer->push_back(value);
 		} while (value != ENDOFQUEUE);
 		// Switch to other here
+		kernel.RemoveReadEndpoint(ourname, "x");
 		kernel.ConnectReadEndpoint(param.qname, param.othername, "x");
 		param.sema->Post();
 		in.Dequeue(&value, 1);

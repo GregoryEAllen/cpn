@@ -124,9 +124,9 @@ void ThresholdSieveFilter::CreateNewFilter(NumberT lastprime) {
 	kernel.CreateQueue(queuename, opts.queueTypeName,
 		      opts.queuesize * sizeof(NumberT),
 		      opts.threshold * sizeof(NumberT), 1);
-	kernel.ConnectWriteEndpoint(queuename, GetName(), OUT_PORT);
 	kernel.ConnectReadEndpoint(queuename, nodename, IN_PORT);
 	kernel.ConnectWriteEndpoint(CONSUMERQ_NAME, nodename, OUT_PORT);
+	kernel.ConnectWriteEndpoint(queuename, GetName(), OUT_PORT);
 }
 
 void ThresholdSieveFilter::RegisterNodeType(void) {

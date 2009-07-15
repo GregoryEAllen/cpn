@@ -31,14 +31,19 @@ namespace CPN {
 
 		/**
 		 * Set the queue that the reader should use to read with.
+		 * It is illegal to call this function when this endpoint
+		 * is already connected to a queue. ClearQueueInfo must
+		 * be called first.
 		 * \param queueinfo_ the QueueInfo object that holds the queue
 		 */
 		void SetQueueInfo(QueueInfo* queueinfo_);
 
 		/**
 		 * Remove the queue from this reader.
+		 * \param checkdeath whether this clearing indicates that
+		 * the queue is now ready for cleanup.
 		 */
-		void ClearQueueInfo(void);
+		void ClearQueueInfo(bool checkdeath);
 
 		/**
 		 * \return a pointer to the status handler for this reader.
@@ -51,7 +56,7 @@ namespace CPN {
 		QueueInfo* GetQueueInfo(void);
 
 		/**
-		 * Sets the reader to terminate. Next call to a reader
+		 * Sets the endpoint to terminate. Next call to a queue
 		 * function will cause the node to stop.
 		 */
 		void Terminate(void);
@@ -71,16 +76,20 @@ namespace CPN {
 		 * Pure virtual function to be implemented in
 		 * derived classes to call the correct endpoint function
 		 * in QueueInfo.
-		 * \note Caller must be holding lock.
+		 * \param qinfo the QueueInfo object to call QueueInfo::SetWriter
+		 * or QueueInfo::SetReader upon.
 		 */
-		virtual void SetQueueInfoEndpoint(void) = 0;
+		virtual void SetQueueInfoEndpoint(QueueInfo* qinfo) = 0;
 		/**
 		 * Pure virtual function to be implemented in
 		 * derived classes to call the correct endpoint function
 		 * in QueueInfo.
-		 * \note Caller must be holding lock.
+		 * \param qinfo the QueueInfo object to call QueueInfo::ClearWriter
+		 * or QueueInfo::ClearReader upon.
+		 * \param checkdeath the parameter for QueueInfo::ClearWriter or
+		 * QueueInfo::ClearReader
 		 */
-		virtual void ClearQueueInfoEndpoint(void) = 0;
+		virtual void ClearQueueInfoEndpoint(QueueInfo* qinfo, bool checkdeath) = 0;
 
 		/**
 		 * This function blocks if no QueueInfo has been set

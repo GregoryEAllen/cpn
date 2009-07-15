@@ -43,7 +43,15 @@ namespace CPN {
 		 * \param queue the queueinfo object that holds the queue
 		 * \param portname the name of the port to connect
 		 */
-		void SetWriter(QueueInfo* queue, std::string portname);
+		void SetWriter(QueueInfo* queue, const std::string &portname);
+
+		/**
+		 * Clear the writer associated with the portname.
+		 * This function indicates to the writer that
+		 * we are done with the queue in question.
+		 * \param portname
+		 */
+		void ClearWriter(const std::string &portname);
 
 		/**
 		 * Get the NodeQueueWriter that corresponds to the
@@ -51,7 +59,7 @@ namespace CPN {
 		 * \param name the name of the port
 		 * \return the NodeQueueWriter
 		 */
-		NodeQueueWriter* GetWriter(std::string name);
+		NodeQueueWriter* GetWriter(const std::string &name);
 
 		/**
 		 * Conct the given queeu to the given portname.
@@ -59,7 +67,15 @@ namespace CPN {
 		 * \param queue the queue info that holds the queue
 		 * \param portname the name of the port
 		 */
-		void SetReader(QueueInfo* queue, std::string portname);
+		void SetReader(QueueInfo* queue, const std::string &portname);
+
+		/**
+		 * Clear the reader associated with the portname.
+		 * This function indicates to the reader that
+		 * we are done with the queue in question.
+		 * \param portname
+		 */
+		void ClearReader(const std::string &portname);
 
 		/**
 		 * Get the NodeQueueReader that corresponds to the given
@@ -68,7 +84,7 @@ namespace CPN {
 		 * \param name the name of the port
 		 * \return the NodeQueueReader
 		 */
-		NodeQueueReader* GetReader(std::string name);
+		NodeQueueReader* GetReader(const std::string &name);
 
 		/**
 		 * Get the node this object holds.

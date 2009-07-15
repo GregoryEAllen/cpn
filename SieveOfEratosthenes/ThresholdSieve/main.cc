@@ -94,45 +94,25 @@ int main(int argc, char **argv) {
 		f = fopen(filename.c_str(), "a");
 		if (!f) f = stdout;
 	}
-	if (multitest) {
-		for (int m = 1000000; m <= 10000000; m += 1000000) {
-			options.maxprime = m;
-			for (int t = 2; t < m/10; t *=2) {
-				options.queuesize = 2*t;
-				options.threshold = t;
-				for (int i = 0; i < numIterations; ++i) {
-					TestResults timeresults = SieveTest(options);
-					fprintf(f, "%lu\t%lu\t%lu\t%f\t%f\t%f\n",
-							(unsigned long)options.maxprime,
-							options.queuesize,
-							options.threshold,
-							timeresults.realtime,
-							timeresults.usertime,
-							timeresults.systime);
-					results.clear();
-				}
+	for (int i = 0; i < numIterations; ++i) {
+		TestResults timeresults = SieveTest(options);
+		fprintf(f, "%lu\t%lu\t%lu\t%lu\t%f\t%f\t%f\t%u\n",
+				(unsigned long)options.maxprime,
+				options.queuesize,
+				options.threshold,
+				options.primesPerFilter,
+				timeresults.realtime,
+				timeresults.usertime,
+				timeresults.systime,
+				(unsigned)results.size());
+		if (verbose) {
+			fprintf(f, "%u primes found\n", (unsigned)results.size());
+			for (size_t j = 0; j < results.size(); ++j) {
+				fprintf(f, "%lu, ", (unsigned long)results[j]);
 			}
+			fprintf(f, "\n");
 		}
-	} else {
-		for (int i = 0; i < numIterations; ++i) {
-			TestResults timeresults = SieveTest(options);
-			fprintf(f, "%lu\t%lu\t%lu\t%lu\t%f\t%f\t%f\n",
-					(unsigned long)options.maxprime,
-					options.queuesize,
-					options.threshold,
-					options.primesPerFilter,
-					timeresults.realtime,
-					timeresults.usertime,
-					timeresults.systime);
-			if (verbose) {
-				fprintf(f, "%u primes found\n", (unsigned)results.size());
-				for (size_t j = 0; j < results.size(); ++j) {
-					fprintf(f, "%lu, ", (unsigned long)results[j]);
-				}
-				fprintf(f, "\n");
-			}
-			results.clear();
-		}
+		results.clear();
 	}
 	if (f != stdout) {
 		fclose(f);

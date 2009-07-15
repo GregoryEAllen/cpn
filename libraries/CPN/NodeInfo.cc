@@ -27,21 +27,13 @@ CPN::NodeInfo::~NodeInfo() {
 	Terminate();
 	std::map<std::string, NodeQueueReader*>::iterator inputsIter = inputs.begin();
 	for (;inputsIter != inputs.end(); inputsIter++) {
-		QueueInfo *qinfo = (*inputsIter).second->GetQueueInfo();
-		if (qinfo) {
-			qinfo->ClearReader();
-			(*inputsIter).second->ClearQueueInfo();
-		}
+		(*inputsIter).second->ClearQueueInfo(true);
 		delete (*inputsIter).second;
 	}
 	inputs.clear();
 	std::map<std::string, NodeQueueWriter*>::iterator outputsIter = outputs.begin();
 	for (;outputsIter != outputs.end(); outputsIter++) {
-		QueueInfo *qinfo = (*outputsIter).second->GetQueueInfo();
-		if (qinfo) {
-			qinfo->ClearWriter();
-			(*outputsIter).second->ClearQueueInfo();
-		}
+		(*outputsIter).second->ClearQueueInfo(true);
 		delete (*outputsIter).second;
 	}
 	outputs.clear();
@@ -56,28 +48,38 @@ void CPN::NodeInfo::Terminate(void) {
 			void (CPN::NodeQueueWriter::*)(void)>(&CPN::NodeQueueWriter::Terminate));
 }
 
-void CPN::NodeInfo::SetWriter(QueueInfo* queue, std::string portname) {
+void CPN::NodeInfo::SetWriter(QueueInfo* queue, const std::string &portname) {
 	NodeQueueWriter* writer = GetWriter(portname);
 	if (queue) {
 		queue->SetWriter(writer);
 	}
 }
 
-CPN::NodeQueueWriter* CPN::NodeInfo::GetWriter(std::string name) {
+void CPN::NodeInfo::ClearWriter(const std::string &portname) {
+	NodeQueueWriter* writer = GetWriter(portname);
+	writer->ClearQueueInfo(true);
+}
+
+CPN::NodeQueueWriter* CPN::NodeInfo::GetWriter(const std::string &name) {
 	if (!outputs[name]) {
 		outputs[name] = new CPN::BlockingQueueWriter(this, name);
 	}
 	return outputs[name];
 }
 
-void CPN::NodeInfo::SetReader(QueueInfo* queue, std::string portname) {
+void CPN::NodeInfo::SetReader(QueueInfo* queue, const std::string &portname) {
 	NodeQueueReader* reader = GetReader(portname);
 	if (queue) {
 		queue->SetReader(reader);
 	}
 }
 
-CPN::NodeQueueReader* CPN::NodeInfo::GetReader(std::string name) {
+void CPN::NodeInfo::ClearReader(const std::string &portname) {
+	NodeQueueReader* reader = GetReader(portname);
+	reader->ClearQueueInfo(true);
+}
+
+CPN::NodeQueueReader* CPN::NodeInfo::GetReader(const std::string &name) {
 	if (!inputs[name]) {
 		inputs[name] = new CPN::BlockingQueueReader(this, name);
 	}

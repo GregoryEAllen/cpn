@@ -24,7 +24,35 @@ void CPN::NodeQueueEndpoint::Terminate(void) {
 void CPN::NodeQueueEndpoint::SetQueueInfo(QueueInfo* queueinfo_) {
 	Sync::AutoLock alock(lock);
 	if (queueinfo == queueinfo_) return;
+	assert(queueinfo_);
+	assert(0 == queueinfo);
 	QueueStatus theStatus = status.Get();
+	while (true) {
+		switch (theStatus.status) {
+		case QueueStatus::DETACHED:
+			queueinfo = queueinfo_;
+			SetQueueInfoEndpoint(queueinfo);
+			status.Post(QueueStatus::READY);
+			return;
+		case QueueStatus::SHUTDOWN:
+			queueinfo = queueinfo_;
+			return;
+		case QueueStatus::QUERY:
+		case QueueStatus::TRANSFER:
+		case QueueStatus::BLOCKED:
+		case QueueStatus::READY:
+		default:
+			// We cannot be in any of these states.
+			assert(false);
+		}
+	}
+}
+
+void CPN::NodeQueueEndpoint::ClearQueueInfo(bool checkdeath) {
+	Sync::AutoLock alock(lock);
+	if (!queueinfo) return;
+	QueueStatus theStatus = status.Get();
+	QueueInfo* qinfo;
 	while (true) {
 		switch (theStatus.status) {
 		case QueueStatus::QUERY:
@@ -33,27 +61,17 @@ void CPN::NodeQueueEndpoint::SetQueueInfo(QueueInfo* queueinfo_) {
 			break;
 		case QueueStatus::BLOCKED:
 		case QueueStatus::READY:
+			status.Post(QueueStatus::DETACHED);
 		case QueueStatus::DETACHED:
-			ClearQueueInfoEndpoint();
-			queueinfo = queueinfo_;
-			if (queueinfo) {
-				SetQueueInfoEndpoint();
-				status.Post(QueueStatus::READY);
-			} else {
-				status.Post(QueueStatus::DETACHED);
-			}
-			return;
 		case QueueStatus::SHUTDOWN:
-			queueinfo = queueinfo_;
+			qinfo = queueinfo;
+			queueinfo = 0;
+			ClearQueueInfoEndpoint(qinfo, checkdeath);
 			return;
 		default:
 			assert(false);
 		}
 	}
-}
-
-void CPN::NodeQueueEndpoint::ClearQueueInfo() {
-	SetQueueInfo(0);
 }
 
 CPN::QueueInfo* CPN::NodeQueueEndpoint::GetQueueInfo(void) {

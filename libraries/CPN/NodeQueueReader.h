@@ -25,11 +25,11 @@ namespace CPN {
 
 		virtual ~NodeQueueReader() {}
 	protected:
-		void SetQueueInfoEndpoint(void) {
-			if (queueinfo) { queueinfo->SetReader(this); }
+		void SetQueueInfoEndpoint(QueueInfo* qinfo) {
+			if (qinfo) { qinfo->SetReader(this); }
 		}
-		void ClearQueueInfoEndpoint(void) {
-			if (queueinfo) { queueinfo->ClearReader(); }
+		void ClearQueueInfoEndpoint(QueueInfo* qinfo, bool checkdeath) {
+			if (qinfo) qinfo->ClearReader(checkdeath);
 		}
 	private:
 	};

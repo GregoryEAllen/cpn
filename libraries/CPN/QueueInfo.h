@@ -5,6 +5,7 @@
 #define CPN_QUEUEINFO_H
 
 namespace CPN {
+	class Kernel;
 	class NodeQueueReader;
 	class NodeQueueWriter;
 	class QueueFactory;
@@ -19,7 +20,7 @@ namespace CPN {
 	 */
 	class QueueInfo {
 	public:
-		QueueInfo(const QueueAttr &attr);
+		QueueInfo(Kernel *ker, const QueueAttr &attr);
 		
 		~QueueInfo();
 
@@ -37,8 +38,10 @@ namespace CPN {
 
 		/**
 		 * Clear the current reader
+		 * \param checkdeath whether this clear indicates that
+		 * this the endpoint that we are connected to is done.
 		 */
-		void ClearReader(void);
+		void ClearReader(bool checkdeath);
 
 		/**
 		 * \return the currently registered reader or 0 if none.
@@ -54,8 +57,10 @@ namespace CPN {
 
 		/**
 		 * Clear the current writer.
+		 * \param checkdeath whether this clear indicates that
+		 * this the endpoint that we are connected to is done.
 		 */
-		void ClearWriter(void);
+		void ClearWriter(bool checkdeath);
 
 		/**
 		 * \return the curretnly registered writer or 0 if none
@@ -63,10 +68,18 @@ namespace CPN {
 		NodeQueueWriter* GetWriter(void) const { return writer; }
 
 	private:
+		/**
+		 * Check our internal state to see if we are dead and if
+		 * so call Kernel::QueueShutdown
+		 */
+		void CheckDeath(void);
+
+		Kernel* kernel;
 		QueueFactory* factory;
 		QueueBase* queue;
 		NodeQueueReader* reader;
 		NodeQueueWriter* writer;
+		bool readerset, writerset;
 	};
 }
 

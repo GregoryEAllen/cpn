@@ -25,11 +25,11 @@ namespace CPN {
 
 		virtual ~NodeQueueWriter() {}
 	protected:
-		void SetQueueInfoEndpoint(void) {
-			if (queueinfo) { queueinfo->SetWriter(this); }
+		void SetQueueInfoEndpoint(QueueInfo* qinfo) {
+			if (qinfo) { qinfo->SetWriter(this); }
 		}
-		void ClearQueueInfoEndpoint(void) {
-			if (queueinfo) { queueinfo->ClearWriter(); }
+		void ClearQueueInfoEndpoint(QueueInfo* qinfo, bool checkdeath) {
+			if (qinfo) qinfo->ClearWriter(checkdeath);
 		}
 	};
 }
