@@ -12,10 +12,13 @@
 #define RANDOMINSTRUCTIONNODE_TYPENAME "RandomInstructionNodeType"
 
 struct RINState {
-	RINState() : nodeID(0), iterations(100), debugLevel(0) {}
+	RINState(unsigned id, unsigned iter, RandomInstructionGenerator::State s)
+		: nodeID(id), iterations(iter), state(s) {}
+	RINState(unsigned id, unsigned iter, int dbglvl, unsigned nnode)
+		: nodeID(id), iterations(iter),
+		state(nnode, dbglvl) {}
 	unsigned nodeID;
 	unsigned iterations;
-	unsigned debugLevel;
 	RandomInstructionGenerator::State state;
 };
 
@@ -29,7 +32,8 @@ public:
 
 	static void RegisterNodeType(void);
 	static std::string GetNodeNameFromID(unsigned id);
-	static void CreateNode(CPN::Kernel& kernel, RINState state);
+	static void CreateRIN(CPN::Kernel& kernel, unsigned iterations,
+		unsigned numNodes, unsigned debugLevel);
 private:
 	/// Random Instruction Node IDentifier
 	unsigned myID;
@@ -41,9 +45,10 @@ private:
 	void DoTransmuterNode(unsigned nodeID, unsigned srcNodeID, unsigned dstNodeID);
 	void DoConsumerNode(unsigned nodeID, unsigned srcNodeID);
 	int dbprintf(int dbLevel, const char *fmt, ...);
-
-	CPN::QueueWriter* rawout;
-	CPN::QueueReader* rawin;
+	void CreateQueue(unsigned srcID, unsigned dstID);
+	std::string GetQueueName(unsigned srcID, unsigned dstID);
+	std::string CurrentInPort(void);
+	std::string CurrentOutPort(void);
 };
 
 #endif

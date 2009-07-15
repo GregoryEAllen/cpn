@@ -33,10 +33,13 @@
 #include <sstream>
 
 
+const RandomInstructionGenerator::LFSR_t RandomInstructionGenerator::DEFAULT_SEED = 1;
+const RandomInstructionGenerator::LFSR_t RandomInstructionGenerator::DEFAULT_FEED = 0xF82F;
+
 //-----------------------------------------------------------------------------
 RandomInstructionGenerator::RandomInstructionGenerator()
 //-----------------------------------------------------------------------------
-:	lfsr(0xF82F,1)
+:	lfsr(DEFAULT_FEED,DEFAULT_SEED)
 {
 	Initialize(2, 0.01, 0.01, 100);
 }
@@ -309,11 +312,9 @@ void RandomInstructionGenerator::RunOnce(void)
 RandomInstructionGenerator::State RandomInstructionGenerator::GetState(void)
 //-----------------------------------------------------------------------------
 {
-	State state;
+	State state = State(numNodes, debugLevel);
 	state.feed = lfsr.Feed();
 	state.seed = lfsr.Seed();
-	state.numNodes = numNodes;
-	state.debugLevel = debugLevel;
 	state.deletedNodes = deletedNodes;
 	return state;
 }

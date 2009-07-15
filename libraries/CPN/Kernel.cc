@@ -123,7 +123,7 @@ void CPN::Kernel::ConnectWriteEndpoint(const std::string &qname,
 	ninfo->SetWriter(qinfo, portname);
 }
 
-void CPN::Kernel::RemoveWriteEndpoint(const std::string &nodename,
+void CPN::Kernel::ReleaseWriter(const std::string &nodename,
 		const std::string &portname) {
 	Sync::AutoLock plock(lock); 
 	ReadyOrRunningCheck();
@@ -144,7 +144,7 @@ void CPN::Kernel::ConnectReadEndpoint(const std::string &qname,
 	ninfo->SetReader(qinfo, portname);
 }
 
-void CPN::Kernel::RemoveReadEndpoint(const std::string &nodename,
+void CPN::Kernel::ReleaseReader(const std::string &nodename,
 		const std::string &portname) {
 	Sync::AutoLock plock(lock); 
 	ReadyOrRunningCheck();

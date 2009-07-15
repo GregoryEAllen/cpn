@@ -5,12 +5,12 @@
 #ifndef CPN_SIMPLEQUEUE_H
 #define CPN_SIMPLEQUEUE_H
 
+#include "common.h"
 #include "QueueBase.h"
 #include "PthreadMutex.h"
 #include "ReentrantLock.h"
 #include <vector>
 
-#define CPN_QUEUETYPE_SIMPLE "CPN::SimpleQueue"
 
 namespace CPN {
 
