@@ -58,6 +58,8 @@ void CPN::NodeInfo::SetWriter(QueueInfo* queue, const std::string &portname) {
 void CPN::NodeInfo::ClearWriter(const std::string &portname) {
 	NodeQueueWriter* writer = GetWriter(portname);
 	writer->ClearQueueInfo(true);
+	delete writer;
+	outputs.erase(portname);
 }
 
 CPN::NodeQueueWriter* CPN::NodeInfo::GetWriter(const std::string &name) {
@@ -77,6 +79,8 @@ void CPN::NodeInfo::SetReader(QueueInfo* queue, const std::string &portname) {
 void CPN::NodeInfo::ClearReader(const std::string &portname) {
 	NodeQueueReader* reader = GetReader(portname);
 	reader->ClearQueueInfo(true);
+	delete reader;
+	inputs.erase(portname);
 }
 
 CPN::NodeQueueReader* CPN::NodeInfo::GetReader(const std::string &name) {

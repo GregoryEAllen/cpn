@@ -7,12 +7,14 @@
 #include "QueueReaderAdapter.h"
 #include "Kernel.h"
 #include "ToString.h"
+#include <stdexcept>
 #include <cassert>
 #include <stdarg.h>
 
-const char* const OUT_PORT = "y";
-const char* const IN_PORT = "x";
+const char* const OUT_PORT_FORMAT = "Out:%lu";
+const char* const IN_PORT_FORMAT = "In:%lu";
 const char* const NODE_NAME_FORMAT = "RIN #%u";
+const char* const QUEUE_NAME_FORMAT = "Q#%lu:%u->%u";
 
 class RINFactory : public CPN::NodeFactory {
 public:
@@ -34,43 +36,47 @@ RandomInstructionNode::RandomInstructionNode(CPN::Kernel& ker,
 :	CPN::NodeBase(ker, attr), RandomInstructionGenerator(initialState.state) {
 	myID = initialState.nodeID;
 	iterations = initialState.iterations;
-	debugLevel = initialState.debugLevel;
 	die = false;
 }
 
 void RandomInstructionNode::Process(void) {
 	dbprintf(1,"Started\n");
-	rawout = kernel.GetWriter(GetName(), OUT_PORT);
-	rawin = kernel.GetReader(GetName(), IN_PORT);
-	while (iterations-- > 0 && !die) {
+	while (iterations-- > 0) {
 		RunOnce();
 	}
 	dbprintf(1,"Stopped\n");
 }
 
-void RandomInstructionNode::CreateNode(CPN::Kernel& kernel, RINState state) {
-	kernel.CreateNode(GetNodeNameFromID(state.nodeID),
+void RandomInstructionNode::CreateRIN(CPN::Kernel& kernel, unsigned iterations,
+		unsigned numNodes, unsigned debugLevel) {
+	for (unsigned i = 0; i < numNodes; ++i) {
+		RINState state = RINState(i, iterations, debugLevel, numNodes);
+		kernel.CreateNode(GetNodeNameFromID(state.nodeID),
 			RANDOMINSTRUCTIONNODE_TYPENAME, &state, 0);
-	kernel.CreateQueue(GetNodeNameFromID(state.nodeID),
-			CPN_QUEUETYPE_THRESHOLD, 1024, 1024, 1);
-	kernel.ConnectReadEndpoint(GetNodeNameFromID(state.nodeID),
-			GetNodeNameFromID(state.nodeID), IN_PORT);
+	}
 }
 
 void RandomInstructionNode::DoCreateNode(unsigned newNodeID, unsigned creatorNodeID) {
 	if (creatorNodeID == myID) {
 		RandomInstructionGenerator::DoCreateNode(newNodeID, creatorNodeID);
-		RINState state;
-		state.state = GetState();
-		state.iterations = iterations;
-		state.nodeID = newNodeID;
-		state.debugLevel = debugLevel;
-		CreateNode(kernel, state);
+		RINState state = RINState(newNodeID, iterations, GetState());
+		try {
+			kernel.CreateNode(GetNodeNameFromID(state.nodeID),
+				RANDOMINSTRUCTIONNODE_TYPENAME, &state, 0);
+		} catch (std::invalid_argument e) {
+			// It's already there
+			// maybe this should be changed to a return value instead?
+		}
+	}
+	if (newNodeID == myID) {
+		assert(die);
+		die = false;
 	}
 }
 
 void RandomInstructionNode::DoDeleteNode(unsigned nodeID) {
 	if (myID == nodeID) {
+		assert(!die);
 		RandomInstructionGenerator::DoDeleteNode(nodeID);
 		die = true;
 	}
@@ -78,25 +84,41 @@ void RandomInstructionNode::DoDeleteNode(unsigned nodeID) {
 
 void RandomInstructionNode::DoProducerNode(unsigned nodeID, unsigned dstNodeID) {
 	if (myID == nodeID) {
+		assert(!die);
 		RandomInstructionGenerator::DoProducerNode(nodeID, dstNodeID);
-		kernel.ConnectWriteEndpoint(GetNodeNameFromID(dstNodeID),
-				GetName(), OUT_PORT);
-		CPN::QueueWriterAdapter<unsigned> out = rawout;
+
+		CreateQueue(nodeID, dstNodeID);
+		kernel.ConnectWriteEndpoint(GetQueueName(nodeID, dstNodeID),
+				GetName(), CurrentOutPort());
+		kernel.ConnectReadEndpoint(GetQueueName(nodeID, dstNodeID),
+				GetNodeNameFromID(dstNodeID), CurrentInPort());
+
+		CPN::QueueWriterAdapter<unsigned> out = kernel.GetWriter(GetName(),
+			       	CurrentOutPort());
 		unsigned *data = out.GetEnqueuePtr(2);
 		data[0] = nodeID;
 		data[1] = dstNodeID;
 		out.Enqueue(2);
+		kernel.ReleaseWriter(GetName(), CurrentOutPort());
 	}
 }
 
 void RandomInstructionNode::DoTransmuterNode(unsigned nodeID, unsigned srcNodeID,
 	       	unsigned dstNodeID) {
 	if (myID == nodeID) {
+		assert(!die);
 		RandomInstructionGenerator::DoTransmuterNode(nodeID, srcNodeID, dstNodeID);
-		kernel.ConnectWriteEndpoint(GetNodeNameFromID(dstNodeID),
-				GetName(), OUT_PORT);
-		CPN::QueueWriterAdapter<unsigned> out = rawout;
-		CPN::QueueReaderAdapter<unsigned> in = rawin;
+
+		CreateQueue(nodeID, dstNodeID);
+		kernel.ConnectWriteEndpoint(GetQueueName(nodeID, dstNodeID),
+				GetName(), CurrentOutPort());
+		kernel.ConnectReadEndpoint(GetQueueName(nodeID, dstNodeID),
+				GetNodeNameFromID(dstNodeID), CurrentInPort());
+
+		CPN::QueueWriterAdapter<unsigned> out = kernel.GetWriter(GetName(),
+			       	CurrentOutPort());
+		CPN::QueueReaderAdapter<unsigned> in = kernel.GetReader(GetName(),
+				CurrentInPort());
 		const unsigned *indata = in.GetDequeuePtr(2);
 		if (indata[0] != srcNodeID) {
 			dbprintf(1, "!!! Got %u was expecting %u\n", indata[0], srcNodeID);
@@ -108,13 +130,18 @@ void RandomInstructionNode::DoTransmuterNode(unsigned nodeID, unsigned srcNodeID
 		unsigned *outdata = out.GetEnqueuePtr(2);
 		outdata[0] = nodeID;
 		outdata[1] = dstNodeID;
+		out.Enqueue(2);
+		kernel.ReleaseWriter(GetName(), CurrentOutPort());
+		kernel.ReleaseReader(GetName(), CurrentInPort());
 	}
 }
 
 void RandomInstructionNode::DoConsumerNode(unsigned nodeID, unsigned srcNodeID) {
 	if (myID == nodeID) {
+		assert(!die);
 		RandomInstructionGenerator::DoConsumerNode(nodeID, srcNodeID);
-		CPN::QueueReaderAdapter<unsigned> in = rawin;
+		CPN::QueueReaderAdapter<unsigned> in = kernel.GetReader(GetName(),
+				CurrentInPort());
 		const unsigned *indata = in.GetDequeuePtr(2);
 		if (indata[0] != srcNodeID) {
 			dbprintf(1, "!!! Got %u was expecting %u\n", indata[0], srcNodeID);
@@ -123,6 +150,7 @@ void RandomInstructionNode::DoConsumerNode(unsigned nodeID, unsigned srcNodeID) 
 			dbprintf(1, "!!! Got %u was expecting %u\n", indata[1], nodeID);
 		}
 		in.Dequeue(2);
+		kernel.ReleaseReader(GetName(), CurrentInPort());
 	}
 }
 
@@ -138,8 +166,24 @@ int RandomInstructionNode::dbprintf(int dbLevel, const char *fmt, ...) {
 	return result;
 }
 
+void RandomInstructionNode::CreateQueue(unsigned srcID, unsigned dstID) {
+	kernel.CreateQueue(GetQueueName(srcID, dstID),
+		CPN_QUEUETYPE_SIMPLE, 1024, 1024, 1);
+}
+std::string RandomInstructionNode::GetQueueName(unsigned srcID, unsigned dstID) {
+	return ToString(QUEUE_NAME_FORMAT, lfsr.Seed(), srcID, dstID);
+}
+
 std::string RandomInstructionNode::GetNodeNameFromID(unsigned id) {
 	return ToString(NODE_NAME_FORMAT, id);
+}
+
+std::string RandomInstructionNode::CurrentInPort(void) {
+	return ToString(IN_PORT_FORMAT, lfsr.Seed());
+}
+
+std::string RandomInstructionNode::CurrentOutPort(void) {
+	return ToString(OUT_PORT_FORMAT, lfsr.Seed());
 }
 
 void RandomInstructionNode::RegisterNodeType(void) {

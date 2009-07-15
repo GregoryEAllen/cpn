@@ -129,19 +129,6 @@ namespace CPN {
 		void ConnectWriteEndpoint(const std::string &qname,
 				const std::string &nodename,
 				const std::string &portname);
-
-		/**
-		 * Remove the writer associated with the given endpoint.
-		 * If as a result of this call the queue is not connected
-		 * on both ends then it will be deleted.
-		 * \param nodename the name of the node
-		 * \param portname the name of the port
-		 * \throws KernelShutdownException if Wait completed or
-		 * Terminate has been called.
-		 * \throws std::invalid_argument if nodename does not exist.
-		 */
-		void RemoveWriteEndpoint(const std::string &nodename,
-				const std::string &portname);
 		/**
 		 * Connects the reader endpoint of the given queue to the
 		 * given port on the given node.
@@ -160,18 +147,6 @@ namespace CPN {
 				const std::string &portname);
 
 		/**
-		 * Remove the reader associated with the given endpoint.
-		 * If as a result of this call the queue is not connected
-		 * on both ends then it will be deleted.
-		 * \param nodename the name of the node
-		 * \param portname the name of the port
-		 * \throws KernelShutdownException if Wait completed or
-		 * Terminate has been called.
-		 * \throws std::invalid_argument if nodename does not exist.
-		 */
-		void RemoveReadEndpoint(const std::string &nodename,
-				const std::string &portname);
-		/**
 		 * This function is for the node to get its QueueReader.
 		 * \note This function is designed to only be called by
 		 * a node.
@@ -183,6 +158,21 @@ namespace CPN {
 				const std::string &portname);
 
 		/**
+		 * Release the reader associated with the given endpoint.
+		 * If as a result of this call the queue is not connected
+		 * on both ends then it will be deleted.
+		 * After this call the QueueReader obtained from GetReader
+		 * is invalid.
+		 * \param nodename the name of the node
+		 * \param portname the name of the port
+		 * \throws KernelShutdownException if Wait completed or
+		 * Terminate has been called.
+		 * \throws std::invalid_argument if nodename does not exist.
+		 */
+		void ReleaseReader(const std::string &nodename,
+				const std::string &portname);
+
+		/**
 		 * This function is for the node to get its QueueWriter.
 		 * \note This function is designed to only be called by a node.
 		 * \param nodename the name of the node
@@ -190,6 +180,21 @@ namespace CPN {
 		 * \return the QueueWriter for the given node and port
 		 */
 		QueueWriter* GetWriter(const std::string &nodename,
+				const std::string &portname);
+
+		/**
+		 * Release the writer associated with the given endpoint.
+		 * If as a result of this call the queue is not connected
+		 * on both ends then it will be deleted.
+		 * After this call the QueueWriter obtained by GetWriter
+		 * is invalid.
+		 * \param nodename the name of the node
+		 * \param portname the name of the port
+		 * \throws KernelShutdownException if Wait completed or
+		 * Terminate has been called.
+		 * \throws std::invalid_argument if nodename does not exist.
+		 */
+		void ReleaseWriter(const std::string &nodename,
 				const std::string &portname);
 
 		/**

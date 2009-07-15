@@ -34,9 +34,12 @@ class RandomInstructionGenerator
 {
   public:
 	typedef LFSR::LFSR_t LFSR_t;
+	static const LFSR_t DEFAULT_SEED;
+	static const LFSR_t DEFAULT_FEED;
 	struct State {
-		State() : feed(0xF82F), seed(1), numNodes(100),
-		debugLevel(0) {}
+		State(unsigned nnode, int dbglvl)
+		       	: feed(DEFAULT_FEED), seed(DEFAULT_SEED), numNodes(nnode),
+		debugLevel(dbglvl) {}
 		LFSR_t feed, seed;
 		unsigned numNodes;
 		int debugLevel;

@@ -18,4 +18,5 @@ namespace CPN {
 
 /// The name for the default threshold queue type.
 #define CPN_QUEUETYPE_THRESHOLD "CPN::ThresholdQueue"
+#define CPN_QUEUETYPE_SIMPLE "CPN::SimpleQueue"
 #endif
