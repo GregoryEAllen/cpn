@@ -4,6 +4,7 @@
 #ifndef CPN_NODEINFO_H
 #define CPN_NODEINFO_H
 
+#include "common.h"
 #include "NodeBase.h"
 #include <map>
 #include <string>
@@ -24,7 +25,7 @@ namespace CPN {
 	 * This class is only used by NodeQueueReader, NodeQueueWriter,
 	 * QueueInfo, and the Kernel.
 	 */
-	class NodeInfo {
+	class CPN_LOCAL NodeInfo {
 	public:
 		NodeInfo(Kernel &ker, const NodeAttr &attr,
 			const void* const arg, const ulong argsize);

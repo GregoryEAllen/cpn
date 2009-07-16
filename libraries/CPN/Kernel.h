@@ -5,6 +5,7 @@
 #ifndef CPN_KERNEL_H
 #define CPN_KERNEL_H
 
+#include "common.h"
 #include "KernelAttr.h"
 #include "NodeFactory.h"
 #include "QueueFactory.h"
@@ -31,7 +32,7 @@ namespace CPN {
 	 * correctly and to provide a unified interface to
 	 * the user of the process network.
 	 */
-	class Kernel {
+	class CPN_API Kernel {
 	public:
 		enum Status_t { READY, RUNNING, TERMINATING, STOPPED };
 
@@ -222,10 +223,10 @@ namespace CPN {
 		Kernel &operator=(const Kernel&);
 
 
-		void InternalWait(void);
-		void ReadyOrRunningCheck(void);
-		NodeInfo* GetNodeInfo(const std::string& name);
-		QueueInfo* GetQueueInfo(const std::string& name);
+		CPN_LOCAL void InternalWait(void);
+		CPN_LOCAL void ReadyOrRunningCheck(void);
+		CPN_LOCAL NodeInfo* GetNodeInfo(const std::string& name);
+		CPN_LOCAL QueueInfo* GetQueueInfo(const std::string& name);
 
 		const KernelAttr kattr;
 
@@ -246,7 +247,7 @@ namespace CPN {
 		/// Temporary unique id generator counter.
 		ulong idcounter;
 		/// Temporary 'unique' id generator.
-		ulong GenerateId(const std::string& name);
+		CPN_LOCAL ulong GenerateId(const std::string& name);
 	};
 }
 #endif
