@@ -1,0 +1,73 @@
+<!-- in prog file -->
+<network>
+	<nodes>
+		<node>
+			<name>Node Name</name>
+			<type>Node Type</type>
+			<param>parameter string</param>
+		</node>
+	</nodes>
+	<queues>
+		<queue>
+			<name>Queue Name</name>
+			<type>Queue Type</type>
+			<datatype>uint64</datatype>
+			<size>1024</size>
+			<maxThreshold>512</maxThreshold>
+			<channels>1</channels>
+			<writer>
+				<node>Node Name</node>
+				<port>Port Name</port>
+			</writer>
+			<reader>
+				<node>Node Name</node>
+				<port>Port Name</port>
+			</reader>
+		</queue>
+	</queues>
+</network>
+
+<!-- In host description file -->
+<hosts>
+	<host>
+		<name>Host Name</name>
+		<hosttype> slave/master </hosttype>
+		<!-- How should this host make itself available for connections
+		     and how other can connect to us -->
+		<connection>
+			<type>tcpipv4</type>
+			<!-- a map<string, string> of parameters to pass to this connection type? -->
+			<param name="ip">0.0.0.0</param>
+			<param name="port">37823</param>
+		</connection>
+		<connection>
+			<type>tcpipv6</type>
+			<param>...</param>
+		</connection>
+		<connection>
+			<type>fiber/ppp/com/lpt/pipe/etc.</type>
+			<!-- Perhaps a list of hosts that can be connected
+			by this type -->
+			<param>...</param>
+		</connection>
+	</host>
+</hosts>
+
+<!-- In mapping file -->
+<hostmap>
+	<host>
+		<name>host name</name>
+		<node>node name</node>
+		<node>node name</node>
+	</host>
+</hostmap>
+
+<!-- in the host program file (programatically generated from above) -->
+<hostprog>
+	<name>Host Name</name>
+	<hosttype>slave/master</hosttype>
+	<hosts> list of other hosts to establish connections to </hosts>
+	<nodes> list of nodes for us to create </nodes>
+	<queues> list of queues for us to create </queues> 
+</hostprog>
+
