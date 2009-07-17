@@ -1,3 +1,4 @@
 
 OS_INCDIR += `pkg-config --cflags libxml++-2.6`
 OS_LIBS += `pkg-config --cflags --libs libxml++-2.6`
+

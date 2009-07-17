@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<network xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="cpn.xsd">
+    <nodes>
+	<node>
+	    <name>A</name>
+	    <type>TypeA</type>
+	    <param>use uint64</param>
+	</node>
+	<node>
+	    <name>B</name>
+	    <type>TypeB</type>
+	</node>
+	<node>
+	    <name>C</name>
+	    <type>TypeA</type>
+	    <param>use float64</param>
+	</node>
+    </nodes>
+    <queues>
+	<queue>
+	    <name>Queue A to B</name>
+	    <type>CPN::ThresholdQueue</type>
+	    <datatype>uint64</datatype>
+	    <size>1024</size>
+	    <maxThreshold>512</maxThreshold>
+	    <channels>1</channels>
+	    <writer>
+		<node>A</node>
+		<port>uint64 out</port>
+	    </writer>
+	    <reader>
+		<node>B</node>
+		<port>uint64 input</port>
+	    </reader>
+	</queue>
+	<queue>
+	    <name>Queue C to B</name>
+	    <type>CPN::ThresholdQueue</type>
+	    <datatype>float64</datatype>
+	    <size>1024</size>
+	    <maxThreshold>512</maxThreshold>
+	    <channels>1</channels>
+	    <writer>
+		<node>C</node>
+		<port>float64 out</port>
+	    </writer>
+	    <reader>
+		<node>B</node>
+		<port>float64 input</port>
+	    </reader>
+	</queue>
+    </queues>
+</network>
+
