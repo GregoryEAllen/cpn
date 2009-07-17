@@ -35,6 +35,8 @@ namespace CPN {
 		ulong Count(void) const;
 
 		bool Empty(void) const;
+
+		const QueueDatatype* GetDatatype(void) const;
 	};
 }
 

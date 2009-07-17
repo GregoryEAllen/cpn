@@ -61,3 +61,9 @@ bool CPN::BlockingQueueReader::Empty(void) const {
 	return queue->Empty();
 }
 
+const CPN::QueueDatatype* CPN::BlockingQueueReader::GetDatatype(void) const {
+	Sync::AutoLock alock(lock);
+	QueueBase* queue = CheckQueue();
+	return queue->GetDatatype();
+}
+

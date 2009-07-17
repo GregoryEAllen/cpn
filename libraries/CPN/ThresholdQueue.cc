@@ -7,11 +7,13 @@
 #include "ThresholdQueueFactory.h"
 
 
-CPN::ThresholdQueue::ThresholdQueue(const QueueAttr &attr) :
-	QueueBase(attr),
+CPN::ThresholdQueue::ThresholdQueue(const QueueAttr &attr_) :
+	QueueBase(attr_),
 // ThresholdQueueBase(ulong elemSize, ulong queueLen, ulong maxThresh, ulong numChans=1);
 	queue(1, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels())
 {
+	attr.SetLength(queue.QueueLength());
+	attr.SetMaxThreshold(queue.MaxThreshold());
 }
 
 CPN::ThresholdQueue::~ThresholdQueue() {

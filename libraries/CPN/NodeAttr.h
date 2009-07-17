@@ -4,7 +4,7 @@
 #ifndef CPN_NODEATTR_H
 #define CPN_NODEATTR_H
 
-#include "Attribute.h"
+#include "common.h"
 
 namespace CPN {
 
@@ -13,15 +13,21 @@ namespace CPN {
 	 *
 	 * \note Implementation: All members are const.
 	 */
-	class NodeAttr : public Attribute {
+	class CPN_API NodeAttr {
 	public:
 		NodeAttr(const ulong id_, const ::std::string &name_,
 				const ::std::string &nodetype_) :
-		       	Attribute(id_, name_), nodetype(nodetype_) {}
+		       	id(id_), name(name_), nodetype(nodetype_) {}
 
-		const ::std::string &GetTypeName(void) const { return nodetype; }
+		ulong GetID(void) const { return id; }
+
+		const ::std::string &GetName(void) const { return name; }
+
+		const std::string &GetTypeName(void) const { return nodetype; }
 	private:
-		const ::std::string nodetype;
+		const ulong id;
+		const std::string name;
+		const std::string nodetype;
 	};
 }
 #endif

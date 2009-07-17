@@ -59,3 +59,9 @@ bool CPN::BlockingQueueWriter::Full(void) const {
 	return queue->Full();
 }
 
+const CPN::QueueDatatype* CPN::BlockingQueueWriter::GetDatatype(void) const {
+	Sync::AutoLock alock(lock);
+	QueueBase* queue = CheckQueue();
+	return queue->GetDatatype();
+}
+
