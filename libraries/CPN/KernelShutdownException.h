@@ -6,6 +6,7 @@
 #ifndef CPN_KERNELSHUTDOWNEXCEPTION_H
 #define CPN_KERNELSHUTDOWNEXCEPTION_H
 
+#include "common.h"
 #include <exception>
 
 namespace CPN {
@@ -13,7 +14,7 @@ namespace CPN {
 	/**
 	 * \brief An exception indicating that the Kernel has shut down.
 	 */
-	class KernelShutdownException : public std::exception {
+	class CPN_API KernelShutdownException : public std::exception {
 	public:
 		KernelShutdownException(const std::string& msg) throw() : message(msg) {}
 		~KernelShutdownException() throw() {}

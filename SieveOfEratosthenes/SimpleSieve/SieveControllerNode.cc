@@ -11,6 +11,7 @@
 #include "NodeFactory.h"
 #include "ToString.h"
 #include <cmath>
+#include <stdexcept>
 
 #if _DEBUG
 #include <cstdio>
@@ -30,6 +31,10 @@ public:
 				*((SieveControllerNode::Param*)arg));
 	}
 
+	CPN::NodeBase* Create(CPN::Kernel& ker, const CPN::NodeAttr &attr) {
+		throw std::invalid_argument("SieveControllerNode requires a SieveControllerNode parameter.");
+	}
+
 	void Destroy(CPN::NodeBase* node) {
 		delete node;
 	}
@@ -47,7 +52,7 @@ void SieveControllerNode::Process(void) {
 	CPN::QueueReaderAdapter<unsigned long> in = kernel.GetReader(GetName(), IN_PORT);
 	Initialize();
 	unsigned long readVal = 0;
-	const unsigned long stopVal = (unsigned long)ceil(sqrt((double) param.primeBound));
+	const unsigned long stopVal = (unsigned long)std::ceil(std::sqrt((double) param.primeBound));
 	do {
 		in.Dequeue(&readVal, 1);
 		if (readVal != 0) {
@@ -68,7 +73,7 @@ void SieveControllerNode::RegisterNodeType(void) {
 void SieveControllerNode::Initialize(void) {
 	ProducerNode::RegisterNodeType();
 	FilterNode::RegisterNodeType();
-	kernel.CreateNode(PRODUCER_NAME, SIEVE_PRODUCERNODE_TYPENAME, &param, 0);
+	kernel.CreateNode(PRODUCER_NAME, SIEVE_PRODUCERNODE_TYPENAME, &param, sizeof(param));
 	SetupQueue(PRODUCER_NAME);
 }
 
@@ -85,7 +90,7 @@ void SieveControllerNode::SetupQueue(const std::string& nodename) {
 void SieveControllerNode::CreateFilter(const unsigned long prime) {
 	std::string nodename = ToString(FILTER_FORMAT, prime);
 	FilterNode::Param p = { prime, param.threshold };
-	kernel.CreateNode(nodename, SIEVE_FILTERNODE_TYPENAME, &p, 0);
+	kernel.CreateNode(nodename, SIEVE_FILTERNODE_TYPENAME, &p, sizeof(p));
 	std::string oldqname = ToString(QUEUE_FORMAT, queueCounter);
 	kernel.ConnectReadEndpoint(oldqname, nodename, IN_PORT);
 	SetupQueue(nodename);

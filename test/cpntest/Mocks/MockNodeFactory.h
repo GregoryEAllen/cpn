@@ -10,6 +10,9 @@ public:
 
 	CPN::NodeBase* Create(CPN::Kernel &ker, const CPN::NodeAttr &attr,
 		       	const void* const arg, const CPN::ulong argsize);
+	CPN::NodeBase* Create(CPN::Kernel &ker, const CPN::NodeAttr &attr);
+	CPN::NodeBase* Create(CPN::Kernel &ker, const CPN::NodeAttr &attr,
+			const std::string &param);
 
 	void Destroy(CPN::NodeBase* node);
 

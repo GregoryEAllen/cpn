@@ -28,9 +28,9 @@ CPN::Kernel::~Kernel() {
 	Terminate();
 	// Delete any remaining objects.
 	InternalWait();
-	assert(nodeMap.size() == 0);
-	assert(nodesToDelete.size() == 0);
-	assert(queuesToDelete.size() == 0);
+	assert(nodeMap.empty());
+	assert(nodesToDelete.empty());
+	assert(queuesToDelete.empty());
 	// delete orphan queues
 	for_each(queueMap.begin(), queueMap.end(),
 			MapDeleter<std::string, CPN::QueueInfo>());
@@ -54,19 +54,19 @@ void CPN::Kernel::Wait(void) {
  */
 void CPN::Kernel::InternalWait(void) {
 	while (true) {
-		while (nodesToDelete.size() || queuesToDelete.size()) {
-			if (nodesToDelete.size()) {
+		while (!nodesToDelete.empty() || !queuesToDelete.empty()) {
+			if (!nodesToDelete.empty()) {
 				NodeInfo* nodeinfo = nodesToDelete.front();
 				nodesToDelete.pop_front();
 				delete nodeinfo;
 			}
-			if (queuesToDelete.size()) {
+			if (!queuesToDelete.empty()) {
 				QueueInfo* queueinfo = queuesToDelete.front();
 				queuesToDelete.pop_front();
 				delete queueinfo;
 			}
 		}
-		if (0 == nodeMap.size()) break;
+		if (nodeMap.empty()) break;
 		cleanupStatus.CompareWaitAndPost(true, false);
 	}
 	statusHandler.Post(STOPPED);
@@ -87,11 +87,31 @@ void CPN::Kernel::CreateNode(const std::string &nodename,
 		const ulong argsize) {
 	Sync::AutoLock plock(lock); 
 	ReadyOrRunningCheck();
-	// Verify that nodename doesn't already exist.
 	if (nodeMap.find(nodename) != nodeMap.end())
 	       throw std::invalid_argument(nodename + " already exists");
 	CPN::NodeAttr attr(GenerateId(nodename), nodename, nodetype);
 	nodeMap.insert(make_pair(nodename, new CPN::NodeInfo(*this, attr, arg, argsize)));
+}
+
+void CPN::Kernel::CreateNode(const std::string &nodename,
+		const std::string &nodetype) {
+	Sync::AutoLock plock(lock); 
+	ReadyOrRunningCheck();
+	if (nodeMap.find(nodename) != nodeMap.end())
+	       throw std::invalid_argument(nodename + " already exists");
+	CPN::NodeAttr attr(GenerateId(nodename), nodename, nodetype);
+	nodeMap.insert(make_pair(nodename, new CPN::NodeInfo(*this, attr)));
+}
+
+void CPN::Kernel::CreateNode(const std::string &nodename,
+		const std::string &nodetype,
+		const std::string &param) {
+	Sync::AutoLock plock(lock); 
+	ReadyOrRunningCheck();
+	if (nodeMap.find(nodename) != nodeMap.end())
+	       throw std::invalid_argument(nodename + " already exists");
+	CPN::NodeAttr attr(GenerateId(nodename), nodename, nodetype);
+	nodeMap.insert(make_pair(nodename, new CPN::NodeInfo(*this, attr, param)));
 }
 
 void CPN::Kernel::CreateQueue(const std::string &queuename,

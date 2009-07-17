@@ -20,6 +20,18 @@ CPN::NodeFactory::NodeFactory(const ::std::string &name_) : name(name_) {
 CPN::NodeFactory::~NodeFactory() {
 }
 
+CPN::NodeBase* CPN::NodeFactory::Create(Kernel &ker, const NodeAttr &attr,
+	       	const void* const arg,
+		const ulong argsize) {
+	return Create(ker, attr);
+}
+
+
+CPN::NodeBase* CPN::NodeFactory::Create(Kernel &ker, const NodeAttr &attr,
+	       const std::string &param) {
+	return Create(ker, attr);
+}
+
 CPN::NodeFactory* CPNGetNodeFactory(const ::std::string &ntypename) {
 	PthreadMutexProtected plock(lock);
 	return factoryMap[ntypename];

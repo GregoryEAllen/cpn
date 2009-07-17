@@ -95,7 +95,7 @@ void SieveFilterNode::Process(void) {
 	out.Enqueue(&input, 1);
 	// Add new node
 	std::string nodename = ToString("Filter %lu+", value); 
-	kernel.CreateNode(nodename, "SieveFilterNode", 0, 0);
+	kernel.CreateNode(nodename, "SieveFilterNode");
 	std::string qname = ToString("Queue %lu+", value);
 	kernel.CreateQueue(qname, CPN_QUEUETYPE_THRESHOLD, 100, 100, 1);
 	kernel.ConnectReadEndpoint(qname, nodename, "x");
@@ -150,11 +150,14 @@ public:
 			return new SieveProducerNode(ker, attr);
 		}
 		if ("SieveResultNode" == GetName()) {
-			unsigned long resultsize = argsize;
+			unsigned long resultsize = argsize/sizeof(unsigned long);
 			unsigned long* result = (unsigned long*)arg;
 			return new SieveResultNode(ker, attr, result, resultsize);
 		}
 		return 0;
+	}
+	CPN::NodeBase* Create(CPN::Kernel &ker, const CPN::NodeAttr &attr) {
+		return Create(ker, attr, 0, 0);
 	}
 
 	void Destroy(CPN::NodeBase* node) {
@@ -182,9 +185,9 @@ void SieveTest::RunTest(void) {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
 	AutoBuffer buffer(NUMPRIMES*sizeof(unsigned long));
 	CPPUNIT_ASSERT(buffer.GetBuffer());
-	kernel->CreateNode("TheProducer", "SieveProducerNode", 0, 0);
-	kernel->CreateNode("Filter 1+", "SieveFilterNode", 0, 0);
-	kernel->CreateNode("TheResult", "SieveResultNode", buffer.GetBuffer(), NUMPRIMES);
+	kernel->CreateNode("TheProducer", "SieveProducerNode");
+	kernel->CreateNode("Filter 1+", "SieveFilterNode");
+	kernel->CreateNode("TheResult", "SieveResultNode", buffer.GetBuffer(), NUMPRIMES*sizeof(unsigned long));
 	kernel->CreateQueue("consumerqueue", CPN_QUEUETYPE_THRESHOLD, 100, 100, 1);
 	kernel->CreateQueue("producerqueue", CPN_QUEUETYPE_THRESHOLD, 100, 100, 1);
 	kernel->ConnectWriteEndpoint("producerqueue", "TheProducer", "y");

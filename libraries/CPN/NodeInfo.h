@@ -4,6 +4,7 @@
 #ifndef CPN_NODEINFO_H
 #define CPN_NODEINFO_H
 
+#include "common.h"
 #include "NodeBase.h"
 #include <map>
 #include <string>
@@ -24,10 +25,13 @@ namespace CPN {
 	 * This class is only used by NodeQueueReader, NodeQueueWriter,
 	 * QueueInfo, and the Kernel.
 	 */
-	class NodeInfo {
+	class CPN_LOCAL NodeInfo {
 	public:
 		NodeInfo(Kernel &ker, const NodeAttr &attr,
 			const void* const arg, const ulong argsize);
+		NodeInfo(Kernel &ker, const NodeAttr &attr);
+		NodeInfo(Kernel &ker, const NodeAttr &attr,
+			const std::string &param);
 
 		~NodeInfo();
 
@@ -95,6 +99,7 @@ namespace CPN {
 		const std::string GetName(void) const { return node->GetName(); }
 
 	private:
+		void SetupFactory(const NodeAttr &attr);
 
 		NodeFactory* factory;
 		NodeBase* node;

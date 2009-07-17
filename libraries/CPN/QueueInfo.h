@@ -4,6 +4,8 @@
 #ifndef CPN_QUEUEINFO_H
 #define CPN_QUEUEINFO_H
 
+#include "common.h"
+
 namespace CPN {
 	class Kernel;
 	class NodeQueueReader;
@@ -18,7 +20,7 @@ namespace CPN {
 	 * \note This class is only used by the Kernel,
 	 * NodeQueueReader, NodeQueueWriter, and NodeInfo.
 	 */
-	class QueueInfo {
+	class CPN_LOCAL QueueInfo {
 	public:
 		QueueInfo(Kernel *ker, const QueueAttr &attr);
 		

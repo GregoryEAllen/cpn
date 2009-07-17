@@ -6,6 +6,7 @@
 #include "Kernel.h"
 #include "QueueReaderAdapter.h"
 #include "QueueWriterAdapter.h"
+#include <stdexcept>
 
 
 #if _DEBUG
@@ -24,6 +25,9 @@ public:
 			const void* const arg, const unsigned long argsize) {
 		ThresholdSieveOptions *opts = (ThresholdSieveOptions*)arg;
 		return new ThresholdSieveProducer(ker, attr, *opts);
+	}
+	CPN::NodeBase* Create(CPN::Kernel &ker, const CPN::NodeAttr &attr) {
+		throw std::invalid_argument("ThresholdSieveProducer requires a ThresholdSieveOptions parameter.");
 	}
 	void Destroy(CPN::NodeBase *node) {
 		delete node;

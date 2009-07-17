@@ -5,6 +5,7 @@
 #ifndef CPN_KERNEL_H
 #define CPN_KERNEL_H
 
+#include "common.h"
 #include "KernelAttr.h"
 #include "NodeFactory.h"
 #include "QueueFactory.h"
@@ -31,7 +32,7 @@ namespace CPN {
 	 * correctly and to provide a unified interface to
 	 * the user of the process network.
 	 */
-	class Kernel {
+	class CPN_API Kernel {
 	public:
 		enum Status_t { READY, RUNNING, TERMINATING, STOPPED };
 
@@ -79,21 +80,52 @@ namespace CPN {
 
 		/**
 		 * Create a new node.
+		 *
+		 * The memory pointed to by argsize may be copied up to
+		 * argsize bytes into a location that the new node can access.
+		 *
 		 * \param nodename the name for the new node
 		 * \param nodetype the type name of the new node
-		 * \param arg an optional void pointer to arguments for the node
+		 * \param arg a void pointer to arguments for the node
 		 * may be 0
-		 * \param argsize an optional size for the arg, this is
-		 * implementation dependent see documentation for the node
-		 * type you are creating.
+		 * \param argsize the size in bytes of arg. This is used if
+		 * the kernel needs to make a memcopy of arg to pass it to the node.
 		 * \throws KernelShutdownException if Wait completed or Terminate
 		 * has been called.
-		 * \throws std::invalid_argument if nodename already exists
+		 * \throws std::invalid_argument if nodename already exists or
+		 * the node in question does not support this type of parameter.
 		 */
 		void CreateNode(const std::string &nodename,
 				const std::string &nodetype,
 				const void* const arg,
 				const ulong argsize);
+
+		/**
+		 * Create a new node with no parameters.
+		 * \param nodename the name for the new node
+		 * \param nodetype the type name of the new node
+		 * \throws KernelShutdownException if Wait completed or Terminate
+		 * has been called.
+		 * \throws std::invalid_argument if nodename already exists or
+		 * the node in question does not support this type of parameter.
+		 */
+		void CreateNode(const std::string &nodename,
+				const std::string &nodetype);
+
+		/**
+		 * Create a new node with a string parameter.
+		 * \param nodename the name for the new node
+		 * \param nodetype the type name of the new node
+		 * \param param a parameter string see node documentation on how this
+		 * is handled.
+		 * \throws KernelShutdownException if Wait completed or Terminate
+		 * has been called.
+		 * \throws std::invalid_argument if nodename already exists or
+		 * the node in question does not support this type of parameter.
+		 */
+		void CreateNode(const std::string &nodename,
+				const std::string &nodetype,
+				const std::string &param);
 
 		/**
 		 * Create a new queue.
@@ -222,10 +254,10 @@ namespace CPN {
 		Kernel &operator=(const Kernel&);
 
 
-		void InternalWait(void);
-		void ReadyOrRunningCheck(void);
-		NodeInfo* GetNodeInfo(const std::string& name);
-		QueueInfo* GetQueueInfo(const std::string& name);
+		CPN_LOCAL void InternalWait(void);
+		CPN_LOCAL void ReadyOrRunningCheck(void);
+		CPN_LOCAL NodeInfo* GetNodeInfo(const std::string& name);
+		CPN_LOCAL QueueInfo* GetQueueInfo(const std::string& name);
 
 		const KernelAttr kattr;
 
@@ -246,7 +278,7 @@ namespace CPN {
 		/// Temporary unique id generator counter.
 		ulong idcounter;
 		/// Temporary 'unique' id generator.
-		ulong GenerateId(const std::string& name);
+		CPN_LOCAL ulong GenerateId(const std::string& name);
 	};
 }
 #endif

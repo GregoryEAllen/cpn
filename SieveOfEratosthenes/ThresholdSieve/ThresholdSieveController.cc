@@ -9,6 +9,7 @@
 #include "ThresholdSieveProducer.h"
 #include "ThresholdSieveFilter.h"
 #include "ToString.h"
+#include <stdexcept>
 
 #if _DEBUG
 #include <cstdio>
@@ -26,6 +27,9 @@ public:
 			const void* const arg, const unsigned long argsize) {
 		ThresholdSieveOptions *opts = (ThresholdSieveOptions*)arg;
 		return new ThresholdSieveController(ker, attr, *opts);
+	}
+	CPN::NodeBase* Create(CPN::Kernel &ker, const CPN::NodeAttr &attr) {
+		throw std::invalid_argument("ThresholdSieveController requires a ThresholdSieveOptions parameter.");
 	}
 	void Destroy(CPN::NodeBase *node) {
 		delete node;
