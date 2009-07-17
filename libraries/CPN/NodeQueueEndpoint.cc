@@ -78,6 +78,7 @@ CPN::QueueInfo* CPN::NodeQueueEndpoint::GetQueueInfo(void) {
 	Sync::AutoLock alock(lock);
 	return queueinfo;
 }
+
 /**
  * Block if we are detached and throw the KernelShutdownException
  * if we are shutdown.

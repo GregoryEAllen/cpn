@@ -5,38 +5,50 @@
 #ifndef CPN_QUEUEATTR_H
 #define CPN_QUEUEATTR_H
 
-#include "Attribute.h"
+#include "common.h"
 
 namespace CPN {
 	
+	class QueueDatatype;
 	/**
 	 * \brief The attributes for a queue.
 	 *
 	 */
-	class QueueAttr : public Attribute {
+	class CPN_API QueueAttr {
 	public:
-		QueueAttr(const ulong ID,
-			       	const ::std::string &name,
+		QueueAttr(const ulong id_,
+			       	const ::std::string &name_,
 				const ::std::string &queuetype_,
 				const ulong queueLength_,
 				const ulong maxThreshold_,
 				const ulong numChannels_ = 1)
-			: Attribute(ID, name), queueLength(queueLength_),
+			: id(id_), name(name_), queueLength(queueLength_),
 			maxThreshold(maxThreshold_), numChannels(numChannels_),
 			queuetype(queuetype_)	{}
 
-		const ulong &GetLength(void) const { return queueLength; }
+		ulong GetID(void) const { return id; }
 
-		const ulong &GetMaxThreshold(void) const { return maxThreshold; }
+		const std::string &GetName(void) const { return name; }
 
-		const ulong &GetNumChannels(void) const { return numChannels; }
+		const ulong GetLength(void) const { return queueLength; }
+		void SetLength(ulong l) { queueLength = l; }
+
+		const ulong GetMaxThreshold(void) const { return maxThreshold; }
+		void SetMaxThreshold(ulong l) { maxThreshold = l; }
+
+		const ulong GetNumChannels(void) const { return numChannels; }
 
 		const ::std::string &GetTypeName(void) const { return queuetype; }
+
+		const QueueDatatype* GetDatatype(void) const { return datatype; }
 	private:
-		const ulong queueLength;
-		const ulong maxThreshold;
+		const ulong id;
+		const std::string name;
+		ulong queueLength;
+		ulong maxThreshold;
 		const ulong numChannels;
-		const ::std::string queuetype;
+		const std::string queuetype;
+		const QueueDatatype* datatype;
 	};
 }
 #endif

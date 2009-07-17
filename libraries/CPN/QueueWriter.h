@@ -9,6 +9,8 @@
 
 namespace CPN {
 
+	class QueueDatatype;
+
 	/**
 	 * \brief Definition of the writer portion of the CPN queue class.
 	 *
@@ -86,6 +88,11 @@ namespace CPN {
 		 * \return true if the queue is full, false otherwise
 		 */
 		virtual bool Full(void) const = 0;
+
+		/**
+		 * \return the datatype this queue is supposed to have.
+		 */
+		virtual const QueueDatatype* GetDatatype(void) const = 0;
 	};
 
 }

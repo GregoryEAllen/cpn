@@ -8,6 +8,9 @@
 #include "common.h"
 
 namespace CPN {
+
+	class QueueDatatype;
+
 	/**
 	 * \brief Definition of the reader portion of the CPN queue class.
 	 *
@@ -78,6 +81,11 @@ namespace CPN {
 		 * \return true if the queue is empty
 		 */
 		virtual bool Empty(void) const = 0;
+
+		/**
+		 * \return the datatype this queue is supposed to have.
+		 */
+		virtual const QueueDatatype* GetDatatype(void) const = 0;
 	};
 }
 #endif

@@ -35,6 +35,8 @@ namespace CPN {
 		ulong Freespace(void) const;
 
 		bool Full(void) const;
+
+		const QueueDatatype* GetDatatype(void) const;
 	};
 }
 

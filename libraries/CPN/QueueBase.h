@@ -15,6 +15,7 @@
 namespace CPN {
 
 	class QueueInfo;
+	class QueueDatatype;
 
 	/**
 	 * \brief The base class for all queues in the CPN library.
@@ -24,19 +25,22 @@ namespace CPN {
 		public QueueWriter
 	{
 	public:
-		QueueBase(const QueueAttr &qattr);
+		QueueBase(const QueueAttr &attr);
 
 		virtual ~QueueBase();
 
 		/**
 		 * \return the QueueAttr for this queue.
 		 */
-		const QueueAttr &GetAttr(void) const { return qattr; }
+		const QueueAttr &GetAttr(void) const { return attr; }
 
 		/**
 		 * \return the queue name
 		 */
-		const std::string GetName(void) const { return qattr.GetName(); }
+		const std::string GetName(void) const { return attr.GetName(); }
+
+		const QueueDatatype* GetDatatype(void) const { return attr.GetDatatype(); }
+
 	protected:
 		/**
 		 * Function to notify the reader of a write operation.
@@ -50,6 +54,8 @@ namespace CPN {
 		 * when a read is success.
 		 */
 		void NotifyWriterOfRead(void);
+
+		QueueAttr attr;
 	private:
 		/**
 		 * Send a notification currently to the given status handler.
@@ -82,7 +88,6 @@ namespace CPN {
 		void ClearWriterStatusHandler(void);
 
 
-		const QueueAttr qattr;
 		PthreadMutex statusHandlerMutex;
 		Sync::StatusHandler<QueueStatus>* readerStatusHandler;
 		Sync::StatusHandler<QueueStatus>* writerStatusHandler;

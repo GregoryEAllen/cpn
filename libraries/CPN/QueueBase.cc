@@ -3,8 +3,8 @@
 #include "QueueBase.h"
 #include <cassert>
 
-CPN::QueueBase::QueueBase(const QueueAttr &qattr) 
-	: qattr(qattr), readerStatusHandler(0), writerStatusHandler(0) {}
+CPN::QueueBase::QueueBase(const QueueAttr &attr_) 
+	: attr(attr_), readerStatusHandler(0), writerStatusHandler(0) {}
 CPN::QueueBase::~QueueBase() {}
 
 void CPN::QueueBase::SetReaderStatusHandler(Sync::StatusHandler<CPN::QueueStatus>* rsh) {
