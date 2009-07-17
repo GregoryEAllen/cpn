@@ -54,7 +54,7 @@ void PortInfo(Node* node, std::string &name, std::string &port) {
 	list = node->get_children(TAG_PORT);
 	assert(list.size() == 1);
 	port = GetContent(list.front());
-	std::cout << "Port: " << name << "." << port << std::endl;
+	//std::cout << "Port: " << name << "." << port << std::endl;
 }
 
 CPN::KernelXMLLoader::KernelXMLLoader(const std::string &filename) {
@@ -124,7 +124,7 @@ void CPN::KernelXMLLoader::AddNode(Kernel &kernel, Node* node) {
 			param = GetContent(*itr);
 		}
 	}
-	//kernel.CreateNode(name, type, param);
+	kernel.CreateNode(name, type, param);
 	std::cout << "name: " << name << " type: " << type << " param: " << param << std::endl;
 }
 
@@ -175,9 +175,9 @@ void CPN::KernelXMLLoader::AddQueue(Kernel &kernel, Node* node) {
 			PortInfo(*itr, readernode, readerport);
 		}
 	}
-	//kernel.CreateQueue(name, type, size, threshold, channels);
-	//kernel.ConnectWriteEndpoint(name, writernode, writerport);
-	//kernel.ConnectReadEndpoint(name, readernode, readerport);
+	kernel.CreateQueue(name, type, size, threshold, channels);
+	kernel.ConnectWriteEndpoint(name, writernode, writerport);
+	kernel.ConnectReadEndpoint(name, readernode, readerport);
 	std::cout << "name: " << name << " type: " << type << " size: " << size
 		<< " maxThreshold: " << threshold << " channels: " << channels
 		<< " writernode: " << writernode << "." << writerport
