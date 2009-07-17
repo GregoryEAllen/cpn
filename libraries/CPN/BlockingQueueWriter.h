@@ -11,33 +11,35 @@
 
 namespace CPN {
 
-	class NodeInfo;
+    class NodeInfo;
 
-	/**
-	 * \brief Simple blocking implementation of NodeQueueWriter.
-	 *
-	 */
-	class BlockingQueueWriter : public NodeQueueWriter {
-	public:
-		BlockingQueueWriter(NodeInfo* nodeinfo, const std::string &portname);
+    /**
+     * \brief Simple blocking implementation of NodeQueueWriter.
+     *
+     */
+    class BlockingQueueWriter : public NodeQueueWriter {
+    public:
+        BlockingQueueWriter(NodeInfo* nodeinfo, const std::string &portname);
 
-		~BlockingQueueWriter();
+        ~BlockingQueueWriter();
 
-		// From QueueWriter
-		void* GetRawEnqueuePtr(ulong thresh, ulong chan=0);
+        // From QueueWriter
+        void* GetRawEnqueuePtr(ulong thresh, ulong chan=0);
 
-		void Enqueue(ulong count);
+        void Enqueue(ulong count);
 
-		bool RawEnqueue(void* data, ulong count, ulong chan=0);
+        bool RawEnqueue(void* data, ulong count);
 
-		ulong NumChannels(void) const;
+        bool RawEnqueue(void* data, ulong count, ulong numChans, ulong chanStride);
 
-		ulong Freespace(void) const;
+        ulong NumChannels(void) const;
 
-		bool Full(void) const;
+        ulong Freespace(void) const;
 
-		const QueueDatatype* GetDatatype(void) const;
-	};
+        bool Full(void) const;
+
+        const QueueDatatype* GetDatatype(void) const;
+    };
 }
 
 #endif

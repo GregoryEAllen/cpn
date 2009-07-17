@@ -10,7 +10,10 @@ void* MockQueue::GetRawEnqueuePtr(CPN::ulong thresh, CPN::ulong chan) {
 }
 void MockQueue::Enqueue(CPN::ulong count) {
 }
-bool MockQueue::RawEnqueue(void* data, CPN::ulong count, CPN::ulong chan) {
+bool MockQueue::RawEnqueue(void* data, CPN::ulong count) {
+	return false;
+}
+bool MockQueue::RawEnqueue(void* data, CPN::ulong count, CPN::ulong numChans, CPN::ulong chanStride) {
 	return false;
 }
 CPN::ulong MockQueue::NumChannels(void) const {
@@ -29,7 +32,10 @@ const void* MockQueue::GetRawDequeuePtr(CPN::ulong thresh, CPN::ulong chan) {
 }
 void MockQueue::Dequeue(CPN::ulong count) {
 }
-bool MockQueue::RawDequeue(void * data, CPN::ulong count, CPN::ulong chan) {
+bool MockQueue::RawDequeue(void * data, CPN::ulong count) {
+	return false;
+}
+bool MockQueue::RawDequeue(void * data, CPN::ulong count, CPN::ulong numChans, CPN::ulong chanStride) {
 	return false;
 }
 //ulong NumChannels(void) const;

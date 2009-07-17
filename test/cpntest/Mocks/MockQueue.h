@@ -12,7 +12,8 @@ public:
 	// From QueueWriter
 	void* GetRawEnqueuePtr(CPN::ulong thresh, CPN::ulong chan=0);
 	void Enqueue(CPN::ulong count);
-	bool RawEnqueue(void* data, CPN::ulong count, CPN::ulong chan=0);
+	bool RawEnqueue(void* data, CPN::ulong count);
+	bool RawEnqueue(void* data, CPN::ulong count, CPN::ulong numChans, CPN::ulong chanStride);
 	CPN::ulong NumChannels(void) const;
 	CPN::ulong Freespace(void) const;
 	bool Full(void) const;
@@ -20,7 +21,8 @@ public:
 	// From QueueReader
 	const void* GetRawDequeuePtr(CPN::ulong thresh, CPN::ulong chan=0);
 	void Dequeue(CPN::ulong count);
-	bool RawDequeue(void * data, CPN::ulong count, CPN::ulong chan=0);
+	bool RawDequeue(void* data, CPN::ulong count);
+	bool RawDequeue(void* data, CPN::ulong count, CPN::ulong numChans, CPN::ulong chanStride);
 	//ulong NumChannels(void) const;
 	CPN::ulong Count(void) const;
 	bool Empty(void) const;

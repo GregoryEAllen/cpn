@@ -9,32 +9,35 @@
 #include "QueueWriter.h"
 
 namespace CPN {
-	/**
-	 * \brief A template class to do type conversion for the
-	 * writer end of the queue.
-	 */
-	template<class T>
-	class QueueWriterAdapter {
-	public:
-		QueueWriterAdapter(QueueWriter* q) : queuew(q) {
-		}
+    /**
+     * \brief A template class to do type conversion for the
+     * writer end of the queue.
+     */
+    template<class T>
+    class QueueWriterAdapter {
+    public:
+        QueueWriterAdapter(QueueWriter* q) : queuew(q) {
+        }
 
-		QueueWriter* GetWriter(void) { return queuew; }
+        QueueWriter* GetWriter(void) { return queuew; }
 
-		T* GetEnqueuePtr(CPN::ulong thresh, CPN::ulong chan=0) {
-			return (T*) queuew->GetRawEnqueuePtr(sizeof(T) * thresh, chan);
-		}
-		
-		void Enqueue(CPN::ulong count) {
-			queuew->Enqueue(sizeof(T) * count);
-		}
+        T* GetEnqueuePtr(CPN::ulong thresh, CPN::ulong chan=0) {
+            return (T*) queuew->GetRawEnqueuePtr(sizeof(T) * thresh, chan);
+        }
+        
+        void Enqueue(CPN::ulong count) {
+            queuew->Enqueue(sizeof(T) * count);
+        }
 
-		bool Enqueue(T* data, CPN::ulong count, CPN::ulong chan=0) {
-			return queuew->RawEnqueue((void*)data, sizeof(T) * count, chan);
-		}
+        bool Enqueue(T* data, CPN::ulong count) {
+            return queuew->RawEnqueue((void*)data, sizeof(T) * count);
+        }
 
-	private:
-		QueueWriter* queuew;
-	};
+        bool Enqueue(T* data, CPN::ulong count, CPN::ulong numChans, CPN::ulong chanStride) {
+            return queuew->RawEnqueue((void*)data, sizeof(T) * count, numChans, sizeof(T) * chanStride);
+        }
+    private:
+        QueueWriter* queuew;
+    };
 }
 #endif

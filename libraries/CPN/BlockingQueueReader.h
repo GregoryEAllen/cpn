@@ -11,33 +11,35 @@
 
 namespace CPN {
 
-	class NodeInfo;
+    class NodeInfo;
 
-	/**
-	 * \brief Simple blocking implementation of the NodeQueueReader.
-	 *
-	 */
-	class BlockingQueueReader : public NodeQueueReader {
-	public:
-		BlockingQueueReader(NodeInfo* nodeinfo, const std::string &portname);
+    /**
+     * \brief Simple blocking implementation of the NodeQueueReader.
+     *
+     */
+    class BlockingQueueReader : public NodeQueueReader {
+    public:
+        BlockingQueueReader(NodeInfo* nodeinfo, const std::string &portname);
 
-		~BlockingQueueReader();
+        ~BlockingQueueReader();
 
-		// From QueueReader
-		const void* GetRawDequeuePtr(ulong thresh, ulong chan=0);
+        // From QueueReader
+        const void* GetRawDequeuePtr(ulong thresh, ulong chan=0);
 
-		void Dequeue(ulong count);
+        void Dequeue(ulong count);
 
-		bool RawDequeue(void* data, ulong count, ulong chan=0);
+        bool RawDequeue(void* data, ulong count);
 
-		ulong NumChannels(void) const;
+        bool RawDequeue(void* data, ulong count, ulong numChans, ulong chanStride);
 
-		ulong Count(void) const;
+        ulong NumChannels(void) const;
 
-		bool Empty(void) const;
+        ulong Count(void) const;
 
-		const QueueDatatype* GetDatatype(void) const;
-	};
+        bool Empty(void) const;
+
+        const QueueDatatype* GetDatatype(void) const;
+    };
 }
 
 #endif

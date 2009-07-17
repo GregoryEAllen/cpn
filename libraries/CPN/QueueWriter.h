@@ -64,10 +64,13 @@ namespace CPN {
 		 *
 		 * \param data pointer to the memory to enqueue
 		 * \param count the number of bytes to enqueue
-		 * \param chan the channel to enqueue
+         * \param numChans the number of channels to write to
+         * \param chanStride the distance in bytes between the beginning of
+         * the channels in data.
 		 * \return true on success false if not enough space available
 		 */
-		virtual bool RawEnqueue(void* data, ulong count, ulong chan=0) = 0;
+		virtual bool RawEnqueue(void* data, ulong count, ulong numChans, ulong chanStride) = 0;
+		virtual bool RawEnqueue(void* data, ulong count) = 0;
 
 		/**
 		 * \return the number of channels supported by this queue.
