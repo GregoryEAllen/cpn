@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
 		param.queueTypeName = CPN_QUEUETYPE_THRESHOLD;
 	}
 	param.threshold = threshold;
-	kernel.CreateNode("controller", SIEVECONTROLLERNODE_TYPENAME, &param, 0);
+	kernel.CreateNode("controller", SIEVECONTROLLERNODE_TYPENAME, &param, sizeof(param));
 	Time start;
 	kernel.Start();
 	kernel.Wait();

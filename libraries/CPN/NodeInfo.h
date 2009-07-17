@@ -29,6 +29,9 @@ namespace CPN {
 	public:
 		NodeInfo(Kernel &ker, const NodeAttr &attr,
 			const void* const arg, const ulong argsize);
+		NodeInfo(Kernel &ker, const NodeAttr &attr);
+		NodeInfo(Kernel &ker, const NodeAttr &attr,
+			const std::string &param);
 
 		~NodeInfo();
 
@@ -96,6 +99,7 @@ namespace CPN {
 		const std::string GetName(void) const { return node->GetName(); }
 
 	private:
+		void SetupFactory(const NodeAttr &attr);
 
 		NodeFactory* factory;
 		NodeBase* node;

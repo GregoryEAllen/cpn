@@ -7,6 +7,7 @@
 #include "QueueWriterAdapter.h"
 #include "QueueReaderAdapter.h"
 #include "NodeFactory.h"
+#include <stdexcept>
 
 #if _DEBUG
 #include <cstdio>
@@ -22,6 +23,9 @@ public:
 			const void* const arg, const CPN::ulong argsize) {
 		FilterNode::Param* p = (FilterNode::Param*)arg;
 		return new FilterNode(ker, attr, p->filterval, p->threshold);
+	}
+	CPN::NodeBase* Create(CPN::Kernel& ker, const CPN::NodeAttr& attr) {
+		throw std::invalid_argument("FilterNode must be passed a FilterNode::Param structure");
 	}
 	void Destroy(CPN::NodeBase* node) {
 		delete node;

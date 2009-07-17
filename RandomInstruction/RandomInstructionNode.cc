@@ -25,6 +25,9 @@ public:
 		RINState* rins = (RINState*)(arg);
 		return new RandomInstructionNode(ker, attr, *rins);
 	}
+	CPN::NodeBase* Create(CPN::Kernel& ker, const CPN::NodeAttr& attr) {
+		throw std::invalid_argument("Must pass a RINState object");
+	}
 	void Destroy(CPN::NodeBase* node) {
 		delete node;
 	}
@@ -52,7 +55,7 @@ void RandomInstructionNode::CreateRIN(CPN::Kernel& kernel, unsigned iterations,
 	for (unsigned i = 0; i < numNodes; ++i) {
 		RINState state = RINState(i, iterations, debugLevel, numNodes);
 		kernel.CreateNode(GetNodeNameFromID(state.nodeID),
-			RANDOMINSTRUCTIONNODE_TYPENAME, &state, 0);
+			RANDOMINSTRUCTIONNODE_TYPENAME, &state, sizeof(RINState));
 	}
 }
 

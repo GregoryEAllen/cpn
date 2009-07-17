@@ -6,6 +6,7 @@
 #include "NodeFactory.h"
 #include "QueueWriterAdapter.h"
 #include "Kernel.h"
+#include <stdexcept>
 
 #if _DEBUG
 #include <cstdio>
@@ -22,6 +23,10 @@ public:
 		       	const void* const arg, const CPN::ulong argsize) {
 		SieveControllerNode::Param* p = (SieveControllerNode::Param*)arg;
 		return new ProducerNode(ker, attr, *p);
+	}
+
+	CPN::NodeBase* Create(CPN::Kernel& ker, const CPN::NodeAttr &attr) {
+		throw std::invalid_argument("Producer node requires a SieveControllerNode::Param parameters");
 	}
 
 	void Destroy(CPN::NodeBase* node) {

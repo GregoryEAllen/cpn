@@ -15,11 +15,23 @@
 
 CPN::NodeInfo::NodeInfo(Kernel &ker, const NodeAttr &attr,
 	       	const void* const arg, const ulong argsize)
-	: factory(0), node(0)
-{
-	factory = CPNGetNodeFactory(attr.GetTypeName());
-	if (!factory) throw ::std::invalid_argument("Node type name must be a valid registered type.");
+	: factory(0), node(0) {
+	SetupFactory(attr);
 	node = factory->Create(ker, attr, arg, argsize);
+	node->Start();
+}
+
+CPN::NodeInfo::NodeInfo(Kernel &ker, const NodeAttr &attr)
+	: factory(0), node(0) {
+	SetupFactory(attr);
+	node = factory->Create(ker, attr);
+	node->Start();
+}
+
+CPN::NodeInfo::NodeInfo(Kernel &ker, const NodeAttr &attr, const std::string &param)
+	: factory(0), node(0) {
+	SetupFactory(attr);
+	node = factory->Create(ker, attr, param);
 	node->Start();
 }
 
@@ -89,3 +101,9 @@ CPN::NodeQueueReader* CPN::NodeInfo::GetReader(const std::string &name) {
 	}
 	return inputs[name];
 }
+
+void CPN::NodeInfo::SetupFactory(const CPN::NodeAttr &attr) {
+	factory = CPNGetNodeFactory(attr.GetTypeName());
+	if (!factory) throw ::std::invalid_argument("Node type name must be a valid registered type.");
+}
+

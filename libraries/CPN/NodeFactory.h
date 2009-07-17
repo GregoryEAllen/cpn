@@ -17,7 +17,7 @@ namespace CPN {
 	 * \brief The node factory provides a method for the kernel to
 	 * create arbitrary user defined Nodes.
 	 */
-	class NodeFactory {
+	class CPN_API NodeFactory {
 	public:
 		NodeFactory(const ::std::string &name_);
 
@@ -29,14 +29,34 @@ namespace CPN {
 		 * Upon the return of this function deletion of the
 		 * memory arg points to should be valid.
 		 *
+		 * By default will call Create(ker, attr)
+		 *
 		 * \param ker the kernel
 		 * \param attr attributes for the new node
 		 * \param arg a pointer to a field of arguments (may be 0)
-		 * \param argsize the size of the arguments (may be 0)
+		 * \param argsize the size of the arguments
 		 * \return a pointer to a concreate node object
 		 */
-		virtual NodeBase* Create(Kernel &ker, const NodeAttr &attr, const void* const arg,
-				const ulong argsize) = 0;
+		virtual NodeBase* Create(Kernel &ker, const NodeAttr &attr,
+			       	const void* const arg,
+				const ulong argsize);
+		/**
+		 * Create a new node for the specific type.
+		 * \param ker the kernel
+		 * \param attr attributes for the new node
+		 * \return a pointer to a concreate node object
+		 */
+		virtual NodeBase* Create(Kernel &ker, const NodeAttr &attr) = 0;
+
+		/**
+		 * Create a new node for the specific type.
+		 * \param ker the kernel
+		 * \param attr attributes for the new node
+		 * \param param a parameter string
+		 * \return a pointer to a concreate node object
+		 */
+		virtual NodeBase* Create(Kernel &ker, const NodeAttr &attr,
+			       	const std::string &param);
 
 		/**
 		 * Free the memory allocated by Create.
@@ -68,7 +88,7 @@ extern "C" {
 	 * \param ntypename the name of the node type
 	 * \return a pointer to an implementation of this class
 	 */
-	CPN::NodeFactory* CPNGetNodeFactory(const ::std::string &ntypename);
+	CPN::NodeFactory* CPN_API CPNGetNodeFactory(const ::std::string &ntypename);
 
 	/**
 	 * Add the given node to the NodeFactory Registry.
@@ -77,7 +97,7 @@ extern "C" {
 	 * \warning all factories must have static program lifetime.
 	 * \param fact pointer to the factory to add.
 	 */
-	void CPNRegisterNodeFactory(CPN::NodeFactory* fact);
+	void CPN_API CPNRegisterNodeFactory(CPN::NodeFactory* fact);
 
 	/**
 	 * Remove the factory with the given name from the registry.
@@ -85,7 +105,7 @@ extern "C" {
 	 * \warning all factories must have static program lifetime.
 	 * \param ntypename the name of the factory
 	 */
-	void CPNUnregisterNodeFactory(const ::std::string &ntypename);
+	void CPN_API CPNUnregisterNodeFactory(const ::std::string &ntypename);
 }
 
 #endif

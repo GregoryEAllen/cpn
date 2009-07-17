@@ -8,6 +8,7 @@
 #include "Semaphore.h"
 #include <vector>
 #include <string>
+#include <stdexcept>
 #include <cppunit/TestAssert.h>
 
 #if _DEBUG
@@ -122,6 +123,9 @@ public:
 		NodeParam* param = (NodeParam*) arg;
 		return new SwitchNode(ker, attr, *param);
 	}
+	CPN::NodeBase* Create(CPN::Kernel &ker, const CPN::NodeAttr &attr) {
+		throw std::invalid_argument("Must pass a NodeParam argument");
+	}
 
 	void Destroy(CPN::NodeBase* node) {
 		delete node;
@@ -174,9 +178,9 @@ void QueueSwitchTest::ReaderSwitch(void) {
 	NodeParam paramA(PRODUCER, &listA, "", "", &sema);
 	NodeParam paramB(SWITCH_CONSUMER, &listB, "thequeue", "C", &sema);
 	NodeParam paramC(CONSUMER, &listC, "", "", &sema);
-	kernel->CreateNode("A", SwitchNodeFactory::NAME, &paramA, 0);
-	kernel->CreateNode("B", SwitchNodeFactory::NAME, &paramB, 0);
-	kernel->CreateNode("C", SwitchNodeFactory::NAME, &paramC, 0);
+	kernel->CreateNode("A", SwitchNodeFactory::NAME, &paramA, sizeof(NodeParam));
+	kernel->CreateNode("B", SwitchNodeFactory::NAME, &paramB, sizeof(NodeParam));
+	kernel->CreateNode("C", SwitchNodeFactory::NAME, &paramC, sizeof(NodeParam));
 	kernel->CreateQueue("thequeue", CPN_QUEUETYPE_THRESHOLD, 1024, 1024, 1);
 	kernel->ConnectWriteEndpoint("thequeue", "A", "y");
 	kernel->ConnectReadEndpoint("thequeue", "B", "x");
@@ -221,9 +225,9 @@ void QueueSwitchTest::WriterSwitch(void) {
 	NodeParam paramA(SWITCH_PRODUCER, &listA, "thequeue", "B", &sema);
 	NodeParam paramB(PRODUCER, &listB, "", "", &sema);
 	NodeParam paramC(CONSUMER, &listC, "", "", &sema);
-	kernel->CreateNode("A", SwitchNodeFactory::NAME, &paramA, 0);
-	kernel->CreateNode("B", SwitchNodeFactory::NAME, &paramB, 0);
-	kernel->CreateNode("C", SwitchNodeFactory::NAME, &paramC, 0);
+	kernel->CreateNode("A", SwitchNodeFactory::NAME, &paramA, sizeof(NodeParam));
+	kernel->CreateNode("B", SwitchNodeFactory::NAME, &paramB, sizeof(NodeParam));
+	kernel->CreateNode("C", SwitchNodeFactory::NAME, &paramC, sizeof(NodeParam));
 	kernel->CreateQueue("thequeue", CPN_QUEUETYPE_THRESHOLD, 1024, 1024, 1);
 	kernel->ConnectWriteEndpoint("thequeue", "A", "y");
 	kernel->ConnectReadEndpoint("thequeue", "C", "x");
