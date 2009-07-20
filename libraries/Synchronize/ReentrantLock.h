@@ -2,10 +2,10 @@
  * A reentrant lock implementation.
  */
 
-#ifndef REENTRANTLOCK_H
-#define REENTRANTLOCK_H
+#ifndef SYNC_REENTRANTLOCK_H
+#define SYNC_REENTRANTLOCK_H
 
-#include "MutexBase.h"
+#include "Waitable.h"
 #include "PthreadMutex.h"
 #include "PthreadCondition.h"
 #include <pthread.h>
@@ -17,7 +17,7 @@ namespace Sync {
 	/**
 	 * A reentrant lock.
 	 */
-	class ReentrantLock : public MutexBase {
+	class ReentrantLock : public Waitable {
 	public:
 		ReentrantLock() throw() : count(0) {}
 		~ReentrantLock() throw() {}

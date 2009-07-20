@@ -4,12 +4,12 @@
  * windows Event object.
  */
 
-#ifndef EVENT_H
-#define EVENT_H
+#ifndef SYNC_EVENT_H
+#define SYNC_EVENT_H
 
 #include "PthreadMutex.h"
 #include "PthreadCondition.h"
-#include "MutexBase.h"
+#include "Waitable.h"
 
 namespace Sync {
 	/**
@@ -25,8 +25,11 @@ namespace Sync {
 	 * on this event will succeed and all future Waits will
 	 * succeed immediately until Reset is called.
 	 * 
+     * Note that an Event(true, true) acts almost like
+     * a non reentrant lock. The difference is that the
+     * aquiring thread does not have to release the lock.
 	 */
-	class Event : public MutexBase {
+	class Event : public Waitable {
 	public:
 		/**
 		 * Default constructor creates a manual reset

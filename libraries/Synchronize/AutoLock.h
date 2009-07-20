@@ -2,15 +2,15 @@
  * Automatic locking on the stack.
  */
 
-#ifndef AUTOLOCK_H
-#define AUTOLOCK_H
+#ifndef SYNC_AUTOLOCK_H
+#define SYNC_AUTOLOCK_H
 
-#include "MutexBase.h"
+#include "Waitable.h"
 
 namespace Sync {
-	class AutoLock : public MutexBase {
+	class AutoLock : public Waitable {
 	public:
-		AutoLock(MutexBase& mutex_) throw() : mutex(mutex_), count(0) {
+		AutoLock(Waitable& mutex_) throw() : mutex(mutex_), count(0) {
 			Wait();
 		}
 		~AutoLock() throw() {
@@ -29,7 +29,7 @@ namespace Sync {
 		}
 
 	private:
-		MutexBase& mutex;
+		Waitable& mutex;
 		unsigned long count;
 	};
 }

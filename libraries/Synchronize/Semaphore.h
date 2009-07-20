@@ -7,7 +7,7 @@
 
 #include "PthreadMutex.h"
 #include "PthreadCondition.h"
-#include "MutexBase.h"
+#include "Waitable.h"
 
 namespace Sync {
 	/**
@@ -18,7 +18,7 @@ namespace Sync {
 	 * This implementation allows one to do bulk post to
 	 * the semaphore.
 	 */
-	class Semaphore : public MutexBase {
+	class Semaphore : public Waitable {
 	public:
 		typedef unsigned long ulong;
 		Semaphore() throw() : value(0) { }
