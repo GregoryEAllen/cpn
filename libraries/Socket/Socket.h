@@ -39,6 +39,12 @@
  * This class keeps all it's data in a referenced counted
  * structure that it passes around. This is so that
  * functions like Accept can return by value a new socket.
+ *
+ * This is a simple abstraction. Therefor, most errors even
+ * some recoverable errors are treated as
+ * fatal. When an error happens one can find out what happened
+ * by calling LastError. In almost all cases one must create a new
+ * socket and start over.
  */
 namespace Socket {
     class PollData;
@@ -60,10 +66,11 @@ namespace Socket {
         bool Bind(const SocketAddress &addr);
         bool Listen(const int qsize);
         StreamSocket* Accept(bool block);
+        void Close(void);
 
-        int Write(const void* ptr, const unsigned long size, bool block);
+        int Write(const void* ptr, const int size, bool block);
 
-        int Read(void* ptr, const unsigned long size, bool block);
+        int Read(void* ptr, const int size, bool block);
 
         SocketAddress GetLocalAddress(void) { return localaddress; }
         SocketAddress GetRemoteAddress(void) { return remoteaddress; }
@@ -77,6 +84,8 @@ namespace Socket {
     private:
         StreamSocket(const StreamSocket& osock);
         StreamSocket &operator=(const StreamSocket& osock);
+        void SetBlocking(bool block);
+
         int error;
         int fd;
         State_t state;

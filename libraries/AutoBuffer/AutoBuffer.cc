@@ -40,6 +40,7 @@ AutoBuffer& AutoBuffer::operator=(const AutoBuffer& other) {
         ChangeSize(other.GetSize());
     }
     other.Get(buffer, other.GetSize());
+    return *this;
 }
 
 void* AutoBuffer::GetBuffer(ulong offset) {
@@ -61,7 +62,7 @@ void AutoBuffer::Put(const void* other, const ulong othersize, const ulong offse
         ChangeSize(offset + othersize);
     }
     caddr_t spot = (caddr_t)buffer + offset;
-    memcpy(buffer, other, othersize);
+    memcpy(spot, other, othersize);
 }
 
 ulong AutoBuffer::Get(void* other, const ulong othersize, const ulong offset) const {

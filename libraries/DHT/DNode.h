@@ -10,31 +10,47 @@
 #include <string>
 
 namespace DHT {
-    typedef unsigned long ulong;
+    typedef unsigned key_t;
 
-    const ulong DHT_BITS = 32;
-    const ulong DHT_BITMASK = 0xFFFFFFFF;
+    const int KEY_BITS = 8*sizeof(key_t);
+    const key_t MAX_KEY = -1;
 
     class DNode {
     public:
         DNode(const std::string &name_);
 
-        const AutoBuffer &Get(const ulong key);
-        void Put(const ulong key, const AutoBuffer &buff);
+        void Connect(DNode* other);
 
-        ulong GetID(void) const { return id; }
+        const AutoBuffer &Get(const key_t key);
+        void Put(const key_t key, const AutoBuffer &buff);
 
-        static ulong Distance(ulong a, ulong b);
-        static ulong Hash(const void* const ptr, ulong len);
+        key_t GetID(void) const { return id; }
+        const std::string &GetName(void) { return name; }
+
+        void Verify(void);
+        void Update(void);
+
+        static key_t Distance(key_t a, key_t b);
+        static key_t Hash(const void* const ptr, unsigned len);
     private:
-        DNode* FindNode(ulong key);
-        DNode* FindFinger(ulong key);
+        DNode* FindNode(key_t key);
 
-        ulong id;
+        DNode* FindFinger(key_t key);
+
+        key_t FingerID(int i) { return (id + (1<<i))%MAX_KEY; }
+        DNode* &Finger(int i) { return finger[i]; }
+
+        void PrintLink(void);
+
+        DNode* &Next() { return succ; }
+        DNode* &Prev() { return pred; }
+
+        key_t id;
         const std::string name;
-        DNode* finger[DHT_BITS];
+        DNode* finger[KEY_BITS];
+        DNode* succ;
         DNode* pred;
-        std::map<ulong, AutoBuffer> data;
+        std::map<key_t, AutoBuffer> data;
     };
 }
 

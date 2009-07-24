@@ -21,28 +21,7 @@ StreamSocket::StreamSocket(SockFamily fam, int fd_, SocketAddress raddress)
 }
 
 StreamSocket::~StreamSocket() {
-    bool loop = true;
-    while (loop) {
-        if (close(fd) < 0) {
-            error = errno;
-            switch(errno) {
-            case EINTR: // retry
-                break;
-            case EBADF: // Bad file descriptor
-                loop = false;
-                break;
-            case EIO: // IO error
-            default:
-                perror(__PRETTY_FUNCTION__);
-                loop = false;
-                break;
-            }
-        } else {
-            loop = false;
-        }
-    }
-    fd = -1;
-    state = BAD;
+    Close();
 }
 
 bool StreamSocket::Connect(const SocketAddress &addr) {
@@ -56,11 +35,27 @@ bool StreamSocket::Connect(const SocketAddress &addr) {
             switch (error) {
             case EINTR:
                 break;
+            case EINPROGRESS: // non blocking and connection not completed yet
+                // may want to change things to let non blocking connect.
+            case EALREADY: // previous attempt has not completed
+
+            case EAGAIN: // not enough resources
+            case EACCES:
+            case EPERM:
+            case EADDRINUSE:
+            case AFNOSUPPORT:
+            case EBADF:
+            case ECONNREFUSED:
+            case EFAULT:
+            case EISCONN:
+            case ENETUNREACH:
+            case ENOTSOCK:
+            case ETIMEDOUT:
             default:
                 perror(__PRETTY_FUNCTION__);
                 ret = false;
                 loop = false;
-                state = BAD;
+                Close();
                 break;
             }
         } else {
@@ -96,8 +91,8 @@ bool StreamSocket::Listen(const int qsize) {
         case ENOTSOCK:
         case EOPNOTSUPP:
         default:
-            state = BAD;
             perror(__PRETTY_FUNCTION__);
+            Close();
             return false;
         }
     }
@@ -107,13 +102,7 @@ bool StreamSocket::Listen(const int qsize) {
 
 StreamSocket* StreamSocket::Accept(bool block) {
     if (state == BAD) return 0;
-    int flags = fcntl(fd, F_GETFL, 0);
-    if (-1 == flags) { flags = 0; }
-    if (!block) {
-        fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-    } else {
-        fcntl(fd, F_SETFL, flags & ~O_NONBLOCK);
-    }
+    SetBlocking(block);
     bool loop = true;
     int nfd = -1;
     StreamSocket *sock = 0;
@@ -151,9 +140,9 @@ StreamSocket* StreamSocket::Accept(bool block) {
             case EFAULT:
             default:
                 loop = false;
-                state = BAD;
                 nfd = 0;
                 perror(__PRETTY_FUNCTION__);
+                Close();
                 break;
             }
         } else {
@@ -163,25 +152,50 @@ StreamSocket* StreamSocket::Accept(bool block) {
     return sock;
 }
 
-int StreamScoket::Write(const void* ptr, const unsigned long size, bool block) {
+void StreamSocket::Close(void) {
+    bool loop = true;
+    while (loop && fd >= 0) {
+        if (close(fd) < 0) {
+            error = errno;
+            switch(errno) {
+            case EINTR: // retry
+                break;
+            case EBADF: // Bad file descriptor
+                loop = false;
+                break;
+            case EIO: // IO error
+            default:
+                perror(__PRETTY_FUNCTION__);
+                loop = false;
+                break;
+            }
+        } else {
+            loop = false;
+        }
+    }
+    fd = -1;
+    state = BAD;
+}
+
+int StreamScoket::Write(const void* ptr, const int size, bool block) {
     if (state == BAD) return -1;
+    SetBlocking(block);
     int flags = MSG_NOSIGNAL;
     if (!block) {
         flags =| MSG_DONTWAIT;
     }
     bool loop = true;
-    int num = 0;
-    while (loop) {
-        num = send(df, ptr, size, flags);
+    int written = 0;
+    while (loop && written < size) {
+        int num = send(df, ((const char*)ptr + written), size - written, flags);
         if (num < 0) {
             error = errno;
             switch (error) {
-            case EINTR:
+            case EINTR: // Returned because of signal
             case ENOMEM:
-            case EAGAIN:
+            case EAGAIN: // Would block
             case EWOULDBLOCK:
             case ENOBUFS: // Buffers are full
-                num = 0;
                 if (!block) { loop = false; }
                 break;
             case EACCES: // Permission denied
@@ -198,30 +212,34 @@ int StreamScoket::Write(const void* ptr, const unsigned long size, bool block) {
             case EPIPE:
             case ETIMEDOUT:
             default:
-                state = BAD;
-                loop = false;
                 perror(__PRETTY_FUNCTION__);
+                loop = false;
+                written = -1;
+                Close();
                 break;
             }
-        } else { loop = false; }
+        } else {
+            written += num;
+        }
     }
-    return num;
+    return written;
 }
 
-int StreamSocket::Read(void* ptr, const unsigned long size, bool block) {
+int StreamSocket::Read(void* ptr, const int size, bool block) {
     if (state == BAD) return -1;
+    SetBlocking(block);
     int flags = block ? 0 : MSG_DONTWAIT;
-    int num = 0;
+    int read = 0;
     bool loop = true;
-    while (loop) {
-        num = recv(fd, ptr, size, flags);
+    while (loop && read < size) {
+        int num = recv(fd, ((char*)ptr + read), size - read, flags);
         if (num < 0) {
             error = errno;
             switch(error) {
             case EAGAIN:
             case EINTR:
             case ENOMEM:
-                num = 0;
+            case EWOULDBLOCK:
                 if (!block) { loop = false; }
                 break;
             case EBADF:
@@ -232,14 +250,37 @@ int StreamSocket::Read(void* ptr, const unsigned long size, bool block) {
             case ETIMEDOUT:
             case EPIPE:
             default:
-                state = BAD;
-                loop = false;
                 perror(__PRETTY_FUNCTION__);
+                loop = false;
+                read = -1;
+                Close();
                 break;
             }
-        } else { loop = false; }
+        } else {
+            read += num;
+        }
     }
     return num;
+}
+
+void StreamSocket::LookupLocalAddress(void) {
+    *((socklen_t*)localaddress) = sizeof(sockaddr_storage);
+    getsockname(fd, localaddress, localaddress);
+}
+
+void StreamSocket::LookupRemoteAddress(void) {
+    *((socklen_t*)remoteaddress) = sizeof(sockaddr_storage);
+    getpeername(fd, remoteaddress, remoteaddress);
+}
+
+void StreamSocket::SetBlocking(bool block) {
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (-1 == flags) { flags = 0; }
+    if (!block) {
+        fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+    } else {
+        fcntl(fd, F_SETFL, flags & ~O_NONBLOCK);
+    }
 }
 
 int Poll(std::vector<PollData>& socks, int timeout) {
