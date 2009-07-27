@@ -2,6 +2,13 @@
  */
 
 #include "Socket.h"
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <cstdio>
 
 using namespace Socket;
 
@@ -43,7 +50,7 @@ bool StreamSocket::Connect(const SocketAddress &addr) {
             case EACCES:
             case EPERM:
             case EADDRINUSE:
-            case AFNOSUPPORT:
+            case EAFNOSUPPORT:
             case EBADF:
             case ECONNREFUSED:
             case EFAULT:
@@ -113,12 +120,12 @@ StreamSocket* StreamSocket::Accept(bool block) {
             error = errno;
             switch (error) {
             case EAGAIN:
-            case EWOULDBLOCK:
+            //case EWOULDBLOCK: // Duplicate
             case ECONNABORTED:
             case EINTR:
             case ENETDOWN:
             case EPROTO:
-            case ENOPROTOPT:
+            case ENOPROTOOPT:
             case EHOSTDOWN:
             case ENONET:
             case EHOSTUNREACH:
@@ -177,24 +184,24 @@ void StreamSocket::Close(void) {
     state = BAD;
 }
 
-int StreamScoket::Write(const void* ptr, const int size, bool block) {
+int StreamSocket::Write(const void* ptr, const int size, bool block) {
     if (state == BAD) return -1;
     SetBlocking(block);
     int flags = MSG_NOSIGNAL;
     if (!block) {
-        flags =| MSG_DONTWAIT;
+        flags |= MSG_DONTWAIT;
     }
     bool loop = true;
     int written = 0;
     while (loop && written < size) {
-        int num = send(df, ((const char*)ptr + written), size - written, flags);
+        int num = send(fd, ((const char*)ptr + written), size - written, flags);
         if (num < 0) {
             error = errno;
             switch (error) {
             case EINTR: // Returned because of signal
             case ENOMEM:
             case EAGAIN: // Would block
-            case EWOULDBLOCK:
+            //case EWOULDBLOCK:
             case ENOBUFS: // Buffers are full
                 if (!block) { loop = false; }
                 break;
@@ -237,9 +244,9 @@ int StreamSocket::Read(void* ptr, const int size, bool block) {
             error = errno;
             switch(error) {
             case EAGAIN:
+            //case EWOULDBLOCK:
             case EINTR:
             case ENOMEM:
-            case EWOULDBLOCK:
                 if (!block) { loop = false; }
                 break;
             case EBADF:
@@ -256,11 +263,15 @@ int StreamSocket::Read(void* ptr, const int size, bool block) {
                 Close();
                 break;
             }
+        } else if (num == 0) {
+            Close();
+            read = -1;
+            loop = false;
         } else {
             read += num;
         }
     }
-    return num;
+    return read;
 }
 
 void StreamSocket::LookupLocalAddress(void) {
@@ -283,7 +294,15 @@ void StreamSocket::SetBlocking(bool block) {
     }
 }
 
-int Poll(std::vector<PollData>& socks, int timeout) {
+StreamSocket* StreamSocket::NewStreamSocket(SockFamily fam) {
+    return new StreamSocket(fam);
+}
+
+void StreamSocket::DeleteStreamSocket(StreamSocket* sock) {
+    delete sock;
+}
+
+int Socket::Poll(std::vector<PollData>& socks, int timeout) {
     return poll((pollfd*)&socks[0], socks.size(), timeout);
 }
 

@@ -7,7 +7,6 @@
 #pragma once
 
 #include "SocketAddress.h"
-#include "RefCounter.h"
 #include <poll.h>
 
 /*
@@ -47,7 +46,10 @@
  * socket and start over.
  */
 namespace Socket {
+
+    class StreamSocket;
     class PollData;
+
 
     class StreamSocket {
     public:
@@ -59,6 +61,8 @@ namespace Socket {
             CONNECTING,
             CONNECTED
         };
+        static StreamSocket* NewStreamSocket(SockFamily fam);
+        static void DeleteStreamSocket(StreamSocket* sock);
 
         ~StreamSocket();
 
@@ -75,6 +79,7 @@ namespace Socket {
         SocketAddress GetLocalAddress(void) { return localaddress; }
         SocketAddress GetRemoteAddress(void) { return remoteaddress; }
 
+        State_t GetState() { return state; }
         int LastError(void) const { return error; }
     protected:
         StreamSocket(SockFamily fam);
@@ -94,17 +99,23 @@ namespace Socket {
         SocketAddress localaddress;
         SocketAddress remoteaddress;
 
-        friend StreamSocket* NewStreamSocket(SockFamily fam);
         friend class PollData;
     };
 
-    StreamSocket* NewStreamSocket(SockFamily fam);
-    void DeleteStreamScocket(StreamSocket* sock);
     class PollData : public pollfd {
     public:
-        PollData(StreamSocket* sock, bool in, bool out) : revents(0) {
+        PollData(StreamSocket* sock, bool in, bool out) {
             fd = sock->fd;
-            events = (in ? POLLIN : 0) | (out ? POLLOUT : 0);
+            Reset(in, out);
+        }
+        PollData(int fid, bool in, bool out) {
+            fd = fid;
+            Reset(in, out);
+        }
+        void Reset(bool in, bool out) {
+            events = in ? (events | POLLIN) : (events & ~POLLIN);
+            events = out ? (events | POLLOUT) : (events & ~POLLOUT);
+            revents = 0;
         }
         bool In(void) { return (0 != (revents&POLLIN)); }
         bool Out(void) { return (0 != (revents&POLLOUT)); }
@@ -112,6 +123,7 @@ namespace Socket {
         bool Hup(void) { return (0 != (revents&POLLHUP)); }
     };
     int Poll(std::vector<PollData>& socks, int timeout);
+
 }
 
 #endif

@@ -56,6 +56,11 @@ void AutoBuffer::ChangeSize(ulong newsize) {
     size = newsize;
 }
 
+void AutoBuffer::EnsureSize(ulong newsize) {
+    if (size < newsize) {
+        ChangeSize(newsize);
+    }
+}
 
 void AutoBuffer::Put(const void* other, const ulong othersize, const ulong offset) {
     if (offset + othersize > size) {

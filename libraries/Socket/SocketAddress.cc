@@ -56,7 +56,7 @@ int SocketAddress::Lookup(const char* const hostname, const char* const port,
 SocketAddress::SocketAddress() 
 : length(sizeof(sockaddr_in))
 {
-    Family() = PF_INET;
+    Family(0) = PF_INET;
     address.in.sin_addr.s_addr = INADDR_ANY;
     name = "0.0.0.0";
 }
@@ -64,7 +64,7 @@ SocketAddress::SocketAddress()
 SocketAddress::SocketAddress(unsigned port) 
 : length(sizeof(sockaddr_in))
 {
-    Family() = PF_INET;
+    Family(0) = PF_INET;
     address.in.sin_addr.s_addr = INADDR_ANY;
     address.in.sin_port = port;
     name = "0.0.0.0";
@@ -74,7 +74,6 @@ SocketAddress::SocketAddress(addrinfo *ai)
 {
     length = ai->ai_addrlen;
     memcpy(&address, ai->ai_addr, length);
-    name = ai->ai_canonname;
 }
 
 SocketAddress::SocketAddress(const char* const name_, SockFamily family) {

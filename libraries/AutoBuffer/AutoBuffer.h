@@ -55,6 +55,12 @@ public:
     void ChangeSize(ulong newsize);
 
     /**
+     * Ensure that the size of the buffer is at least newsize.
+     * \param newsize the new size
+     */
+    void EnsureSize(ulong newsize);
+
+    /**
      * Copy othersize bytes from other into this buffer starting at
      * offset. If there is not enough space this buffer will try to expand.
      * \param other the other memory buffer

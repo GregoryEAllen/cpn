@@ -16,7 +16,7 @@ class RefCounter {
             __sync_add_and_fetch(&count, 1);
         }
         bool Decrement(void) {
-            return 0 == *__sync_sub_and_fetch(&count, 1);
+            return 0 == __sync_sub_and_fetch(&count, 1);
         }
     private:
         RefCounter(const RefCounter&);

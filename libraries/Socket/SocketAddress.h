@@ -89,14 +89,15 @@ namespace Socket {
        /**
          * \return the address as a string if available.
          */
-        std::string StringAddress(void) const;
+        std::string StringAddress(void) const { return name; };
 
         operator sockaddr* () { return &(address.addr); }
+        operator const sockaddr* () const { return &(address.addr); }
         operator socklen_t* () { return &length; }
-        operator socklen_t () { return length; }
+        operator socklen_t () const { return length; }
 
     private:
-        sa_family_t &Family(void) { return address.storage.ss_family; }
+        sa_family_t &Family(int) { return address.storage.ss_family; }
 
         socklen_t length;
 
