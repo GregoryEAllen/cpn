@@ -2,8 +2,6 @@
 
 #include "Kernel.h"
 #include "SieveControllerNode.h"
-#include "SimpleQueue.h"
-#include "ThresholdQueue.h"
 #include "Time.h"
 #include <unistd.h>
 #include <vector>
@@ -37,10 +35,8 @@ int main(int argc, char **argv) {
 			return 0;
 		}
 	}
-	CPN::SimpleQueue::RegisterQueueType();
-	CPN::ThresholdQueue::RegisterQueueType();
 	SieveControllerNode::RegisterNodeType();
-	CPN::Kernel kernel(CPN::KernelAttr(1, "SimpleSieveKernel"));
+	CPN::Kernel kernel(CPN::KernelAttr("SimpleSieveKernel"));
 	std::vector<unsigned long> results;
 	SieveControllerNode::Param param;
 	param.results = &results;
@@ -48,18 +44,19 @@ int main(int argc, char **argv) {
 	param.numberBound = maxprime;
 	param.queueSize = queueSize;
 	if (threshold == 1) {
-		param.queueTypeName = CPN_QUEUETYPE_SIMPLE;
+		param.queuehint = CPN::QUEUEHINT_DEFAULT;
 	} else {
-		param.queueTypeName = CPN_QUEUETYPE_THRESHOLD;
+		param.queuehint = CPN::QUEUEHINT_THRESHOLD;
 	}
 	param.threshold = threshold;
-	kernel.CreateNode("controller", SIEVECONTROLLERNODE_TYPENAME, &param, sizeof(param));
+    CPN::NodeAttr attr("controller", SIEVECONTROLLERNODE_TYPENAME);
+    attr.SetParam(StaticBuffer(&param, sizeof(param)));
+	kernel.CreateNode(attr);
 	Time start;
-	kernel.Start();
-	kernel.Wait();
+	kernel.WaitNodeTerminate("controller");
 	Time stop;
 	printf("Duration: %s\n", (start - stop).ToString().c_str());
-	for (int i = 0; i < results.size(); i++) {
+	for (unsigned i = 0; i < results.size(); i++) {
 		printf(" %lu,", results[i]);
 	}
 	printf("\n");

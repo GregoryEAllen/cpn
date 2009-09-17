@@ -6,6 +6,7 @@
 #define SIEVECONTROLLERNODE_H
 
 #include "NodeBase.h"
+#include "QueueAttr.h"
 #include <vector>
 
 #define SIEVECONTROLLERNODE_TYPENAME "SieveControllerNodeTypeName"
@@ -35,7 +36,7 @@ public:
 		/// may be 0 for no maximum
 		unsigned long numberBound;
 		/// The type of queue to create between nodes
-		std::string queueTypeName;
+        CPN::QueueHint_t queuehint;
 		/// The size of the queues
 		unsigned long queueSize;
 		/// The threshold value to use
@@ -43,15 +44,16 @@ public:
 	};
 	SieveControllerNode(CPN::Kernel& ker, const CPN::NodeAttr& attr,
 			Param param_)
-		: CPN::NodeBase(ker, attr), param(param_), queueCounter(0) {}
+		: CPN::NodeBase(ker, attr), param(param_), lastprime(0) {}
 	void Process(void);
 	static void RegisterNodeType(void);
 private:
 	void Initialize(void);
 	void SetupQueue(const std::string& nodename);
 	void CreateFilter(const unsigned long prime);
+    CPN::QueueAttr GetQueueAttr();
 	Param param;
-	unsigned long queueCounter;
+	unsigned long lastprime;
 };
 
 #endif

@@ -1,15 +1,35 @@
+//=============================================================================
+//	Computational Process Networks class library
+//	Copyright (C) 1997-2006  Gregory E. Allen and The University of Texas
+//
+//	This library is free software; you can redistribute it and/or modify it
+//	under the terms of the GNU Library General Public License as published
+//	by the Free Software Foundation; either version 2 of the License, or
+//	(at your option) any later version.
+//
+//	This library is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//	Library General Public License for more details.
+//
+//	The GNU Public License is available in the file LICENSE, or you
+//	can write to the Free Software Foundation, Inc., 59 Temple Place -
+//	Suite 330, Boston, MA 02111-1307, USA, or you can find it on the
+//	World Wide Web at http://www.fsf.org.
+//=============================================================================
 /** \file
  * \brief A very simple "event" like synchronization
  * object. Very similar in some respects to the
  * windows Event object.
+ * \author John Bridgman
  */
 
 #ifndef SYNC_EVENT_H
 #define SYNC_EVENT_H
+#pragma once
 
 #include "PthreadMutex.h"
 #include "PthreadCondition.h"
-#include "Waitable.h"
 
 namespace Sync {
 	/**
@@ -29,7 +49,7 @@ namespace Sync {
      * a non reentrant lock. The difference is that the
      * aquiring thread does not have to release the lock.
 	 */
-	class Event : public Waitable {
+	class Event {
 	public:
 		/**
 		 * Default constructor creates a manual reset
@@ -48,18 +68,16 @@ namespace Sync {
 		/**
 		 * Signal this event.
 		 */
-		void Signal(void) throw() {
+		void Signal() throw() {
 			PthreadMutexProtected l(lock);
 			signaled = true;
 			cond.Broadcast();
 		}
 
-		void Release(void) throw() { Signal(); }
-
 		/**
 		 * Reset this event.
 		 */
-		void Reset(void) throw() {
+		void Reset() throw() {
 			PthreadMutexProtected l(lock);
 			signaled = false;
 		}
@@ -70,7 +88,7 @@ namespace Sync {
 		 * This method will reset the event if the event
 		 * is an automatic event.
 		 */
-		void Wait(void) throw();
+		void Wait() throw();
 
 	private:
 		const bool automatic;

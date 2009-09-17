@@ -1,49 +1,107 @@
+//=============================================================================
+//	Computational Process Networks class library
+//	Copyright (C) 1997-2006  Gregory E. Allen and The University of Texas
+//
+//	This library is free software; you can redistribute it and/or modify it
+//	under the terms of the GNU Library General Public License as published
+//	by the Free Software Foundation; either version 2 of the License, or
+//	(at your option) any later version.
+//
+//	This library is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//	Library General Public License for more details.
+//
+//	The GNU Public License is available in the file LICENSE, or you
+//	can write to the Free Software Foundation, Inc., 59 Temple Place -
+//	Suite 330, Boston, MA 02111-1307, USA, or you can find it on the
+//	World Wide Web at http://www.fsf.org.
+//=============================================================================
 /** \file
- * A reentrant lock implementation.
+ * \brief A reentrant lock implementation.
+ * \author John Bridgman
  */
 
 #ifndef SYNC_REENTRANTLOCK_H
 #define SYNC_REENTRANTLOCK_H
+#pragma once
 
-#include "Waitable.h"
-#include "PthreadMutex.h"
-#include "PthreadCondition.h"
+#include "AutoLock.h"
+#include "Assert.h"
 #include <pthread.h>
 
 namespace Sync {
 
-	template<class Status_t>
-	class StatusHandler;
-	/**
-	 * A reentrant lock.
-	 */
-	class ReentrantLock : public Waitable {
-	public:
-		ReentrantLock() throw() : count(0) {}
-		~ReentrantLock() throw() {}
+    template<class Status_t>
+    class StatusHandler;
+    class ReentrantCondition;
 
-		void Release(void) throw() {
-			PthreadMutexProtected l(lock);
-			--count;
-			if (count == 0) cond.Signal();
-		}
+    namespace Internal {
+        class ScopeMutex {
+        public:
+            ScopeMutex(pthread_mutex_t &l) : lock(l) { ENSURE(!pthread_mutex_lock(&lock)); }
+            ~ScopeMutex() { ENSURE(!pthread_mutex_unlock(&lock)); }
+            pthread_mutex_t &lock;
+        };
+    }
 
-		void Wait(void) throw();
+    /**
+     * A reentrant lock.
+     */
+    class ReentrantLock {
+    public:
+        ReentrantLock() : count(0) {
+            ENSURE(!pthread_mutex_init(&lock, 0));
+            ENSURE(!pthread_cond_init(&cond, 0));
+        }
+        ~ReentrantLock() {
+            ENSURE(!pthread_mutex_destroy(&lock));
+            ENSURE(!pthread_cond_destroy(&cond));
+        }
 
-		/**
-		 * Use only for testing purposes and asserts.
-		 * \return true if the calling thread has the lock.
-		 */
-		bool HaveLock(void) throw();
+        void Unlock() {
+            Internal::ScopeMutex l(lock);
+            --count;
+            if (count == 0) pthread_cond_signal(&cond);
+        }
 
-	private:
-		void Wait(PthreadCondition& c) throw();
-		PthreadMutex lock;
-		PthreadCondition cond;
-		unsigned long count;
-		pthread_t owner;
+        void Lock();
 
-		template<class T> friend class StatusHandler;
-	};
+        /**
+         * Use only for testing purposes and asserts.
+         * \return true if the calling thread has the lock.
+         */
+        bool HaveLock();
+
+    private:
+        void Wait(pthread_cond_t& c);
+        pthread_mutex_t lock;
+        pthread_cond_t cond;
+        unsigned long count;
+        pthread_t owner;
+
+        template<class T> friend class StatusHandler;
+        friend class ReentrantCondition;
+    };
+
+    typedef AutoLock<ReentrantLock> AutoReentrantLock;
+
+    /**
+     * \brief Works just like a pthread condition
+     * but works with the ReentrantLock
+     */
+    class ReentrantCondition {
+    public:
+        ReentrantCondition() { ENSURE(!pthread_cond_init(&cond, 0)); }
+        ~ReentrantCondition() { ENSURE(!pthread_cond_destroy(&cond)); }
+        void Signal() { pthread_cond_signal(&cond); }
+        void Broadcast() { pthread_cond_broadcast(&cond); }
+        void Wait(ReentrantLock &lock) {
+            Internal::ScopeMutex l(lock.lock);
+            lock.Wait(cond);
+        }
+    private:
+        pthread_cond_t cond;
+    };
 }
 #endif

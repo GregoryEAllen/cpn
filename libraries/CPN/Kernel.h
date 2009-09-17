@@ -1,27 +1,55 @@
+//=============================================================================
+//	Computational Process Networks class library
+//	Copyright (C) 1997-2006  Gregory E. Allen and The University of Texas
+//
+//	This library is free software; you can redistribute it and/or modify it
+//	under the terms of the GNU Library General Public License as published
+//	by the Free Software Foundation; either version 2 of the License, or
+//	(at your option) any later version.
+//
+//	This library is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//	Library General Public License for more details.
+//
+//	The GNU Public License is available in the file LICENSE, or you
+//	can write to the Free Software Foundation, Inc., 59 Temple Place -
+//	Suite 330, Boston, MA 02111-1307, USA, or you can find it on the
+//	World Wide Web at http://www.fsf.org.
+//=============================================================================
 /** \file
  * \brief Definition for the kernel object.
+ * \author John Bridgman
  */
 
 #ifndef CPN_KERNEL_H
 #define CPN_KERNEL_H
+#pragma once
 
 #include "common.h"
 #include "KernelAttr.h"
-#include "NodeFactory.h"
-#include "QueueFactory.h"
-#include "StatusHandler.h"
+#include "NodeAttr.h"
+#include "QueueAttr.h"
+
+#include "KernelMessage.h"
+
 #include "ReentrantLock.h"
-#include "AutoLock.h"
+#include "StatusHandler.h"
+
+#include "IntrusiveRing.h"
+
+#include "AsyncStream.h"
+#include "AsyncSocket.h"
+
+#include "Pthread.h"
+
 #include <string>
 #include <map>
+#include <vector>
 #include <deque>
+#include <list>
 
 namespace CPN {
-
-    class QueueReader;
-    class QueueWriter;
-    class NodeInfo;
-    class QueueInfo;
 
     /**
      * \brief The Kernel declaration.
@@ -32,51 +60,35 @@ namespace CPN {
      * correctly and to provide a unified interface to
      * the user of the process network.
      */
-    class CPN_API Kernel {
+    class CPN_API Kernel : private Pthread, private KMsgDispatchable {
+        friend class NodeBase;
+
+        enum KernelStatus_t {
+            INITIALIZED, RUNNING, TERMINATE, DONE
+        };
     public:
-        enum Status_t { READY, RUNNING, TERMINATING, STOPPED };
 
         /**
-         * Construct a new kernel object with the given name and id.
+         * Construct a new kernel object with the given attributes.
+         * The Kernel starts processing immediately.
          */
         Kernel(const KernelAttr &kattr);
         ~Kernel();
 
         /**
-         * Start the nodes in the process network.
+         * Waits until the main loop terminates. Will not happen until
+         * a terminate signal or Terminate is called.
+         * Use WaitNodeTerminate if you wish to wait for the nodes to be
+         * done.
          */
-        void Start(void);
+        void Wait();
 
         /**
-         * Wait for all nodes to terminate and does cleanup.
-         * Note that no resources will be cleaned up until
-         * destruction if this function is never called.
+         * For the kernel to terminate.
+         * Returns immediately, use wait to wait
+         * for completion.
          */
-        void Wait(void);
-
-        /**
-         * Force all running nodes to terminate.
-         * Returns immediately use Wait if one wishes
-         * to wait for the nodes to terminate.
-         * Has no effect if not started.
-         */
-        void Terminate(void);
-
-        /**
-         * \return the current status
-         */
-        Status_t GetStatus(void) const { return statusHandler.Get(); }
-
-        /**
-         * Compare the current status to oldStatus and wait
-         * for the status to be different.
-         *
-         * \param oldStatus the status to compare
-         * \return the new status
-         */
-        Status_t CompareStatusAndWait(Status_t oldStatus) const {
-            Sync::AutoLock plock(lock); 
-            return statusHandler.CompareAndWait(oldStatus); }
+        void Terminate();
 
         /**
          * Create a new node.
@@ -90,195 +102,93 @@ namespace CPN {
          * may be 0
          * \param argsize the size in bytes of arg. This is used if
          * the kernel needs to make a memcopy of arg to pass it to the node.
+         * \return E_NONE on success
+         *         E_EXISTS if the node already exists
          * \throws KernelShutdownException if Wait completed or Terminate
          * has been called.
-         * \throws std::invalid_argument if nodename already exists or
-         * the node in question does not support this type of parameter.
          */
-        void CreateNode(const std::string &nodename,
-                const std::string &nodetype,
-                const void* const arg,
-                const ulong argsize);
+        Key_t CreateNode(const NodeAttr &attr);
 
         /**
-         * Create a new node with no parameters.
-         * \param nodename the name for the new node
-         * \param nodetype the type name of the new node
-         * \throws KernelShutdownException if Wait completed or Terminate
-         * has been called.
-         * \throws std::invalid_argument if nodename already exists or
-         * the node in question does not support this type of parameter.
+         * Check for the existance of the given node. Returns
+         * when it detects that the given node does not exist.
+         * \param nodename the name of the node to wait for
+         * \throws ShutdownException if the kernel has shutdown
          */
-        void CreateNode(const std::string &nodename,
-                const std::string &nodetype);
+        void WaitNodeTerminate(const std::string &nodename);
+        void WaitNodeStart(const std::string &nodename);
 
-        /**
-         * Create a new node with a string parameter.
-         * \param nodename the name for the new node
-         * \param nodetype the type name of the new node
-         * \param param a parameter string see node documentation on how this
-         * is handled.
-         * \throws KernelShutdownException if Wait completed or Terminate
-         * has been called.
-         * \throws std::invalid_argument if nodename already exists or
-         * the node in question does not support this type of parameter.
-         */
-        void CreateNode(const std::string &nodename,
-                const std::string &nodetype,
-                const std::string &param);
+        // Attempt to connect the given endpoints together using the given attributes
+        // If the endpoints are of the wrong type
+        // this function will fail. Only one side has to free the connection for
+        // the other port to become disconnected and available.
+        // If the endpoints do not exist create them. If
+        // the endpoints are already connected fail.
+        void CreateQueue(const QueueAttr &attr);
+       
+        void EnqueueMessage(KernelMessagePtr msg);
 
-        /**
-         * Create a new queue.
-         * \param queuename the name for the new queue
-         * \param queuetype the type name for the queue
-         * \param queueLength the initial length for the queue
-         * \param maxThreshold the initial maximum threadshold for the
-         * new queue
-         * \param numChannels the number of channels for the queue
-         * \throws KernelShutdownException if Wait completed or
-         * Terminate has been called.
-         * \throws std::invalid_argument if queuename already exists.
-         */
-        void CreateQueue(const std::string &queuename,
-                const std::string &queuetype,
-                const ulong queueLength,
-                const ulong maxThreshold,
-                const ulong numChannels);
+        void Logf(int level, const char* const fmt, ...);
 
-        /**
-         * Connects the write endpoint of the given queue to the
-         * given port on the given node.
-         * It is an illegal operation to try to connect a queue
-         * to a port that already has a queue connected to it.
-         * \param qname the name of the queue to connect
-         * \param nodename the name of the node to connect
-         * \param portname the name of the writer port on the node
-         * \throws KernelShutdownException if Wait completed or
-         * Terminate has been called.
-         * \throws std::invalid_argument if the queue or node
-         * do not exist.
-         */
-        void ConnectWriteEndpoint(const std::string &qname,
-                const std::string &nodename,
-                const std::string &portname);
-        /**
-         * Connects the reader endpoint of the given queue to the
-         * given port on the given node.
-         * It is an illegal operation to try to connect a queue
-         * to a port that already has a queue connected to it.
-         * \param qname the name of the queue to connect
-         * \param nodename the name of the node to connect
-         * \param portname the name of the reader port on the node
-         * \throws KernelShutdownException if Wait completed or
-         * Terminate has been called.
-         * \throws std::invalid_argument if the queue or node
-         * do not exist.
-         */
-        void ConnectReadEndpoint(const std::string &qname,
-                const std::string &nodename,
-                const std::string &portname);
+        void Log(int level, const std::string &msg);
 
-        /**
-         * This function is for the node to get its QueueReader.
-         * \note This function is designed to only be called by
-         * a node.
-         * \param nodename the name of the node
-         * \param portname the name of the port
-         * \return the QueueReader for the given node and port
+        /** 
+         * \return the name of this kernel.
          */
-        QueueReader* GetReader(const std::string &nodename,
-                const std::string &portname);
+        const std::string &GetName() const { return kernelname; }
 
-        /**
-         * Release the reader associated with the given endpoint.
-         * If as a result of this call the queue is not connected
-         * on both ends then it will be deleted.
-         * After this call the QueueReader obtained from GetReader
-         * is invalid.
-         * \param nodename the name of the node
-         * \param portname the name of the port
-         * \throws KernelShutdownException if Wait completed or
-         * Terminate has been called.
-         * \throws std::invalid_argument if nodename does not exist.
-         */
-        void ReleaseReader(const std::string &nodename,
-                const std::string &portname);
+        Key_t GetKey() const { return hostkey; }
 
-        /**
-         * This function is for the node to get its QueueWriter.
-         * \note This function is designed to only be called by a node.
-         * \param nodename the name of the node
-         * \param portname the name of the node
-         * \return the QueueWriter for the given node and port
-         */
-        QueueWriter* GetWriter(const std::string &nodename,
-                const std::string &portname);
-
-        /**
-         * Release the writer associated with the given endpoint.
-         * If as a result of this call the queue is not connected
-         * on both ends then it will be deleted.
-         * After this call the QueueWriter obtained by GetWriter
-         * is invalid.
-         * \param nodename the name of the node
-         * \param portname the name of the port
-         * \throws KernelShutdownException if Wait completed or
-         * Terminate has been called.
-         * \throws std::invalid_argument if nodename does not exist.
-         */
-        void ReleaseWriter(const std::string &nodename,
-                const std::string &portname);
-
-        /**
-         * \return the attributed passed in the constructor.
-         */
-        const KernelAttr &GetAttr(void) const { return kattr; }
-
-        /**
-         * NodeBase calls this function when the user supplied
-         * process function returns.
-         * \param nodename the name of the node.
-         */
-        void NodeShutdown(const std::string &nodename);
-        
-        /**
-         * QueueInfo calls this function when it has determined
-         * that the queue will not be used again. I.e. both endpoints
-         * have been connected and are now disconnected.
-         * \param queuename the name of the queue to delete
-         */
-        void QueueShutdown(const std::string &queuename);
-
+        shared_ptr<Database> GetDatabase() const { return database; }
     private:
+        // Not copyable
         Kernel(const Kernel&);
         Kernel &operator=(const Kernel&);
 
+        void CreateReaderEndpoint(const SimpleQueueAttr &attr);
+        void CreateWriterEndpoint(const SimpleQueueAttr &attr);
+        void CreateLocalQueue(const SimpleQueueAttr &attr);
+        shared_ptr<QueueBase> MakeQueue(const SimpleQueueAttr &attr);
+        void InternalCreateNode(NodeAttr &nodeattr);
+        void NodeTerminated(Key_t key);
+        void ClearGarbage();
+        void HandleMessages();
 
-        CPN_LOCAL void InternalWait(void);
-        CPN_LOCAL void ReadyOrRunningCheck(void);
-        CPN_LOCAL NodeInfo* GetNodeInfo(const std::string& name);
-        CPN_LOCAL QueueInfo* GetQueueInfo(const std::string& name);
+        void *EntryPoint();
 
-        const KernelAttr kattr;
+        bool True() { return true; }
+        void WakeupReader();
+        void SendWakeup();
 
-        mutable Sync::ReentrantLock lock;
-        Sync::StatusHandler<bool> cleanupStatus;
+        void ListenRead();
 
-        std::map<std::string, NodeInfo*> nodeMap;
-        std::map<std::string, QueueInfo*> queueMap;
-        std::deque<NodeInfo*> nodesToDelete;
-        std::deque<QueueInfo*> queuesToDelete;
+        void ProcessMessage(KMsgCreateWriter *msg);
+        void ProcessMessage(KMsgCreateReader *msg);
+        void ProcessMessage(KMsgCreateQueue *msg);
+        void ProcessMessage(KMsgCreateNode *msg);
 
-        /**
-         * \warning All functions in the Kernel that
-         * hold the lock must never call the wait function.
-         */
-        Sync::StatusHandler<Status_t> statusHandler;
+        Sync::ReentrantLock lock;
+        Sync::StatusHandler<KernelStatus_t> status;
+        const std::string kernelname;
+        Key_t hostkey;
 
-        /// Temporary unique id generator counter.
-        ulong idcounter;
-        /// Temporary 'unique' id generator.
-        CPN_LOCAL ulong GenerateId(const std::string& name);
+        Async::SockPtr wakeuplisten;
+        Async::SockPtr wakeupwriter;
+        Async::ListenSockPtr listener;
+
+        typedef std::map<Key_t, shared_ptr<NodeBase> > NodeMap;
+        typedef std::vector< shared_ptr<NodeBase> > NodeList;
+        NodeMap nodemap;
+        NodeList garbagenodes;
+
+        typedef std::map<Key_t, shared_ptr<Stream> > StreamMap;
+        StreamMap streammap;
+
+        IntrusiveRing<UnknownStream> unknownstreams;
+
+        std::list<KernelMessagePtr> msgqueue;
+
+        shared_ptr<Database> database;
     };
 }
 #endif

@@ -108,7 +108,7 @@ bool StreamSocket::Listen(const int qsize) {
 }
 
 StreamSocket* StreamSocket::Accept(bool block) {
-    if (state == BAD) return 0;
+    if (state != LISTENING) return 0;
     SetBlocking(block);
     bool loop = true;
     int nfd = -1;
@@ -185,8 +185,7 @@ void StreamSocket::Close(void) {
 }
 
 int StreamSocket::Write(const void* ptr, const int size, bool block) {
-    if (state == BAD) return -1;
-    SetBlocking(block);
+    if (state != CONNECTED) return -1;
     int flags = MSG_NOSIGNAL;
     if (!block) {
         flags |= MSG_DONTWAIT;
@@ -233,8 +232,7 @@ int StreamSocket::Write(const void* ptr, const int size, bool block) {
 }
 
 int StreamSocket::Read(void* ptr, const int size, bool block) {
-    if (state == BAD) return -1;
-    SetBlocking(block);
+    if (state != CONNECTED) return -1;
     int flags = block ? 0 : MSG_DONTWAIT;
     int read = 0;
     bool loop = true;
@@ -265,7 +263,6 @@ int StreamSocket::Read(void* ptr, const int size, bool block) {
             }
         } else if (num == 0) {
             Close();
-            read = -1;
             loop = false;
         } else {
             read += num;
@@ -300,9 +297,5 @@ StreamSocket* StreamSocket::NewStreamSocket(SockFamily fam) {
 
 void StreamSocket::DeleteStreamSocket(StreamSocket* sock) {
     delete sock;
-}
-
-int Socket::Poll(std::vector<PollData>& socks, int timeout) {
-    return poll((pollfd*)&socks[0], socks.size(), timeout);
 }
 

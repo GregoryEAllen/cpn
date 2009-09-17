@@ -10,17 +10,17 @@
 #include <cppunit/extensions/HelperMacros.h>
 class SieveTest : public CppUnit::TestFixture {
 public:
-	void setUp(void);
+    void setUp();
 
-	void tearDown(void);
+    void tearDown();
 
-	CPPUNIT_TEST_SUITE( SieveTest );
-	CPPUNIT_TEST( RunTest );
-	CPPUNIT_TEST_SUITE_END();
+    CPPUNIT_TEST_SUITE( SieveTest );
+    CPPUNIT_TEST( RunTest );
+    CPPUNIT_TEST_SUITE_END();
 
-	void RunTest(void);
+    void RunTest();
 
 private:
-	CPN::Kernel* kernel;
+    CPN::Kernel* kernel;
 };
 #endif

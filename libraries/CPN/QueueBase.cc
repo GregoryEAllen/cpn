@@ -1,58 +1,35 @@
+//=============================================================================
+//	Computational Process Networks class library
+//	Copyright (C) 1997-2006  Gregory E. Allen and The University of Texas
+//
+//	This library is free software; you can redistribute it and/or modify it
+//	under the terms of the GNU Library General Public License as published
+//	by the Free Software Foundation; either version 2 of the License, or
+//	(at your option) any later version.
+//
+//	This library is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//	Library General Public License for more details.
+//
+//	The GNU Public License is available in the file LICENSE, or you
+//	can write to the Free Software Foundation, Inc., 59 Temple Place -
+//	Suite 330, Boston, MA 02111-1307, USA, or you can find it on the
+//	World Wide Web at http://www.fsf.org.
+//=============================================================================
 /** \file
+ * \brief Implementation for the QueueBase.
+ * \author John Bridgman
  */
 #include "QueueBase.h"
-#include <cassert>
 
-CPN::QueueBase::QueueBase(const QueueAttr &attr_) 
-	: attr(attr_), readerStatusHandler(0), writerStatusHandler(0) {}
-CPN::QueueBase::~QueueBase() {}
+namespace CPN {
+    QueueBase::QueueBase() {
+        upstreamchain = MsgChain<NodeMessagePtr>::Create();
+        downstreamchain = MsgChain<NodeMessagePtr>::Create();
+    }
 
-void CPN::QueueBase::SetReaderStatusHandler(Sync::StatusHandler<CPN::QueueStatus>* rsh) {
-	PthreadMutexProtected p(statusHandlerMutex);
-	assert(readerStatusHandler == 0);
-	readerStatusHandler = rsh;
-}
-void CPN::QueueBase::ClearReaderStatusHandler(void) {
-	PthreadMutexProtected p(statusHandlerMutex);
-	readerStatusHandler = 0;
-}
-void CPN::QueueBase::SetWriterStatusHandler(Sync::StatusHandler<CPN::QueueStatus>* wsh) {
-	PthreadMutexProtected p(statusHandlerMutex);
-	assert(writerStatusHandler == 0);
-	writerStatusHandler = wsh;
-}
-void CPN::QueueBase::ClearWriterStatusHandler(void) {
-	PthreadMutexProtected p(statusHandlerMutex);
-	writerStatusHandler = 0;
+    QueueBase::~QueueBase() {}
+
 }
 
-void CPN::QueueBase::NotifyReaderOfWrite(void) {
-	PthreadMutexProtected p(statusHandlerMutex);
-	if (readerStatusHandler) {
-		Notify(readerStatusHandler, QueueStatus::TRANSFER);
-	}
-}
-
-void CPN::QueueBase::NotifyWriterOfRead(void) {
-	PthreadMutexProtected p(statusHandlerMutex);
-	if (writerStatusHandler) {
-		Notify(writerStatusHandler, QueueStatus::TRANSFER);
-	}
-}
-
-void CPN::QueueBase::Notify(Sync::StatusHandler<QueueStatus>* stathand,
-	CPN::QueueStatus newStatus) {
-	while (true) {
-		QueueStatus oldStatus = stathand->Get();
-		switch (oldStatus.status) {
-		case QueueStatus::QUERY:
-		case QueueStatus::BLOCKED:
-			if (stathand->CompareAndPost(oldStatus, newStatus)) {
-				return;
-			}
-			break;
-		default:
-			return;
-		}
-	}
-}

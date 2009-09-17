@@ -2,12 +2,14 @@
 #include "KernelTest.h"
 #include <cppunit/TestAssert.h>
 #include "Kernel.h"
+#include "FunctionNode.h"
+#include "QueueWriterAdapter.h"
+#include "QueueReaderAdapter.h"
 #include "MockNodeFactory.h"
 #include "MockNode.h"
-#include "ThresholdQueueFactory.h"
-#include "MockQueueFactory.h"
-#include "KernelShutdownException.h"
+#include "MockSyncNode.h"
 #include <stdexcept>
+#include <string>
 
 CPPUNIT_TEST_SUITE_REGISTRATION( KernelTest );
 
@@ -17,106 +19,204 @@ CPPUNIT_TEST_SUITE_REGISTRATION( KernelTest );
 #define DEBUG(frmt, ...)
 #endif
 
-void KernelTest::setUp(void) {
-	kernel = new CPN::Kernel(CPN::KernelAttr(1, "test"));
+using CPN::shared_ptr;
+using CPN::Kernel;
+using CPN::KernelAttr;
+using CPN::NodeAttr;
+using CPN::QueueAttr;
+using CPN::NodeBase;
+using CPN::FunctionNode;
+using CPN::MemberFunction;
+
+void KernelTest::setUp() {
+    CPNRegisterNodeFactory(shared_ptr<MockNodeFactory>(new MockNodeFactory("MockNode")));
+	kernel = new Kernel(KernelAttr("test"));
 }
 
-void KernelTest::tearDown(void) {
+void KernelTest::tearDown() {
 	delete kernel;
 	kernel = 0;
+    CPNUnregisterNodeFactory("MockNode");
 }
 
-void KernelTest::TestInvalidNodeCreationType(void) {
+void KernelTest::TestInvalidNodeCreationType() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
-	try {
-		kernel->CreateNode("test", "invaidname", 0, 0);
-		CPPUNIT_FAIL("Created invalid node type.");
-	} catch (std::invalid_argument e) {
-	}
+    NodeAttr attr = NodeAttr("invalid", "invalid");
+	CPPUNIT_ASSERT_THROW(kernel->CreateNode(attr), std::invalid_argument);
 }
 
-void KernelTest::TestInvalidQueueCreationType(void) {
+void KernelTest::TestInvalidQueueCreationType() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
-	try {
-		kernel->CreateQueue("test", "invalidname", 0, 0, 0);
-		CPPUNIT_FAIL("Created invalid queue type.");
-	} catch (std::invalid_argument e) {
-	}
+    QueueAttr attr = QueueAttr(1024, 1024);
+	CPPUNIT_ASSERT_THROW(kernel->CreateQueue(attr), std::invalid_argument);
 }
 
-void KernelTest::TestCreateNodes(void) {
+void KernelTest::TestCreateNodes() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
 	AddNoOps();
 }
 
-void KernelTest::TestStartNoOps(void) {
+void KernelTest::SimpleTwoNodeTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
-	AddNoOps();
-	kernel->Start();
-	kernel->Wait();
+    NodeAttr attr("source", "MockNode");
+    attr.SetParam(MockNode::GetModeName(MockNode::MODE_SOURCE));
+    kernel->CreateNode(attr);
+    attr.SetName("sink").SetParam(MockNode::GetModeName(MockNode::MODE_SINK));
+    kernel->CreateNode(attr);
+    QueueAttr qattr(16, 16);
+    qattr.SetReader("sink", "x").SetWriter("source", "y");
+    kernel->CreateQueue(qattr);
+    kernel->WaitNodeTerminate("sink");
+    kernel->WaitNodeTerminate("source");
 }
 
-void KernelTest::TestStartNoOps2(void) {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
-	kernel->Start();
-	kernel->Wait();
-	CPPUNIT_ASSERT_THROW(AddNoOps(), CPN::KernelShutdownException);
-}
+void KernelTest::AddNoOps() {
 
-void KernelTest::TestCreateQueues(void) {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
-	AddDefaultQueues();
-	CPNRegisterQueueFactory(MockQueueFactory::GetInstance());
-	kernel->CreateQueue("mockq1", QUEUETYPE_MOCKQUEUE, 0, 0, 0);
-	kernel->CreateQueue("mockq2", QUEUETYPE_MOCKQUEUE, 0, 0, 0);
-	kernel->CreateQueue("mockq3", QUEUETYPE_MOCKQUEUE, 0, 0, 0);
-}
-
-void KernelTest::TestConnectQueues(void) {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
-	AddDefaultQueues();
-	AddNoOps();
-	kernel->ConnectWriteEndpoint("p", "no op 1", "y");
-	kernel->ConnectWriteEndpoint("q", "no op 2", "y");
-	kernel->ConnectWriteEndpoint("r", "no op 3", "y");
-	kernel->ConnectReadEndpoint("p", "no op 1", "x");
-	kernel->ConnectReadEndpoint("q", "no op 2", "x");
-	kernel->ConnectReadEndpoint("r", "no op 3", "x");
-}
-
-void KernelTest::TestConnectQueuesFailure(void) {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
-	AddDefaultQueues();
-	AddNoOps();
-	CPPUNIT_ASSERT_THROW(
-			kernel->ConnectWriteEndpoint("invalid queuename", "no op 1", "y"),
-		       	std::invalid_argument);
-	CPPUNIT_ASSERT_THROW(
-			kernel->ConnectWriteEndpoint("q", "invalid nodename", "y"),
-		       	std::invalid_argument);
-	CPPUNIT_ASSERT_THROW(
-			kernel->ConnectReadEndpoint("invalid queuename", "no op 1", "y"),
-		       	std::invalid_argument);
-	CPPUNIT_ASSERT_THROW(
-			kernel->ConnectReadEndpoint("q", "invalid nodename", "y"),
-		       	std::invalid_argument);
-}
-
-void KernelTest::AddNoOps(void) {
-	// Make sure we have access to the given types
-	CPNRegisterNodeFactory(MockNodeFactory::GetInstance());
-	MockNode::Mode_t mode = MockNode::MODE_NOP;
+    NodeAttr attr = NodeAttr("no op 1", "MockNode");
+    attr.SetParam(MockNode::GetModeName(MockNode::MODE_NOP));
 	// Create some nodes...
-	kernel->CreateNode("no op 1", "MockNode", &mode, sizeof(mode));
-	kernel->CreateNode("no op 2", "MockNode", &mode, sizeof(mode));
-	kernel->CreateNode("no op 3", "MockNode", &mode, sizeof(mode));
+	kernel->CreateNode(attr);
+    attr.SetName("no op 2");
+	kernel->CreateNode(attr);
+    attr.SetName("no op 3");
+	kernel->CreateNode(attr);
 }
 
-void KernelTest::AddDefaultQueues(void) {
-	CPNRegisterQueueFactory(CPN::ThresholdQueueFactory::GetInstance());
-	kernel->CreateQueue("p", CPN_QUEUETYPE_THRESHOLD, 100, 50, 1);
-	kernel->CreateQueue("q", CPN_QUEUETYPE_THRESHOLD, 100, 50, 1);
-	kernel->CreateQueue("r", CPN_QUEUETYPE_THRESHOLD, 100, 50, 1);
+
+void KernelTest::TestSync() {
+	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    MockSyncNode::RegisterType();
+    MockSyncNode::Param param;
+    NodeAttr attr("sync1", MOCKSYNCNODE_TYPENAME);
+    strncpy(param.othernode, "sync2", 50);
+    param.mode = MockSyncNode::MODE_SOURCE;
+    attr.SetParam(StaticConstBuffer(&param, sizeof(param)));
+    kernel->CreateNode(attr);
+    strncpy(param.othernode, "sync1", 50);
+    param.mode = MockSyncNode::MODE_SINK;
+    attr.SetName("sync2").SetParam(StaticConstBuffer(&param, sizeof(param)));
+    kernel->CreateNode(attr);
+    kernel->WaitNodeTerminate("sync2");
 }
 
+struct SyncSource {
+    public:
+    SyncSource(const std::string &onode) : othernode(onode) {}
+    void Run1(NodeBase *nb) {
+        nb->GetKernel()->WaitNodeStart(othernode);
+        QueueAttr qattr(sizeof(unsigned long), sizeof(unsigned long));
+        qattr.SetReader(othernode, "x").SetWriter(nb->GetName(), "y");
+        nb->GetKernel()->CreateQueue(qattr);
+        CPN::QueueWriterAdapter<unsigned long> out = nb->GetWriter("y");
+        unsigned long val = 1;
+        out.Enqueue(&val, 1);
+    }
+    void Run2(NodeBase *nb) {
+        QueueAttr qattr(sizeof(unsigned long), sizeof(unsigned long));
+        qattr.SetReader(othernode, "x").SetWriter(nb->GetName(), "y");
+        nb->GetKernel()->CreateQueue(qattr);
+        CPN::QueueWriterAdapter<unsigned long> out = nb->GetWriter("y");
+        unsigned long val = 1;
+        out.Enqueue(&val, 1);
+    }
+    void Run3(NodeBase *nb) {
+        QueueAttr qattr(sizeof(unsigned long), sizeof(unsigned long));
+        qattr.SetReader(othernode, "x").SetWriter(nb->GetName(), "y");
+        nb->GetKernel()->CreateQueue(qattr);
+        CPN::QueueWriterAdapter<unsigned long> out = nb->GetWriter("y");
+        unsigned long val = 1;
+        out.Enqueue(&val, 1);
+        out.Release();
+    }
+    void Run4(NodeBase *nb) {
+        nb->GetKernel()->WaitNodeStart(othernode);
+        QueueAttr qattr(sizeof(unsigned long), sizeof(unsigned long));
+        qattr.SetReader(othernode, "x").SetWriter(nb->GetName(), "y");
+        nb->GetKernel()->CreateQueue(qattr);
+        CPN::QueueWriterAdapter<unsigned long> out = nb->GetWriter("y");
+        unsigned long val = 1;
+        out.Enqueue(&val, 1);
+        out.Release();
+    }
+    // goes only with SyncSink::Run3
+    void Run5(NodeBase *nb) {
+        CPN::QueueWriterAdapter<unsigned long> out = nb->GetWriter("y");
+        unsigned long val = 1;
+        out.Enqueue(&val, 1);
+        out.Release();
+    }
+    std::string othernode;
+};
+
+struct SyncSink {
+    public:
+    SyncSink(const std::string &onode) :othernode(onode) {}
+    void Run1(NodeBase *nb) {
+        nb->GetKernel()->WaitNodeTerminate(othernode);
+        CPN::QueueReaderAdapter<unsigned long> in = nb->GetReader("x");
+        unsigned long val;
+        ASSERT(in.Dequeue(&val, 1));
+        ASSERT(val == 1);
+        ASSERT(!in.Dequeue(&val, 1));
+    }
+    void Run2(NodeBase *nb) {
+        CPN::QueueReaderAdapter<unsigned long> in = nb->GetReader("x");
+        unsigned long val;
+        ASSERT(in.Dequeue(&val, 1));
+        ASSERT(val == 1);
+        ASSERT(!in.Dequeue(&val, 1));
+    }
+    // goes only with SyncSource::Run5
+    void Run3(NodeBase *nb) {
+        QueueAttr qattr(sizeof(unsigned long), sizeof(unsigned long));
+        qattr.SetWriter(othernode, "y").SetReader(nb->GetName(), "x");
+        nb->GetKernel()->CreateQueue(qattr);
+        CPN::QueueReaderAdapter<unsigned long> in = nb->GetReader("x");
+        unsigned long val;
+        ASSERT(in.Dequeue(&val, 1));
+        ASSERT(val == 1);
+        ASSERT(!in.Dequeue(&val, 1));
+    }
+    std::string othernode;
+};
+
+#define SINKNAME "sinkname"
+#define SOURCENAME "sourcename"
+
+void DoSyncTest(Kernel *kernel, void (SyncSource::*fun1)(NodeBase*),
+        void (SyncSink::*fun2)(NodeBase*)) {
+
+    FunctionNode<MemberFunction<SyncSource> >::RegisterType(SOURCENAME);
+    FunctionNode<MemberFunction<SyncSink> >::RegisterType(SINKNAME);
+
+    NodeAttr attr(SOURCENAME, SOURCENAME);
+    SyncSource syncsource = SyncSource(SINKNAME);
+    MemberFunction<SyncSource> memfun1(&syncsource, fun1);
+    attr.SetParam(StaticConstBuffer(&memfun1, sizeof(memfun1)));
+    kernel->CreateNode(attr);
+
+    attr.SetName(SINKNAME).SetTypeName(SINKNAME);
+    SyncSink syncsink = SyncSink(SOURCENAME);
+    MemberFunction<SyncSink> memfun2(&syncsink, fun2);
+    attr.SetParam(StaticConstBuffer(&memfun2, sizeof(memfun2)));
+    kernel->CreateNode(attr);
+
+    kernel->WaitNodeTerminate(SINKNAME);
+    kernel->WaitNodeTerminate(SOURCENAME);
+}
+
+void KernelTest::TestSyncSourceSink() {
+	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DoSyncTest(kernel, &SyncSource::Run1, &SyncSink::Run1);
+    DoSyncTest(kernel, &SyncSource::Run2, &SyncSink::Run1);
+    DoSyncTest(kernel, &SyncSource::Run3, &SyncSink::Run1);
+    DoSyncTest(kernel, &SyncSource::Run4, &SyncSink::Run1);
+
+    DoSyncTest(kernel, &SyncSource::Run1, &SyncSink::Run2);
+    DoSyncTest(kernel, &SyncSource::Run2, &SyncSink::Run2);
+    DoSyncTest(kernel, &SyncSource::Run3, &SyncSink::Run2);
+    DoSyncTest(kernel, &SyncSource::Run4, &SyncSink::Run2);
+
+    DoSyncTest(kernel, &SyncSource::Run5, &SyncSink::Run3);
+}
 

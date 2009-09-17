@@ -8,17 +8,9 @@ class MockNodeFactory : public CPN::NodeFactory {
 public:
 	MockNodeFactory(std::string name) : CPN::NodeFactory(name) {}
 
-	CPN::NodeBase* Create(CPN::Kernel &ker, const CPN::NodeAttr &attr,
-		       	const void* const arg, const CPN::ulong argsize);
-	CPN::NodeBase* Create(CPN::Kernel &ker, const CPN::NodeAttr &attr);
-	CPN::NodeBase* Create(CPN::Kernel &ker, const CPN::NodeAttr &attr,
-			const std::string &param);
+    CPN::shared_ptr<CPN::NodeBase> Create(CPN::Kernel &ker, const CPN::NodeAttr &attr);
 
-	void Destroy(CPN::NodeBase* node);
-
-	static CPN::NodeFactory* GetInstance() { return &instance; }
 private:
-	static MockNodeFactory instance;
 };
 
 #endif

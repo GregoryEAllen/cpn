@@ -6,42 +6,42 @@
 #include "NodeFactory.h"
 #include "QueueWriterAdapter.h"
 #include "Kernel.h"
+#include "Assert.h"
 #include <stdexcept>
 
 #if _DEBUG
 #include <cstdio>
 #define DEBUG(frmt, ...) printf(frmt, __VA_ARGS__)
+#if 0
+#define DBPRINT(frmt, ...) printf(frmt, __VA_ARGS__)
+#else
+#define DBPRINT(frmt, ...)
+#endif
 #else
 #define DEBUG(frmt, ...)
+#define DBPRINT(frmt, ...)
 #endif
 
 class ProducerFactory : public CPN::NodeFactory {
 public:	
 	ProducerFactory() : CPN::NodeFactory(SIEVE_PRODUCERNODE_TYPENAME) {}
 
-	CPN::NodeBase* Create(CPN::Kernel& ker, const CPN::NodeAttr &attr,
-		       	const void* const arg, const CPN::ulong argsize) {
-		SieveControllerNode::Param* p = (SieveControllerNode::Param*)arg;
-		return new ProducerNode(ker, attr, *p);
-	}
-
-	CPN::NodeBase* Create(CPN::Kernel& ker, const CPN::NodeAttr &attr) {
-		throw std::invalid_argument("Producer node requires a SieveControllerNode::Param parameters");
-	}
-
-	void Destroy(CPN::NodeBase* node) {
-		delete node;
+    CPN::shared_ptr<CPN::NodeBase> Create(CPN::Kernel& ker, const CPN::NodeAttr &attr) {
+        ASSERT(attr.GetArg().GetBuffer());
+        ASSERT(attr.GetArg().GetSize() == sizeof(SieveControllerNode::Param));
+		SieveControllerNode::Param* p = (SieveControllerNode::Param*)attr.GetArg().GetBuffer();
+		return CPN::shared_ptr<CPN::NodeBase>(new ProducerNode(ker, attr, *p));
 	}
 };
 
-static ProducerFactory producerFactoryInstance;
 
 void ProducerNode::Process(void) {
 	DEBUG("ProducerNode %s start\n", GetName().c_str());
-	CPN::QueueWriterAdapter<unsigned long> out = kernel.GetWriter(GetName(), "y");
+	CPN::QueueWriterAdapter<unsigned long> out = GetWriter("y");
 	const unsigned long cutoff = param.numberBound;
 	unsigned long counter = 2;
 	while (cutoff == 0 || counter < cutoff) {
+        DBPRINT("ProducerNode: enqueue(%lu)\n", counter);
 		out.Enqueue(&counter, 1);
 		++counter;
 	}
@@ -52,7 +52,7 @@ void ProducerNode::Process(void) {
 }
 
 void ProducerNode::RegisterNodeType(void) {
-	CPNRegisterNodeFactory(&producerFactoryInstance);
+	CPNRegisterNodeFactory(CPN::shared_ptr<CPN::NodeFactory>(new ProducerFactory));
 }
 
 

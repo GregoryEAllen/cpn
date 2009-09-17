@@ -1,11 +1,30 @@
+//=============================================================================
+//	Computational Process Networks class library
+//	Copyright (C) 1997-2006  Gregory E. Allen and The University of Texas
+//
+//	This library is free software; you can redistribute it and/or modify it
+//	under the terms of the GNU Library General Public License as published
+//	by the Free Software Foundation; either version 2 of the License, or
+//	(at your option) any later version.
+//
+//	This library is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//	Library General Public License for more details.
+//
+//	The GNU Public License is available in the file LICENSE, or you
+//	can write to the Free Software Foundation, Inc., 59 Temple Place -
+//	Suite 330, Boston, MA 02111-1307, USA, or you can find it on the
+//	World Wide Web at http://www.fsf.org.
+//=============================================================================
 /** \file
  * \brief Common definitions to the entire CPN library.
+ * \author John Bridgman
  */
 
 #ifndef CPN_COMMON_H
 #define CPN_COMMON_H
-
-#include <string>
+#pragma once
 
 // This code was obtained from http://gcc.gnu.org/wiki/Visibility
 // Generic helper definitions for shared library support
@@ -39,16 +58,73 @@
 #define CPN_LOCAL
 #endif // CPN_DLL
 
+#include <stdint.h>
+#include <tr1/memory>
+#include <memory>
 /**
  * Namespace that seperates all the CPN specific
  * names from the global namespace.
  */
 namespace CPN {
-	typedef unsigned long ulong;
+
+    using std::tr1::shared_ptr;
+    using std::tr1::weak_ptr;
+    using std::tr1::dynamic_pointer_cast;
+    using std::auto_ptr;
+
+    // Forward declarations
+    class Kernel;
+    class KernelImpl;
+    class KernelAttr;
+
+    class QueueBase;
+    class QueueReader;
+    class QueueWriter;
+    class QueueAttr;
+
+    class NodeAttr;
+    class NodeBase;
+    class NodeFactory;
+
+    class Database;
+
+    class StreamEndpoint;
+    class WriterStream;
+    class ReaderStream;
+    class KernelStream;
+    class Stream;
+    class UnknownStream;
+
+    // Node Messaging forward declares and types
+    class NodeMessage;
+    typedef shared_ptr<NodeMessage> NodeMessagePtr;
+    class NodeMsgDispatch;
+    class KeyMutator;
+    class NodeEnqueue;
+    typedef shared_ptr<NodeEnqueue> NodeEnqueuePtr;
+    class NodeDequeue;
+    typedef shared_ptr<NodeDequeue> NodeDequeuePtr;
+    class NodeReadBlock;
+    typedef shared_ptr<NodeReadBlock> NodeReadBlockPtr;
+    class NodeWriteBlock;
+    typedef shared_ptr<NodeWriteBlock> NodeWriteBlockPtr;
+    class NodeSetReader;
+    typedef shared_ptr<NodeSetReader> NodeSetReaderPtr;
+    class NodeSetWriter;
+    typedef shared_ptr<NodeSetWriter> NodeSetWriterPtr;
+    class NodeBroadcastMessage;
+    class NodeShutdown;
+    typedef shared_ptr<NodeShutdown> NodeShutdownPtr;
+
+    // Global enums
+    enum QueueHint_t { QUEUEHINT_DEFAULT, QUEUEHINT_THRESHOLD };
+    enum Error_t { E_NONE, E_EXISTS, E_NOTEXISTS };
+    enum ObjectType { T_NONE, T_NODE, T_PORT };
+
+    // Types
+    typedef uint64_t Key_t;
 
 }
 
-/// The name for the default threshold queue type.
-#define CPN_QUEUETYPE_THRESHOLD "CPN::ThresholdQueue"
-#define CPN_QUEUETYPE_SIMPLE "CPN::SimpleQueue"
 #endif
+

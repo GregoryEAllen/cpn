@@ -1,249 +1,461 @@
+//=============================================================================
+//	Computational Process Networks class library
+//	Copyright (C) 1997-2006  Gregory E. Allen and The University of Texas
+//
+//	This library is free software; you can redistribute it and/or modify it
+//	under the terms of the GNU Library General Public License as published
+//	by the Free Software Foundation; either version 2 of the License, or
+//	(at your option) any later version.
+//
+//	This library is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//	Library General Public License for more details.
+//
+//	The GNU Public License is available in the file LICENSE, or you
+//	can write to the Free Software Foundation, Inc., 59 Temple Place -
+//	Suite 330, Boston, MA 02111-1307, USA, or you can find it on the
+//	World Wide Web at http://www.fsf.org.
+//=============================================================================
 /** \file
  * \brief Implementation for kernel functions
+ * \author John Bridgman
  */
 
 #include "Kernel.h"
-#include "QueueReader.h"
-#include "QueueWriter.h"
-#include "NodeQueueReader.h"
-#include "NodeQueueWriter.h"
+#include "NodeAttr.h"
+#include "NodeFactory.h"
 #include "NodeBase.h"
-#include "QueueBase.h"
-#include "NodeInfo.h"
-#include "QueueInfo.h"
-#include "KernelShutdownException.h"
-#include "MapDeleter.h"
-#include "MapInvoke.h"
-#include <algorithm>
-#include <cassert>
-#include <vector>
+
+#include "SimpleQueue.h"
+#include "ThresholdQueue.h"
+#include "QueueAttr.h"
+
+#include "MessageQueue.h"
+#include "NodeMessage.h"
+#include "Database.h"
+
+#include "ReaderStream.h"
+#include "WriterStream.h"
+#include "KernelStream.h"
+#include "CPNStream.h"
+#include "UnknownStream.h"
+
+#include "AutoBuffer.h"
+#include "Assert.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
+
 #include <stdexcept>
 
-CPN::Kernel::Kernel(const KernelAttr &kattr)
-    : kattr(kattr), lock(), cleanupStatus(false, &lock),
-        statusHandler(READY, &lock), idcounter(0) {}
+//#define KERNEL_FUNC_TRACE
+#ifdef KERNEL_FUNC_TRACE
+#define FUNCBEGIN printf("%s\n",__PRETTY_FUNCTION__)
+#else
+#define FUNCBEGIN
+#endif
 
-CPN::Kernel::~Kernel() {
-    Sync::AutoLock plock(lock); 
-    Terminate();
-    // Delete any remaining objects.
-    InternalWait();
-    assert(nodeMap.empty());
-    assert(nodesToDelete.empty());
-    assert(queuesToDelete.empty());
-    // delete orphan queues
-    for_each(queueMap.begin(), queueMap.end(),
-            MapDeleter<std::string, CPN::QueueInfo>());
-    queueMap.clear();
-}
+namespace CPN {
 
-void CPN::Kernel::Start(void) {
-    statusHandler.CompareAndPost(READY, RUNNING);
-}
-
-void CPN::Kernel::Wait(void) {
-    Sync::AutoLock plock(lock); 
-    InternalWait();
-}
-
-/**
- * Wait untill all nodes have terminated.
- * Also deletes all the terminated nodes.
- *
- * Post condition: nodeMap is empty.
- */
-void CPN::Kernel::InternalWait(void) {
-    while (true) {
-        while (!nodesToDelete.empty() || !queuesToDelete.empty()) {
-            if (!nodesToDelete.empty()) {
-                NodeInfo* nodeinfo = nodesToDelete.front();
-                nodesToDelete.pop_front();
-                delete nodeinfo;
+    Kernel::Kernel(const KernelAttr &kattr)
+        : lock(),
+        status(INITIALIZED, &lock),
+        kernelname(kattr.GetName()),
+        hostkey(0),
+        nodemap(),
+        garbagenodes(),
+        database(kattr.GetDatabase())
+    {
+        FUNCBEGIN;
+        Async::SockAddrList addrlist = Async::SocketAddress::CreateIP(
+                kattr.GetHostName().c_str(),
+                kattr.GetServName().c_str());
+        Async::SockAddrList::iterator addritr = addrlist.begin();
+        while (addritr != addrlist.end()) {
+            try {
+                listener = Async::ListenSocket::Create(*addritr);
+            } catch (Async::StreamException &e) {
+                if (addritr + 1 == addrlist.end()) {
+                    throw;
+                }
             }
-            if (!queuesToDelete.empty()) {
-                QueueInfo* queueinfo = queuesToDelete.front();
-                queuesToDelete.pop_front();
-                delete queueinfo;
+            ++addritr;
+        }
+
+        if (!database) {
+            database = Database::Local();
+        }
+        listener->ConnectReadable(sigc::mem_fun(this, &Kernel::True));
+        listener->ConnectOnRead(sigc::mem_fun(this, &Kernel::ListenRead));
+
+        hostkey = database->SetupHost(kattr);
+        Async::StreamSocket::CreatePair(wakeuplisten, wakeupwriter);
+        wakeuplisten->ConnectOnRead(sigc::mem_fun(this, &Kernel::WakeupReader));
+        wakeuplisten->ConnectReadable(sigc::mem_fun(this, &Kernel::True));
+        // Start up and don't finish until actually started.
+        Pthread::Start();
+        status.CompareAndWait(INITIALIZED);
+    }
+
+    Kernel::~Kernel() {
+        FUNCBEGIN;
+        Terminate();
+        Wait();
+        database->DestroyHostKey(hostkey);
+        while (!unknownstreams.Empty()) {
+            delete unknownstreams.PopFront();
+        }
+    }
+
+    void Kernel::Wait() {
+        FUNCBEGIN;
+        Sync::AutoReentrantLock arlock(lock);
+        KernelStatus_t s = status.Get();
+        while (s != DONE) {
+            s = status.CompareAndWait(s);
+        }
+    }
+
+    void Kernel::Terminate() {
+        FUNCBEGIN;
+        status.CompareAndPost(RUNNING, TERMINATE);
+        SendWakeup();
+    }
+
+    Key_t Kernel::CreateNode(const NodeAttr &attr) {
+        FUNCBEGIN;
+        Sync::AutoReentrantLock arlock(lock, false);
+        Key_t nodekey = database->CreateNodeKey(attr.GetName());
+        NodeAttr nodeattr = attr;
+        nodeattr.SetKey(nodekey);
+        // check the host the node should go on and send
+        // to that particular host
+        arlock.Lock();
+        if (nodeattr.GetHost().empty() ||
+                nodeattr.GetHost() == kernelname) {
+            InternalCreateNode(nodeattr);
+        } else {
+            arlock.Unlock();
+            Key_t key = database->WaitForHostSetup(nodeattr.GetHost());
+            arlock.Lock();
+            nodeattr.SetHostKey(key);
+            EnqueueMessage(KMsgCreateNode::Create(nodeattr));
+        }
+        return nodekey;
+    }
+
+    void Kernel::WaitNodeTerminate(const std::string &nodename) {
+        FUNCBEGIN;
+        database->WaitForNodeEnd(nodename);
+    }
+
+    void Kernel::WaitNodeStart(const std::string &nodename) {
+        FUNCBEGIN;
+        database->WaitForNodeStart(nodename);
+    }
+
+    void Kernel::CreateQueue(const QueueAttr &qattr) {
+        FUNCBEGIN;
+        Sync::AutoReentrantLock arlock(lock, false);
+        SimpleQueueAttr attr = qattr;
+        if (attr.GetReaderKey() == 0) {
+            if (attr.GetReaderNodeKey() == 0) {
+                if (qattr.GetReaderNode().empty()) {
+                    throw std::invalid_argument(
+                            "The reader side must be specified with the reader key"
+                            " or the reader name and node key or the reader name and"
+                            " node name.");
+                }
+                attr.SetReaderNodeKey(database->WaitForNodeStart(qattr.GetReaderNode()));
+            }
+            if (qattr.GetReaderPort().empty()) {
+                throw std::invalid_argument("Ether the port key or port name must be specified.");
+            }
+            attr.SetReaderKey(database->GetCreateReaderKey(attr.GetReaderNodeKey(),
+                        qattr.GetReaderPort()));
+        } else if (attr.GetReaderNodeKey() == 0) {
+            attr.SetReaderNodeKey(database->GetReaderNode(attr.GetReaderKey()));
+        }
+
+        if (attr.GetWriterKey() == 0) {
+            if (attr.GetWriterNodeKey() == 0) {
+                if (qattr.GetWriterNode().empty()) {
+                    throw std::invalid_argument(
+                            "The writer side must be specified with the writer key"
+                            " or the writer name and node key or the writer name and"
+                            " node name.");
+                }
+                attr.SetWriterNodeKey(database->WaitForNodeStart(qattr.GetWriterNode()));
+            }
+            if (qattr.GetWriterPort().empty()) {
+                throw std::invalid_argument("Ether the port key or port name must be specified.");
+            }
+            attr.SetWriterKey(database->GetCreateWriterKey(attr.GetWriterNodeKey(),
+                        qattr.GetWriterPort()));
+        } else if (attr.GetWriterNodeKey() == 0) {
+            attr.SetWriterNodeKey(database->GetWriterNode(attr.GetWriterKey()));
+        }
+        database->ConnectEndpoints(attr.GetWriterKey(), attr.GetReaderKey());
+
+        Key_t readerhost = database->GetNodeHost(attr.GetReaderNodeKey());
+        Key_t writerhost = database->GetNodeHost(attr.GetWriterNodeKey());
+
+        if (readerhost == writerhost) {
+            if (readerhost == hostkey) {
+                CreateLocalQueue(attr);
+            } else {
+                // Send a message to the other host to create a local queue
+                EnqueueMessage(KMsgCreateQueue::Create(attr, readerhost));
+            }
+        } else if (readerhost == hostkey) {
+            // Create the reader end here and queue up a message
+            // to the writer host that they need to create an endpoint
+            CreateReaderEndpoint(attr);
+            EnqueueMessage(KMsgCreateWriter::Create(attr, writerhost));
+        } else if (writerhost == hostkey) {
+            // Create the writer end here and queue up a message to
+            // the reader host that they need to create an endpoint
+            CreateWriterEndpoint(attr);
+            EnqueueMessage(KMsgCreateReader::Create(attr, readerhost));
+        } else {
+            // Queue up a message to both the reader and writer host
+            // to create endpoints
+            EnqueueMessage(KMsgCreateWriter::Create(attr, writerhost));
+            EnqueueMessage(KMsgCreateReader::Create(attr, readerhost));
+        }
+    }
+
+    void Kernel::EnqueueMessage(KernelMessagePtr msg) {
+        Sync::AutoReentrantLock arlock(lock);
+        if (msg->GetDestinationKey() == 0) {
+            msg->SetDestinationKey(hostkey);
+        }
+        msgqueue.push_back(msg);
+        SendWakeup();
+    }
+
+    void Kernel::CreateReaderEndpoint(const SimpleQueueAttr &attr) {
+        Sync::AutoReentrantLock arlock(lock);
+        shared_ptr<QueueBase> queue = MakeQueue(attr);
+        shared_ptr<NodeBase> readernode = nodemap[attr.GetReaderNodeKey()];
+        ASSERT(readernode);
+        readernode->GetMsgPut()->Put(NodeSetReader::Create(attr.GetReaderKey(), queue));
+        ASSERT(false, "Need to implement create of ReaderStream");
+    }
+
+    void Kernel::CreateWriterEndpoint(const SimpleQueueAttr &attr) {
+        Sync::AutoReentrantLock arlock(lock);
+        shared_ptr<QueueBase> queue = MakeQueue(attr);
+        shared_ptr<NodeBase> writernode = nodemap[attr.GetWriterNodeKey()];
+        ASSERT(writernode);
+        writernode->GetMsgPut()->Put(NodeSetWriter::Create(attr.GetWriterKey(), queue));
+        ASSERT(false, "Need to implement create of WriterStream");
+    }
+
+    void Kernel::CreateLocalQueue(const SimpleQueueAttr &attr) {
+        Sync::AutoReentrantLock arlock(lock);
+
+        shared_ptr<QueueBase> queue = MakeQueue(attr);
+
+        shared_ptr<NodeBase> readernode = nodemap[attr.GetReaderNodeKey()];
+        ASSERT(readernode);
+        readernode->GetMsgPut()->Put(NodeSetReader::Create(attr.GetReaderKey(), queue));
+
+        shared_ptr<NodeBase> writernode = nodemap[attr.GetWriterNodeKey()];
+        ASSERT(writernode);
+        writernode->GetMsgPut()->Put(NodeSetWriter::Create(attr.GetWriterKey(), queue));
+    }
+
+    shared_ptr<QueueBase> Kernel::MakeQueue(const SimpleQueueAttr &attr) {
+        shared_ptr<QueueBase> queue;
+        switch (attr.GetHint()) {
+        case QUEUEHINT_THRESHOLD:
+            queue = shared_ptr<QueueBase>(new ThresholdQueue(attr.GetLength(),
+                attr.GetMaxThreshold(), attr.GetNumChannels()));
+            break;
+        default:
+            queue = shared_ptr<QueueBase>(new SimpleQueue(attr.GetLength(),
+                attr.GetMaxThreshold(), attr.GetNumChannels()));
+            break;
+        }
+        return queue;
+    }
+
+    void Kernel::Logf(int level, const char* const fmt, ...) {
+        FUNCBEGIN;
+        // This code was taken from an example of how
+        // to use vsnprintf in the unix man pages.
+        va_list ap;
+        AutoBuffer buff(100);
+        while (1) {
+            /* Try to print in the allocated space. */
+            va_start(ap, fmt);
+            int n = vsnprintf((char*)buff.GetBuffer(), buff.GetSize(), fmt, ap);
+            va_end(ap);
+            /* If that worked, return the string. */
+            if (n > -1 && unsigned(n) < buff.GetSize()) {
+                std::string ret = (char*)buff.GetBuffer();
+                Log(level, ret);
+                return;
+            }
+            /* Else try again with more space. */
+            if (n > -1) { /* glibc 2.1 */ /* precisely what is needed */
+                buff.ChangeSize(n+1);
+            }
+            else { /* glibc 2.0 */ /* twice the old size */
+                buff.ChangeSize(buff.GetSize()*2);
             }
         }
-        if (nodeMap.empty()) break;
-        cleanupStatus.CompareWaitAndPost(true, false);
     }
-    statusHandler.Post(STOPPED);
-}
 
-void CPN::Kernel::Terminate(void) {
-    Sync::AutoLock plock(lock); 
-    if (STOPPED == statusHandler.Get()) return;
-    for_each(nodeMap.begin(), nodeMap.end(),
-                MapInvoke<std::string, CPN::NodeInfo, void(CPN::NodeInfo::*)(void)>(
-                &CPN::NodeInfo::Terminate));
-    statusHandler.Post(TERMINATING);
-}
-
-void CPN::Kernel::CreateNode(const std::string &nodename,
-        const std::string &nodetype,
-        const void* const arg,
-        const ulong argsize) {
-    Sync::AutoLock plock(lock); 
-    ReadyOrRunningCheck();
-    if (nodeMap.find(nodename) != nodeMap.end())
-           throw std::invalid_argument(nodename + " already exists");
-    CPN::NodeAttr attr(GenerateId(nodename), nodename, nodetype);
-    nodeMap.insert(make_pair(nodename, new CPN::NodeInfo(*this, attr, arg, argsize)));
-}
-
-void CPN::Kernel::CreateNode(const std::string &nodename,
-        const std::string &nodetype) {
-    Sync::AutoLock plock(lock); 
-    ReadyOrRunningCheck();
-    if (nodeMap.find(nodename) != nodeMap.end())
-           throw std::invalid_argument(nodename + " already exists");
-    CPN::NodeAttr attr(GenerateId(nodename), nodename, nodetype);
-    nodeMap.insert(make_pair(nodename, new CPN::NodeInfo(*this, attr)));
-}
-
-void CPN::Kernel::CreateNode(const std::string &nodename,
-        const std::string &nodetype,
-        const std::string &param) {
-    Sync::AutoLock plock(lock); 
-    ReadyOrRunningCheck();
-    if (nodeMap.find(nodename) != nodeMap.end())
-           throw std::invalid_argument(nodename + " already exists");
-    CPN::NodeAttr attr(GenerateId(nodename), nodename, nodetype);
-    nodeMap.insert(make_pair(nodename, new CPN::NodeInfo(*this, attr, param)));
-}
-
-void CPN::Kernel::CreateQueue(const std::string &queuename,
-        const std::string &queuetype,
-        const ulong queueLength,
-        const ulong maxThreshold,
-        const ulong numChannels) {
-    Sync::AutoLock plock(lock); 
-    ReadyOrRunningCheck();
-    // Verify that queuename doesn't already exist.
-    if (queueMap.find(queuename) != queueMap.end()) 
-        throw std::invalid_argument(queuename + " already exists");
-    CPN::QueueAttr attr(GenerateId(queuename), queuename, queuetype,
-                queueLength, maxThreshold, numChannels);
-    queueMap.insert(make_pair(queuename, new CPN::QueueInfo(this, attr)));
-}
-
-void CPN::Kernel::ConnectWriteEndpoint(const std::string &qname,
-        const std::string &nodename,
-        const std::string &portname) {
-    Sync::AutoLock plock(lock); 
-    ReadyOrRunningCheck();
-    // Validate that qname and nodename exist
-    QueueInfo* qinfo = GetQueueInfo(qname);
-    NodeInfo* ninfo = GetNodeInfo(nodename);
-    // Unregister the write end of the queue from it's registered
-    // place if it is already registered.
-    // Register the write end with the new place.
-    ninfo->SetWriter(qinfo, portname);
-}
-
-void CPN::Kernel::ReleaseWriter(const std::string &nodename,
-        const std::string &portname) {
-    Sync::AutoLock plock(lock); 
-    ReadyOrRunningCheck();
-    NodeInfo* ninfo = GetNodeInfo(nodename);
-    ninfo->ClearWriter(portname);
-}
-
-void CPN::Kernel::ConnectReadEndpoint(const std::string &qname,
-        const std::string &nodename,
-        const std::string &portname) {
-    Sync::AutoLock plock(lock); 
-    ReadyOrRunningCheck();
-    // Validate qname and nodename.
-    QueueInfo* qinfo = GetQueueInfo(qname);
-    NodeInfo* ninfo = GetNodeInfo(nodename);
-    // Unregister the queue from its read port if applicable.
-    // Register the read port with its new port.
-    ninfo->SetReader(qinfo, portname);
-}
-
-void CPN::Kernel::ReleaseReader(const std::string &nodename,
-        const std::string &portname) {
-    Sync::AutoLock plock(lock); 
-    ReadyOrRunningCheck();
-    NodeInfo* ninfo = GetNodeInfo(nodename);
-    ninfo->ClearReader(portname);
-}
-
-CPN::QueueReader* CPN::Kernel::GetReader(const std::string &nodename,
-        const std::string &portname) {
-    Sync::AutoLock plock(lock); 
-    ReadyOrRunningCheck();
-    // Validate nodename
-    // Lookup nodeinfo
-    NodeInfo* ninfo = GetNodeInfo(nodename);
-    // Check if reader exists.
-    // If not create new reader and add it.
-    // return the reader.
-    QueueReader* qreader = ninfo->GetReader(portname);
-    assert(qreader);
-    return qreader;
-}
-
-CPN::QueueWriter* CPN::Kernel::GetWriter(const std::string &nodename,
-        const std::string &portname) {
-    Sync::AutoLock plock(lock); 
-    ReadyOrRunningCheck();
-    // Validate nodename
-    // lookup nodeinfo.
-    NodeInfo* ninfo = GetNodeInfo(nodename);
-    // check if writer exists.
-    // if not create new writer and add it.
-    // return the writer.
-    QueueWriter* qwriter = ninfo->GetWriter(portname);
-    assert(qwriter);
-    return qwriter;
-}
-
-void CPN::Kernel::NodeShutdown(const std::string &nodename) {
-    Sync::AutoLock plock(lock); 
-    NodeInfo* ninfo = nodeMap[nodename];
-    nodeMap.erase(nodename);
-    nodesToDelete.push_back(ninfo);
-    cleanupStatus.Post(true);
-}
-
-void CPN::Kernel::QueueShutdown(const std::string &queuename) {
-    Sync::AutoLock plock(lock); 
-    QueueInfo* qinfo = queueMap[queuename];
-    queueMap.erase(queuename);
-    queuesToDelete.push_back(qinfo);
-    cleanupStatus.Post(true);
-}
-
-void CPN::Kernel::ReadyOrRunningCheck(void) {
-    Status_t currentStatus = statusHandler.Get();
-    if (currentStatus != READY && currentStatus != RUNNING) {
-        throw CPN::KernelShutdownException("Kernel shutting down.");
+    void Kernel::Log(int level, const std::string &msg) {
+        FUNCBEGIN;
+        database->Log(level, msg);
     }
-}
 
-CPN::ulong CPN::Kernel::GenerateId(const std::string& name) {
-    return idcounter++;
-}
-
-CPN::NodeInfo* CPN::Kernel::GetNodeInfo(const std::string& name) {
-    std::map<std::string, NodeInfo*>::iterator nodeItr;
-    nodeItr = nodeMap.find(name);
-    if (nodeItr == nodeMap.end() || (*nodeItr).second == 0) {
-        throw std::invalid_argument("No such node: " + name);
+    void Kernel::InternalCreateNode(NodeAttr &nodeattr) {
+        FUNCBEGIN;
+        Sync::AutoReentrantLock arlock(lock);
+        nodeattr.SetDatabase(database);
+        database->AffiliateNodeWithHost(hostkey, nodeattr.GetKey());
+        shared_ptr<NodeFactory> factory = CPNGetNodeFactory(nodeattr.GetTypeName());
+        if (!factory) {
+            throw std::invalid_argument("No such node type " + nodeattr.GetTypeName());
+        }
+        shared_ptr<NodeBase> node = factory->Create(*this, nodeattr);
+        nodemap.insert(std::make_pair(nodeattr.GetKey(), node));
+        node->Start();
     }
-    return (*nodeItr).second;
-}
 
-CPN::QueueInfo* CPN::Kernel::GetQueueInfo(const std::string& name) {
-    std::map<std::string, QueueInfo*>::iterator queueItr;
-    queueItr = queueMap.find(name);
-    if (queueItr == queueMap.end() || (*queueItr).second == 0) {
-        throw std::invalid_argument("No such queue: " + name);
+    void Kernel::NodeTerminated(Key_t key) {
+        FUNCBEGIN;
+        Sync::AutoReentrantLock arlock(lock);
+        database->DestroyNodeKey(key);
+        shared_ptr<NodeBase> node = nodemap[key];
+        nodemap.erase(key);
+        garbagenodes.push_back(node);
+        SendWakeup();
     }
-    return (*queueItr).second;
+
+    void Kernel::ClearGarbage() {
+        FUNCBEGIN;
+        Sync::AutoReentrantLock arlock(lock);
+        garbagenodes.clear();
+    }
+
+    void Kernel::HandleMessages() {
+        Sync::AutoReentrantLock arlock(lock);
+        std::list<KernelMessagePtr>::iterator itr;
+        itr = msgqueue.begin();
+        while (itr != msgqueue.end()) {
+            KernelMessagePtr msg = *itr;
+            // Look at the destination of the message.
+            if (msg->GetDestinationKey() == hostkey) {
+                // Is it us? process it.
+                msg->DispatchOn(this);
+                itr = msgqueue.erase(itr);
+            } else {
+                // if not us lookup to see if we have a control
+                StreamMap::iterator entry = streammap.find(msg->GetDestinationKey());
+                if (entry == streammap.end()) {
+                    // if we dont have one create one and keep the message around
+                    ++itr;
+                } else {
+                    shared_ptr<KernelStream> kernelstream =
+                        dynamic_pointer_cast<KernelStream>(entry->second);
+                    if (kernelstream->Connected()) {
+                        // if we have one forward it
+                        msg->DispatchOn(kernelstream.get());
+                        itr = msgqueue.erase(itr);
+                    } else {
+                        // It is waiting to be connected keep the message around
+                        ++itr;
+                    }
+                }
+            }
+        }
+    }
+
+    void *Kernel::EntryPoint() {
+        FUNCBEGIN;
+        Sync::AutoReentrantLock arlock(lock, false);
+        status.CompareAndPost(INITIALIZED, RUNNING);
+        while (status.Get() == RUNNING) {
+            ClearGarbage();
+            HandleMessages();
+            std::vector<Async::DescriptorPtr> descriptors;
+            descriptors.push_back(wakeuplisten);
+            descriptors.push_back(listener);
+
+            for (StreamMap::iterator itr = streammap.begin();
+                    itr != streammap.end(); ++itr) {
+                itr->second->RunOneIteration();
+                itr->second->RegisterDescriptor(descriptors);
+            }
+
+            ENSURE(Async::Descriptor::Poll(descriptors, -1) > 0);
+        }
+        // Close the listen port
+        listener.reset();
+        // Tell everybody that is left to die.
+        arlock.Lock();
+        for (NodeMap::iterator itr = nodemap.begin();
+                itr != nodemap.end(); ++itr) {
+            itr->second->Shutdown();
+        }
+        while (!nodemap.empty()) {
+            arlock.Unlock();
+            std::vector<Async::DescriptorPtr> descriptors;
+            descriptors.push_back(wakeuplisten);
+            ENSURE(Async::Descriptor::Poll(descriptors, -1) > 0);
+            arlock.Lock();
+        }
+        arlock.Unlock();
+        status.Post(DONE);
+        return 0;
+    }
+
+    void Kernel::WakeupReader() {
+        FUNCBEGIN;
+        Async::Stream stream(wakeuplisten);
+        // read data out of the stream until it's empty
+        // the buffer size is random
+        char buffer[256];
+        while (stream.Read(buffer, sizeof(buffer)) > 0);
+        ASSERT(stream, "EOF on the wakeup pipe!!!");
+    }
+
+    void Kernel::SendWakeup() {
+        FUNCBEGIN;
+        Async::Stream stream(wakeupwriter);
+        char c = 0;
+        ENSURE(stream.Write(&c, sizeof(c)) == sizeof(c));
+    }
+
+    void Kernel::ListenRead() {
+        Async::SockPtr sock = listener->Accept();
+        unknownstreams.PushFront(
+                new UnknownStream(sock, sigc::mem_fun(this, &Kernel::EnqueueMessage))
+                );
+    }
+
+    void Kernel::ProcessMessage(KMsgCreateWriter *msg) {
+        CreateWriterEndpoint(msg->GetAttr());
+    }
+
+    void Kernel::ProcessMessage(KMsgCreateReader *msg) {
+        CreateReaderEndpoint(msg->GetAttr());
+    }
+
+    void Kernel::ProcessMessage(KMsgCreateQueue *msg) {
+        CreateLocalQueue(msg->GetAttr());
+    }
+
+    void Kernel::ProcessMessage(KMsgCreateNode *msg) {
+        InternalCreateNode(msg->GetAttr());
+    }
+
 }
 

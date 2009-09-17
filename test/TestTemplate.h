@@ -11,17 +11,19 @@ CPPUNIT_TEST_SUITE_REGISTRATION( TestTemplate );
  */
 #ifndef TESTTEMPLATE_H
 #define TESTTEMPLATE_H
+#pragma once
+
 #include <cppunit/extensions/HelperMacros.h>
 class TestTemplate : public CppUnit::TestFixture {
 public:
-	void setUp(void);
+	void setUp();
 
-	void tearDown(void);
+	void tearDown();
 
 	CPPUNIT_TEST_SUITE( TestTemplate );
 	CPPUNIT_TEST( test1 );
 	CPPUNIT_TEST_SUITE_END();
 
-	void test1(void);
+	void test1();
 };
 #endif

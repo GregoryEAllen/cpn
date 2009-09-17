@@ -89,7 +89,7 @@ namespace Socket {
        /**
          * \return the address as a string if available.
          */
-        std::string StringAddress(void) const { return name; };
+        std::string StringAddress(void) const;
 
         operator sockaddr* () { return &(address.addr); }
         operator const sockaddr* () const { return &(address.addr); }

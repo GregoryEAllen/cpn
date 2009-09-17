@@ -7,7 +7,6 @@
 #pragma once
 
 #include "SocketAddress.h"
-#include <poll.h>
 
 /*
  * Sockets have the following associated with them:
@@ -70,7 +69,7 @@ namespace Socket {
         bool Bind(const SocketAddress &addr);
         bool Listen(const int qsize);
         StreamSocket* Accept(bool block);
-        void Close(void);
+        void Close();
 
         int Write(const void* ptr, const int size, bool block);
 
@@ -80,12 +79,15 @@ namespace Socket {
         SocketAddress GetRemoteAddress(void) { return remoteaddress; }
 
         State_t GetState() { return state; }
-        int LastError(void) const { return error; }
+        bool Listening() { return LISTENING == state; }
+        bool Connected() { return CONNECTED == state; }
+        int LastError() const { return error; }
+        int Fd() { return fd; }
     protected:
         StreamSocket(SockFamily fam);
         StreamSocket(SockFamily fam, int fd, SocketAddress raddress);
-        void LookupLocalAddress(void);
-        void LookupRemoteAddress(void);
+        void LookupLocalAddress();
+        void LookupRemoteAddress();
     private:
         StreamSocket(const StreamSocket& osock);
         StreamSocket &operator=(const StreamSocket& osock);
@@ -101,29 +103,6 @@ namespace Socket {
 
         friend class PollData;
     };
-
-    class PollData : public pollfd {
-    public:
-        PollData(StreamSocket* sock, bool in, bool out) {
-            fd = sock->fd;
-            Reset(in, out);
-        }
-        PollData(int fid, bool in, bool out) {
-            fd = fid;
-            Reset(in, out);
-        }
-        void Reset(bool in, bool out) {
-            events = in ? (events | POLLIN) : (events & ~POLLIN);
-            events = out ? (events | POLLOUT) : (events & ~POLLOUT);
-            revents = 0;
-        }
-        bool In(void) { return (0 != (revents&POLLIN)); }
-        bool Out(void) { return (0 != (revents&POLLOUT)); }
-        bool Err(void) { return (0 != (revents&POLLERR)); }
-        bool Hup(void) { return (0 != (revents&POLLHUP)); }
-    };
-    int Poll(std::vector<PollData>& socks, int timeout);
-
 }
 
 #endif

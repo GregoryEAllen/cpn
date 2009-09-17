@@ -104,10 +104,10 @@ MirrorBufferSet::MirrorBufferSet(ulong bufferSz, ulong mirrorSz, int nBuffers)
 #if 1
 	// do a sanity check for our math
 	if ( bufferSize % pageSize)
-		fprintf(stderr, "### Error: bufferSize = %d is not a multiple of pageSize = %d\n",
+		fprintf(stderr, "### Error: bufferSize = %lu is not a multiple of pageSize = %lu\n",
 			bufferSize, pageSize);
 	if ( mirrorSize % pageSize)
-		fprintf(stderr, "### Error: mirrorSize = %d is not a multiple of pageSize = %d\n",
+		fprintf(stderr, "### Error: mirrorSize = %lu is not a multiple of pageSize = %lu\n",
 			mirrorSize, pageSize);
 #endif
 
@@ -151,7 +151,7 @@ MirrorBufferSet::MirrorBufferSet(ulong bufferSz, ulong mirrorSz, int nBuffers)
 		}
 		fprintf2((stderr,"to [0x%08X - 0x%08X)\n", theAddr, theAddr+theSize));
 		if (addr!=theAddr) {
-			fprintf(stderr, "### Error: mapped to 0x%08X instead of 0x%08X\n",
+			fprintf(stderr, "### Error: mapped to 0x%p instead of 0x%p\n",
 				addr, theAddr );
 			return;
 		}
@@ -169,7 +169,7 @@ MirrorBufferSet::MirrorBufferSet(ulong bufferSz, ulong mirrorSz, int nBuffers)
 		}
 		fprintf2((stderr,"to [0x%08X - 0x%08X)\n", theAddr, theAddr+theSize));
 		if (addr!=theAddr) {
-			fprintf(stderr, "### Error: mapped to 0x%08X instead of 0x%08X\n", addr, theAddr );
+			fprintf(stderr, "### Error: mapped to 0x%p instead of 0x%p\n", addr, theAddr );
 			return;
 		}
 	}
@@ -223,12 +223,13 @@ MirrorBufferSet::~MirrorBufferSet(void)
 	if (!bufferBase) return;
 
 	// unmap the file
-	ulong size = (bufferSize+mirrorSize)*numBuffers;
 	if ( munmap((caddr_t)bufferBase, (bufferSize+mirrorSize)*numBuffers) ) {
 		perror("munmap");
 	}
 	fprintf2((stderr,"unmapped- \"%s\" [0x%08X - 0x%08X), %d bytes\n",
-		fileName, bufferBase, (char*)bufferBase+size, size));
+		fileName, bufferBase,
+        (char*)bufferBase+((bufferSize+mirrorSize)*numBuffers),
+        ((bufferSize+mirrorSize)*numBuffers)));
 	
 #if MBS_USE_POSIX_SHM
 	// remove the shared memory object

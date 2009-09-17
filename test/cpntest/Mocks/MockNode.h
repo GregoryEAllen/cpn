@@ -1,6 +1,7 @@
 
 #ifndef MOCKNODE_H
 #define MOCKNODE_H
+#pragma once
 
 #include "NodeBase.h"
 /**
@@ -11,24 +12,14 @@ class MockNode : public CPN::NodeBase {
 public:
 	enum Mode_t { MODE_SOURCE = 1, MODE_TRANSMUTE, MODE_SINK, MODE_NOP };
 
-	MockNode(CPN::Kernel &ker, const CPN::NodeAttr &attr, const Mode_t &mode_) 
-		: CPN::NodeBase(ker, attr), mode(mode_) {}
-	MockNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)
-		: CPN::NodeBase(ker, attr), mode(MODE_NOP) {}
-	MockNode(CPN::Kernel &ker, const CPN::NodeAttr &attr, const std::string &param)
-		: CPN::NodeBase(ker, attr), mode(GetMode(param)) {
-	}
+	MockNode(CPN::Kernel &ker, const CPN::NodeAttr &attr);
 
-	void Process(void);
+	void Process();
 
+    static std::string GetModeName(Mode_t mode);
+    static Mode_t GetMode(const std::string &param);
 private:
-	Mode_t GetMode(const std::string &param) {
-		if (param == "source") return MODE_SOURCE;
-		else if (param == "transmute") return MODE_TRANSMUTE;
-		else if (param == "sink") return MODE_SINK;
-		else return MODE_NOP;
-	}
-	const Mode_t mode;
+	Mode_t mode;
 };
 
 

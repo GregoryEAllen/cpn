@@ -5,34 +5,29 @@
 #include "Kernel.h"
 class KernelTest : public CppUnit::TestFixture {
 public:
-	void setUp(void);
+	void setUp();
 
-	void tearDown(void);
+	void tearDown();
 
 	CPPUNIT_TEST_SUITE( KernelTest );
 	CPPUNIT_TEST( TestInvalidNodeCreationType );
 	CPPUNIT_TEST( TestInvalidQueueCreationType );
 	CPPUNIT_TEST( TestCreateNodes );
-	CPPUNIT_TEST( TestStartNoOps );
-	CPPUNIT_TEST( TestStartNoOps2 );
-	CPPUNIT_TEST( TestCreateQueues );
-	CPPUNIT_TEST( TestConnectQueues );
-	CPPUNIT_TEST( TestConnectQueuesFailure );
+	CPPUNIT_TEST( SimpleTwoNodeTest );
+	CPPUNIT_TEST( TestSync );
+	CPPUNIT_TEST( TestSyncSourceSink );
 	CPPUNIT_TEST_SUITE_END();
 
-	void TestInvalidNodeCreationType(void);
-	void TestInvalidQueueCreationType(void);
-	void TestCreateNodes(void);
-	void TestStartNoOps(void);
-	void TestStartNoOps2(void);
-	void TestCreateQueues(void);
-	void TestConnectQueues(void);
-	void TestConnectQueuesFailure(void);
+	void TestInvalidNodeCreationType();
+	void TestInvalidQueueCreationType();
+	void TestCreateNodes();
+    void SimpleTwoNodeTest();
+    void TestSync();
+    void TestSyncSourceSink();
 
 
 	// Support functions
-	void AddNoOps(void);
-	void AddDefaultQueues(void);
+	void AddNoOps();
 
 private:
 	CPN::Kernel* kernel;

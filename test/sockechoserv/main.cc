@@ -1,145 +1,122 @@
 /** \file
  */
 
-#include "Socket.h"
-#include "AutoCircleBuffer.h"
-#include <fcntl.h>
+#include "StreamForwarder.h"
+#include "AsyncStream.h"
+#include "AsyncSocket.h"
+
+#include <utility>
 #include <cstdio>
+#include <tr1/memory>
 
-using Socket::SocketAddress;
-using Socket::StreamSocket;
-using Socket::Poll;
-using Socket::PollData;
+using Async::SocketAddress;
+using Async::SockAddrList;
+using Async::StreamSocket;
+using Async::Descriptor;
+using Async::DescriptorPtr;
+using Async::ListenSocket;
+using Async::ListenSockPtr;
+using Async::SockPtr;
+using Async::Stream;
+using std::tr1::shared_ptr;
 
-const int BUFF_SIZE = 256;
-
-struct SockData {
-    SockData(StreamSocket* s, bool l) : sock(s), buff(BUFF_SIZE), listen(l) {}
-    ~SockData() { StreamSocket::DeleteStreamSocket(sock); }
-    StreamSocket* sock;
-    AutoCircleBuffer buff;
-    bool listen;
-};
-
-void SetBlocking(int fd, bool block) {
-    int flags = fcntl(fd, F_GETFL, 0);
-    if (-1 == flags) { flags = 0; }
-    if (!block) {
-        fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-    } else {
-        fcntl(fd, F_SETFL, flags & ~O_NONBLOCK);
+class Controller : public sigc::trackable {
+public:
+    typedef std::vector<std::pair<shared_ptr<StreamForwarder>, DescriptorPtr > > StreamList;
+    Controller(DescriptorPtr input, ListenSockPtr listensock)
+    : in(input), lsock(listensock) {
+        in->ConnectReadable(sigc::mem_fun(this, &Controller::ReturnTrue));
+        in->ConnectOnRead(sigc::mem_fun(this, &Controller::StdRead));
+        in->ConnectOnError(sigc::mem_fun(this, &Controller::Error));
+        lsock->ConnectReadable(sigc::mem_fun(this, &Controller::ReturnTrue));
+        lsock->ConnectOnRead(sigc::mem_fun(this, &Controller::ListenRead));
+        lsock->ConnectOnError(sigc::mem_fun(this, &Controller::Error));
     }
-}
+    bool ReturnTrue() { return true; }
+    void StdRead() {
+        //printf("%s\n",__PRETTY_FUNCTION__);
+        if (getchar() == 'q') {
+            running = false;
+        }
+    }
+
+    void ListenRead() {
+        printf("%s\n",__PRETTY_FUNCTION__);
+        SockPtr s = lsock->Accept();
+        if (s) {
+            printf("Accepted a connection from %s %s\n",
+                    s->GetRemoteAddress().GetHostName().c_str(),
+                    s->GetRemoteAddress().GetServName().c_str());
+
+            sockets.push_back(std::make_pair(
+                    shared_ptr<StreamForwarder>(new StreamForwarder(Stream(s), Stream(s))), s));
+        }
+    }
+
+    void Error(int err) {
+        printf("Error %d\n", err);
+        running = false;
+    }
+    
+    void Run() {
+        running = true;
+        while (running) {
+            StreamList keepsocks;
+            std::vector<DescriptorPtr> polllist;
+            for (StreamList::iterator itr = sockets.begin();
+                    itr != sockets.end(); ++itr) {
+                if (*(itr->second)) {
+                    keepsocks.push_back(*itr);
+                    polllist.push_back(itr->second);
+                } else {
+                    printf("A connection closed\n");
+                }
+            }
+            polllist.push_back(in);
+            polllist.push_back(lsock);
+            sockets = keepsocks;
+            Descriptor::Poll(polllist, -1);
+        }
+    }
+private:
+    DescriptorPtr in;
+    ListenSockPtr lsock;
+    StreamList sockets;
+    bool running;
+};
 
 int main(int argc, char **argv) {
     if (argc != 2) {
         printf("Error must be: %s port\n", argv[0]);
         return 0;
     }
-    std::vector<SocketAddress> addresses;
-    if (SocketAddress::Lookup(0, argv[1], Socket::INET, addresses) != 0) {
-        printf("Address lookup failed\n");
-        return 0;
+    SockAddrList addresses;
+    try {
+        addresses = SocketAddress::CreateIPFromServ(argv[1]);
+    } catch (Async::StreamException &e) {
+        printf("Invalid servname: %s\n", e.what());
+        return 1;
     }
-    StreamSocket* lsock = 0;
-    for (std::vector<SocketAddress>::iterator itr = addresses.begin();
+
+    ListenSockPtr listensock;
+    for (SockAddrList::iterator itr = addresses.begin();
             itr != addresses.end(); ++itr) {
-        lsock = StreamSocket::NewStreamSocket(itr->Family());
-        printf("Attempting bind to %s\n", itr->StringAddress().c_str());
-        if (lsock->Bind(*itr)) {
-            printf("Bind successful\n");
-            if (lsock->Listen(10)) {
-                printf("Listen successful\n");
-            }
-            break;
+        printf("Attempting bind to %s %s\n", itr->GetHostName().c_str(),
+                itr->GetServName().c_str());
+        try {
+            listensock = ListenSocket::Create(*itr);
+        } catch (Async::StreamException &e) {
+            printf("Socket setup failed: %s\n", e.what());
         }
-        printf("Failed to connect.\n");
-        StreamSocket::DeleteStreamSocket(lsock);
-        lsock = 0;
+        if (listensock) break;
     }
-    if (0 == lsock) {
-        return 0;
+    if (!listensock) {
+        printf("Unable to create a listening socket.\n");
+        return 1;
     }
-
-    std::vector<SockData*> socks;
-    socks.push_back(new SockData(lsock, true));
-    std::vector<PollData> polldata;
-    std::vector<SockData*> keepsocks;
-    std::vector<SockData*> deletesocks;
-    while (socks.size() > 0) {
-        polldata.clear();
-        for (std::vector<SockData*>::iterator itr = socks.begin();
-                itr != socks.end(); ++itr) {
-            polldata.push_back(PollData((*itr)->sock, true, ((*itr)->buff.Size() != 0)));
-        }
-        int ret = Poll(polldata, -1);
-
-        for (int i = 0; i < polldata.size(); ++i) {
-            bool keep = true;
-            if (polldata[i].In()) {
-                printf("Sock %d data in\n", i);
-                if (socks[i]->listen) {
-                    StreamSocket *s = socks[i]->sock->Accept(false);
-                    keepsocks.push_back(new SockData(s, false));
-                    printf("Accepted a connection\n");
-                } else {
-                    int numtoread = 0;
-                    char* in = socks[i]->buff.AllocatePut(BUFF_SIZE, numtoread);
-                    int numread = socks[i]->sock->Read(in, numtoread, false);
-                    if (numread < 0) {
-                        keep = false;
-                    } else if (numread == 0 && socks[i]->sock->GetState() == StreamSocket::BAD) {
-                        printf("Orderly shutdown.\n");
-                        keep = false;
-                    } else {
-                        printf("Read: ");
-                        fwrite(in, numread, 1, stdout);
-                        printf("\n");
-                        socks[i]->buff.ReleasePut(numread);
-                    }
-                }
-            }
-            if (polldata[i].Out()) {
-                printf("Sock %d data out\n", i);
-                int numtowrite = 0;
-                char* out = socks[i]->buff.AllocateGet(socks[i]->buff.Size(), numtowrite);
-                int numwritten = socks[i]->sock->Write(out, numtowrite, false);
-                if (numwritten < 0) {
-                    keep = false;
-                } else {
-                    printf("Wrote: ");
-                    fwrite(out, 1, numwritten, stdout);
-                    printf("\n");
-                    socks[i]->buff.ReleaseGet(numwritten);
-                }
-            }
-            if (polldata[i].Hup()) {
-                printf("Sock %d disconnect\n", i);
-                keep = false;
-            }
-            if (polldata[i].Err()) {
-                printf("Sock %d error\n", i);
-                keep = false;
-            }
-            if (keep) {
-                keepsocks.push_back(socks[i]);
-            } else {
-                deletesocks.push_back(socks[i]);
-            }
-        }
-        for (std::vector<SockData*>::iterator itr = deletesocks.begin();
-                itr != deletesocks.end(); ++itr) {
-            delete *itr;
-            printf("Lost a connection\n");
-        }
-        socks.clear();
-        deletesocks.clear();
-        socks.swap(keepsocks);
-    }
-    for (std::vector<SockData*>::iterator itr = keepsocks.begin();
-            itr != keepsocks.end(); ++itr) {
-        delete *itr;
-    }
+    DescriptorPtr in = Descriptor::Create(fileno(stdin));
+    Controller controller = Controller(in, listensock);
+    controller.Run();
 	return 0;
 }
 

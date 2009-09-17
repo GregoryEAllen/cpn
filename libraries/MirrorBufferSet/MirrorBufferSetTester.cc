@@ -35,7 +35,8 @@
 int MirrorBufferSetTester::TestMirroring(unsigned long seed) const
 //-----------------------------------------------------------------------------
 {
-	int buf,i;
+	int buf;
+    ulong i;
 
 	if (!bufferBase) {
 		fprintf(stderr,"Failed to create MirrorBufferSet\n");
@@ -46,10 +47,10 @@ int MirrorBufferSetTester::TestMirroring(unsigned long seed) const
 	srand(seed);
 
 	// fill in all of the buffers
-	fprintf2((stderr,"Writing %d bytes to %d buffers\n", bufferSize, numBuffers));
+	fprintf2((stderr,"Writing %lu bytes to %d buffers\n", bufferSize, numBuffers));
 	for (buf=0; buf<numBuffers; buf++) {
 		char* bufBase = (char*)bufferBase + buf*(bufferSize+mirrorSize);
-		for (int i=0; i<bufferSize; i++) {
+		for (ulong i=0; i<bufferSize; i++) {
 			bufBase[i] = (char) rand();
 		}
 	}
@@ -68,12 +69,12 @@ int MirrorBufferSetTester::TestMirroring(unsigned long seed) const
 			char theVal = (char) rand();
 			if (theVal != bufBase[i]) {
 				bufErr++;
-				printf("### Error in buffer %d @ idx %d: 0x%02X != 0x%02X\n",
+				printf("### Error in buffer %d @ idx %lu: 0x%02X != 0x%02X\n",
 					buf, i, bufBase[i], theVal);
 			}
 			if (theVal != mirBase[i]) {
 				mirErr++;
-				printf("### Error in mirror %d @ idx %d: 0x%02X != 0x%02X\n",
+				printf("### Error in mirror %d @ idx %lu: 0x%02X != 0x%02X\n",
 					buf, i, mirBase[i], theVal);
 			}
 		}
@@ -81,7 +82,7 @@ int MirrorBufferSetTester::TestMirroring(unsigned long seed) const
 			char theVal = (char) rand();
 			if (theVal != bufBase[i]) {
 				bufErr++;
-				printf("### Error in buffer %d @ idx %d: 0x%02X != 0x%02X\n",
+				printf("### Error in buffer %d @ idx %lu: 0x%02X != 0x%02X\n",
 					buf, i, bufBase[i], theVal);
 			}
 		}
@@ -92,12 +93,12 @@ int MirrorBufferSetTester::TestMirroring(unsigned long seed) const
 		fprintf2((stderr,"Passed\n"));
 
 	// now fill in just the mirror parts
-	fprintf2((stderr,"Writing %d bytes to %d mirrors\n", mirrorSize, numBuffers));
+	fprintf2((stderr,"Writing %lu bytes to %d mirrors\n", mirrorSize, numBuffers));
 	srand(seed);
 	for (buf=0; buf<numBuffers; buf++) {
 		char* bufBase = (char*)bufferBase + buf*(bufferSize+mirrorSize);
 		char* mirBase = bufBase + bufferSize;
-		for (int i=0; i<mirrorSize; i++) {
+		for (ulong i=0; i<mirrorSize; i++) {
 			mirBase[i] = (char) rand();
 		}		
 	}
@@ -109,23 +110,23 @@ int MirrorBufferSetTester::TestMirroring(unsigned long seed) const
 	for (buf=0; buf<numBuffers; buf++) {
 		char* bufBase = (char*)bufferBase + buf*(bufferSize+mirrorSize);
 		char* mirBase = bufBase + bufferSize;
-		for (int i=0; i<mirrorSize; i++) {
+		for (ulong i=0; i<mirrorSize; i++) {
 			char theVal = (char) rand();
 			if (theVal != bufBase[i]) {
 				bufErr++;
-				fprintf(stderr,"### Error in buffer %d @ idx %d: 0x%02X != 0x%02X\n",
+				fprintf(stderr,"### Error in buffer %d @ idx %lu: 0x%02X != 0x%02X\n",
 					buf, i, bufBase[i], theVal);
 			}
 			if (theVal != mirBase[i]) {
 				mirErr++;
-				fprintf(stderr,"### Error in mirror %d @ idx %d: 0x%02X != 0x%02X\n",
+				fprintf(stderr,"### Error in mirror %d @ idx %lu: 0x%02X != 0x%02X\n",
 					buf, i, mirBase[i], theVal);
 			}
 		}
 	}
 	if (bufErr || mirErr) {
 		fprintf2((stderr,"Error\n"));
-		fprintf2((stderr,"bufErr %d, mirErr %d\n", bufErr, mirErr));
+		fprintf2((stderr,"bufErr %ld, mirErr %ld\n", bufErr, mirErr));
 	} else
 		fprintf2((stderr,"Passed\n"));
 

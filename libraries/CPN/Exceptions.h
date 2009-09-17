@@ -1,12 +1,33 @@
+//=============================================================================
+//	Computational Process Networks class library
+//	Copyright (C) 1997-2006  Gregory E. Allen and The University of Texas
+//
+//	This library is free software; you can redistribute it and/or modify it
+//	under the terms of the GNU Library General Public License as published
+//	by the Free Software Foundation; either version 2 of the License, or
+//	(at your option) any later version.
+//
+//	This library is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//	Library General Public License for more details.
+//
+//	The GNU Public License is available in the file LICENSE, or you
+//	can write to the Free Software Foundation, Inc., 59 Temple Place -
+//	Suite 330, Boston, MA 02111-1307, USA, or you can find it on the
+//	World Wide Web at http://www.fsf.org.
+//=============================================================================
 /** \file
- * An exception to be thrown from kernel methods when
- * the kernel is shutting down.
+ * \brief The exceptions specified for the CPN network.
+ * \author John Bridgman
  */
 
-#ifndef CPN_KERNELSHUTDOWNEXCEPTION_H
-#define CPN_KERNELSHUTDOWNEXCEPTION_H
+#ifndef CPN_EXCEPTIONS_H
+#define CPN_EXCEPTIONS_H
+#pragma once
 
 #include "common.h"
+#include <string>
 #include <exception>
 
 namespace CPN {
@@ -14,15 +35,32 @@ namespace CPN {
 	/**
 	 * \brief An exception indicating that the Kernel has shut down.
 	 */
-	class CPN_API KernelShutdownException : public std::exception {
+	class CPN_API ShutdownException : public std::exception {
 	public:
-		KernelShutdownException(const std::string& msg) throw() : message(msg) {}
-		~KernelShutdownException() throw() {}
-		const char* what() const throw() { return message.c_str(); }
+		ShutdownException() throw() {}
+		~ShutdownException() throw();
+		const char* what() const throw() { return "The kernel has shutdown."; }
 	private:
-		const std::string message;
-
 	};
+
+    /**
+     * \brief An exception indicating that there is a type mismatch.
+     */
+    class CPN_API TypeMismatchException : public std::exception {
+    public:
+        TypeMismatchException() throw() {}
+        ~TypeMismatchException() throw();
+        const char* what() const throw() { return "Queue types mismatch."; }
+    };
+
+    class CPN_API BrokenQueueException : public std::exception {
+    public:
+        BrokenQueueException(Key_t key) throw();
+        ~BrokenQueueException() throw();
+        const char* what() const throw() { return msg.c_str(); }
+    private:
+        std::string msg;
+    };
 }
 
 #endif

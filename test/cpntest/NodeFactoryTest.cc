@@ -13,9 +13,11 @@ CPPUNIT_TEST_SUITE_REGISTRATION( NodeFactoryTest );
 #define DEBUG(frmt, ...)
 #endif
 
+using CPN::shared_ptr;
+using CPN::NodeFactory;
 
 void NodeFactoryTest::setUp(void) {
-	CPNRegisterNodeFactory(MockNodeFactory::GetInstance());
+	CPNRegisterNodeFactory(shared_ptr<NodeFactory>(new MockNodeFactory("MockNode")));
 }
 
 void NodeFactoryTest::tearDown(void) {
@@ -24,26 +26,24 @@ void NodeFactoryTest::tearDown(void) {
 /// Test that a factory was stored correctly
 void NodeFactoryTest::TestFactoryStore(void) {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
-	CPN::NodeFactory* fact = CPNGetNodeFactory("MockNode");
-	CPPUNIT_ASSERT(fact != 0);
+	shared_ptr<NodeFactory> fact = CPNGetNodeFactory("MockNode");
+	CPPUNIT_ASSERT(fact.use_count() > 0);
 }
 
 /// Test that an invalid name returns the expected value
 void NodeFactoryTest::TestInvalidName(void) {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
-	CPN::NodeFactory* fact = CPNGetNodeFactory("AnInvalidName1234556");
-	CPN::NodeFactory* fact2 = 0;
-	CPPUNIT_ASSERT_EQUAL(fact, fact2);
+	shared_ptr<NodeFactory> fact = CPNGetNodeFactory("AnInvalidName1234556");
+    CPPUNIT_ASSERT(fact.use_count() == 0);
 }
 
 void NodeFactoryTest::TestCleanUp(void) {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
-	CPN::NodeFactory* fact = new MockNodeFactory("Testing12345");
+	shared_ptr<NodeFactory> fact = shared_ptr<NodeFactory>(new MockNodeFactory("Testing12345"));
 	CPNRegisterNodeFactory(fact);
 	CPPUNIT_ASSERT_EQUAL(fact, CPNGetNodeFactory("Testing12345"));
 	CPNUnregisterNodeFactory("Testing12345");
-	delete fact;
-	fact = 0;
+    fact.reset();
 	CPPUNIT_ASSERT_EQUAL(fact, CPNGetNodeFactory("Testing12345"));
 }
 

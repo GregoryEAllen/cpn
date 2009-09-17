@@ -6,6 +6,7 @@
 #include <err.h>
 #include <cassert>
 #include <cstring>
+#include <sstream>
 
 using namespace Socket;
 
@@ -130,4 +131,42 @@ void SocketAddress::Port(unsigned p) {
         break;
     }
 }
+
+std::string SocketAddress::StringAddress(void) const {
+    std::vector<char> hostname(NI_MAXHOST, '\0');
+    std::vector<char> servname(NI_MAXSERV, '\0');
+    bool loop = true;
+    std::ostringstream oss;
+    while (loop) {
+        int lookupstatus = getnameinfo(&address.addr, length,
+                    &hostname[0], hostname.size(),
+                    &servname[0], servname.size(),
+                    NI_NUMERICSERV);
+        switch (lookupstatus) {
+        case 0:
+            oss << &hostname[0] << " " << &servname[0];
+            loop = false;
+            break;
+        case EAI_AGAIN:
+            break;
+        case EAI_OVERFLOW:
+            hostname.resize(hostname.size()*2, '\0');
+            servname.resize(servname.size()*2, '\0');
+            break;
+        case EAI_BADFLAGS:
+        case EAI_FAIL:
+        case EAI_FAMILY:
+        case EAI_MEMORY:
+        case EAI_NONAME:
+        case EAI_SYSTEM:
+        default:
+            warn("SocketAddress::Lookup: %s", gai_strerror(lookupstatus));
+            loop = false;
+            break;
+        }
+    }
+    return oss.str();
+}
+
+
 

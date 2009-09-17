@@ -1,83 +1,122 @@
+//=============================================================================
+//	Computational Process Networks class library
+//	Copyright (C) 1997-2006  Gregory E. Allen and The University of Texas
+//
+//	This library is free software; you can redistribute it and/or modify it
+//	under the terms of the GNU Library General Public License as published
+//	by the Free Software Foundation; either version 2 of the License, or
+//	(at your option) any later version.
+//
+//	This library is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//	Library General Public License for more details.
+//
+//	The GNU Public License is available in the file LICENSE, or you
+//	can write to the Free Software Foundation, Inc., 59 Temple Place -
+//	Suite 330, Boston, MA 02111-1307, USA, or you can find it on the
+//	World Wide Web at http://www.fsf.org.
+//=============================================================================
 /** \file
- * A very simple circle buffer (not circular).
+ * \brief A very simple circle buffer (not circular).
+ * \author John Bridgman
  */
 
 #ifndef AUTOCIRCLEBUFFER_H
 #define AUTOCIRCLEBUFFER_H
+#pragma once
 
 #include "AutoBuffer.h"
+#include "StaticBuffer.h"
 
+/**
+ * This class is NOT a circular buffer but something slightly like it.
+ * This class maintains a circle with the data but responds with
+ * less space up to the end of the buffer if it cannot.
+ * The idea with this is that you write a partial amount and try again.
+ */
 class AutoCircleBuffer {
 public:
+    /// Create an AutoCircleBuffer with an initial size of 100
     AutoCircleBuffer() : buff(100), size(0), put(0), get(0) {}
+    /// Create an AutoCircleBuffer with the given initial size.
     AutoCircleBuffer(int initialsize) : buff(initialsize), size(0), put(0), get(0) {}
     ~AutoCircleBuffer() {}
-
-    int MaxSize() { return buff.GetSize(); }
-
-    int Size() { return size; }
-
-    char* AllocatePut(int desired, int &actual) {
-        actual = desired;
-        if (actual > MaxSize() - size) {
-            actual = MaxSize() - size;
-        }
-        if (actual + put > MaxSize()) {
-            actual = MaxSize() - put;
-        }
-        return (char*) buff.GetBuffer(put);
+    /// \return the current maximum amount that can fit
+    unsigned MaxSize() { return buff.GetSize(); }
+    /// \return the number of bytes of data this AutoCircleBuffer has
+    unsigned Size() { return size; }
+    /**
+     * Try to return a pointer into the buffer with desired
+     * number of bytes available to write. Actual is the amount
+     * actually available.
+     * \param desire the desired number of bytes
+     * \param actual (return) the number of bytes available
+     * \return a pointer into the buffer to write to
+     */
+    char* AllocatePut(unsigned desired, unsigned &actual);
+    /**
+     * Indicate that amount bytes have been written to the buffer.
+     * \param amount the number of bytes written
+     */
+    void ReleasePut(unsigned amount);
+    /**
+     * Put the given byte array into this buffer and expand the
+     * buffer if needed.
+     * \param ptr the byte array
+     * \param amount the length of the array
+     */
+    void Put(const char* ptr, unsigned amount);
+    void Put(const StaticConstBuffer& other) {
+        Put((const char*)other.GetBuffer(), other.GetSize());
     }
-    void ReleasePut(int amount) {
-        size += amount;
-        put = (put + amount)%MaxSize();
+    /**
+     * Try to return a pointer into the buffer with the desired
+     * number of bytes available to read.
+     * actual is the number of bytes actually available to read.
+     * \param desired the number of bytes we want to read
+     * \param actual (return) the actual number of bytes available
+     * in one read command
+     * \return the pointer into the buffer
+     */
+    char* AllocateGet(unsigned desired, unsigned &actual);
+    /**
+     * This is the dual of ReleasePut. This function
+     * tells this object that amount bytes have been
+     * taken from the buffer and should be discarded.
+     * \param amount the number of bytes removed.
+     */
+    void ReleaseGet(unsigned amount);
+    /**
+     * Get amount characters form this buffer and place them in
+     * ptr array.
+     * Fail if there are less than amount bytes.
+     * \param ptr destination byte array
+     * \param amount number of bytes
+     * \return true on success false if there are not amount bytes in buffer.
+     */
+    bool Get(char* ptr, unsigned amount);
+    bool Get(const StaticBuffer& other) {
+        return Get((char*)other.GetBuffer(), other.GetSize());
     }
-
-    char* AllocateGet(int desired, int &actual) {
-        actual = desired;
-        if (actual > size) {
-            actual = size;
-        }
-        if (actual + get > MaxSize()) {
-            actual = MaxSize() - get;
-        }
-        return (char*) buff.GetBuffer(get);
-    }
-    void ReleaseGet(int amount) {
-        size -= amount;
-        get = (get + amount)%MaxSize();
-    }
-    
-    void ChangeMaxSize(int newsize) {
-        if (newsize < size) {
-            newsize = size;
-        }
-        AutoBuffer storage(size);
-        int amount = 0;
-        int total = 0;
-        while (size > 0) {
-            char* ptr = AllocateGet(size, amount);
-            storage.Put(ptr, amount, total);
-            ReleaseGet(amount);
-            total += amount;
-        }
-        buff.ChangeSize(newsize);
-        while (size < total) {
-            char* ptr = AllocatePut(total, amount);
-            storage.Get(ptr, amount, size);
-            ReleasePut(amount);
-        }
-    }
-
-    void EnsureMaxSize(int newsize) {
-        if (MaxSize() < newsize) {
-            ChangeMaxSize(newsize);
-        }
-    }
+    /**
+     * Change the size of the buffer.
+     * Will not make the size smaller than the current
+     * amount in the buffer.
+     * \param newsize the new size of the buffer
+     */
+    void ChangeMaxSize(unsigned newsize);
+    /**
+     * Ensure that the size of the buffer is at least
+     * newsize.
+     * \param newsize the size
+     */
+    void EnsureMaxSize(unsigned newsize);
 private:
     AutoBuffer buff;
-    int size;
-    int put;
-    int get;
+    unsigned size;
+    unsigned put;
+    unsigned get;
 };
 
 #endif

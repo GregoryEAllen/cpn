@@ -1,98 +1,209 @@
+//=============================================================================
+//	Computational Process Networks class library
+//	Copyright (C) 1997-2006  Gregory E. Allen and The University of Texas
+//
+//	This library is free software; you can redistribute it and/or modify it
+//	under the terms of the GNU Library General Public License as published
+//	by the Free Software Foundation; either version 2 of the License, or
+//	(at your option) any later version.
+//
+//	This library is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//	Library General Public License for more details.
+//
+//	The GNU Public License is available in the file LICENSE, or you
+//	can write to the Free Software Foundation, Inc., 59 Temple Place -
+//	Suite 330, Boston, MA 02111-1307, USA, or you can find it on the
+//	World Wide Web at http://www.fsf.org.
+//=============================================================================
 /** \file
  * \brief Top Representations of generic queues for the CPN library.
+ * \author John Bridgman
  */
 #ifndef CPN_QUEUEBASE_H
 #define CPN_QUEUEBASE_H
 
 #include "common.h"
-#include "QueueAttr.h"
-#include "QueueWriter.h"
-#include "QueueReader.h"
-#include "StatusHandler.h"
-#include "QueueStatus.h"
-#include "PthreadMutex.h"
+#include "MessageQueue.h"
+#include "NodeMessage.h"
 
 namespace CPN {
-
-	class QueueInfo;
-	class QueueDatatype;
 
 	/**
 	 * \brief The base class for all queues in the CPN library.
 	 */
-	class QueueBase :
-		public QueueReader,
-		public QueueWriter
-	{
+	class CPN_LOCAL QueueBase {
 	public:
-		QueueBase(const QueueAttr &attr);
 
 		virtual ~QueueBase();
 
-		/**
-		 * \return the QueueAttr for this queue.
+        /**
+         * Get a pointer to a buffer containing elements.
+         *
+         * \note access to the memory locations pointed to by the
+         * returned pointer after Dequeue has been called is undefined.
+         *
+         * \param thresh the number of bytes to get
+         * \param chan the channel to use
+         * \return A void* to a block of memory containing thresh bytes
+         * or 0 if there are not thresh bytes available.
+         */
+        virtual const void* GetRawDequeuePtr(unsigned thresh, unsigned
+                chan=0) = 0;
+
+        /**
+         * This function is used to remove elements from the queue.
+         * count elements will be removed from the queue when this function is
+         * called.
+         * \param count the number of bytes to remove from the queue
+         */
+        virtual void Dequeue(unsigned count) = 0;
+
+        /**
+         * Dequeue data from the queue directly into the memory pointed to by
+         * data. This function shall be equivalent to
+         * a call to GetRawDequeuePtr then a memcpy and then a call to Dequeue.
+         *
+         * \param data poiner to memory to dequeue to
+         * \param count the number of bytes to copy into data
+         * \param numChans the number of channels to write to
+         * \param chanStride the distance in bytes between the beginning of
+         * the channels in data.
+         * \return true on success false on failure
+         */
+        virtual bool RawDequeue(void* data, unsigned count,
+                unsigned numChans, unsigned chanStride) = 0;
+
+        /**
+         * A version of RawDequeue to use when there is only 1 channel.
+         * \param data the data to enqueue
+         * \param count the number of bytes to enqueue
+         * \return true on success false if there is not enough space
+         */
+        virtual bool RawDequeue(void* data, unsigned count) = 0;
+
+        /**
+		 * Return a pointer to a buffer of memory that contains
+		 * thresh entries that we can write into.
+		 *
+		 * \note A call to this function without an accompanying call to
+		 * Enqueue is undefined.
+		 * \note An access to the memory locations defined by the return
+		 * value is undefined after a call to Enqueue.
+		 *
+		 * \param thresh the number bytes we need in the returned buffer.
+		 * \param chan the channel to use
+		 * \return void* to the memory buffer, 0 if not enough space available
 		 */
-		const QueueAttr &GetAttr(void) const { return attr; }
+		virtual void* GetRawEnqueuePtr(unsigned thresh, unsigned chan=0) = 0;
 
 		/**
-		 * \return the queue name
+		 * This function is used to release the buffer obtained with
+		 * GetRawEnqueuePtr. The count specifies the number of 
+		 * entries that we want to be placed in the buffer.
+		 *
+		 * \note A call to this function without an accompanying call
+		 * to GetRawEnqueuePtr is undefined.
+		 *
+		 * \param count the number of bytes to be placed in the buffer
+		 * \invariant count <= thresh from GetRawEnqueuePtr
 		 */
-		const std::string GetName(void) const { return attr.GetName(); }
+		virtual void Enqueue(unsigned count) = 0;
 
-		const QueueDatatype* GetDatatype(void) const { return attr.GetDatatype(); }
+		/**
+		 * This function shall be equivalent to
+		 * a call to GetRqwEnqueuePtr and a memcpy and then
+		 * a call to Enqueue
+		 *
+		 * The underlying implementatin may implement ether the
+		 * GetRawEnqueuePtr and Enqueue or RawEnqueue and
+		 * then implement the other in terms of the one implemented.
+		 *
+		 * \param data pointer to the memory to enqueue
+		 * \param count the number of bytes to enqueue
+         * \param numChans the number of channels to write to
+         * \param chanStride the distance in bytes between the beginning of
+         * the channels in data.
+		 * \return true on success false if not enough space available
+		 */
+		virtual bool RawEnqueue(const void* data, unsigned count,
+                unsigned numChans, unsigned chanStride) = 0;
+
+        /**
+         * A version of RawEnqueue to use when there is only 1 channel.
+         * \param data pointer to the memory to enqueue
+         * \param count the number of bytes to enqueue
+         * \return true on success false if not enough space available
+         */
+		virtual bool RawEnqueue(const void* data, unsigned count) = 0;
+
+
+        /**
+         * \return the number of channels supported by this queue.
+         */
+        virtual unsigned NumChannels() const = 0;
+
+        /**
+         * \return the number of bytes in the queue.
+         */
+        virtual unsigned Count() const = 0;
+
+        /**
+         * \return true if the queue is empty
+         */
+        virtual bool Empty() const = 0;
+
+		/**
+		 * \return the number of bytes we can add to the queue without
+		 * blocking.
+		 */
+		virtual unsigned Freespace() const = 0;
+
+		/**
+		 * \return true if the queue is full, false otherwise
+		 */
+		virtual bool Full() const = 0;
+
+        /**
+         * \return the maximum threshold this queue supports
+         * in bytes
+         */
+        virtual unsigned MaxThreshold() const = 0;
+
+        /**
+         * \return the maximum number of bytes that can be
+         * put in this queue.
+         */
+        virtual unsigned QueueLength() const = 0;
+
+        /**
+         * Ensure that this queue has at least queueLen bytes
+         * of space and can suport at least maxThresh as the maxThreshold
+         * the new queue length will be max(queueLen, QueueLength())
+         * and the new max threshold will be max(maxThresh, MaxThreshold())
+         * \param queueLen the next queue length
+         * \param maxThresh the next max threshold
+         */
+        virtual void Grow(unsigned queueLen, unsigned maxThresh) = 0;
+
+        /**
+         * The message queue going against the normal flow of data. That
+         * is to say from the reader to the writer.
+         */
+        shared_ptr<MsgChain<NodeMessagePtr> > UpStreamChain() { return upstreamchain; }
+
+        /**
+         * The message queue that goes in the same direction as teh normal flow
+         * of data. That is to say from the writer to the reader.
+         */
+        shared_ptr<MsgChain<NodeMessagePtr> > DownStreamChain() { return downstreamchain; }
 
 	protected:
-		/**
-		 * Function to notify the reader of a write operation.
-		 * This function should be called by implementations
-		 * when write is success.
-		 */
-		void NotifyReaderOfWrite(void);
-		/**
-		 * Function to notify the writer of a read operation.
-		 * This function should be called by implementations
-		 * when a read is success.
-		 */
-		void NotifyWriterOfRead(void);
-
-		QueueAttr attr;
+		QueueBase();
 	private:
-		/**
-		 * Send a notification currently to the given status handler.
-		 * \param stathand pointer to status handler
-		 * \param newStatus the status to notify
-		 */
-		void Notify(Sync::StatusHandler<QueueStatus>* stathand, QueueStatus newStatus);
-
-		/**
-		 * Set the status handler to use for this queue.
-		 *
-		 * \param rsh pointer to the status handler.
-		 */
-		void SetReaderStatusHandler(Sync::StatusHandler<QueueStatus>* rsh);
-
-		/**
-		 * Clear the status handler for reading.
-		 */
-		void ClearReaderStatusHandler(void);
-
-		/**
-		 * Set the status handler for writing for this queue.
-		 * \param wsh pointer to the status handler
-		 */
-		void SetWriterStatusHandler(Sync::StatusHandler<QueueStatus>* wsh);
-
-		/**
-		 * Clear the writer status handler.
-		 */
-		void ClearWriterStatusHandler(void);
-
-
-		PthreadMutex statusHandlerMutex;
-		Sync::StatusHandler<QueueStatus>* readerStatusHandler;
-		Sync::StatusHandler<QueueStatus>* writerStatusHandler;
-
-		friend class QueueInfo;
+        shared_ptr<MsgChain<NodeMessagePtr> > upstreamchain;
+        shared_ptr<MsgChain<NodeMessagePtr> > downstreamchain;
 	};
 
 }

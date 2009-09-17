@@ -1,27 +1,50 @@
+//=============================================================================
+//	Computational Process Networks class library
+//	Copyright (C) 1997-2006  Gregory E. Allen and The University of Texas
+//
+//	This library is free software; you can redistribute it and/or modify it
+//	under the terms of the GNU Library General Public License as published
+//	by the Free Software Foundation; either version 2 of the License, or
+//	(at your option) any later version.
+//
+//	This library is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//	Library General Public License for more details.
+//
+//	The GNU Public License is available in the file LICENSE, or you
+//	can write to the Free Software Foundation, Inc., 59 Temple Place -
+//	Suite 330, Boston, MA 02111-1307, USA, or you can find it on the
+//	World Wide Web at http://www.fsf.org.
+//=============================================================================
 /** \file
- * Definition for the Queue writer inteface.
+ * \brief Definition for the Queue writer inteface.
+ * \author John Bridgman
  */
 
 #ifndef CPN_QUEUEWRITER_H
 #define CPN_QUEUEWRITER_H
+#pragma once
 
 #include "common.h"
+#include "QueueBase.h"
+#include "MessageQueue.h"
+#include "NodeMessage.h"
+#include "QueueBlocker.h"
+#include <string>
 
 namespace CPN {
 
-	class QueueDatatype;
-
 	/**
 	 * \brief Definition of the writer portion of the CPN queue class.
-	 *
-	 * \note There is no requirement on this interface be reentrant or
-	 * synchronized. That is to say an instance of this class should be
-	 * accessed by only one thread.
 	 */
-	class QueueWriter {
+	class CPN_API QueueWriter
+        : public std::tr1::enable_shared_from_this<QueueWriter> {
 	public:
 
-		virtual ~QueueWriter() {}
+        QueueWriter(QueueBlocker *n, Key_t k);
+
+		~QueueWriter();
 
 		/**
 		 * Return a pointer to a buffer of memory that contains
@@ -34,9 +57,12 @@ namespace CPN {
 		 *
 		 * \param thresh the number bytes we need in the returned buffer.
 		 * \param chan the channel to use
-		 * \return void* to the memory buffer, 0 if not enough space available
+		 * \return void* to a block of memory at least thresh bytes long,
+         * blocks until thresh bytes available
+         * \throws BrokenQueueException if the reader is released
 		 */
-		virtual void* GetRawEnqueuePtr(ulong thresh, ulong chan=0) = 0;
+		void* GetRawEnqueuePtr(unsigned thresh, unsigned chan=0);
+
 		/**
 		 * This function is used to release the buffer obtained with
 		 * GetRawEnqueuePtr. The count specifies the number of 
@@ -48,7 +74,7 @@ namespace CPN {
 		 * \param count the number of bytes to be placed in the buffer
 		 * \invariant count <= thresh from GetRawEnqueuePtr
 		 */
-		virtual void Enqueue(ulong count) = 0;
+		void Enqueue(unsigned count);
 
 		/**
 		 * This function shall be equivalent to
@@ -59,23 +85,33 @@ namespace CPN {
 		 * GetRawEnqueuePtr and Enqueue or RawEnqueue and
 		 * then implement the other in terms of the one implemented.
 		 *
-		 * This function does not make sense when there is more than
-		 * one channel.
-		 *
 		 * \param data pointer to the memory to enqueue
 		 * \param count the number of bytes to enqueue
          * \param numChans the number of channels to write to
          * \param chanStride the distance in bytes between the beginning of
          * the channels in data.
-		 * \return true on success false if not enough space available
+         * \throws BrokenQueueException if the reader is released
 		 */
-		virtual bool RawEnqueue(void* data, ulong count, ulong numChans, ulong chanStride) = 0;
-		virtual bool RawEnqueue(void* data, ulong count) = 0;
+		void RawEnqueue(void *data, unsigned count,
+                unsigned numChans, unsigned chanStride);
+
+        /**
+         * A version of RawEnqueue to use when there is only 1 channel.
+         * \param data pointer to the memory to enqueue
+         * \param count the number of bytes to enqueue
+         * \throws BrokenQueueException if the reader is released
+         */
+		void RawEnqueue(void *data, unsigned count);
 
 		/**
 		 * \return the number of channels supported by this queue.
 		 */
-		virtual ulong NumChannels(void) const = 0;
+		unsigned NumChannels() const { CheckQueue(); return queue->NumChannels(); }
+
+        /**
+         * \return the maximum threshold this queue supports.
+         */
+        unsigned MaxThreshold() const { CheckQueue(); return queue->MaxThreshold(); }
 
 		/**
 		 * Get the space available in elements.
@@ -83,19 +119,64 @@ namespace CPN {
 		 * \return the number of bytes we can add to the queue without
 		 * blocking.
 		 */
-		virtual ulong Freespace(void) const = 0;
+		unsigned Freespace() const { CheckQueue(); return queue->Freespace(); }
 
 		/**
 		 * Test if the queue is currently full.
 		 * \warning This function violates the rules of CPN.
 		 * \return true if the queue is full, false otherwise
 		 */
-		virtual bool Full(void) const = 0;
+		bool Full() const { CheckQueue(); return queue->Full(); }
 
 		/**
-		 * \return the datatype this queue is supposed to have.
+		 * \return the typename for this queue
 		 */
-		virtual const QueueDatatype* GetDatatype(void) const = 0;
+		const std::string &GetTypeName() const { return datatype; }
+
+        /**
+         * \return the key associated with this endpoint
+         */
+        Key_t GetKey() const { return key; }
+
+        /**
+         * \return the message queue to send message to the other endpoint
+         */
+        shared_ptr<MsgPut<NodeMessagePtr> > GetMsgPut() { return downstream; }
+        /**
+         * Set the queue for this endpoint
+         * \param q the queue
+         */
+        void SetQueue(shared_ptr<QueueBase> q);
+        /**
+         * Send a message to the other endpoint
+         * \param msg the message to send
+         */
+        void PutMsg(NodeMessagePtr msg) { downstream->Put(msg); }
+        /**
+         * Shutdown the queue. Further operations are
+         * invalid.
+         */
+        void Shutdown();
+        /**
+         * Release this queue, will start releasing the resources
+         * used.
+         */
+        void Release();
+    private:
+        void CheckQueue() const {
+            blocker->CheckTerminate();
+            while (!queue) blocker->WriteNeedQueue(key);
+        }
+
+        QueueBlocker *blocker;
+        Key_t key;
+        /// msgs to the reader
+        mutable shared_ptr<MsgChain<NodeMessagePtr> > downstream;
+        /// msgs from the reader
+        mutable shared_ptr<MsgMutator<NodeMessagePtr, KeyMutator> > upstream;
+        mutable shared_ptr<QueueBase> queue;
+        std::string datatype;
+        bool shutdown;
 	};
 
 }

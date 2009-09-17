@@ -10,6 +10,10 @@ void ExClass::func1(void) {
 	printf("ExClass(%4d) func1 called\n", id);
 }
 
+void ExClass::constfunc(void) const {
+	printf("ExClass(%4d) constfunc called\n", id);
+}
+
 #if USE_NAMESPACE > 0
 }
 #endif
