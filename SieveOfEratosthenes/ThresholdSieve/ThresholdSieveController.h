@@ -20,7 +20,7 @@ public:
 	static void RegisterNodeType(void);
 private:
 	void Initialize(void);
-	const ThresholdSieveOptions opts;
+	ThresholdSieveOptions opts;
 };
 
 #endif

@@ -3,21 +3,26 @@
 
 #ifndef THRESHOLDSIEVEOPTIOINS_H
 #define THRESHOLDSIEVEOPTIOINS_H
+#pragma once
+#include "common.h"
 #include <vector>
+
 struct ThresholdSieveOptions {
 	typedef unsigned long long NumberT;
 	NumberT maxprime;
+    NumberT filtercount;
 	unsigned long queuesize;
 	unsigned long threshold;
 	unsigned long primesPerFilter;
-	std::string queueTypeName;
+    CPN::QueueHint_t queuehint;
 	std::vector<NumberT> *results;
+    CPN::Key_t consumerkey;
 };
 
 const char* const PRODUCER_NAME = "Producer";
-const char* const CONSUMERQ_NAME = "Consumer Queue";
 const char* const FILTER_FORMAT = "Filter: %lu";
 const char* const QUEUE_FORMAT = "Queue: %lu";
+const char* const CONTROL_PORT = "Control Port";
 const char* const IN_PORT = "x";
 const char* const OUT_PORT = "y";
 

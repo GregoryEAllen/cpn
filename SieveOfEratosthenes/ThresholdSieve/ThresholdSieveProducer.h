@@ -14,10 +14,10 @@ public:
 	ThresholdSieveProducer(CPN::Kernel& ker, const CPN::NodeAttr& attr,
 			const ThresholdSieveOptions& opts_) :
 		CPN::NodeBase(ker, attr), opts(opts_) {}
-	void Process(void);
-	static void RegisterNodeType(void);
+	void Process();
+	static void RegisterNodeType();
 private:
-	const ThresholdSieveOptions opts;
+	ThresholdSieveOptions opts;
 };
 
 #endif

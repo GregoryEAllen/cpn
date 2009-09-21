@@ -14,13 +14,13 @@ public:
 	ThresholdSieveFilter(CPN::Kernel &ker, const CPN::NodeAttr &attr,
 			const ThresholdSieveOptions& opts_)
 			: CPN::NodeBase(ker, attr), opts(opts_) {}
-	void Process(void);
+	void Process();
 
-	static void RegisterNodeType(void);
+	static void RegisterNodeType();
 private:
-	void CreateNewFilter(ThresholdSieveOptions::NumberT lastprime);
+	void CreateNewFilter();
 
-	const ThresholdSieveOptions opts;
+	ThresholdSieveOptions opts;
 };
 
 #endif

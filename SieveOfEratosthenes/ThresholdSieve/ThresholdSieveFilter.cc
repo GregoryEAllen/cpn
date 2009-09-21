@@ -8,8 +8,8 @@
 #include "QueueWriterAdapter.h"
 #include "ToString.h"
 #include "PrimeSieve.h"
+#include "Assert.h"
 #include <cmath>
-#include <cassert>
 #include <stdexcept>
 
 #if _DEBUG
@@ -19,30 +19,24 @@
 #define DEBUG(frmt, ...)
 #endif
 
+using CPN::shared_ptr;
+
 typedef ThresholdSieveOptions::NumberT NumberT;
 
 class FilterFactory : public CPN::NodeFactory {
 public:
 	FilterFactory() : CPN::NodeFactory(THRESHOLDSIEVEFILTER_TYPENAME) {}
-	CPN::NodeBase* Create(CPN::Kernel &ker, const CPN::NodeAttr &attr,
-			const void* const arg, const unsigned long argsize) {
-		ThresholdSieveOptions *opts = (ThresholdSieveOptions*)arg;
-		return new ThresholdSieveFilter(ker, attr, *opts);
-	}
-	CPN::NodeBase* Create(CPN::Kernel &ker, const CPN::NodeAttr &attr) {
-		throw std::invalid_argument("ThresholdSieveFilter requires a ThresholdSieveOptions parameter.");
-	}
-	void Destroy(CPN::NodeBase *node) {
-		delete node;
+	shared_ptr<CPN::NodeBase> Create(CPN::Kernel &ker, const CPN::NodeAttr &attr) {
+        ASSERT(attr.GetArg().GetSize() == sizeof(ThresholdSieveOptions));
+		ThresholdSieveOptions *opts = (ThresholdSieveOptions*)attr.GetArg().GetBuffer();
+		return shared_ptr<CPN::NodeBase>(new ThresholdSieveFilter(ker, attr, *opts));
 	}
 };
 
-static FilterFactory factoryInstance;
-
-void ThresholdSieveFilter::Process(void) {
+void ThresholdSieveFilter::Process() {
 	DEBUG("%s started\n", GetName().c_str());
-	CPN::QueueReaderAdapter<NumberT> in = kernel.GetReader(GetName(), IN_PORT);
-	CPN::QueueWriterAdapter<NumberT> out = kernel.GetWriter(GetName(), OUT_PORT);
+	CPN::QueueReaderAdapter<NumberT> in = GetReader(IN_PORT);
+	CPN::QueueWriterAdapter<NumberT> out = GetWriter(CONTROL_PORT);
 	const unsigned long threshold = opts.threshold;
 	const NumberT cutoff = (NumberT)(ceil(sqrt(opts.maxprime)));
 	PrimeSieve sieve(opts.primesPerFilter);
@@ -111,28 +105,38 @@ void ThresholdSieveFilter::Process(void) {
 			if (createFilter) {
 				createFilter = false;
 				filterCreated = true;
-				CreateNewFilter(inbuff[inidx]);
+                out.Release();
+				CreateNewFilter();
+                out = GetWriter(OUT_PORT);
 			}
 		}
 	} while (0 != incount);
 	NumberT endMarker = 0;
 	out.Enqueue(&endMarker, 1);
+    out.Release();
+    in.Release();
 	DEBUG("%s stopped\n", GetName().c_str());
 }
 
-void ThresholdSieveFilter::CreateNewFilter(NumberT lastprime) {
-	std::string nodename = ToString(FILTER_FORMAT, lastprime);
-	kernel.CreateNode(nodename, THRESHOLDSIEVEFILTER_TYPENAME, &opts, 0);
-	std::string queuename = ToString(QUEUE_FORMAT, lastprime);
-	kernel.CreateQueue(queuename, opts.queueTypeName,
-		      opts.queuesize * sizeof(NumberT),
-		      opts.threshold * sizeof(NumberT), 1);
-	kernel.ConnectReadEndpoint(queuename, nodename, IN_PORT);
-	kernel.ConnectWriteEndpoint(CONSUMERQ_NAME, nodename, OUT_PORT);
-	kernel.ConnectWriteEndpoint(queuename, GetName(), OUT_PORT);
+void ThresholdSieveFilter::CreateNewFilter() {
+    ++opts.filtercount;
+	std::string nodename = ToString(FILTER_FORMAT, opts.filtercount);
+    CPN::NodeAttr attr (nodename, THRESHOLDSIEVEFILTER_TYPENAME);
+    attr.SetParam(StaticBuffer(&opts, sizeof(opts)));
+    CPN::Key_t nodekey = kernel.CreateNode(attr);
+
+    CPN::QueueAttr qattr(opts.queuesize * sizeof(NumberT), opts.threshold * sizeof(NumberT));
+    qattr.SetHint(opts.queuehint);
+    qattr.SetWriter(GetKey(), OUT_PORT);
+    qattr.SetReader(nodekey, IN_PORT);
+    kernel.CreateQueue(qattr);
+
+    qattr.SetWriter(nodekey, CONTROL_PORT);
+    qattr.SetReader(opts.consumerkey, ToString(FILTER_FORMAT, opts.filtercount));
+    kernel.CreateQueue(qattr);
 }
 
-void ThresholdSieveFilter::RegisterNodeType(void) {
-	CPNRegisterNodeFactory(&factoryInstance);
+void ThresholdSieveFilter::RegisterNodeType() {
+	CPNRegisterNodeFactory(shared_ptr<CPN::NodeFactory>(new FilterFactory));
 }
 

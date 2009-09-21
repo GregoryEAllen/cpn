@@ -2,7 +2,6 @@
  */
 
 #include "Kernel.h"
-#include "ThresholdQueue.h"
 #include "ThresholdSieveOptions.h"
 #include "ThresholdSieveController.h"
 #include "Time.h"
@@ -29,7 +28,6 @@ struct TestResults {
 TestResults SieveTest(ThresholdSieveOptions options);
 
 int main(int argc, char **argv) {
-	CPN::ThresholdQueue::RegisterQueueType();
 	ThresholdSieveController::RegisterNodeType();
 	std::vector<ThresholdSieveOptions::NumberT> results;
 	ThresholdSieveOptions options;
@@ -37,7 +35,7 @@ int main(int argc, char **argv) {
 	options.queuesize = 100;
 	options.threshold = 2;
 	options.primesPerFilter = 1;
-	options.queueTypeName = CPN_QUEUETYPE_THRESHOLD;
+	options.queuehint = CPN::QUEUEHINT_THRESHOLD;
 	options.results = &results;
 	int numIterations = 1;
 	bool multitest = false;
@@ -122,14 +120,15 @@ int main(int argc, char **argv) {
 
 
 TestResults SieveTest(ThresholdSieveOptions options) {
-	CPN::Kernel kernel(CPN::KernelAttr(1, "Kernel name"));
-	kernel.CreateNode("controller", THRESHOLDSIEVECONTROLLER_TYPENAME, &options, 0);
+	CPN::Kernel kernel(CPN::KernelAttr("Kernel name"));
+    CPN::NodeAttr attr("controller", THRESHOLDSIEVECONTROLLER_TYPENAME);
+    attr.SetParam(StaticBuffer(&options, sizeof(options)));
 	tms tmsStart;
 	tms tmsStop;
 	times(&tmsStart);
 	Time start;
-	kernel.Start();
-	kernel.Wait();
+    kernel.CreateNode(attr);
+	kernel.WaitNodeTerminate("controller");
 	Time stop;
 	times(&tmsStop);
 	TestResults result;
