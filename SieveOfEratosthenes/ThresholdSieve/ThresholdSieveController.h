@@ -11,16 +11,16 @@
 
 class ThresholdSieveController : public CPN::NodeBase {
 public:
-	ThresholdSieveController(CPN::Kernel &ker, const CPN::NodeAttr &attr,
-			const ThresholdSieveOptions &opts_) : CPN::NodeBase(ker, attr),
-			opts(opts_) {}
+    ThresholdSieveController(CPN::Kernel &ker, const CPN::NodeAttr &attr,
+            const ThresholdSieveOptions &opts_) : CPN::NodeBase(ker, attr),
+            opts(opts_) {}
 
-	void Process(void);
+    void Process(void);
 
-	static void RegisterNodeType(void);
+    static void RegisterNodeType(void);
 private:
-	void Initialize(void);
-	ThresholdSieveOptions opts;
+    void Initialize(void);
+    ThresholdSieveOptions opts;
 };
 
 #endif

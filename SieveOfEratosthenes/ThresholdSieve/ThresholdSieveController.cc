@@ -25,23 +25,23 @@ typedef ThresholdSieveOptions::NumberT NumberT;
 
 class ControllerFactory : public CPN::NodeFactory {
 public:
-	ControllerFactory() : CPN::NodeFactory(THRESHOLDSIEVECONTROLLER_TYPENAME) {}
-	shared_ptr<CPN::NodeBase> Create(CPN::Kernel &ker, const CPN::NodeAttr &attr) {
+    ControllerFactory() : CPN::NodeFactory(THRESHOLDSIEVECONTROLLER_TYPENAME) {}
+    shared_ptr<CPN::NodeBase> Create(CPN::Kernel &ker, const CPN::NodeAttr &attr) {
         ASSERT(attr.GetArg().GetSize() == sizeof(ThresholdSieveOptions));
-		ThresholdSieveOptions *opts = (ThresholdSieveOptions*)attr.GetArg().GetBuffer();
-		return shared_ptr<CPN::NodeBase>(new ThresholdSieveController(ker, attr, *opts));
-	}
+        ThresholdSieveOptions *opts = (ThresholdSieveOptions*)attr.GetArg().GetBuffer();
+        return shared_ptr<CPN::NodeBase>(new ThresholdSieveController(ker, attr, *opts));
+    }
 };
 
 void ThresholdSieveController::Process(void) {
-	DEBUG("%s started\n", GetName().c_str());
+    DEBUG("%s started\n", GetName().c_str());
     NumberT filterCount = 1;
-	Initialize();
-	CPN::QueueReaderAdapter<NumberT> in = GetReader(ToString(FILTER_FORMAT, filterCount));
-	std::vector<NumberT> *results = opts.results;
-	NumberT inCount = 0;
-	do {
-		if (in.Dequeue(&inCount, 1)) {
+    Initialize();
+    CPN::QueueReaderAdapter<NumberT> in = GetReader(ToString(FILTER_FORMAT, filterCount));
+    std::vector<NumberT> *results = opts.results;
+    NumberT inCount = 0;
+    do {
+        if (in.Dequeue(&inCount, 1)) {
             DEBUG("Consumer Reading %lu values\n", inCount);
             const NumberT *inBuff = in.GetDequeuePtr(inCount);
             ASSERT(inBuff);
@@ -53,31 +53,31 @@ void ThresholdSieveController::Process(void) {
             in = GetReader(ToString(FILTER_FORMAT, filterCount));
             continue;
         }
-	} while (inCount != 0);
+    } while (inCount != 0);
     in.Release();
-	DEBUG("%s stopped\n", GetName().c_str());
+    DEBUG("%s stopped\n", GetName().c_str());
 }
 
 void ThresholdSieveController::Initialize(void) {
-	ThresholdSieveProducer::RegisterNodeType();
-	ThresholdSieveFilter::RegisterNodeType();
+    ThresholdSieveProducer::RegisterNodeType();
+    ThresholdSieveFilter::RegisterNodeType();
     opts.filtercount = 1;
     opts.consumerkey = GetKey();
 
-	std::string nodename = ToString(FILTER_FORMAT, 1);
+    std::string nodename = ToString(FILTER_FORMAT, 1);
     CPN::NodeAttr attr(nodename, THRESHOLDSIEVEFILTER_TYPENAME);
     attr.SetParam(StaticBuffer(&opts, sizeof(opts)));
-	kernel.CreateNode(attr);
+    kernel.CreateNode(attr);
 
     attr.SetName(PRODUCER_NAME).SetTypeName(THRESHOLDSIEVEPRODUCER_TYPENAME);
-	kernel.CreateNode(attr);
+    kernel.CreateNode(attr);
 
     CPN::QueueAttr qattr(opts.queuesize * sizeof(NumberT), opts.threshold * sizeof(NumberT));
     qattr.SetHint(opts.queuehint);
 
     qattr.SetWriter(nodename, CONTROL_PORT);
     qattr.SetReader(GetName(), ToString(FILTER_FORMAT, 1));
-	kernel.CreateQueue(qattr);
+    kernel.CreateQueue(qattr);
 
     qattr.SetWriter(PRODUCER_NAME, OUT_PORT);
     qattr.SetReader(nodename, IN_PORT);
@@ -85,6 +85,6 @@ void ThresholdSieveController::Initialize(void) {
 }
 
 void ThresholdSieveController::RegisterNodeType(void) {
-	CPNRegisterNodeFactory(shared_ptr<CPN::NodeFactory>(new ControllerFactory));
+    CPNRegisterNodeFactory(shared_ptr<CPN::NodeFactory>(new ControllerFactory));
 }
 

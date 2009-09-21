@@ -8,14 +8,14 @@
 #include <vector>
 
 struct ThresholdSieveOptions {
-	typedef unsigned long long NumberT;
-	NumberT maxprime;
+    typedef unsigned long long NumberT;
+    NumberT maxprime;
     NumberT filtercount;
-	unsigned long queuesize;
-	unsigned long threshold;
-	unsigned long primesPerFilter;
+    unsigned long queuesize;
+    unsigned long threshold;
+    unsigned long primesPerFilter;
     CPN::QueueHint_t queuehint;
-	std::vector<NumberT> *results;
+    std::vector<NumberT> *results;
     CPN::Key_t consumerkey;
 };
 
