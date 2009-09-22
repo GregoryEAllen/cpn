@@ -42,7 +42,11 @@ namespace CPN {
     }
 
     void ReaderStream::RegisterDescriptor(std::vector<Async::DescriptorPtr> &descriptors) {
-        descriptors.push_back(endpoint.GetDescriptor());
+        Async::DescriptorPtr desc = endpoint.GetDescriptor();
+        if (desc) {
+            descriptors.push_back(endpoint.GetDescriptor());
+        }
+        // Writer will be setup to create a new connection.
     }
 
     void ReaderStream::RunOneIteration() {
@@ -50,6 +54,13 @@ namespace CPN {
             NodeMessagePtr msg = upstream->Get();
             msg->DispatchOn(&endpoint);
         }
+    }
+
+    void ReaderStream::SetDescriptor(Async::DescriptorPtr desc) {
+        endpoint.SetDescriptor(desc);
+    }
+
+    void ReaderStream::SetQueue(shared_ptr<QueueBase> q) {
     }
 
     void ReaderStream::MessageNotice() {

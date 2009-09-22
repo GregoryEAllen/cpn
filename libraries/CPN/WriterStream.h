@@ -38,7 +38,7 @@
 
 namespace CPN {
 
-    class WriterStream {
+    class WriterStream : public Stream {
     public:
 
         WriterStream(
@@ -49,6 +49,10 @@ namespace CPN {
         void RegisterDescriptor(std::vector<Async::DescriptorPtr> &descriptors);
 
         void RunOneIteration();
+
+        void SetDescriptor(Async::DescriptorPtr desc);
+
+        void SetQueue(shared_ptr<QueueBase> q);
 
         Key_t GetKey() const { return writerkey; }
     private:

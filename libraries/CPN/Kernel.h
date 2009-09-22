@@ -166,6 +166,10 @@ namespace CPN {
         void ProcessMessage(KMsgCreateReader *msg);
         void ProcessMessage(KMsgCreateQueue *msg);
         void ProcessMessage(KMsgCreateNode *msg);
+        void ProcessMessage(KMsgStreamDead *msg);
+        void ProcessMessage(KMsgSetReaderDescriptor *msg);
+        void ProcessMessage(KMsgSetWriterDescriptor *msg);
+        void ProcessMessage(KMsgCreateKernelStream *msg);
 
         Sync::ReentrantLock lock;
         Sync::StatusHandler<KernelStatus_t> status;

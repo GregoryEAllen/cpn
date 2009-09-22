@@ -47,6 +47,10 @@ namespace CPN {
 
         void RunOneIteration();
 
+        void SetDescriptor(Async::DescriptorPtr desc);
+
+        void SetQueue(shared_ptr<QueueBase> q);
+
         Key_t GetKey() const { return readerkey; }
     private:
         void MessageNotice();

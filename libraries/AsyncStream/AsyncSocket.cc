@@ -145,9 +145,11 @@ namespace Async {
                 break;
             case EAI_AGAIN:
                 break;
+#if !defined(OS_DARWIN)
             case EAI_OVERFLOW:
                 hostname.resize(hostname.size()*2, '\0');
                 break;
+#endif
             case EAI_BADFLAGS:
             case EAI_FAIL:
             case EAI_FAMILY:
@@ -179,9 +181,11 @@ namespace Async {
                 break;
             case EAI_AGAIN:
                 break;
+#if !defined(OS_DARWIN)
             case EAI_OVERFLOW:
                 servname.resize(servname.size()*2, '\0');
                 break;
+#endif
             case EAI_BADFLAGS:
             case EAI_FAIL:
             case EAI_FAMILY:
@@ -343,7 +347,7 @@ namespace Async {
                 case EPROTO:
                 case ENOPROTOOPT:
                 case EHOSTDOWN:
-                case ENONET:
+                //case ENONET:
                 case EHOSTUNREACH:
                 case ENETUNREACH:
                 case ENOBUFS:

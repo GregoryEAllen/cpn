@@ -242,7 +242,16 @@ namespace CPN {
         shared_ptr<NodeBase> readernode = nodemap[attr.GetReaderNodeKey()];
         ASSERT(readernode);
         readernode->GetMsgPut()->Put(NodeSetReader::Create(attr.GetReaderKey(), queue));
-        ASSERT(false, "Need to implement create of ReaderStream");
+        shared_ptr<ReaderStream> stream;
+        StreamMap::iterator entry = streammap.find(attr.GetReaderKey());
+        if (entry == streammap.end()) {
+            stream = shared_ptr<ReaderStream>(
+                    new ReaderStream(wakeupwriter, queue, attr.GetReaderKey()));
+            streammap.insert(std::make_pair(attr.GetReaderKey(), stream));
+        } else {
+            stream = dynamic_pointer_cast<ReaderStream>(entry->second);
+            stream->SetQueue(queue);
+        }
     }
 
     void Kernel::CreateWriterEndpoint(const SimpleQueueAttr &attr) {
@@ -251,7 +260,16 @@ namespace CPN {
         shared_ptr<NodeBase> writernode = nodemap[attr.GetWriterNodeKey()];
         ASSERT(writernode);
         writernode->GetMsgPut()->Put(NodeSetWriter::Create(attr.GetWriterKey(), queue));
-        ASSERT(false, "Need to implement create of WriterStream");
+        shared_ptr<WriterStream> stream;
+        StreamMap::iterator entry = streammap.find(attr.GetWriterKey());
+        if (entry == streammap.end()) {
+            stream = shared_ptr<WriterStream>(
+                    new WriterStream(wakeupwriter, queue, attr.GetWriterKey()));
+            streammap.insert(std::make_pair(attr.GetWriterKey(), stream));
+        } else {
+            stream = dynamic_pointer_cast<WriterStream>(entry->second);
+            stream->SetQueue(queue);
+        }
     }
 
     void Kernel::CreateLocalQueue(const SimpleQueueAttr &attr) {
@@ -431,7 +449,7 @@ namespace CPN {
         FUNCBEGIN;
         Async::Stream stream(wakeupwriter);
         char c = 0;
-        ENSURE(stream.Write(&c, sizeof(c)) == sizeof(c));
+        while(stream.Write(&c, sizeof(c)) != sizeof(c));
     }
 
     void Kernel::ListenRead() {
@@ -455,6 +473,19 @@ namespace CPN {
 
     void Kernel::ProcessMessage(KMsgCreateNode *msg) {
         InternalCreateNode(msg->GetAttr());
+    }
+
+    void Kernel::ProcessMessage(KMsgStreamDead *msg) {
+        streammap.erase(msg->GetStreamKey());
+    }
+
+    void Kernel::ProcessMessage(KMsgSetReaderDescriptor *msg) {
+    }
+
+    void Kernel::ProcessMessage(KMsgSetWriterDescriptor *msg) {
+    }
+
+    void Kernel::ProcessMessage(KMsgCreateKernelStream *msg) {
     }
 
 }
