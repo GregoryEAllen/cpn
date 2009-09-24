@@ -61,8 +61,6 @@ namespace CPN {
      * the user of the process network.
      */
     class CPN_API Kernel : private Pthread, private KMsgDispatchable {
-        friend class NodeBase;
-
         enum KernelStatus_t {
             INITIALIZED, RUNNING, TERMINATE, DONE
         };
@@ -96,14 +94,8 @@ namespace CPN {
          * The memory pointed to by argsize may be copied up to
          * argsize bytes into a location that the new node can access.
          *
-         * \param nodename the name for the new node
-         * \param nodetype the type name of the new node
-         * \param arg a void pointer to arguments for the node
-         * may be 0
-         * \param argsize the size in bytes of arg. This is used if
-         * the kernel needs to make a memcopy of arg to pass it to the node.
-         * \return E_NONE on success
-         *         E_EXISTS if the node already exists
+         * \param attr The NodeAttr that describes the new node to create.
+         * \return the new node's key
          * \throws KernelShutdownException if Wait completed or Terminate
          * has been called.
          */
@@ -140,6 +132,8 @@ namespace CPN {
         Key_t GetKey() const { return hostkey; }
 
         shared_ptr<Database> GetDatabase() const { return database; }
+
+        void NodeTerminated(Key_t key);
     private:
         // Not copyable
         Kernel(const Kernel&);
@@ -150,7 +144,6 @@ namespace CPN {
         void CreateLocalQueue(const SimpleQueueAttr &attr);
         shared_ptr<QueueBase> MakeQueue(const SimpleQueueAttr &attr);
         void InternalCreateNode(NodeAttr &nodeattr);
-        void NodeTerminated(Key_t key);
         void ClearGarbage();
         void HandleMessages();
 

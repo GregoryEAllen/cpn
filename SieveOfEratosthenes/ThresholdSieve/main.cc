@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
     }
     for (int i = 0; i < numIterations; ++i) {
         TestResults timeresults = SieveTest(options);
-        fprintf(f, "%lu\t%lu\t%lu\t%lu\t%f\t%f\t%f\t%u\n",
+        fprintf(f, "m:%lu\tq:%lu\tt:%lu\tp:%lu\t%f\t%f\t%f\t%u\n",
                 (unsigned long)options.maxprime,
                 options.queuesize,
                 options.threshold,
