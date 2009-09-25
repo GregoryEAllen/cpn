@@ -33,9 +33,9 @@ namespace CPN {
         : wakeup(wu),
         queue(q),
         downstream(q->DownStreamChain()),
-        readerkey(key),
-        endpoint(q, q->DownStreamChain())
+        readerkey(key)
     {
+        endpoint.SetQueue(q, q->DownStreamChain());
         upstream = MsgQueueSignal<NodeMessagePtr, MsgQueue<NodeMessagePtr> >::Create();
         upstream->Connect(sigc::mem_fun(this, &ReaderStream::MessageNotice));
         queue->UpStreamChain()->Chain(upstream);

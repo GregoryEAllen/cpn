@@ -149,6 +149,8 @@ namespace CPN {
     void Kernel::CreateQueue(const QueueAttr &qattr) {
         FUNCBEGIN;
         Sync::AutoReentrantLock arlock(lock, false);
+        // Normalize the QueueAttr into a SimpleQueueAttr
+        // This gets rid of the names and translates to IDs
         SimpleQueueAttr attr = qattr;
         if (attr.GetReaderKey() == 0) {
             if (attr.GetReaderNodeKey() == 0) {
@@ -187,6 +189,7 @@ namespace CPN {
         } else if (attr.GetWriterNodeKey() == 0) {
             attr.SetWriterNodeKey(database->GetWriterNode(attr.GetWriterKey()));
         }
+
         database->ConnectEndpoints(attr.GetWriterKey(), attr.GetReaderKey());
 
         Key_t readerhost = database->GetNodeHost(attr.GetReaderNodeKey());

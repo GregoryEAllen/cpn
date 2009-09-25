@@ -37,9 +37,11 @@ void StreamEndpointTest::setUp() {
     StreamSocket::CreatePair(wsock, rsock);
     wsock->ConnectOnError(sigc::ptr_fun(Error));
     rsock->ConnectOnError(sigc::ptr_fun(Error));
-    wendp = shared_ptr<StreamEndpoint>(new StreamEndpoint(wqueue, wqueue->UpStreamChain()));
+    wendp = shared_ptr<StreamEndpoint>(new StreamEndpoint());
+    wendp->SetQueue(wqueue, wqueue->UpStreamChain());
     wendp->SetDescriptor(wsock);
-    rendp = shared_ptr<StreamEndpoint>(new StreamEndpoint(rqueue, rqueue->DownStreamChain()));
+    rendp = shared_ptr<StreamEndpoint>(new StreamEndpoint());
+    rendp->SetQueue(rqueue, rqueue->DownStreamChain());
     rendp->SetDescriptor(rsock);
     msgq = MsgQueue<NodeMessagePtr>::Create();
     rqueue->DownStreamChain()->Chain(msgq);

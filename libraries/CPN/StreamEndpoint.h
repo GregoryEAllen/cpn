@@ -46,8 +46,9 @@ namespace CPN {
     class StreamEndpoint : public NodeMsgDispatch {
     public:
 
-        StreamEndpoint(shared_ptr<QueueBase> q,
-                shared_ptr<MsgPut<NodeMessagePtr> > mfs);
+        StreamEndpoint();
+
+        // From NodeMsgDispatch
 
         // A StreamEndpoint should not recieve these two messages.
         void ProcessMessage(NodeSetReader *msg) { ASSERT(false, "Invalid Message Type to StreamEndpoint"); }
@@ -84,6 +85,9 @@ namespace CPN {
         Async::DescriptorPtr GetDescriptor() { return descriptor; }
         void SetDescriptor(Async::DescriptorPtr desc);
 
+        void SetQueue(shared_ptr<QueueBase> q,
+                shared_ptr<MsgPut<NodeMessagePtr> > mfs);
+
     private:
 
         void WriteEnqueue(NodeEnqueuePtr msg);
@@ -112,7 +116,7 @@ namespace CPN {
         // the other endpoints queue. Unused in read mode.
         unsigned writecount;
         shared_ptr<QueueBase> queue;
-        shared_ptr<MsgPut<NodeMessagePtr> > msgfromsocket;
+        shared_ptr<MsgPut<NodeMessagePtr> > msgtoendpoint;
         NodeMessagePtr nextmessage;
         std::deque<NodeEnqueuePtr> blockedenqueues;
     };

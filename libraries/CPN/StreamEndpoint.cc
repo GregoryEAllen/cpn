@@ -26,15 +26,12 @@
 
 namespace CPN {
 
-    StreamEndpoint::StreamEndpoint(shared_ptr<QueueBase> q,
-                shared_ptr<MsgPut<NodeMessagePtr> > mfs)
+    StreamEndpoint::StreamEndpoint()
         : readstate(READ_HEADER),
         totalread(0),
         totaltoread(sizeof(readheader)),
         readchan(0),
-        writecount(0),
-        queue(q),
-        msgfromsocket(mfs)
+        writecount(0)
     {
     }
 
@@ -156,7 +153,7 @@ namespace CPN {
                     if (readchan >= queue->NumChannels()) {
                         // Enqueue the data and send the enqueue message.
                         queue->Enqueue(totaltoread);
-                        msgfromsocket->Put(nextmessage);
+                        msgtoendpoint->Put(nextmessage);
                         nextmessage.reset();
                         readstate = READ_HEADER;
                         readchan = 0;
@@ -204,7 +201,7 @@ namespace CPN {
         default:
             // We got a packet type we don't know what to do with
             // fail messily for now
-            ASSERT(false, "Unkown packet");
+            ASSERT(false, "Unknown packet");
         }
     }
 
@@ -219,18 +216,18 @@ namespace CPN {
 
     void StreamEndpoint::ProcessDequeuePacket() {
         ASSERT(readheader.dequeue.numchannels == queue->NumChannels(),
-                "Endpoins dissagree on number of channels.");
+                "Endpoints disagree on number of channels.");
         writecount -= readheader.dequeue.amount;
         CheckBlockedEnqueues();
-        msgfromsocket->Put(NodeDequeue::Create(readheader.dequeue.amount));
+        msgtoendpoint->Put(NodeDequeue::Create(readheader.dequeue.amount));
     }
 
     void StreamEndpoint::ProcessReadblockPacket() {
-        msgfromsocket->Put(NodeReadBlock::Create(readheader.readblock.requested));
+        msgtoendpoint->Put(NodeReadBlock::Create(readheader.readblock.requested));
     }
 
     void StreamEndpoint::ProcessWriteblockPacket() {
-        msgfromsocket->Put(NodeWriteBlock::Create(readheader.writeblock.requested));
+        msgtoendpoint->Put(NodeWriteBlock::Create(readheader.writeblock.requested));
     }
 
     void StreamEndpoint::CheckBlockedEnqueues() {
@@ -250,6 +247,12 @@ namespace CPN {
         descriptor->ConnectWriteable(sigc::mem_fun(this, &StreamEndpoint::WriteReady));
         descriptor->ConnectOnRead(sigc::mem_fun(this, &StreamEndpoint::ReadSome));
         descriptor->ConnectOnWrite(sigc::mem_fun(this, &StreamEndpoint::WriteSome));
+    }
+
+    void StreamEndpoint::SetQueue( shared_ptr<QueueBase> q,
+                shared_ptr<MsgPut<NodeMessagePtr> > mfs) {
+        msgtoendpoint = mfs;
+        queue = q;
     }
 }
 
