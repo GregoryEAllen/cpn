@@ -127,6 +127,7 @@ namespace Async {
     public:
 
         static SockPtr Create(const SocketAddress &address);
+        static SockPtr Create(const SockAddrList  &addresses);
         static void CreatePair(SockPtr &sock1, SockPtr &sock2);
 
         virtual ~StreamSocket() throw();
@@ -136,8 +137,12 @@ namespace Async {
 
     private:
         StreamSocket(const SocketAddress &address);
+        StreamSocket(const SockAddrList &addresses);
         StreamSocket(int fid, const SocketAddress &address);
         StreamSocket(int fid);
+        bool Connect(int &error);
+        void LookupRemoteAddress();
+        void LookupLocalAddress();
 
         SocketAddress remoteaddress;
         SocketAddress localaddress;
@@ -150,6 +155,7 @@ namespace Async {
     public:
 
         static ListenSockPtr Create(const SocketAddress &address);
+        static ListenSockPtr Create(const SockAddrList &addresses);
 
         virtual ~ListenSocket() throw();
 
@@ -162,6 +168,8 @@ namespace Async {
 
     private:
         ListenSocket(const SocketAddress &addr);
+        ListenSocket(const SockAddrList &addrs);
+        bool Listen(int &error);
         SocketAddress address;
     };
 

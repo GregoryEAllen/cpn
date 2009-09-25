@@ -237,6 +237,9 @@ namespace Async {
     SockPtr StreamSocket::Create(const SocketAddress &address) {
         return SockPtr(new StreamSocket(address));
     }
+    SockPtr StreamSocket::Create(const SockAddrList &addresses) {
+        return SockPtr(new StreamSocket(addresses));
+    }
 
     void StreamSocket::CreatePair(SockPtr &sock1, SockPtr &sock2) {
         int pair[2];
@@ -249,14 +252,51 @@ namespace Async {
 
     StreamSocket::StreamSocket(const SocketAddress &addr) {
         remoteaddress = addr;
+        int error = 0;
+        if (!Connect(error)) {
+            throw StreamException(error);
+        }
+        SetNonBlocking(true);
+    }
+
+    StreamSocket::StreamSocket(const SockAddrList &addrs) {
+        int error = 0;
+        bool success = false;
+        for (SockAddrList::const_iterator itr = addrs.begin();
+                itr != addrs.end(); ++itr) {
+            remoteaddress = *itr;
+            success = Connect(error);
+            if (success) break;
+        }
+        if (!success) throw StreamException(error);
+        SetNonBlocking(true);
+    }
+
+    StreamSocket::StreamSocket(int fid, const SocketAddress &address)
+    : Descriptor(fid), remoteaddress(address) {
+        localaddress.GetLen() = sizeof(sockaddr_storage);
+        getsockname(fd, localaddress.GetAddr(), &localaddress.GetLen());
+    }
+
+    StreamSocket::StreamSocket(int fid)
+    : Descriptor(fid) {
+        LookupRemoteAddress();
+        LookupLocalAddress();
+    }
+
+    StreamSocket::~StreamSocket() throw() {
+    }
+
+    bool StreamSocket::Connect(int &error) {
         fd = socket(remoteaddress.Family(), SOCK_STREAM, 0);
         if (fd < 0) {
-            throw StreamException(errno);
+            error = errno;
+            return false;
         }
         bool loop = true;
         while (loop) {
             if (connect(fd, remoteaddress.GetAddr(), remoteaddress.GetLen()) < 0) {
-                int error = errno;
+                error = errno;
                 switch (error) {
                 case EINTR:
                 case EAGAIN: // not enough resources
@@ -278,55 +318,74 @@ namespace Async {
                 default:
                     close(fd);
                     fd = -1;
-                    throw StreamException(error);
+                    return false;
                 }
             } else {
                loop = false;
-               remoteaddress.GetLen() = sizeof(sockaddr_storage);
-               getpeername(fd, remoteaddress.GetAddr(), &remoteaddress.GetLen());
+               LookupRemoteAddress();
             }
         }
-        SetNonBlocking(true);
+        return true;
     }
 
-    StreamSocket::StreamSocket(int fid, const SocketAddress &address)
-    : Descriptor(fid), remoteaddress(address) {
-        localaddress.GetLen() = sizeof(sockaddr_storage);
-        getsockname(fd, localaddress.GetAddr(), &localaddress.GetLen());
-    }
-
-    StreamSocket::StreamSocket(int fid)
-    : Descriptor(fid) {
+    void StreamSocket::LookupRemoteAddress() {
         remoteaddress.GetLen() = sizeof(sockaddr_storage);
         getpeername(fd, remoteaddress.GetAddr(), &remoteaddress.GetLen());
-        localaddress.GetLen() = sizeof(sockaddr_storage);
-        getsockname(fd, localaddress.GetAddr(), &localaddress.GetLen());
     }
 
-    StreamSocket::~StreamSocket() throw() {
+    void StreamSocket::LookupLocalAddress() {
+        localaddress.GetLen() = sizeof(sockaddr_storage);
+        getsockname(fd, localaddress.GetAddr(), &localaddress.GetLen());
     }
 
     ListenSockPtr ListenSocket::Create(const SocketAddress &address) {
         return ListenSockPtr(new ListenSocket(address));
     }
 
+    ListenSockPtr ListenSocket::Create(const SockAddrList &addresses) {
+        return ListenSockPtr(new ListenSocket(addresses));
+    }
+
     ListenSocket::ListenSocket(const SocketAddress &addr)
     : address(addr) {
-        fd = socket(address.Family(), SOCK_STREAM, 0);
-        if (fd < 0) {
-            throw StreamException(errno);
+        int error = 0;
+        if (!Listen(error)) {
+            throw StreamException(error);
         }
-        if (bind(fd, address.GetAddr(), address.GetLen()) < 0) {
-            throw StreamException(errno);
+    }
+
+    ListenSocket::ListenSocket(const SockAddrList &addrs) {
+        int error = 0;
+        bool success = false;
+        for (SockAddrList::const_iterator itr = addrs.begin();
+                itr != addrs.end(); ++itr) {
+            address = *itr;
+            success = Listen(error);
+            if (success) break;
         }
-        if (listen(fd, 128) < 0) {
-            throw StreamException(errno);
-        }
-        int opt = 1;
-        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+        if (!success) throw StreamException(error);
     }
 
     ListenSocket::~ListenSocket() throw() {
+    }
+
+    bool ListenSocket::Listen(int &error) {
+        fd = socket(address.Family(), SOCK_STREAM, 0);
+        if (fd < 0) {
+            error = errno;
+            return false;
+        }
+        if (bind(fd, address.GetAddr(), address.GetLen()) < 0) {
+            error = errno;
+            return false;
+        }
+        if (listen(fd, 10) < 0) {
+            error = errno;
+            return false;
+        }
+        int opt = 1;
+        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+        return true;
     }
 
     SockPtr ListenSocket::Accept() {

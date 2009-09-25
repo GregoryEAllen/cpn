@@ -72,17 +72,7 @@ namespace CPN {
         Async::SockAddrList addrlist = Async::SocketAddress::CreateIP(
                 kattr.GetHostName().c_str(),
                 kattr.GetServName().c_str());
-        Async::SockAddrList::iterator addritr = addrlist.begin();
-        while (addritr != addrlist.end()) {
-            try {
-                listener = Async::ListenSocket::Create(*addritr);
-            } catch (Async::StreamException &e) {
-                if (addritr + 1 == addrlist.end()) {
-                    throw;
-                }
-            }
-            ++addritr;
-        }
+        listener = Async::ListenSocket::Create(addrlist);
 
         if (!database) {
             database = Database::Local();
