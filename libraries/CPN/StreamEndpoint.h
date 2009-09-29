@@ -106,7 +106,7 @@ namespace CPN {
             READ_HEADER,
             READ_DATA
         } readstate;
-        StreamPacketHeader readheader;
+        PacketHeader readheader;
         unsigned totalread;
         unsigned totaltoread;
         unsigned readchan;

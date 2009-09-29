@@ -23,9 +23,11 @@ public:
 	CPPUNIT_TEST_SUITE( AutoBufferTest );
 	CPPUNIT_TEST( CircleBufferTest1 );
 	CPPUNIT_TEST( CircleBufferTest2 );
+	CPPUNIT_TEST( CircleBufferTest3 );
 	CPPUNIT_TEST_SUITE_END();
 
 	void CircleBufferTest1();
 	void CircleBufferTest2();
+	void CircleBufferTest3();
 };
 #endif

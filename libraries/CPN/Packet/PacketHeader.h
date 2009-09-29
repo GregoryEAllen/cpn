@@ -96,8 +96,6 @@ namespace CPN {
 
         uint64_t readerkey;
         uint64_t writerkey;
-        uint64_t readernodekey;
-        uint64_t writernodekey;
     };
 
     struct CreateNodePacketHeader {
@@ -117,12 +115,12 @@ namespace CPN {
         uint64_t hostkey;
     };
 
-    struct IdentifyStreamPacketHeader {
+    struct IdentifyPacketHeader {
         PacketHeaderBase base;
         uint64_t key;
     };
 
-    struct StreamPacketHeader {
+    struct PacketHeader {
         union {
             PacketHeaderBase base;
             EnqueuePacketHeader enqueue;
@@ -131,17 +129,18 @@ namespace CPN {
             WriteBlockPacketHeader writeblock;
             CreateQueuePacketHeader createqueue;
             CreateNodePacketHeader createnode;
+            IdentifyPacketHeader identify;
             uint8_t pad[PACKET_HEADERLENGTH];
         };
         char data[0];
     };
 
-    inline bool ValidStreamPacket(StreamPacketHeader *ph) {
+    inline bool ValidPacket(PacketHeader *ph) {
         return ph->base.syncWord == PACKET_SYNCWORD;
     }
 
-    inline void InitStreamPacket(StreamPacketHeader *ph, uint32_t datalen, PacketType_t type) {
-        memset(ph, 0, sizeof(StreamPacketHeader));
+    inline void InitPacket(PacketHeader *ph, uint32_t datalen, PacketType_t type) {
+        memset(ph, 0, sizeof(PacketHeader));
         ph->base.syncWord = PACKET_SYNCWORD;
         ph->base.dataLength = datalen;
         ph->base.dataType = type;

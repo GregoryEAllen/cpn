@@ -37,10 +37,10 @@
  */
 class AutoCircleBuffer {
 public:
-    /// Create an AutoCircleBuffer with an initial size of 100
-    AutoCircleBuffer() : buff(100), size(0), put(0), get(0) {}
+    /// Create an AutoCircleBuffer with a default initial size
+    AutoCircleBuffer();
     /// Create an AutoCircleBuffer with the given initial size.
-    AutoCircleBuffer(int initialsize) : buff(initialsize), size(0), put(0), get(0) {}
+    AutoCircleBuffer(int initialsize);
     ~AutoCircleBuffer() {}
     /// \return the current maximum amount that can fit
     unsigned MaxSize() { return buff.GetSize(); }
@@ -103,6 +103,10 @@ public:
      * Change the size of the buffer.
      * Will not make the size smaller than the current
      * amount in the buffer.
+     * Will change it to the closest greater power of two.
+     * Minimum size of 256.
+     * \note This might do a double copy so is rather
+     * inefficient.
      * \param newsize the new size of the buffer
      */
     void ChangeMaxSize(unsigned newsize);

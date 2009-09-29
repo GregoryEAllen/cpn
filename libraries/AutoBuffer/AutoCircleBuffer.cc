@@ -26,6 +26,18 @@
 #include "Assert.h"
 #include <cstring>
 
+const unsigned MIN_SIZE = 10;
+
+AutoCircleBuffer::AutoCircleBuffer() : buff(), size(0), put(0), get(0) {
+    ChangeMaxSize(MIN_SIZE);
+}
+
+AutoCircleBuffer::AutoCircleBuffer(int initialsize) : buff(),
+    size(0), put(0), get(0)
+{
+    ChangeMaxSize(initialsize);
+}
+
 char* AutoCircleBuffer::AllocatePut(unsigned desired, unsigned &actual) {
     actual = desired;
     if (actual > MaxSize() - size) {
@@ -85,23 +97,49 @@ bool AutoCircleBuffer::Get(char* ptr, unsigned amount) {
 }
 
 void AutoCircleBuffer::ChangeMaxSize(unsigned newsize) {
+    if (newsize < MIN_SIZE) {
+        newsize = MIN_SIZE;
+    }
     if (newsize < size) {
         newsize = size;
     }
-    AutoBuffer storage(size);
-    unsigned amount = 0;
-    unsigned total = 0;
-    while (size > 0) {
-        char* ptr = AllocateGet(size, amount);
-        storage.Put(ptr, amount, total);
-        ReleaseGet(amount);
-        total += amount;
-    }
-    buff.ChangeSize(newsize);
-    while (size < total) {
-        char* ptr = AllocatePut(total, amount);
-        storage.Get(ptr, amount, size);
-        ReleasePut(amount);
+    unsigned oldmax = MaxSize();
+    // Round up to the next power of 2, ensure not zero
+    unsigned newmax = oldmax != 0 ? oldmax : MIN_SIZE;
+    // Shift down until equal or under
+    while (newmax > newsize) { newmax >>= 1; }
+    // Shift up until just over
+    while (newmax < newsize) { newmax <<= 1; }
+    if (newmax < oldmax) {
+        // Only do a double copy if we need to
+        // Could be more efficient but reduction in size is rare
+        AutoBuffer storage(size);
+        unsigned amount = 0;
+        unsigned total = 0;
+        while (size > 0) {
+            char* ptr = AllocateGet(size, amount);
+            storage.Put(ptr, amount, total);
+            ReleaseGet(amount);
+            total += amount;
+        }
+        buff.ChangeSize(newmax);
+        while (size < total) {
+            char* ptr = AllocatePut(total, amount);
+            storage.Get(ptr, amount, size);
+            ReleasePut(amount);
+        }
+    } else {
+        buff.ChangeSize(newmax);
+        // Only need to copy when there exists
+        // data 'above' the put position
+        // shift it to the end
+        if (get >= put && size != 0) {
+            unsigned oldget = get;
+            get = oldget +  newmax - oldmax;
+            memmove(buff.GetBuffer(get),
+                    buff.GetBuffer(oldget),
+                    oldmax - oldget);
+        }
     }
 }
 

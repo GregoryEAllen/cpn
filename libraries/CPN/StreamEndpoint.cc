@@ -48,12 +48,12 @@ namespace CPN {
         // Setup an enqueue packet
         unsigned amount = msg->Amount();
         unsigned numchans = queue->NumChannels();
-        StreamPacketHeader spacket;
-        InitStreamPacket(&spacket, amount * numchans, PACKET_ENQUEUE);
+        PacketHeader spacket;
+        InitPacket(&spacket, amount * numchans, PACKET_ENQUEUE);
         spacket.enqueue.amount = amount;
         spacket.enqueue.numchannels = numchans;
         writecount += amount;
-        writeq.Put((char*)&spacket, sizeof(StreamPacketHeader));
+        writeq.Put((char*)&spacket, sizeof(PacketHeader));
         for (unsigned chan = 0; chan < numchans; ++chan) {
             const char *ptr = (const char*)queue->GetRawDequeuePtr(amount, chan);
             ASSERT(ptr, "Enqueue message received but no data is in the queue.");
@@ -66,29 +66,29 @@ namespace CPN {
         // Setup a dequeue packet
         unsigned amount = msg->Amount();
         unsigned numchans = queue->NumChannels();
-        StreamPacketHeader spacket;
-        InitStreamPacket(&spacket, 0, PACKET_DEQUEUE);
+        PacketHeader spacket;
+        InitPacket(&spacket, 0, PACKET_DEQUEUE);
         spacket.dequeue.amount = amount;
         spacket.dequeue.numchannels = numchans;
-        writeq.Put((char*)&spacket, sizeof(StreamPacketHeader));
+        writeq.Put((char*)&spacket, sizeof(PacketHeader));
     }
 
     void StreamEndpoint::ProcessMessage(NodeReadBlock *msg) {
         // Setup a read blocked packet
         unsigned requested = msg->Requested();
-        StreamPacketHeader spacket;
-        InitStreamPacket(&spacket, 0, PACKET_READBLOCK);
+        PacketHeader spacket;
+        InitPacket(&spacket, 0, PACKET_READBLOCK);
         spacket.readblock.requested = requested;
-        writeq.Put((char*)&spacket, sizeof(StreamPacketHeader));
+        writeq.Put((char*)&spacket, sizeof(PacketHeader));
     }
 
     void StreamEndpoint::ProcessMessage(NodeWriteBlock *msg) {
         // Setup a write blocked packet
         unsigned requested = msg->Requested();
-        StreamPacketHeader spacket;
-        InitStreamPacket(&spacket, 0, PACKET_WRITEBLOCK);
+        PacketHeader spacket;
+        InitPacket(&spacket, 0, PACKET_WRITEBLOCK);
         spacket.writeblock.requested = requested;
-        writeq.Put((char*)&spacket, sizeof(StreamPacketHeader));
+        writeq.Put((char*)&spacket, sizeof(PacketHeader));
     }
 
     void StreamEndpoint::ProcessMessage(NodeEndOfWriteQueue *msg) {
@@ -141,7 +141,7 @@ namespace CPN {
                 switch (readstate) {
                 case READ_HEADER:
                     // TODO do error recovery rather than abort
-                    ASSERT(ValidStreamPacket(&readheader), "Invalid packet!?!?");
+                    ASSERT(ValidPacket(&readheader), "Invalid packet!?!?");
                     // Reset state.
                     totalread = 0;
                     readchan = 0;
