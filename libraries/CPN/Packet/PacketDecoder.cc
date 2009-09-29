@@ -134,13 +134,13 @@ namespace CPN {
                         );
             }
             break;
-        case PACKET_ID_READER_STREAM:
+        case PACKET_ID_READER:
             ReceivedReaderID(header->identify.key);
             break;
-        case PACKET_ID_WRITER_STREAM:
+        case PACKET_ID_WRITER:
             ReceivedWriterID(header->identify.key);
             break;
-        case PACKET_ID_KERNEL_STREAM:
+        case PACKET_ID_KERNEL:
             ReceivedKernelID(header->identify.key);
             break;
         default:
@@ -150,33 +150,40 @@ namespace CPN {
 
     void PacketDecoder::ReceivedEnqueue(void *data, unsigned length,
             unsigned numchannels) {
+        ASSERT(false, "Unexpected packet type received.");
     }
 
     void PacketDecoder::ReceivedDequeue(unsigned length, unsigned numchannels) {
+        ASSERT(false, "Unexpected packet type received.");
     }
 
     void PacketDecoder::ReceivedReadBlock(unsigned requested) {
+        ASSERT(false, "Unexpected packet type received.");
     }
 
     void PacketDecoder::ReceivedWriteBlock(unsigned requested) {
+        ASSERT(false, "Unexpected packet type received.");
     }
 
     void PacketDecoder::ReceivedCreateReader(
             unsigned queuehint, unsigned queuelenght, unsigned maxthreshold,
             unsigned numchannels, uint64_t readerkey, uint64_t writerkey)
     {
+        ASSERT(false, "Unexpected packet type received.");
     }
 
     void PacketDecoder::ReceivedCreateWriter(
             unsigned queuehint, unsigned queuelenght, unsigned maxthreshold,
             unsigned numchannels, uint64_t readerkey, uint64_t writerkey)
     {
+        ASSERT(false, "Unexpected packet type received.");
     }
 
     void PacketDecoder::ReceivedCreateQueue(
             unsigned queuehint, unsigned queuelenght, unsigned maxthreshold,
             unsigned numchannels, uint64_t readerkey, uint64_t writerkey)
     {
+        ASSERT(false, "Unexpected packet type received.");
     }
 
     void PacketDecoder::ReceivedCreateNode(
@@ -187,15 +194,19 @@ namespace CPN {
             uint64_t nodekey,
             uint64_t hostkey)
     {
+        ASSERT(false, "Unexpected packet type received.");
     }
 
     void PacketDecoder::ReceivedReaderID(uint64_t readerkey) {
+        ASSERT(false, "Unexpected packet type received.");
     }
 
     void PacketDecoder::ReceivedWriterID(uint64_t writerkey) {
+        ASSERT(false, "Unexpected packet type received.");
     }
 
     void PacketDecoder::ReceivedKernelID(uint64_t kernelkey) {
+        ASSERT(false, "Unexpected packet type received.");
     }
 
 }

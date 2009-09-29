@@ -46,6 +46,8 @@ public:
     unsigned MaxSize() { return buff.GetSize(); }
     /// \return the number of bytes of data this AutoCircleBuffer has
     unsigned Size() { return size; }
+    /// Reset the buffer and loose all data currently in it
+    void Reset() { size = put = get = 0; }
     /**
      * Try to return a pointer into the buffer with desired
      * number of bytes available to write. Actual is the amount

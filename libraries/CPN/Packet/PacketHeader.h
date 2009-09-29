@@ -52,9 +52,9 @@ namespace CPN {
         PACKET_CREATE_QUEUE,
         PACKET_CREATE_NODE,
 
-        PACKET_ID_READER_STREAM,
-        PACKET_ID_WRITER_STREAM,
-        PACKET_ID_KERNEL_STREAM
+        PACKET_ID_READER,
+        PACKET_ID_WRITER,
+        PACKET_ID_KERNEL
     };
 
     struct PacketHeaderBase {

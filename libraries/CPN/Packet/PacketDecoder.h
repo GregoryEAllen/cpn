@@ -41,12 +41,16 @@ namespace CPN {
     class PacketDecoder {
     public:
         PacketDecoder();
+        virtual ~PacketDecoder() {}
+        bool Enabled() const { return enable; }
         // amount is the amount the decoder wants for the next operation
         void *GetDecoderBytes(unsigned &amount);
         void ReleaseDecoderBytes(unsigned amount);
         void Reset();
+        void Enable(bool en = true) { enable = en; }
 
     protected:
+        // The data will have a chan stride of length
         virtual void ReceivedEnqueue(void *data, unsigned length, unsigned numchannels);
         virtual void ReceivedDequeue(unsigned length, unsigned numchannels);
         virtual void ReceivedReadBlock(unsigned requested);
@@ -81,6 +85,7 @@ namespace CPN {
         AutoBuffer buffer;
         unsigned numbytes;
         unsigned packetsize;
+        bool enable;
     };
 
 }
