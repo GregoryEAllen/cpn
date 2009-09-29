@@ -1,0 +1,76 @@
+//=============================================================================
+//	Computational Process Networks class library
+//	Copyright (C) 1997-2006  Gregory E. Allen and The University of Texas
+//
+//	This library is free software; you can redistribute it and/or modify it
+//	under the terms of the GNU Library General Public License as published
+//	by the Free Software Foundation; either version 2 of the License, or
+//	(at your option) any later version.
+//
+//	This library is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//	Library General Public License for more details.
+//
+//	The GNU Public License is available in the file LICENSE, or you
+//	can write to the Free Software Foundation, Inc., 59 Temple Place -
+//	Suite 330, Boston, MA 02111-1307, USA, or you can find it on the
+//	World Wide Web at http://www.fsf.org.
+//=============================================================================
+/** \file
+ * \author John Bridgman
+ */
+#ifndef CPN_PACKETENCODER_H
+#define CPN_PAcKETENCODER_H
+#pragma once
+
+#include "PacketHeader.h"
+#include "AutoBuffer.h"
+#include "AutoCircleBuffer.h"
+#include <string>
+
+namespace CPN {
+    // Take the various message types that can be sent over the wire
+    // and encode them into byte representation.
+    class PacketEncoder {
+    public:
+        PacketEncoder();
+        bool BytesReady();
+
+        void *GetEncodedBytes(unsigned &amount);
+        void ReleaseEncodedBytes(unsigned amount);
+
+        void SendEnqueue(void *data, unsigned length, unsigned numchannels);
+        void SendDequeue(unsigned length, unsigned numchannels);
+        void SendReadBlock(unsigned requested);
+        void SendWriteBlock(unsigned requested);
+
+        void SendCreateReader(
+                unsigned queuehint, unsigned queuelenght, unsigned maxthreshold,
+                unsigned numchannels, uint64_t readerkey, uint64_t writerkey
+                );
+        void SendCreateWriter(
+                unsigned queuehint, unsigned queuelenght, unsigned maxthreshold,
+                unsigned numchannels, uint64_t readerkey, uint64_t writerkey
+                );
+        void SendCreateQueue(
+                unsigned queuehint, unsigned queuelenght, unsigned maxthreshold,
+                unsigned numchannels, uint64_t readerkey, uint64_t writerkey
+                );
+        void SendCreateNode(
+                const std::string &nodename,
+                const std::string &nodetype,
+                const std::string &param,
+                const StaticConstBuffer arg,
+                uint64_t nodekey,
+                uint64_t hostkey
+                );
+
+        void SendReaderID(uint64_t readerkey);
+        void SendWriterID(uint64_t writerkey);
+        void SendKernelID(uint64_t kernelkey);
+    private:
+        AutoCircleBuffer cbuff;
+    };
+}
+#endif
