@@ -29,8 +29,12 @@
 
 #include "common.h"
 #include "NodeMessage.h"
-#include "PacketHeader.h"
 #include "MessageQueue.h"
+
+#include "PacketDecoder.h"
+#include "PacketEncoder.h"
+
+
 #include "AsyncStream.h"
 #include "AutoCircleBuffer.h"
 #include "Assert.h"
@@ -43,7 +47,9 @@ namespace CPN {
      * If it receives dequeue messages then it acts like a reader if it is
      * receiving enqueue messages then it acts like a writer.
      */
-    class StreamEndpoint : public NodeMsgDispatch {
+    class StreamEndpoint : public NodeMsgDispatch,
+                           private PacketDecoder
+    {
     public:
 
         StreamEndpoint();
@@ -54,12 +60,12 @@ namespace CPN {
         void ProcessMessage(NodeSetReader *msg) { ASSERT(false, "Invalid Message Type to StreamEndpoint"); }
         void ProcessMessage(NodeSetWriter *msg) { ASSERT(false, "Invalid Message Type to StreamEndpoint"); }
 
-        // These messages get send to the other side
+        // These messages get sent to the other side
         void ProcessMessage(NodeEnqueue *msg);
         void ProcessMessage(NodeDequeue *msg);
         void ProcessMessage(NodeReadBlock *msg);
         void ProcessMessage(NodeWriteBlock *msg);
-        void Shutdown() { ASSERT(false, "Unimplemented"); }
+        void Shutdown();
         void ProcessMessage(NodeEndOfWriteQueue *msg);
         void ProcessMessage(NodeEndOfReadQueue *msg);
 
@@ -89,35 +95,25 @@ namespace CPN {
                 shared_ptr<MsgPut<NodeMessagePtr> > mfs);
 
     private:
+        void ReceivedEnqueue(void *data, unsigned length, unsigned numchannels);
+        void ReceivedDequeue(unsigned length, unsigned numchannels);
+        void ReceivedReadBlock(unsigned requested);
+        void ReceivedWriteBlock(unsigned requested);
 
         void WriteEnqueue(NodeEnqueuePtr msg);
 
-        void DecomposePacketHeader();
-        void ProcessEnqueuePacket();
-        void ProcessDequeuePacket();
-        void ProcessReadblockPacket();
-        void ProcessWriteblockPacket();
         void CheckBlockedEnqueues();
         bool Blocked();
 
-        AutoCircleBuffer writeq;
-
-        enum ReadState_t {
-            READ_HEADER,
-            READ_DATA
-        } readstate;
-        PacketHeader readheader;
-        unsigned totalread;
-        unsigned totaltoread;
-        unsigned readchan;
+        PacketEncoder encoder;
 
         Async::DescriptorPtr descriptor;
         // This is how many bytes this endpoint thinks it is in
         // the other endpoints queue. Unused in read mode.
         unsigned writecount;
         shared_ptr<QueueBase> queue;
+
         shared_ptr<MsgPut<NodeMessagePtr> > msgtoendpoint;
-        NodeMessagePtr nextmessage;
         std::deque<NodeEnqueuePtr> blockedenqueues;
     };
 }

@@ -37,11 +37,11 @@ namespace CPN {
         PacketEncoder();
         bool BytesReady();
 
-        void *GetEncodedBytes(unsigned &amount);
+        const void *GetEncodedBytes(unsigned &amount);
         void ReleaseEncodedBytes(unsigned amount);
         void Reset() { cbuff.Reset(); }
 
-        void SendEnqueue(void **data, unsigned length, unsigned numchannels);
+        void SendEnqueue(const void **data, unsigned length, unsigned numchannels);
         void SendDequeue(unsigned length, unsigned numchannels);
         void SendReadBlock(unsigned requested);
         void SendWriteBlock(unsigned requested);

@@ -32,7 +32,7 @@ namespace CPN {
         return cbuff.Size() > 0;
     }
 
-    void *PacketEncoder::GetEncodedBytes(unsigned &amount) {
+    const void *PacketEncoder::GetEncodedBytes(unsigned &amount) {
         return cbuff.AllocateGet(cbuff.Size(), amount);
     }
 
@@ -40,14 +40,14 @@ namespace CPN {
         cbuff.ReleaseGet(amount);
     }
 
-    void PacketEncoder::SendEnqueue(void **data, unsigned length, unsigned numchannels) {
+    void PacketEncoder::SendEnqueue(const void **data, unsigned length, unsigned numchannels) {
         PacketHeader header;
         InitPacket(&header, length * numchannels, PACKET_ENQUEUE);
         header.enqueue.amount = length;
         header.enqueue.numchannels = numchannels;
         cbuff.Put((char*)&header, sizeof(header));
         for (unsigned i = 0; i < numchannels; ++i) {
-            cbuff.Put((char*)data[i], length);
+            cbuff.Put((const char*)data[i], length);
         }
     }
 

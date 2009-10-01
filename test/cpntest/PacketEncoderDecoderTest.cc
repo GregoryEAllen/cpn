@@ -166,7 +166,7 @@ void PacketEDTest::EnqueueTest() {
     unsigned chans = 10;
     unsigned step = chans;
     std::vector<int> data(maxlen,0);
-    std::vector<void*> ptrs(chans,0);
+    std::vector<const void*> ptrs(chans,0);
     unsigned numpkts = 0;
     for (unsigned i = chans; i <= maxlen; i += step) {
         unsigned len = (i / chans);
@@ -342,7 +342,7 @@ void PacketEDTest::KernelIDTest() {
 void PacketEDTest::Transfer(PacketEncoder *encoder, PacketDecoder *decoder) {
     while (encoder->BytesReady()) {
         unsigned available = 0;
-        void *srcptr = encoder->GetEncodedBytes(available);
+        const void *srcptr = encoder->GetEncodedBytes(available);
         unsigned requested = 0;
         void *dstptr = decoder->GetDecoderBytes(requested);
         unsigned amount = available < requested ? available : requested;

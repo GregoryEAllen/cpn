@@ -27,12 +27,9 @@
 namespace CPN {
 
     StreamEndpoint::StreamEndpoint()
-        : readstate(READ_HEADER),
-        totalread(0),
-        totaltoread(sizeof(readheader)),
-        readchan(0),
-        writecount(0)
+        : writecount(0)
     {
+        PacketDecoder::Enable(false);
     }
 
     void StreamEndpoint::ProcessMessage(NodeEnqueue *msg) {
@@ -45,189 +42,112 @@ namespace CPN {
     }
     
     void StreamEndpoint::WriteEnqueue(NodeEnqueuePtr msg) {
-        // Setup an enqueue packet
         unsigned amount = msg->Amount();
         unsigned numchans = queue->NumChannels();
-        PacketHeader spacket;
-        InitPacket(&spacket, amount * numchans, PACKET_ENQUEUE);
-        spacket.enqueue.amount = amount;
-        spacket.enqueue.numchannels = numchans;
-        writecount += amount;
-        writeq.Put((char*)&spacket, sizeof(PacketHeader));
+        std::vector<const void*> data(numchans, 0);
         for (unsigned chan = 0; chan < numchans; ++chan) {
-            const char *ptr = (const char*)queue->GetRawDequeuePtr(amount, chan);
-            ASSERT(ptr, "Enqueue message received but no data is in the queue.");
-            writeq.Put(ptr, amount);
+            data[chan] = queue->GetRawDequeuePtr(amount, chan);
+            ASSERT(data[chan], "No data in the queue, inconsistant queue state.");
         }
+        encoder.SendEnqueue(&data[0], amount, numchans);
         queue->Dequeue(amount);
+        writecount += amount;
     }
 
     void StreamEndpoint::ProcessMessage(NodeDequeue *msg) {
-        // Setup a dequeue packet
         unsigned amount = msg->Amount();
         unsigned numchans = queue->NumChannels();
-        PacketHeader spacket;
-        InitPacket(&spacket, 0, PACKET_DEQUEUE);
-        spacket.dequeue.amount = amount;
-        spacket.dequeue.numchannels = numchans;
-        writeq.Put((char*)&spacket, sizeof(PacketHeader));
+        encoder.SendDequeue(amount, numchans);
     }
 
     void StreamEndpoint::ProcessMessage(NodeReadBlock *msg) {
-        // Setup a read blocked packet
-        unsigned requested = msg->Requested();
-        PacketHeader spacket;
-        InitPacket(&spacket, 0, PACKET_READBLOCK);
-        spacket.readblock.requested = requested;
-        writeq.Put((char*)&spacket, sizeof(PacketHeader));
+        encoder.SendReadBlock(msg->Requested());
     }
 
     void StreamEndpoint::ProcessMessage(NodeWriteBlock *msg) {
-        // Setup a write blocked packet
-        unsigned requested = msg->Requested();
-        PacketHeader spacket;
-        InitPacket(&spacket, 0, PACKET_WRITEBLOCK);
-        spacket.writeblock.requested = requested;
-        writeq.Put((char*)&spacket, sizeof(PacketHeader));
+        encoder.SendWriteBlock(msg->Requested());
+    }
+
+    void StreamEndpoint::Shutdown() {
+        ASSERT(false, "Unimplemented");
     }
 
     void StreamEndpoint::ProcessMessage(NodeEndOfWriteQueue *msg) {
         // TODO send the message on and start our shutdown
+        ASSERT(false, "Unimplemented");
     }
 
     void StreamEndpoint::ProcessMessage(NodeEndOfReadQueue *msg) {
         // TODO send the message on and start our shutdown
+        ASSERT(false, "Unimplemented");
     }
 
     bool StreamEndpoint::ReadReady() {
-        return true;
+        return PacketDecoder::Enabled();
     }
 
     bool StreamEndpoint::WriteReady() {
-        return writeq.Size() > 0;
+        return encoder.BytesReady();
     }
 
     void StreamEndpoint::ReadSome() {
         Async::Stream stream(descriptor);
         unsigned numtoread = 0;
         unsigned numread = 0;
-        char *ptr = 0;
         bool loop = true;
         while (loop) {
-            switch (readstate) {
-            case READ_HEADER:
-                ptr = (char*)&readheader;
-                totaltoread = sizeof(readheader);
-            break;
-            case READ_DATA:
-                ptr = (char*)queue->GetRawEnqueuePtr(totaltoread - totalread, readchan);
-                ASSERT(ptr, "Throttle failed no room in queue.");
-            break;
-            default: ASSERT(false, "Unreachable");
-            }
-            numtoread = totaltoread - totalread;
-            numread = stream.Read(ptr + totalread, numtoread);
+            void *ptr = PacketDecoder::GetDecoderBytes(numtoread);
+            numread = stream.Read(ptr, numtoread);
             if (0 == numread) {
                 if  (!stream) {
                     // The other end closed the connection!!
                     stream.Close();
                 }
                 loop = false;
-            }
-            totalread += numread;
-            if (totalread < totaltoread) {
-                //nothing read more
-            } else if (totalread == totaltoread) {
-                switch (readstate) {
-                case READ_HEADER:
-                    // TODO do error recovery rather than abort
-                    ASSERT(ValidPacket(&readheader), "Invalid packet!?!?");
-                    // Reset state.
-                    totalread = 0;
-                    readchan = 0;
-                    // deserialize the packet and reset/change state
-                    DecomposePacketHeader();
-                    break;
-                case READ_DATA:
-                    ++readchan;
-                    if (readchan >= queue->NumChannels()) {
-                        // Enqueue the data and send the enqueue message.
-                        queue->Enqueue(totaltoread);
-                        msgtoendpoint->Put(nextmessage);
-                        nextmessage.reset();
-                        readstate = READ_HEADER;
-                        readchan = 0;
-                        totaltoread = sizeof(readheader);
-                    }
-                    totalread = 0;
-                    break;
-                default: ASSERT(false, "Unreachable");
-                }
-            } else { //if (totalread > totaltoread)
-                ASSERT(false, "Unreachable");
+            } else {
+                PacketDecoder::ReleaseDecoderBytes(numread);
             }
         }
     }
 
     void StreamEndpoint::WriteSome() {
         Async::Stream stream(descriptor);
-        while (true) {
+        while (encoder.BytesReady()) {
             unsigned towrite = 0;
-            char *ptr = writeq.AllocateGet(writeq.Size(), towrite);
+            const void *ptr = encoder.GetEncodedBytes(towrite);
             if (0 == towrite) break;
             unsigned numwritten = stream.Write(ptr, towrite);
             if (numwritten == 0) {
                 break;
             } else {
-                writeq.ReleaseGet(numwritten);
+                encoder.ReleaseEncodedBytes(numwritten);
             }
         }
     }
 
-    void StreamEndpoint::DecomposePacketHeader() {
-        switch (readheader.base.dataType) {
-        case PACKET_ENQUEUE:
-            ProcessEnqueuePacket();
-            break;
-        case PACKET_DEQUEUE:
-            ProcessDequeuePacket();
-            break;
-        case PACKET_READBLOCK:
-            ProcessReadblockPacket();
-            break;
-        case PACKET_WRITEBLOCK:
-            ProcessWriteblockPacket();
-            break;
-        default:
-            // We got a packet type we don't know what to do with
-            // fail messily for now
-            ASSERT(false, "Unknown packet");
-        }
-    }
-
-    void StreamEndpoint::ProcessEnqueuePacket() {
-        readstate = READ_DATA;
-        totaltoread = readheader.enqueue.amount;
-        ASSERT(readheader.enqueue.numchannels == queue->NumChannels(),
+    void StreamEndpoint::ReceivedEnqueue(void *data, unsigned length, unsigned numchannels) {
+        ASSERT(numchannels == queue->NumChannels(),
                 "Endpoints disagree on number many channels.");
         // We want to send the enqueue message after we have actually enqueued the data
-        nextmessage = NodeEnqueue::Create(totaltoread);
+        ENSURE(queue->RawEnqueue(data, length, numchannels, length),
+                "Enqueue throttling over the socket failed.");
+        msgtoendpoint->Put(NodeEnqueue::Create(length));
     }
 
-    void StreamEndpoint::ProcessDequeuePacket() {
-        ASSERT(readheader.dequeue.numchannels == queue->NumChannels(),
+    void StreamEndpoint::ReceivedDequeue(unsigned length, unsigned numchannels) {
+        ASSERT(numchannels == queue->NumChannels(),
                 "Endpoints disagree on number of channels.");
-        writecount -= readheader.dequeue.amount;
+        writecount -= length;
         CheckBlockedEnqueues();
-        msgtoendpoint->Put(NodeDequeue::Create(readheader.dequeue.amount));
+        msgtoendpoint->Put(NodeDequeue::Create(length));
     }
 
-    void StreamEndpoint::ProcessReadblockPacket() {
-        msgtoendpoint->Put(NodeReadBlock::Create(readheader.readblock.requested));
+    void StreamEndpoint::ReceivedReadBlock(unsigned requested) {
+        msgtoendpoint->Put(NodeReadBlock::Create(requested));
     }
 
-    void StreamEndpoint::ProcessWriteblockPacket() {
-        msgtoendpoint->Put(NodeWriteBlock::Create(readheader.writeblock.requested));
+    void StreamEndpoint::ReceivedWriteBlock(unsigned requested) {
+        msgtoendpoint->Put(NodeWriteBlock::Create(requested));
     }
 
     void StreamEndpoint::CheckBlockedEnqueues() {
@@ -253,6 +173,7 @@ namespace CPN {
                 shared_ptr<MsgPut<NodeMessagePtr> > mfs) {
         msgtoendpoint = mfs;
         queue = q;
+        PacketDecoder::Enable(true);
     }
 }
 

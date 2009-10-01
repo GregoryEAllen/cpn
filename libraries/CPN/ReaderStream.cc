@@ -50,10 +50,13 @@ namespace CPN {
     }
 
     void ReaderStream::RunOneIteration() {
-        while (!upstream->Empty()) {
-            NodeMessagePtr msg = upstream->Get();
-            msg->DispatchOn(&endpoint);
-        }
+        Async::DescriptorPtr desc = endpoint.GetDescriptor();
+        if (desc && *desc) {
+            while (!upstream->Empty()) {
+                NodeMessagePtr msg = upstream->Get();
+                msg->DispatchOn(&endpoint);
+            }
+        } // else descriptor is gone...
     }
 
     void ReaderStream::SetDescriptor(Async::DescriptorPtr desc) {

@@ -45,15 +45,18 @@ namespace CPN {
         Async::DescriptorPtr desc = endpoint.GetDescriptor();
         if (desc) {
             descriptors.push_back(endpoint.GetDescriptor());
-        } else {
-            ASSERT(false, "Need connection setup");
         }
     }
 
     void WriterStream::RunOneIteration() {
-        while (!downstream->Empty()) {
-            NodeMessagePtr msg = downstream->Get();
-            msg->DispatchOn(&endpoint);
+        Async::DescriptorPtr desc = endpoint.GetDescriptor();
+        if (desc && *desc) {
+            while (!downstream->Empty()) {
+                NodeMessagePtr msg = downstream->Get();
+                msg->DispatchOn(&endpoint);
+            }
+        } else {
+            ASSERT(false, "Need descriptor setup");
         }
     }
 
