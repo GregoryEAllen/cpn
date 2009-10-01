@@ -31,7 +31,7 @@
 #define CPN_MESSAGEQUEUE_H
 #pragma once
 
-#include "common.h"
+#include "CPNCommon.h"
 #include "PthreadMutex.h"
 #include "PthreadCondition.h"
 #include <sigc++/sigc++.h>

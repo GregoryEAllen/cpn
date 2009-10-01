@@ -24,7 +24,7 @@
 #ifndef CPNDB_DATABASE_H
 #define CPNDB_DATABASE_H
 #pragma once
-#include "common.h"
+#include "CPNCommon.h"
 #include <string>
 
 namespace CPN {

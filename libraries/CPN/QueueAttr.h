@@ -26,7 +26,7 @@
 #define CPN_QUEUEATTR_H
 #pragma once
 
-#include "common.h"
+#include "CPNCommon.h"
 #include "QueueDatatypes.h"
 #include <string>
 

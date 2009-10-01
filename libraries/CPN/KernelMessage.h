@@ -27,7 +27,7 @@
 #define CPN_KERNELMESSAGE_H
 #pragma once
 
-#include "common.h"
+#include "CPNCommon.h"
 #include "QueueAttr.h"
 #include "NodeAttr.h"
 #include "Assert.h"

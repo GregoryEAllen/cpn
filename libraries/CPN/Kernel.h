@@ -26,7 +26,7 @@
 #define CPN_KERNEL_H
 #pragma once
 
-#include "common.h"
+#include "CPNCommon.h"
 #include "KernelAttr.h"
 #include "NodeAttr.h"
 #include "QueueAttr.h"

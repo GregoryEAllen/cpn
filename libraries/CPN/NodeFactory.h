@@ -25,7 +25,7 @@
 #define CPN_NODEFACTORY_H
 #pragma once
 
-#include "common.h"
+#include "CPNCommon.h"
 #include <string>
 
 namespace CPN {

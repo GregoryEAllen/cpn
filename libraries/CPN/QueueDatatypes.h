@@ -26,7 +26,7 @@
 #define CPN_QUEUEDATATYPES_H
 #pragma once
 
-#include "common.h"
+#include "CPNCommon.h"
 #include <stdint.h>
 #include <typeinfo>
 #include <cstring>

@@ -25,7 +25,7 @@
 #ifndef CPN_UNKNOWNSTREAM_H
 #define CPN_UNKNOWNSTREAM_H
 #pragma once
-#include "common.h"
+#include "CPNCommon.h"
 #include "KernelMessage.h"
 #include "PacketHeader.h"
 #include "AsyncSocket.h"

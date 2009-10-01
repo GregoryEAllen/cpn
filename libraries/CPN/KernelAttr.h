@@ -26,7 +26,7 @@
 #define CPN_KERNELATTR_H
 #pragma once
 
-#include "common.h"
+#include "CPNCommon.h"
 #include <string>
 
 namespace CPN {

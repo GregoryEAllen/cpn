@@ -26,7 +26,7 @@
 #ifndef CPN_LOCALDATABASE_H
 #define CPN_LOCALDATABASE_H
 
-#include "common.h"
+#include "CPNCommon.h"
 #include "Database.h"
 #include "PthreadMutex.h"
 #include "PthreadCondition.h"

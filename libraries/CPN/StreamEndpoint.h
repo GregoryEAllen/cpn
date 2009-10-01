@@ -27,7 +27,7 @@
 #define CPN_STREAMENDPOINT_H
 #pragma once
 
-#include "common.h"
+#include "CPNCommon.h"
 #include "NodeMessage.h"
 #include "MessageQueue.h"
 

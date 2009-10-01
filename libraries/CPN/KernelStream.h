@@ -28,7 +28,7 @@
 #define CPN_KERNELSTREAM_H
 #pragma once
 
-#include "common.h"
+#include "CPNCommon.h"
 #include "KernelMessage.h"
 #include "CPNStream.h"
 #include "AsyncStream.h"

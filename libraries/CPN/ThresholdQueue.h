@@ -26,7 +26,7 @@
 #define CPN_THRESHOLDQUEUE_H
 #pragma once
 
-#include "common.h"
+#include "CPNCommon.h"
 #include "ThresholdQueueBase.h"
 #include "QueueBase.h"
 #include "PthreadMutex.h"

@@ -27,7 +27,7 @@
 #define CPN_MESSAGE_NODEMESSAGE
 #pragma once
 
-#include "common.h"
+#include "CPNCommon.h"
 
 namespace CPN {
 

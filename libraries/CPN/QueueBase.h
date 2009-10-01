@@ -24,7 +24,7 @@
 #ifndef CPN_QUEUEBASE_H
 #define CPN_QUEUEBASE_H
 
-#include "common.h"
+#include "CPNCommon.h"
 #include "MessageQueue.h"
 #include "NodeMessage.h"
 

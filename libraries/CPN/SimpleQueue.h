@@ -26,7 +26,7 @@
 #define CPN_SIMPLEQUEUE_H
 #pragma once
 
-#include "common.h"
+#include "CPNCommon.h"
 #include "QueueBase.h"
 #include "ReentrantLock.h"
 #include "AutoBuffer.h"

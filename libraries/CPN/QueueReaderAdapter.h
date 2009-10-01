@@ -26,7 +26,7 @@
 #define CPN_QUEUE_QUEUEREADERADAPTER_H
 #pragma once
 
-#include "common.h"
+#include "CPNCommon.h"
 #include "QueueReader.h"
 #include "QueueDatatypes.h"
 

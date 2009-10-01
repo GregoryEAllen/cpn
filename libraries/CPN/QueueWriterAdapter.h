@@ -27,7 +27,7 @@
 #define CPN_QUEUE_QUEUEWRITERADAPTOR_H
 #pragma once
 
-#include "common.h"
+#include "CPNCommon.h"
 #include "QueueWriter.h"
 #include "QueueDatatypes.h"
 

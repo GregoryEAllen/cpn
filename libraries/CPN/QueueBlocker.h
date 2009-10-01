@@ -27,7 +27,7 @@
 #define CPN_QUEUEBLOCKER_H
 #pragma once
 
-#include "common.h"
+#include "CPNCommon.h"
 #include "MessageQueue.h"
 
 namespace CPN {

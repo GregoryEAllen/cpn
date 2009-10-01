@@ -26,7 +26,7 @@
 #define CPN_STREAM_H
 #pragma once
 
-#include "common.h"
+#include "CPNCommon.h"
 #include "AsyncStream.h"
 #include <vector>
 

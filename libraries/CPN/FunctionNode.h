@@ -27,7 +27,7 @@
 #define CPN_FUNCTIONNODE_H
 #pragma once
 
-#include "common.h"
+#include "CPNCommon.h"
 #include "NodeBase.h"
 #include "NodeFactory.h"
 #include "Assert.h"

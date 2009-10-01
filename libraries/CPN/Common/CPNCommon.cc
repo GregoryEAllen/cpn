@@ -17,50 +17,13 @@
 //	Suite 330, Boston, MA 02111-1307, USA, or you can find it on the
 //	World Wide Web at http://www.fsf.org.
 //=============================================================================
-/** \file
- * \brief The exceptions specified for the CPN network.
+/**
  * \author John Bridgman
+ * Dummy file to keep ranlib happy on Darwin
  */
 
-#ifndef CPN_EXCEPTIONS_H
-#define CPN_EXCEPTIONS_H
-#pragma once
-
 #include "CPNCommon.h"
-#include <string>
-#include <exception>
 
-namespace CPN {
+// So compiler doesnt complain about empty translation unit
+int dummy;
 
-	/**
-	 * \brief An exception indicating that the Kernel has shut down.
-	 */
-	class CPN_API ShutdownException : public std::exception {
-	public:
-		ShutdownException() throw() {}
-		~ShutdownException() throw();
-		const char* what() const throw() { return "The kernel has shutdown."; }
-	private:
-	};
-
-    /**
-     * \brief An exception indicating that there is a type mismatch.
-     */
-    class CPN_API TypeMismatchException : public std::exception {
-    public:
-        TypeMismatchException() throw() {}
-        ~TypeMismatchException() throw();
-        const char* what() const throw() { return "Queue types mismatch."; }
-    };
-
-    class CPN_API BrokenQueueException : public std::exception {
-    public:
-        BrokenQueueException(Key_t key) throw();
-        ~BrokenQueueException() throw();
-        const char* what() const throw() { return msg.c_str(); }
-    private:
-        std::string msg;
-    };
-}
-
-#endif

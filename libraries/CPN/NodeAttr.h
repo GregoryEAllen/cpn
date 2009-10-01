@@ -25,7 +25,7 @@
 #define CPN_NODEATTR_H
 #pragma once
 
-#include "common.h"
+#include "CPNCommon.h"
 #include "AutoBuffer.h"
 #include <string>
 

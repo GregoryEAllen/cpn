@@ -28,7 +28,7 @@
 #define CPN_WRITERSTREAM_H
 #pragma once
 
-#include "common.h"
+#include "CPNCommon.h"
 #include "StreamEndpoint.h"
 #include "CPNStream.h"
 #include "MessageQueue.h"
