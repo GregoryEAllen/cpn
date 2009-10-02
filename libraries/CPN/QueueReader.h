@@ -28,9 +28,7 @@
 
 #include "CPNCommon.h"
 #include "QueueBase.h"
-#include "MessageQueue.h"
-#include "NodeMessage.h"
-#include "QueueBlocker.h"
+#include "Message.h"
 #include <string>
 
 namespace CPN {
@@ -39,10 +37,12 @@ namespace CPN {
      * \brief Definition of the reader portion of the CPN queue class.
      */
     class CPN_API QueueReader
-        : public std::tr1::enable_shared_from_this<QueueReader> {
+        : private ReaderMessageHandler
+    {
     public:
 
-        QueueReader(QueueBlocker *n, Key_t k);
+        QueueReader(NodeMessageHandler *n, ReaderMessageHandler *rmh,
+                Key_t readerkey, Key_t writerkey, shared_ptr<QueueBase> q);
 
         ~QueueReader();
 
@@ -99,12 +99,12 @@ namespace CPN {
         /**
          * \return the number of channels supported by this queue.
          */
-        unsigned NumChannels() const { CheckQueue(); return queue->NumChannels(); }
+        unsigned NumChannels() const { return queue->NumChannels(); }
 
         /**
          * \return the maximum threshold this queue supports.
          */
-         unsigned MaxThreshold() const { CheckQueue(); return queue->MaxThreshold(); }
+         unsigned MaxThreshold() const { return queue->MaxThreshold(); }
 
         /**
          * An accessor method for the number of elements currently in
@@ -114,13 +114,13 @@ namespace CPN {
          *
          * \return the number of elements in the queue.
          */
-        unsigned Count() const { CheckQueue(); return queue->Count(); }
+        unsigned Count() const { return queue->Count(); }
 
         /**
          * \warning This function violates the rules of CPN.
          * \return true if the queue is empty
          */
-        bool Empty() const { CheckQueue(); return queue->Empty(); }
+        bool Empty() const { return queue->Empty(); }
 
         /**
          * \return the typename for this queue
@@ -130,23 +130,8 @@ namespace CPN {
         /**
          * \return the key associated with this endpoint
          */
-        Key_t GetKey() const { return key; }
+        Key_t GetKey() const { return rkey; }
 
-        /**
-         * \return the message queue to send message to the other
-         * endpoint
-         */
-        shared_ptr<MsgPut<NodeMessagePtr> > GetMsgPut() { return upstream; }
-        /**
-         * Set the queue for this endpoint.
-         * \param q the queue to set
-         */
-        void SetQueue(shared_ptr<QueueBase> q);
-        /**
-         * Send a message to the other endpoint.
-         * \param msg the message to send
-         */
-        void PutMsg(NodeMessagePtr msg) { upstream->Put(msg); }
         /**
          * Shutdown this endpoint. Sends a shutdown message
          * to the other side. One may finish reading
@@ -159,18 +144,13 @@ namespace CPN {
          */
         void Release();
     private:
-        void CheckQueue() const {
-            blocker->CheckTerminate();
-            while (!queue) blocker->ReadNeedQueue(key);
-        }
+        void RMHEndOfWriteQueue(Key_t src, Key_t dst);
 
-        QueueBlocker *blocker;
-        Key_t key;
-        /// msgs from the writer
-        mutable shared_ptr<MsgMutator<NodeMessagePtr, KeyMutator> > downstream;
-        /// msgs to the writer
-        mutable shared_ptr<MsgChain<NodeMessagePtr> > upstream;
-        mutable shared_ptr<QueueBase> queue;
+        NodeMessageHandler *nodeMsgHan;
+        WriterMessageHandler *writerMsgHan;
+        Key_t rkey;
+        Key_t wkey;
+        shared_ptr<QueueBase> queue;
         std::string datatype;
         bool shutdown;
     };

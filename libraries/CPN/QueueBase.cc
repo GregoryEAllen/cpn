@@ -24,12 +24,43 @@
 #include "QueueBase.h"
 
 namespace CPN {
-    QueueBase::QueueBase() {
-        upstreamchain = MsgChain<NodeMessagePtr>::Create();
-        downstreamchain = MsgChain<NodeMessagePtr>::Create();
+    QueueBase::QueueBase() : rmh(0), wmh(0) {
     }
 
     QueueBase::~QueueBase() {}
 
+    void QueueBase::SetReaderMessageHandler(ReaderMessageHandler *rmhan) {
+        Sync::ReentrantAutoLock arl(lock);
+        SetSubReaderHandler(rmhan);
+        cond.Signal();
+    }
+
+    ReaderMessageHandler *QueueBase::GetReaderMessageHandler() {
+        return this;
+    }
+
+    void QueueBase::SetWriterMessageHandler(WriterMessageHandler *wmhan) {
+        Sync::ReentrantAutoLock arl(lock);
+        SetSubWriterHandler(wmhan);
+        cond.Signal();
+    }
+
+    WriterMessageHandler *QueueBase::GetWriterMessageHandler() {
+        return this;
+    }
+
+    void QueueBase::CheckRMH() {
+        Sync::ReentrantAutoLock arl(lock);
+        while (GetSubReaderHandler() == 0) {
+            cond.Wait(lock);
+        }
+    }
+
+    void QueueBase::CheckWMH() {
+        Sync::ReentrantAutoLock arl(lock);
+        while (GetSubWriterHandler() == 0) {
+            cond.Wait(lock);
+        }
+    }
 }
 

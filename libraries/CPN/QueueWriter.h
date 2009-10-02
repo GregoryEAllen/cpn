@@ -28,9 +28,7 @@
 
 #include "CPNCommon.h"
 #include "QueueBase.h"
-#include "MessageQueue.h"
-#include "NodeMessage.h"
-#include "QueueBlocker.h"
+#include "Message.h"
 #include <string>
 
 namespace CPN {
@@ -39,10 +37,12 @@ namespace CPN {
 	 * \brief Definition of the writer portion of the CPN queue class.
 	 */
 	class CPN_API QueueWriter
-        : public std::tr1::enable_shared_from_this<QueueWriter> {
+        : private WriterMessageHandler
+    {
 	public:
 
-        QueueWriter(QueueBlocker *n, Key_t k);
+        QueueWriter(NodeMessageHandler *n, WriterMessageHandler *wmh,
+                Key_t writerkey, Key_t readerkey, shared_ptr<QueueBase>);
 
 		~QueueWriter();
 
@@ -139,20 +139,6 @@ namespace CPN {
         Key_t GetKey() const { return key; }
 
         /**
-         * \return the message queue to send message to the other endpoint
-         */
-        shared_ptr<MsgPut<NodeMessagePtr> > GetMsgPut() { return downstream; }
-        /**
-         * Set the queue for this endpoint
-         * \param q the queue
-         */
-        void SetQueue(shared_ptr<QueueBase> q);
-        /**
-         * Send a message to the other endpoint
-         * \param msg the message to send
-         */
-        void PutMsg(NodeMessagePtr msg) { downstream->Put(msg); }
-        /**
          * Shutdown the queue. Further operations are
          * invalid.
          */
@@ -163,18 +149,12 @@ namespace CPN {
          */
         void Release();
     private:
-        void CheckQueue() const {
-            blocker->CheckTerminate();
-            while (!queue) blocker->WriteNeedQueue(key);
-        }
-
-        QueueBlocker *blocker;
-        Key_t key;
-        /// msgs to the reader
-        mutable shared_ptr<MsgChain<NodeMessagePtr> > downstream;
-        /// msgs from the reader
-        mutable shared_ptr<MsgMutator<NodeMessagePtr, KeyMutator> > upstream;
-        mutable shared_ptr<QueueBase> queue;
+        void WMHEndOfReadQueue(Key_t src, Key_t dst);
+        NodeMessageHandler *nodeMsgHan;
+        ReaderMessageHandler *readerMsgHan;
+        Key_t wkey;
+        Key_t rkey;
+        shared_ptr<QueueBase> queue;
         std::string datatype;
         bool shutdown;
 	};

@@ -29,7 +29,6 @@
 #include "CPNCommon.h"
 #include "ThresholdQueueBase.h"
 #include "QueueBase.h"
-#include "PthreadMutex.h"
 #include "ReentrantLock.h"
 
 namespace CPN {
@@ -76,7 +75,6 @@ namespace CPN {
 
     private:
         ThresholdQueueBase queue;
-        mutable Sync::ReentrantLock qlock;
     };
 
 }

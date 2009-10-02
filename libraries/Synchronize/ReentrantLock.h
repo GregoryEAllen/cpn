@@ -59,26 +59,26 @@ namespace Sync {
             ENSURE(!pthread_cond_destroy(&cond));
         }
 
-        void Unlock() {
+        void Unlock() const {
             Internal::ScopeMutex l(lock);
             --count;
             if (count == 0) pthread_cond_signal(&cond);
         }
 
-        void Lock();
+        void Lock() const;
 
         /**
          * Use only for testing purposes and asserts.
          * \return true if the calling thread has the lock.
          */
-        bool HaveLock();
+        bool HaveLock() const;
 
     private:
-        void Wait(pthread_cond_t& c);
-        pthread_mutex_t lock;
-        pthread_cond_t cond;
-        unsigned long count;
-        pthread_t owner;
+        void Wait(pthread_cond_t& c) const;
+        mutable pthread_mutex_t lock;
+        mutable pthread_cond_t cond;
+        mutable unsigned long count;
+        mutable pthread_t owner;
 
         template<class T> friend class StatusHandler;
         friend class ReentrantCondition;
@@ -96,12 +96,12 @@ namespace Sync {
         ~ReentrantCondition() { ENSURE(!pthread_cond_destroy(&cond)); }
         void Signal() { pthread_cond_signal(&cond); }
         void Broadcast() { pthread_cond_broadcast(&cond); }
-        void Wait(ReentrantLock &lock) {
+        void Wait(ReentrantLock &lock) const {
             Internal::ScopeMutex l(lock.lock);
             lock.Wait(cond);
         }
     private:
-        pthread_cond_t cond;
+        mutable pthread_cond_t cond;
     };
 }
 #endif

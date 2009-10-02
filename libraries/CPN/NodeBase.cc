@@ -26,7 +26,6 @@
 #include "Kernel.h"
 #include "Exceptions.h"
 #include "Database.h"
-#include "MessageQueue.h"
 #include "QueueReader.h"
 #include "QueueWriter.h"
 
@@ -38,143 +37,177 @@ namespace CPN {
     NodeBase::NodeBase(Kernel &ker, const NodeAttr &attr)
     : kernel(ker), name(attr.GetName()), type(attr.GetTypeName()),
     nodekey(attr.GetKey()), database(attr.GetDatabase()),
-    terminated(false)
+    terminated(false), blockkey(0)
     {
-        msgqueue = MsgQueue<NodeMessagePtr>::Create();
     }
 
     NodeBase::~NodeBase() {
     }
 
-    void NodeBase::ProcessMessage(NodeSetReader *msg) {
-        shared_ptr<QueueReader> reader = GetReader(msg->GetKey(), true);
-        reader->SetQueue(msg->GetQueue());
+    void NodeBase::CreateReader(Key_t readerkey, Key_t writerkey, shared_ptr<QueueBase> q) {
+        Sync::AutoReentrantLock arl(lock);
+        ASSERT(readermap.find(readerkey) == readermap.end());
+        shared_ptr<QueueReader> reader;
+        reader = shared_ptr<QueueReader>(new QueueReader(this, this, readerkey, writerkey, q));
+        readermap.insert(std::make_pair(readerkey, reader));
+        Unblock(readerkey);
     }
 
-    void NodeBase::ProcessMessage(NodeSetWriter *msg) {
-        shared_ptr<QueueWriter> writer = GetWriter(msg->GetKey(), true);
-        writer->SetQueue(msg->GetQueue());
+    void NodeBase::CreateWriter(Key_t readerkey, Key_t writerkey, shared_ptr<QueueBase> q) {
+        Sync::AutoReentrantLock arl(lock);
+        ASSERT(writermap.find(writerkey) == writerkey.end());
+        shared_ptr<QueueWriter> writer;
+        writer = shared_ptr<QueueWriter>(new QueueWriter(this, this, writerkey, readerkey, q));
+        writermap.insert(std::make_pair(writerkey, writer));
+        Unblock(writerkey);
     }
 
-    void NodeBase::ProcessMessage(NodeEnqueue *msg) {
-        // Remove from block list
+    void NodeBase::RMHEnqueue(Key_t src, Key_t dst) {
+        Sync::AutoReentrantLock arl(lock);
+        Unblock(src);
     }
 
-    void NodeBase::ProcessMessage(NodeDequeue *msg) {
-        // Remove from block list
+    void NodeBase::RMHEndOfWriteQueue(Key_t src, Key_t dst) {
+        Sync::AutoReentrantLock arl(lock);
+        Unblock(src);
     }
 
-    void NodeBase::ProcessMessage(NodeReadBlock *msg) {
-        // Add to block list
+
+    void NodeBase::RMHWriteBlock(Key_t src, Key_t dst) {
+        Sync::AutoReentrantLock arl(lock);
+        Unblock(src);
     }
 
-    void NodeBase::ProcessMessage(NodeWriteBlock *msg) {
-        // Add to block list
+    void NodeBase::RMHTagChange(Key_t src, Key_t dst) {
+        Sync::AutoReentrantLock arl(lock);
+        Unblock(src);
     }
 
-    void NodeBase::ProcessMessage(NodeEndOfWriteQueue *msg) {
-        shared_ptr<QueueReader> reader = GetReader(msg->GetKey(), false);
-        if (reader) {
-            reader->Shutdown();
-        }
+    void NodeBase::WMHDequeue(Key_t src, Key_t dst) {
+        Sync::AutoReentrantLock arl(lock);
+        Unblock(src);
+    }
+    void NodeBase::WMHEndOfReadQueue(Key_t src, Key_t dst) {
+        Sync::AutoReentrantLock arl(lock);
+        Unblock(src);
     }
 
-    void NodeBase::ProcessMessage(NodeEndOfReadQueue *msg) {
-        shared_ptr<QueueWriter> writer = GetWriter(msg->GetKey(), false);
-        if (writer) {
-            writer->Shutdown();
-        }
+    void NodeBase::WMHReadBlock(Key_t src, Key_t dst) {
+        Sync::AutoReentrantLock arl(lock);
+        Unblock(src);
+    }
+
+    void NodeBase::WMHTagChange(Key_t src, Key_t dst) {
+        Sync::AutoReentrantLock arl(lock);
+        Unblock(src);
     }
 
     shared_ptr<QueueReader> NodeBase::GetReader(const std::string &portname) {
+        Sync::AutoReentrantLock arl(lock);
         CheckTerminate();
         Key_t ekey = database->GetCreateReaderKey(nodekey, portname);
         return GetReader(ekey, true);
     }
 
     shared_ptr<QueueWriter> NodeBase::GetWriter(const std::string &portname) {
+        Sync::AutoReentrantLock arl(lock);
         CheckTerminate();
         Key_t ekey = database->GetCreateWriterKey(nodekey, portname);
         return GetWriter(ekey, true);
     }
 
     void* NodeBase::EntryPoint() {
+        Sync::AutoReentrantLock arl(lock, false);
         try {
             database->SignalNodeStart(nodekey);
             Process();
         } catch (CPN::ShutdownException e) {
             // Forced shutdown
         }
+        arl.Lock();
         // force release of all readers and writers
-        // I don't like this...
         while (!readermap.empty()) {
             readermap.begin()->second->Release();
         }
         while (!writermap.empty()) {
             writermap.begin()->second->Release();
         }
+        arl.Unlock();
         kernel.NodeTerminated(nodekey);
         return 0;
     }
 
-    shared_ptr<QueueReader> NodeBase::GetReader(Key_t ekey, bool create) {
+    shared_ptr<QueueReader> NodeBase::GetReader(Key_t ekey, bool block) {
         shared_ptr<QueueReader> reader;
-        ReaderMap::iterator entry = readermap.find(ekey);
-        if (entry == readermap.end()) {
-            if (create) {
-                //printf("Reader %lu created\n", ekey);
-                reader = shared_ptr<QueueReader>(new QueueReader(this, ekey));
-                readermap.insert(std::make_pair(ekey, reader));
+        while (!reader) {
+            ReaderMap::iterator entry = readermap.find(ekey);
+            if (entry == readermap.end()) {
+                if (block) {
+                    Block(ekey);
+                } else {
+                    break;
+                }
+            } else {
+                reader = shared_ptr<QueueReader>(entry->second);
             }
-        } else {
-            reader = shared_ptr<QueueReader>(entry->second);
         }
         return reader;
     }
 
-    shared_ptr<QueueWriter> NodeBase::GetWriter(Key_t ekey, bool create) {
+    shared_ptr<QueueWriter> NodeBase::GetWriter(Key_t ekey, bool block) {
         shared_ptr<QueueWriter> writer;
-        WriterMap::iterator entry = writermap.find(ekey);
-        if (entry == writermap.end()) {
-            if (create) {
-                //printf("Writer %lu created\n", ekey);
-                writer = shared_ptr<QueueWriter>(new QueueWriter(this, ekey));
-                writermap.insert(std::make_pair(ekey, writer));
+        while (!writer) {
+            WriterMap::iterator entry = writermap.find(ekey);
+            if (entry == writermap.end()) {
+                if (block) {
+                    Block(ekey);
+                } else {
+                    break;
+                }
+            } else {
+                writer = shared_ptr<QueueWriter>(entry->second);
             }
-        } else {
-            writer = shared_ptr<QueueWriter>(entry->second);
         }
         return writer;
     }
 
-    void NodeBase::ProcessUntilMsgFrom(Key_t key) {
-        while (true) {
-            NodeMessagePtr msg = msgqueue->Get();
-            msg->DispatchOn(this);
+    void NodeBase::Block(Key_t ekey) {
+        Sync::AutoReentrantLock arl(lock);
+        BlockSet::iterator entry = blockset.find(ekey);
+        blockkey = ekey;
+        while (blockkey == ekey) {
             CheckTerminate();
-            if (key == msg->GetKey()) { break; }
+            if (entry != blockset.end()) {
+                blockset.erase(entry);
+                break;
+            }
+            cond.Wait(lock);
+        }
+        blockkey = 0;
+    }
+
+    void NodeBase::Unblock(Key_t ekey) {
+        Sync::AutoReentrantLock arl(lock);
+        if (blockkey == ekey) {
+            blockkey = 0;
+            cond.Signal();
+        } else {
+            blockset.insert(ekey);
         }
     }
 
-    void NodeBase::ReadNeedQueue(Key_t ekey) {
-        ProcessUntilMsgFrom(ekey);
+    void NodeBase::ReadBlock(Key_t readerkey, Key_t writerkey) {
+        Sync::AutoReentrantLock arl(lock);
+        Block(writerkey);
     }
 
-    void NodeBase::WriteNeedQueue(Key_t ekey) {
-        ProcessUntilMsgFrom(ekey);
-    }
-
-    void NodeBase::ReadBlock(shared_ptr<QueueReader> reader, unsigned thresh) {
-        reader->PutMsg(NodeReadBlock::Create(thresh));
-        ProcessUntilMsgFrom(reader->GetKey());
-    }
-
-    void NodeBase::WriteBlock(shared_ptr<QueueWriter> writer, unsigned thresh) {
-        writer->PutMsg(NodeWriteBlock::Create(thresh));
-        ProcessUntilMsgFrom(writer->GetKey());
+    void NodeBase::WriteBlock(Key_t writerkey, Key_t readerkey) {
+        Sync::AutoReentrantLock arl(lock);
+        Block(readerkey);
     }
 
     void NodeBase::ReleaseReader(Key_t ekey) {
+        Sync::AutoReentrantLock arl(lock);
         if (readermap.find(ekey) != readermap.end()) {
             database->DestroyReaderKey(ekey);
             readermap.erase(ekey);
@@ -182,6 +215,7 @@ namespace CPN {
     }
 
     void NodeBase::ReleaseWriter(Key_t ekey) {
+        Sync::AutoReentrantLock arl(lock);
         if (writermap.find(ekey) != writermap.end()) {
             database->DestroyWriterKey(ekey);
             writermap.erase(ekey);
@@ -192,7 +226,7 @@ namespace CPN {
         Sync::AutoReentrantLock arl(lock);
         if (!terminated) {
             terminated = true;
-            msgqueue->Put(NodeShutdown::Create());
+            cond.Signal();
         }
     }
 

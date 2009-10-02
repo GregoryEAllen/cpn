@@ -85,7 +85,6 @@ namespace CPN {
         // tail points to the next byte to read
         unsigned tail;
         AutoBuffer buffer;
-        mutable Sync::ReentrantLock qlock;
     };
 }
 

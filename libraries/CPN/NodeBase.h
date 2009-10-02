@@ -28,8 +28,7 @@
 
 #include "CPNCommon.h"
 #include "NodeAttr.h"
-#include "MessageQueue.h"
-#include "NodeMessage.h"
+#include "Message.h"
 #include "QueueBlocker.h"
 
 #include "ReentrantLock.h"
@@ -47,7 +46,12 @@ namespace CPN {
 	 * lifetime of the node object.
 	 *
 	 */
-	class CPN_API NodeBase : private Pthread, private QueueBlocker, private NodeMsgDispatch {
+	class CPN_API NodeBase
+        : private Pthread,
+        private Message::NodeMessageHandler,
+        private Message::ReaderMessageHandler,
+        private Message::WriterMessageHandler
+    {
         typedef std::map<Key_t, shared_ptr<QueueReader> > ReaderMap;
         typedef std::map<Key_t, shared_ptr<QueueWriter> > WriterMap;
         friend class Kernel;
@@ -74,44 +78,49 @@ namespace CPN {
 	private:
 		void* EntryPoint();
 
+
+        shared_ptr<QueueReader> GetReader(Key_t ekey, bool block);
+        shared_ptr<QueueWriter> GetWriter(Key_t ekey, bool block);
+        void Block(Key_t ekey);
+        void Unblock(Key_t ekey);
+
         void Shutdown();
-
-        shared_ptr<QueueReader> GetReader(Key_t ekey, bool create);
-        shared_ptr<QueueWriter> GetWriter(Key_t ekey, bool create);
-        void ProcessUntilMsgFrom(Key_t ekey);
-
-        // From QueueBlocker
-        void ReadNeedQueue(Key_t key);
-        void WriteNeedQueue(Key_t key);
-        void ReadBlock(shared_ptr<QueueReader> reader, unsigned thresh);
-        void WriteBlock(shared_ptr<QueueWriter> writer, unsigned thresh);
+        void CreateReader(Key_t readerkey, Key_t writerkey, shared_ptr<QueueBase> q);
+        void CreateWriter(Key_t readerkey, Key_t writerkey, shared_ptr<QueueBase> q);
+        void ReadBlock(Key_t readerkey, Key_t writerkey);
+        void WriteBlock(Key_t writerkey, Key_t readerkey);
         void ReleaseReader(Key_t ekey);
         void ReleaseWriter(Key_t ekey);
-        shared_ptr<MsgPut<NodeMessagePtr> > GetMsgPut() { return msgqueue; }
         void CheckTerminate();
 
-        void ProcessMessage(NodeSetReader *msg);
-        void ProcessMessage(NodeSetWriter *msg);
-        void ProcessMessage(NodeEnqueue *msg);
-        void ProcessMessage(NodeDequeue *msg);
-        void ProcessMessage(NodeReadBlock *msg);
-        void ProcessMessage(NodeWriteBlock *msg);
-        void ProcessMessage(NodeEndOfWriteQueue *msg);
-        void ProcessMessage(NodeEndOfReadQueue *msg);
+        void RMHEnqueue(Key_t src, Key_t dst);
+        void RMHEndOfWriteQueue(Key_t src, Key_t dst);
+        void RMHWriteBlock(Key_t src, Key_t dst);
+        void RMHTagChange(Key_t src, Key_t dst);
+
+        void WMHDequeue(Key_t src, Key_t dst);
+        void WMHEndOfReadQueue(Key_t src, Key_t dst);
+        void WMHReadBlock(Key_t src, Key_t dst);
+        void WMHTagChange(Key_t src, Key_t dst);
 
         // Private data
         Sync::ReentrantLock lock;
+        Sync::ReentrantCondition cond;
         const std::string name;
         const std::string type;
         const Key_t nodekey;
-        shared_ptr<MsgQueue<NodeMessagePtr> > msgqueue;
 
         ReaderMap readermap;
         WriterMap writermap;
 
+        typedef std::set<Key_t> BlockSet;
+        BlockSet blockset;
+
         shared_ptr<Database> database;
 
         bool terminated;
+
+        Key_t blockkey;
 	};
 
 }

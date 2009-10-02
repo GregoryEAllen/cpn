@@ -24,86 +24,89 @@
 
 #include "QueueReader.h"
 #include "NodeBase.h"
-#include "MessageQueue.h"
 #include "Exceptions.h"
 
 namespace CPN {
 
-    QueueReader::QueueReader(QueueBlocker *n, Key_t k)
-        : blocker(n), key(k), shutdown(false)
+    QueueReader(NodeMessageHandler *n, ReaderMessageHandler *rmh,
+            Key_t readerkey, Key_t writerkey, shared_ptr<QueueBase> q)
+        : ReaderMessageHandler(rmh), nodeMsgHan(n), rkey(readerkey), wkey(writerkey),
+        queue(q), shutdown(false)
     {
+        writerMsgHan = queue->GetWriterMessageHandler();
+        queue->SetReaderMessageHandler(this);
     }
 
     QueueReader::~QueueReader() {
     }
 
     const void* QueueReader::GetRawDequeuePtr(unsigned thresh, unsigned chan) {
-        CheckQueue();
+        nodeMsgHan->CheckTerminate();
+        Sync::AutoReentrantLock arl(queue->GetLock());
         const void *ptr = queue->GetRawDequeuePtr(thresh, chan);
         while (0 == ptr) {
             if (shutdown) { return 0; }
-            blocker->ReadBlock(shared_from_this(), thresh);
+            writerMsgHan->WMHReadBlock(rkey, wkey);
+            arl.Unlock();
+            nodeMsgHan->ReadBlock(rkey, wkey);
+            arl.Lock();
             ptr = queue->GetRawDequeuePtr(thresh, chan);
         }
         return ptr;
     }
 
     void QueueReader::Dequeue(unsigned count) {
+        Sync::AutoReentrantLock arl(queue->GetLock());
         queue->Dequeue(count);
-        PutMsg(NodeDequeue::Create(count));
+        writerMsgHan->WMHDequeue(rkey, wkey);
     }
 
     bool QueueReader::RawDequeue(void *data, unsigned count,
             unsigned numChans, unsigned chanStride) {
-        CheckQueue();
+        nodeMsgHan->CheckTerminate();
+        Sync::AutoReentrantLock arl(queue->GetLock());
         while (!queue->RawDequeue(data, count, numChans, chanStride)) {
             if (shutdown) { return false; }
-            blocker->ReadBlock(shared_from_this(), count);
+            writerMsgHan->WMHReadBlock(rkey, wkey);
+            arl.Unlock();
+            nodeMsgHan->ReadBlock(rkey, wkey);
+            arl.Lock();
         }
-        PutMsg(NodeDequeue::Create(count));
+        writerMsgHan->WMHDequeue(rkey, wkey);
         return true;
     }
 
     bool QueueReader::RawDequeue(void *data, unsigned count) {
-        CheckQueue();
+        nodeMsgHan->CheckTerminate();
+        Sync::AutoReentrantLock arl(queue->GetLock());
         while (!queue->RawDequeue(data, count)) {
             if (shutdown) { return false; }
-            blocker->ReadBlock(shared_from_this(), count);
+            writerMsgHan->WMHReadBlock(rkey, wkey);
+            arl.Unlock();
+            nodeMsgHan->ReadBlock(rkey, wkey);
+            arl.Lock();
         }
-        PutMsg(NodeDequeue::Create(count));
+        writerMsgHan->WMHDequeue(rkey, wkey);
         return true;
-    }
-
-    void QueueReader::SetQueue(shared_ptr<QueueBase> q) {
-        if (q) {
-            if (shutdown) { throw BrokenQueueException(key); }
-            queue = q;
-            upstream = q->UpStreamChain();
-            downstream = MsgMutator<NodeMessagePtr, KeyMutator>::Create(KeyMutator(key));
-            downstream->Chain(blocker->GetMsgPut());
-            q->DownStreamChain()->Chain(downstream);
-        } else if (queue) {
-            queue.reset();
-            downstream.reset();
-            upstream.reset();
-        }
     }
 
     void QueueReader::Shutdown() {
         if (!shutdown) {
-            if (queue) {
-                PutMsg(NodeEndOfReadQueue::Create());
-            }
+            Sync::AutoReentrantLock arl(queue->GetLock());
+            writerMsgHan->WMHEndOfReadQueue(rkey, wkey);
             shutdown = true;
         }
     }
 
     void QueueReader::Release() {
         Shutdown();
-        upstream.reset();
-        downstream.reset();
-        queue.reset();
-        blocker->ReleaseReader(key);
+        nodeMsgHan->ReleaseReader(rkey);
+    }
+
+    void QueueReader::RMHEndOfWriteQueue(Key_t src, Key_t dst) {
+        Sync::AutoReentrantLock arl(queue->GetLock());
+        shutdown = true;
+        ReaderMessageHandler::RMHEndOfWriteQueue(src, dst);
     }
 }
 

@@ -95,27 +95,6 @@ namespace CPN {
     class Stream;
     class UnknownStream;
 
-    // Node Messaging forward declares and types
-    class NodeMessage;
-    typedef shared_ptr<NodeMessage> NodeMessagePtr;
-    class NodeMsgDispatch;
-    class KeyMutator;
-    class NodeEnqueue;
-    typedef shared_ptr<NodeEnqueue> NodeEnqueuePtr;
-    class NodeDequeue;
-    typedef shared_ptr<NodeDequeue> NodeDequeuePtr;
-    class NodeReadBlock;
-    typedef shared_ptr<NodeReadBlock> NodeReadBlockPtr;
-    class NodeWriteBlock;
-    typedef shared_ptr<NodeWriteBlock> NodeWriteBlockPtr;
-    class NodeSetReader;
-    typedef shared_ptr<NodeSetReader> NodeSetReaderPtr;
-    class NodeSetWriter;
-    typedef shared_ptr<NodeSetWriter> NodeSetWriterPtr;
-    class NodeBroadcastMessage;
-    class NodeShutdown;
-    typedef shared_ptr<NodeShutdown> NodeShutdownPtr;
-
     // Global enums
     enum QueueHint_t { QUEUEHINT_DEFAULT, QUEUEHINT_THRESHOLD };
     enum Error_t { E_NONE, E_EXISTS, E_NOTEXISTS };

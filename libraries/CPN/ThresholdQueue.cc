@@ -37,12 +37,12 @@ namespace CPN {
     }
 
     void* ThresholdQueue::GetRawEnqueuePtr(unsigned thresh, unsigned chan) {
-        Sync::AutoReentrantLock l(qlock);
+        Sync::AutoReentrantLock l(lock);
         return queue.GetRawEnqueuePtr(thresh, chan);
     }
 
     void ThresholdQueue::Enqueue(unsigned count) {
-        Sync::AutoReentrantLock l(qlock);
+        Sync::AutoReentrantLock l(lock);
         queue.Enqueue(count);
     }
 
@@ -52,7 +52,7 @@ namespace CPN {
 
     bool ThresholdQueue::RawEnqueue(const void* data, unsigned count,
             unsigned numChans, unsigned chanStride) {
-        Sync::AutoReentrantLock l(qlock);
+        Sync::AutoReentrantLock l(lock);
         void* dest = queue.GetRawEnqueuePtr(count, 0);
         const void* src = data;
         if (!dest) return false;
@@ -67,34 +67,34 @@ namespace CPN {
     }
 
     unsigned ThresholdQueue::NumChannels() const {
-        Sync::AutoReentrantLock l(qlock);
+        Sync::AutoReentrantLock l(lock);
         return queue.NumChannels();
     }
 
     unsigned ThresholdQueue::ChannelStride() const {
-        Sync::AutoReentrantLock l(qlock);
+        Sync::AutoReentrantLock l(lock);
         return queue.ChannelStride();
     }
 
     unsigned ThresholdQueue::Freespace() const {
-        Sync::AutoReentrantLock l(qlock);
+        Sync::AutoReentrantLock l(lock);
         return queue.Freespace();
     }
 
     bool ThresholdQueue::Full() const {
-        Sync::AutoReentrantLock l(qlock);
+        Sync::AutoReentrantLock l(lock);
         return queue.Full();
     }
 
 
     // From QueueReader
     const void* ThresholdQueue::GetRawDequeuePtr(unsigned thresh, unsigned chan) {
-        Sync::AutoReentrantLock l(qlock);
+        Sync::AutoReentrantLock l(lock);
         return queue.GetRawDequeuePtr(thresh, chan);
     }
 
     void ThresholdQueue::Dequeue(unsigned count) {
-        Sync::AutoReentrantLock l(qlock);
+        Sync::AutoReentrantLock l(lock);
         queue.Dequeue(count);
     }
 
@@ -104,7 +104,7 @@ namespace CPN {
 
     bool ThresholdQueue::RawDequeue(void* data, unsigned count,
             unsigned numChans, unsigned chanStride) {
-        Sync::AutoReentrantLock l(qlock);
+        Sync::AutoReentrantLock l(lock);
         const void* src = queue.GetRawDequeuePtr(count, 0);
         void* dest = data;
         if (!src) return false;
@@ -119,37 +119,37 @@ namespace CPN {
     }
 
     unsigned ThresholdQueue::Count() const {
-        Sync::AutoReentrantLock l(qlock);
+        Sync::AutoReentrantLock l(lock);
         return queue.Count();
     }
 
     bool ThresholdQueue::Empty() const {
-        Sync::AutoReentrantLock l(qlock);
+        Sync::AutoReentrantLock l(lock);
         return queue.Empty();
     }
 
     unsigned ThresholdQueue::MaxThreshold() const {
-        Sync::AutoReentrantLock l(qlock);
+        Sync::AutoReentrantLock l(lock);
         return queue.MaxThreshold();
     }
 
     unsigned ThresholdQueue::QueueLength() const {
-        Sync::AutoReentrantLock l(qlock);
+        Sync::AutoReentrantLock l(lock);
         return queue.QueueLength();
     }
 
     unsigned ThresholdQueue::ElementsEnqueued() const {
-        Sync::AutoReentrantLock l(qlock);
+        Sync::AutoReentrantLock l(lock);
         return queue.ElementsEnqueued();
     }
 
     unsigned ThresholdQueue::ElementsDequeued() const {
-        Sync::AutoReentrantLock l(qlock);
+        Sync::AutoReentrantLock l(lock);
         return queue.ElementsDequeued();
     }
 
     void ThresholdQueue::Grow(unsigned queueLen, unsigned maxThresh) {
-        Sync::AutoReentrantLock l(qlock);
+        Sync::AutoReentrantLock l(lock);
         queue.Grow(queueLen, maxThresh);
     }
 

@@ -24,86 +24,90 @@
 
 #include "QueueWriter.h"
 #include "NodeBase.h"
-#include "MessageQueue.h"
 #include "Exceptions.h"
 
 namespace CPN {
 
-    QueueWriter::QueueWriter(QueueBlocker* n, Key_t k)
-        : blocker(n), key(k), shutdown(false) {}
+    QueueWriter(NodeMessageHandler *n, WriterMessageHandler *wmh,
+            Key_t writerkey, Key_t readerkey, shared_ptr<QueueBase>);
+        : WriterMessageHandler(wmh), nodeMsgHan(n), wkey(writerkey),
+         rkey(readerkey), queue(q), shutdown(false)
+    {
+        readerMsgHan = queue->GetReaderMessageHandler();
+        queue->SetWriterMessageHandler(this);
+    }
 
     QueueWriter::~QueueWriter() {
     }
 
     void* QueueWriter::GetRawEnqueuePtr(unsigned thresh, unsigned chan) {
-        if (shutdown) { throw BrokenQueueException(key); }
-        CheckQueue();
+        Sync::AutoReentrantLock arl(queue->GetLock());
+        if (shutdown) { throw BrokenQueueException(rkey); }
+        nodeMsgHan->CheckTerminate();
         void* ptr = queue->GetRawEnqueuePtr(thresh, chan);
         while (0 == ptr) {
-            blocker->WriteBlock(shared_from_this(), thresh);
-            if (shutdown) { throw BrokenQueueException(key); }
+            readerMsgHan->RMHWriterBlock(wkey, rkey);
+            arl.Unlock();
+            nodeMsgHan->WriteBlock(wkey, rkey);
+            arl.Lock();
+            if (shutdown) { throw BrokenQueueException(rkey); }
             ptr = queue->GetRawEnqueuePtr(thresh, chan);
         }
         return ptr;
     }
 
     void QueueWriter::Enqueue(unsigned count) {
+        Sync::AutoReentrantLock arl(queue->GetLock());
         queue->Enqueue(count);
-        PutMsg(NodeEnqueue::Create(count));
+        readerMsgHan->Enqueue(wkey, rkey);
     }
 
     void QueueWriter::RawEnqueue(void *data, unsigned count,
             unsigned numChans, unsigned chanStride) {
-        if (shutdown) { throw BrokenQueueException(key); }
-        CheckQueue();
+        Sync::AutoReentrantLock arl(queue->GetLock());
+        if (shutdown) { throw BrokenQueueException(rkey); }
+        nodeMsgHan->CheckTerminate();
         while (!queue->RawEnqueue(data, count, numChans, chanStride)) {
-            blocker->WriteBlock(shared_from_this(), count);
-            if (shutdown) { throw BrokenQueueException(key); }
+            readerMsgHan->RMHWriterBlock(wkey, rkey);
+            arl.Unlock();
+            nodeMsgHan->WriteBlock(wkey, rkey);
+            arl.Lock();
+            if (shutdown) { throw BrokenQueueException(rkey); }
         }
-        PutMsg(NodeEnqueue::Create(count));
+        readerMsgHan->Enqueue(wkey, rkey);
     }
 
     void QueueWriter::RawEnqueue(void *data, unsigned count) {
-        if (shutdown) { throw BrokenQueueException(key); }
-        CheckQueue();
+        Sync::AutoReentrantLock arl(queue->GetLock());
+        if (shutdown) { throw BrokenQueueException(rkey); }
+        nodeMsgHan->CheckTerminate();
         while (!queue->RawEnqueue(data, count)) {
-            blocker->WriteBlock(shared_from_this(), count);
-            if (shutdown) { throw BrokenQueueException(key); }
+            readerMsgHan->RMHWriterBlock(wkey, rkey);
+            arl.Unlock();
+            nodeMsgHan->WriteBlock(wkey, rkey);
+            arl.Lock();
+            if (shutdown) { throw BrokenQueueException(rkey); }
         }
-        PutMsg(NodeEnqueue::Create(count));
-    }
-
-    void QueueWriter::SetQueue(shared_ptr<QueueBase> q) {
-        if (q) {
-            if (shutdown) { throw BrokenQueueException(key); }
-            queue = q;
-            downstream = q->DownStreamChain();
-            // chain messages from the reader to our upstream queue
-            upstream = MsgMutator<NodeMessagePtr, KeyMutator>::Create(KeyMutator(key));
-            upstream->Chain(blocker->GetMsgPut());
-            q->UpStreamChain()->Chain(upstream);
-        } else if (queue) {
-            queue.reset();
-            downstream.reset();
-            upstream.reset();
-        }
+        readerMsgHan->RMHEnqueue(wkey, rkey);
     }
 
     void QueueWriter::Shutdown() {
+        Sync::AutoReentrantLock arl(queue->GetLock());
         if (!shutdown) {
-            if (queue) {
-                PutMsg(NodeEndOfWriteQueue::Create());
-            }
+            readerMsgHan->RMHEndOfWriteQueue(wkey, rkey);
             shutdown = true;
         }
     }
 
     void QueueWriter::Release() {
         Shutdown();
-        downstream.reset();
-        upstream.reset();
-        queue.reset();
-        blocker->ReleaseWriter(key);
+        nodeMsgHan->ReleaseWriter(key);
+    }
+
+    void QueueWriter::WMHEndOfReadQueue(Key_t src, Key_t dst) {
+        Sync::AutoReentrantLock arl(queue->GetLock());
+        shutdown = true;
+        WriterMessageHandler::WMHEndOfReadQueue(src, dst);
     }
 }
 

@@ -25,15 +25,18 @@
 #define CPN_QUEUEBASE_H
 
 #include "CPNCommon.h"
-#include "MessageQueue.h"
-#include "NodeMessage.h"
+#include "Message.h"
+
+#include "ReentrantLock.h"
 
 namespace CPN {
 
 	/**
 	 * \brief The base class for all queues in the CPN library.
 	 */
-	class CPN_LOCAL QueueBase {
+	class CPN_LOCAL QueueBase 
+    : private ReaderMessageHandler, private WriterMessageHandler
+    {
 	public:
 
 		virtual ~QueueBase();
@@ -187,23 +190,22 @@ namespace CPN {
          */
         virtual void Grow(unsigned queueLen, unsigned maxThresh) = 0;
 
-        /**
-         * The message queue going against the normal flow of data. That
-         * is to say from the reader to the writer.
-         */
-        shared_ptr<MsgChain<NodeMessagePtr> > UpStreamChain() { return upstreamchain; }
+        void SetReaderMessageHandler(ReaderMessageHandler *rmhan);
 
-        /**
-         * The message queue that goes in the same direction as teh normal flow
-         * of data. That is to say from the writer to the reader.
-         */
-        shared_ptr<MsgChain<NodeMessagePtr> > DownStreamChain() { return downstreamchain; }
+        ReaderMessageHandler *GetReaderMessageHandler();
 
+        void SetWriterMessageHandler(WriterMessageHandler *wmhan);
+
+        WriterMessageHandler *GetWriterMessageHandler();
+
+        const Sync::ReentrantLock &GetLock() const { return lock; }
 	protected:
 		QueueBase();
+        Sync::ReentrantLock lock;
+        Sync::ReentrantCondition cond;
 	private:
-        shared_ptr<MsgChain<NodeMessagePtr> > upstreamchain;
-        shared_ptr<MsgChain<NodeMessagePtr> > downstreamchain;
+        void CheckRMH();
+        void CheckWMH();
 	};
 
 }

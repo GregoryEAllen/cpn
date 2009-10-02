@@ -28,27 +28,11 @@
 #pragma once
 
 #include "CPNCommon.h"
+#include "Message.h"
 
-namespace CPN {
+namespace CPN::Message {
 
-    class NodeMessage {
-    public:
-        virtual ~NodeMessage();
-        virtual void DispatchOn(NodeMsgDispatch *node) = 0;
-        void SetKey(Key_t k) { key = k; }
-        Key_t GetKey() const { return key; }
-    private:
-        Key_t key;
-    };
-
-
-    class NodeBroadcastMessage : public NodeMessage {
-    public:
-        virtual ~NodeBroadcastMessage();
-        virtual shared_ptr<NodeMessage> Clone() const = 0;
-    };
-
-    class NodeShutdown : public NodeBroadcastMessage {
+    class NodeShutdown : public BroadcastableMessage {
     public:
         static NodeShutdownPtr Create();
         shared_ptr<NodeMessage> Clone() const;
