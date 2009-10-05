@@ -24,7 +24,7 @@
 #include "QueueBase.h"
 
 namespace CPN {
-    QueueBase::QueueBase() {
+    QueueBase::QueueBase() : shutdown(false) {
     }
 
     QueueBase::~QueueBase() {}
@@ -39,6 +39,13 @@ namespace CPN {
         return this;
     }
 
+    void QueueBase::ClearReaderMessageHandler() {
+        Sync::AutoReentrantLock arl(lock);
+        SetSubReaderHandler(0);
+        shutdown = true;
+        cond.Signal();
+    }
+
     void QueueBase::SetWriterMessageHandler(WriterMessageHandler *wmhan) {
         Sync::AutoReentrantLock arl(lock);
         SetSubWriterHandler(wmhan);
@@ -49,16 +56,23 @@ namespace CPN {
         return this;
     }
 
+    void QueueBase::ClearWriterMessageHandler() {
+        Sync::AutoReentrantLock arl(lock);
+        SetSubReaderHandler(0);
+        shutdown = true;
+        cond.Signal();
+    }
+
     void QueueBase::CheckRMH() {
         Sync::AutoReentrantLock arl(lock);
-        while (GetSubReaderHandler() == 0) {
+        while (GetSubReaderHandler() == 0 && !shutdown) {
             cond.Wait(lock);
         }
     }
 
     void QueueBase::CheckWMH() {
         Sync::AutoReentrantLock arl(lock);
-        while (GetSubWriterHandler() == 0) {
+        while (GetSubWriterHandler() == 0 && !shutdown) {
             cond.Wait(lock);
         }
     }

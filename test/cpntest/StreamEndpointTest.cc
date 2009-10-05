@@ -3,10 +3,7 @@
 #include "StreamEndpointTest.h"
 #include <cppunit/TestAssert.h>
 
-#include "QueueBase.h"
-#include "NodeMessage.h"
-#include "MessageQueue.h"
-
+#include "SimpleQueue.h"
 #include "AsyncStream.h"
 
 #include <tr1/memory>
@@ -27,6 +24,9 @@ using namespace Async;
 
 const unsigned QUEUESIZE = 5;
 
+const Key_t RKEY = 1;
+const Key_t WKEY = 2;
+
 void Error(int err) {
     CPPUNIT_FAIL("Error on sock");
 }
@@ -34,17 +34,29 @@ void Error(int err) {
 void StreamEndpointTest::setUp() {
     wqueue = shared_ptr<SimpleQueue>(new SimpleQueue(QUEUESIZE,QUEUESIZE,1));
     rqueue = shared_ptr<SimpleQueue>(new SimpleQueue(QUEUESIZE,QUEUESIZE,1));
+
+
     StreamSocket::CreatePair(wsock, rsock);
     wsock->ConnectOnError(sigc::ptr_fun(Error));
     rsock->ConnectOnError(sigc::ptr_fun(Error));
-    wendp = shared_ptr<StreamEndpoint>(new StreamEndpoint());
-    wendp->SetQueue(wqueue, wqueue->UpStreamChain());
+    wendp = shared_ptr<StreamEndpoint>(new StreamEndpoint(RKEY, WKEY));
+    wendp->SetQueue(wqueue);
     wendp->SetDescriptor(wsock);
-    rendp = shared_ptr<StreamEndpoint>(new StreamEndpoint());
-    rendp->SetQueue(rqueue, rqueue->DownStreamChain());
+
+    rendp = shared_ptr<StreamEndpoint>(new StreamEndpoint(RKEY, WKEY));
     rendp->SetDescriptor(rsock);
-    msgq = MsgQueue<NodeMessagePtr>::Create();
-    rqueue->DownStreamChain()->Chain(msgq);
+    rendp->SetQueue(rqueue);
+
+    // rmh --> wqueue --> wendp --> sock --> rendp --> rqueue --> tester(rmh)
+    // wmh --> rqueue --> rendp --> sock --> wendp --> wqueue --> tester(wmh)
+    wmh = rqueue->GetWriterMessageHandler();
+    rmh = wqueue->GetReaderMessageHandler();
+
+    wqueue->SetReaderMessageHandler(wendp.get());
+    wqueue->SetWriterMessageHandler(this);
+
+    rqueue->SetWriterMessageHandler(rendp.get());
+    rqueue->SetReaderMessageHandler(this);
 }
 
 void StreamEndpointTest::tearDown() {
@@ -54,20 +66,25 @@ void StreamEndpointTest::tearDown() {
     rsock.reset();
     wendp.reset();
     rendp.reset();
+    messages.clear();
 }
 
+// Test sending some data from the reader
 void StreamEndpointTest::EnqueueTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
-    const char data[QUEUESIZE] = { 'a', 'b', 'c', 'd', 'e' };
+    const char data[] = { 'a', 'b', 'c', 'd', 'e' };
     wqueue->RawEnqueue(data, sizeof(data));
-    SendMessageDownstream(NodeEnqueue::Create(sizeof(data)));
 
-    NodeMessagePtr nodemsg = WaitForMessage();
-    CPPUNIT_ASSERT(msgq->Empty());
+    rmh->RMHEnqueue(WKEY, RKEY);
 
-    NodeEnqueuePtr enqueuemsg = dynamic_pointer_cast<NodeEnqueue>(nodemsg);
-    CPPUNIT_ASSERT(enqueuemsg);
-    CPPUNIT_ASSERT(enqueuemsg->Amount() == sizeof(data));
+    Msg msg = WaitForMessage();
+    CPPUNIT_ASSERT(messages.empty());
+
+    printf("src %d == %d, dst %d == %d\n", msg.src, WKEY, msg.dst, RKEY);
+    CPPUNIT_ASSERT(msg.type == RMHENQUEUE);
+    CPPUNIT_ASSERT(msg.src == WKEY);
+    CPPUNIT_ASSERT(msg.dst == RKEY);
+
     const char *ptr = (const char*)rqueue->GetRawDequeuePtr(5);
     CPPUNIT_ASSERT(ptr);
     for (unsigned i = 0; i < sizeof(data); ++i) {
@@ -75,17 +92,21 @@ void StreamEndpointTest::EnqueueTest() {
     }
 }
 
+// Test sending received data reply
 void StreamEndpointTest::DequeueTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
-    const unsigned amount = 5;
-    SendMessageDownstream(NodeDequeue::Create(amount));
-    NodeMessagePtr nodemsg = WaitForMessage();
-    CPPUNIT_ASSERT(msgq->Empty());
-    NodeDequeuePtr dequeuemsg = dynamic_pointer_cast<NodeDequeue>(nodemsg);
-    CPPUNIT_ASSERT(dequeuemsg);
-    CPPUNIT_ASSERT(dequeuemsg->Amount() == amount);
+
+    wmh->WMHDequeue(RKEY, WKEY);
+
+    Msg msg = WaitForMessage();
+    printf("src %d == %d, dst %d == %d\n", msg.src, RKEY, msg.dst, WKEY);
+    CPPUNIT_ASSERT(messages.empty());
+    CPPUNIT_ASSERT(msg.type == WMHDEQUEUE);
+    CPPUNIT_ASSERT(msg.src == RKEY);
+    CPPUNIT_ASSERT(msg.dst == WKEY);
 }
 
+/*
 void StreamEndpointTest::BlockTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
     const unsigned request = 5;
@@ -117,22 +138,48 @@ void StreamEndpointTest::ThrottleTest() {
     CPPUNIT_ASSERT(msgq->Empty());
 
 }
-
-NodeMessagePtr StreamEndpointTest::WaitForMessage() {
+*/
+StreamEndpointTest::Msg StreamEndpointTest::WaitForMessage() {
     std::vector<DescriptorPtr> descptrs;
     descptrs.push_back(wsock);
     descptrs.push_back(rsock);
-    while (msgq->Empty()) {
+    while (messages.empty()) {
         CPPUNIT_ASSERT(0 < Descriptor::Poll(descptrs, -1));
     }
-    return msgq->Get();
+    Msg msg = messages.front();
+    messages.pop_front();
+    return msg;
 }
 
-void StreamEndpointTest::SendMessageDownstream(NodeMessagePtr msg) {
-    msg->DispatchOn(wendp.get());
+void StreamEndpointTest::RMHEnqueue(Key_t src, Key_t dst) {
+    messages.push_back(Msg(RMHENQUEUE, src, dst));
 }
 
-void StreamEndpointTest::SendMessageUpstream(CPN::NodeMessagePtr msg) {
-    msg->DispatchOn(rendp.get());
+void StreamEndpointTest::RMHEndOfWriteQueue(Key_t src, Key_t dst) {
+    messages.push_back(Msg(RMHENDOFWRITEQUEUE, src, dst));
+}
+
+void StreamEndpointTest::RMHWriteBlock(Key_t src, Key_t dst) {
+    messages.push_back(Msg(RMHWRITEBLOCK, src, dst));
+}
+
+void StreamEndpointTest::RMHTagChange(Key_t src, Key_t dst) {
+    messages.push_back(Msg(RMHTAGCHANGE, src, dst));
+}
+
+void StreamEndpointTest::WMHDequeue(Key_t src, Key_t dst) {
+    messages.push_back(Msg(WMHDEQUEUE, src, dst));
+}
+
+void StreamEndpointTest::WMHEndOfReadQueue(Key_t src, Key_t dst) {
+    messages.push_back(Msg(WMHENDOFREADQUEUE, src, dst));
+}
+
+void StreamEndpointTest::WMHReadBlock(Key_t src, Key_t dst) {
+    messages.push_back(Msg(WMHREADBLOCK, src, dst));
+}
+
+void StreamEndpointTest::WMHTagChange(Key_t src, Key_t dst) {
+    messages.push_back(Msg(WMHTAGCHANGE, src, dst));
 }
 

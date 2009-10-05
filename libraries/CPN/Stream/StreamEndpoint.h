@@ -54,7 +54,7 @@ namespace CPN {
     {
     public:
 
-        StreamEndpoint(Key_t skey, Key_t dkey);
+        StreamEndpoint(Key_t rkey, Key_t wkey);
 
         void RMHEnqueue(Key_t src, Key_t dst);
         void RMHEndOfWriteQueue(Key_t src, Key_t dst);
@@ -114,8 +114,8 @@ namespace CPN {
         ReaderMessageHandler *rmh;
         WriterMessageHandler *wmh;
 
-        Key_t srckey;
-        Key_t dstkey;
+        Key_t readerkey;
+        Key_t writerkey;
         bool shuttingdown;
     };
 }

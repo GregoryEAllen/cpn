@@ -127,10 +127,16 @@ namespace CPN {
         arl.Lock();
         // force release of all readers and writers
         while (!readermap.empty()) {
-            readermap.begin()->second->Release();
+            shared_ptr<QueueReader> reader = readermap.begin()->second;
+            arl.Unlock();
+            reader->Release();
+            arl.Lock();
         }
         while (!writermap.empty()) {
-            writermap.begin()->second->Release();
+            shared_ptr<QueueWriter> writer = writermap.begin()->second;
+            arl.Unlock();
+            writer->Release();
+            arl.Lock();
         }
         arl.Unlock();
         kernel.NodeTerminated(nodekey);

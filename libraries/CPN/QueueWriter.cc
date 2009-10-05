@@ -38,6 +38,7 @@ namespace CPN {
     }
 
     QueueWriter::~QueueWriter() {
+        queue->ClearWriterMessageHandler();
     }
 
     void* QueueWriter::GetRawEnqueuePtr(unsigned thresh, unsigned chan) {
@@ -58,6 +59,7 @@ namespace CPN {
 
     void QueueWriter::Enqueue(unsigned count) {
         Sync::AutoReentrantLock arl(queue->GetLock());
+        if (shutdown) { throw BrokenQueueException(rkey); }
         queue->Enqueue(count);
         readerMsgHan->RMHEnqueue(wkey, rkey);
     }
@@ -96,6 +98,7 @@ namespace CPN {
         if (!shutdown) {
             readerMsgHan->RMHEndOfWriteQueue(wkey, rkey);
             shutdown = true;
+            readerMsgHan = 0;
         }
     }
 
@@ -107,6 +110,7 @@ namespace CPN {
     void QueueWriter::WMHEndOfReadQueue(Key_t src, Key_t dst) {
         Sync::AutoReentrantLock arl(queue->GetLock());
         shutdown = true;
+        readerMsgHan = 0;
         WriterMessageHandler::WMHEndOfReadQueue(src, dst);
     }
 }

@@ -30,19 +30,19 @@ namespace CPN {
     ReaderMessageHandler::~ReaderMessageHandler() {}
     void ReaderMessageHandler::RMHEnqueue(Key_t src, Key_t dst) {
         CheckRMH();
-        subhandler->RMHEnqueue(src, dst);
+        if (subhandler) subhandler->RMHEnqueue(src, dst);
     }
     void ReaderMessageHandler::RMHEndOfWriteQueue(Key_t src, Key_t dst) {
         CheckRMH();
-        subhandler->RMHEndOfWriteQueue(src, dst);
+        if (subhandler) subhandler->RMHEndOfWriteQueue(src, dst);
     }
     void ReaderMessageHandler::RMHWriteBlock(Key_t src, Key_t dst) {
         CheckRMH();
-        subhandler->RMHWriteBlock(src, dst);
+        if (subhandler) subhandler->RMHWriteBlock(src, dst);
     }
     void ReaderMessageHandler::RMHTagChange(Key_t src, Key_t dst) {
         CheckRMH();
-        subhandler->RMHTagChange(src, dst);
+        if (subhandler) subhandler->RMHTagChange(src, dst);
     }
 
 
@@ -51,29 +51,29 @@ namespace CPN {
     WriterMessageHandler::~WriterMessageHandler() {}
     void WriterMessageHandler::WMHDequeue(Key_t src, Key_t dst) {
         CheckWMH();
-        subhandler->WMHDequeue(src, dst);
+        if (subhandler) subhandler->WMHDequeue(src, dst);
     }
     void WriterMessageHandler::WMHEndOfReadQueue(Key_t src, Key_t dst) {
         CheckWMH();
-        subhandler->WMHEndOfReadQueue(src, dst);
+        if (subhandler) subhandler->WMHEndOfReadQueue(src, dst);
     }
     void WriterMessageHandler::WMHReadBlock(Key_t src, Key_t dst) {
         CheckWMH();
-        subhandler->WMHReadBlock(src, dst);
+        if (subhandler) subhandler->WMHReadBlock(src, dst);
     }
     void WriterMessageHandler::WMHTagChange(Key_t src, Key_t dst) {
         CheckWMH();
-        subhandler->WMHTagChange(src, dst);
+        if (subhandler) subhandler->WMHTagChange(src, dst);
     }
 
     NodeMessageHandler::~NodeMessageHandler() {}
 
     KernelMessageHandler::~KernelMessageHandler() {}
 
-    void KernelMessageHandlerStreamDead(Key_t streamkey) {}
-    void KernelMessageHandlerSetReaderDescriptor(Key_t readerkey, Async::DescriptorPtr desc) {}
-    void KernelMessageHandlerSetWriterDescriptor(Key_t writerkey, Async::DescriptorPtr desc) {}
-    void KernelMessageHandlerNewKernelStream(Key_t kernelkey, Async::DescriptorPtr desc) {}
-    void KernelMessageHandlerSendWakeup() {}
+    void KernelMessageHandler::StreamDead(Key_t streamkey) {}
+    void KernelMessageHandler::SetReaderDescriptor(Key_t readerkey, Async::DescriptorPtr desc) {}
+    void KernelMessageHandler::SetWriterDescriptor(Key_t writerkey, Async::DescriptorPtr desc) {}
+    void KernelMessageHandler::NewKernelStream(Key_t kernelkey, Async::DescriptorPtr desc) {}
+    void KernelMessageHandler::SendWakeup() {}
 }
 

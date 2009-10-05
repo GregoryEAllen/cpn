@@ -2,8 +2,7 @@
 #include "QueueRWTest.h"
 #include "QueueWriter.h"
 #include "QueueReader.h"
-#include "QueueBlocker.h"
-#include "MessageQueue.h"
+#include "Message.h"
 #include "QueueBase.h"
 #include "SimpleQueue.h"
 #include <cppunit/TestAssert.h>
@@ -17,20 +16,20 @@ CPPUNIT_TEST_SUITE_REGISTRATION( QueueRWTest );
 #endif
 
 using CPN::shared_ptr;
-using CPN::QueueBlocker;
 using CPN::QueueReader;
 using CPN::QueueWriter;
 using CPN::Key_t;
-using CPN::MsgPut;
-using CPN::MsgQueue;
-using CPN::NodeMessagePtr;
 using CPN::QueueBase;
 using CPN::SimpleQueue;
+using CPN::NodeMessageHandler;
+using CPN::ReaderMessageHandler;
+using CPN::WriterMessageHandler;
 
-class MockBlocker : public QueueBlocker {
+class MockBlocker : public NodeMessageHandler,
+        public ReaderMessageHandler,
+        public WriterMessageHandler {
 public:
     MockBlocker() {
-        msgqueue = MsgQueue<NodeMessagePtr>::Create();
         writereleased = false;
         readreleased = false;
         writeneedqueue = false;
@@ -39,8 +38,8 @@ public:
         readkey = 2;
         numtransfer = 100;
         queue = shared_ptr<QueueBase>(new SimpleQueue(2, 1, 1));
-        writer = shared_ptr<QueueWriter>(new QueueWriter(this, writekey));
-        reader = shared_ptr<QueueReader>(new QueueReader(this, readkey));
+        writer = shared_ptr<QueueWriter>(new QueueWriter(this, this, writekey, readkey, queue));
+        reader = shared_ptr<QueueReader>(new QueueReader(this, this, readkey, writekey, queue));
     }
 
     ~MockBlocker() {
@@ -52,36 +51,36 @@ public:
         CPPUNIT_ASSERT(readreleased);
     }
 
-    void ReadBlock(shared_ptr<QueueReader> r, unsigned thresh) {
-        CPPUNIT_ASSERT(r == reader);
+    void RMHEnqueue(Key_t src, Key_t dst) {}
+    void RMHEndOfWriteQueue(Key_t src, Key_t dst) {}
+    void RMHWriteBlock(Key_t src, Key_t dst) {}
+    void RMHTagChange(Key_t src, Key_t dst) {}
+
+    void WMHDequeue(Key_t src, Key_t dst) {}
+    void WMHEndOfReadQueue(Key_t src, Key_t dst) {}
+    void WMHReadBlock(Key_t src, Key_t dst) {}
+    void WMHTagChange(Key_t src, Key_t dst) {}
+
+    void Shutdown() {}
+    void CreateReader(Key_t readerkey, Key_t writerkey, shared_ptr<QueueBase> q) {}
+    void CreateWriter(Key_t readerkey, Key_t writerkey, shared_ptr<QueueBase> q) {}
+
+    void ReadBlock(Key_t readerkey, Key_t writerkey) {
+        CPPUNIT_ASSERT(readerkey == readkey);
+        CPPUNIT_ASSERT(writerkey == writekey);
         while (writer->Freespace()) {
             char val = (char)rand();
             writer->RawEnqueue(&val, 1);
         }
     }
 
-    void WriteBlock(shared_ptr<QueueWriter> w, unsigned thresh) {
-        CPPUNIT_ASSERT(w == writer);
+    void WriteBlock(Key_t writerkey, Key_t readerkey) {
+        CPPUNIT_ASSERT(readerkey == readkey);
+        CPPUNIT_ASSERT(writerkey == writekey);
         char val;
         while (reader->Count()) {
             reader->RawDequeue(&val, 1);
         }
-    }
-
-    void ReadNeedQueue(Key_t ekey) {
-        CPPUNIT_ASSERT(readkey == ekey);
-        if (readneedqueue) {
-            reader->SetQueue(queue);
-        }
-        readneedqueue = true;
-    }
-
-    void WriteNeedQueue(Key_t ekey) {
-        CPPUNIT_ASSERT(ekey == writekey);
-        if (writeneedqueue) {
-            writer->SetQueue(queue);
-        }
-        writeneedqueue = true;
     }
 
     void ReleaseWriter(Key_t ekey) {
@@ -92,10 +91,6 @@ public:
     void ReleaseReader(Key_t ekey) {
         CPPUNIT_ASSERT(ekey == readkey);
         readreleased = true;
-    }
-
-    shared_ptr<MsgPut<NodeMessagePtr> > GetMsgPut() {
-        return msgqueue;
     }
 
     void DoWriteTest() {
@@ -133,7 +128,6 @@ public:
     bool readneedqueue;
     bool writereleased;
     bool readreleased;
-    shared_ptr<MsgQueue<NodeMessagePtr> > msgqueue;
 };
 
 void QueueRWTest::setUp() {

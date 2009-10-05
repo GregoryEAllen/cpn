@@ -194,9 +194,13 @@ namespace CPN {
 
         ReaderMessageHandler *GetReaderMessageHandler();
 
+        void ClearReaderMessageHandler();
+
         void SetWriterMessageHandler(WriterMessageHandler *wmhan);
 
         WriterMessageHandler *GetWriterMessageHandler();
+
+        void ClearWriterMessageHandler();
 
         const Sync::ReentrantLock &GetLock() const { return lock; }
 	protected:
@@ -206,6 +210,7 @@ namespace CPN {
 	private:
         void CheckRMH();
         void CheckWMH();
+        bool shutdown;
 	};
 
 }

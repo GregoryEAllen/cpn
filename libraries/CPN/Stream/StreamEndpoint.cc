@@ -26,11 +26,11 @@
 
 namespace CPN {
 
-    StreamEndpoint::StreamEndpoint(Key_t skey, Key_t dkey)
+    StreamEndpoint::StreamEndpoint(Key_t rkey, Key_t wkey)
         : writecount(0),
         readcount(0),
-        srckey(skey),
-        dstkey(dkey),
+        readerkey(rkey),
+        writerkey(wkey),
         shuttingdown(false)
     {
         PacketDecoder::Enable(false);
@@ -38,6 +38,7 @@ namespace CPN {
 
     void StreamEndpoint::RMHEnqueue(Key_t src, Key_t dst) {
         Sync::AutoReentrantLock arl(*lock);
+        ASSERT(src == writerkey && dst == readerkey);
         CheckBlockedEnqueues();
         WriteSome();
     }
@@ -45,6 +46,7 @@ namespace CPN {
 
     void StreamEndpoint::WMHDequeue(Key_t src, Key_t dst) {
         Sync::AutoReentrantLock arl(*lock);
+        ASSERT(src == readerkey && dst == writerkey);
         unsigned numchans = queue->NumChannels();
         // Difference between how many bytes we think are in the
         // queue and how many are actually there
@@ -56,6 +58,7 @@ namespace CPN {
 
     void StreamEndpoint::WMHReadBlock(Key_t src, Key_t dst) {
         Sync::AutoReentrantLock arl(*lock);
+        ASSERT(src == readerkey && dst == writerkey);
         // dummy value for now
         encoder.SendReadBlock(0);
         WriteSome();
@@ -63,6 +66,7 @@ namespace CPN {
 
     void StreamEndpoint::RMHWriteBlock(Key_t src, Key_t dst) {
         Sync::AutoReentrantLock arl(*lock);
+        ASSERT(src == writerkey && dst == readerkey);
         CheckBlockedEnqueues();
         // dummy value for now
         encoder.SendWriteBlock(0);
@@ -71,6 +75,7 @@ namespace CPN {
 
     void StreamEndpoint::RMHEndOfWriteQueue(Key_t src, Key_t dst) {
         Sync::AutoReentrantLock arl(*lock);
+        ASSERT(src == writerkey && dst == readerkey);
         // TODO send the message on and start our shutdown
         shuttingdown = true;
         ASSERT(false, "Unimplemented");
@@ -78,16 +83,21 @@ namespace CPN {
 
     void StreamEndpoint::WMHEndOfReadQueue(Key_t src, Key_t dst) {
         Sync::AutoReentrantLock arl(*lock);
+        ASSERT(src == readerkey && dst == writerkey);
         // TODO send the message on and start our shutdown
         shuttingdown = true;
         ASSERT(false, "Unimplemented");
     }
 
     void StreamEndpoint::RMHTagChange(Key_t src, Key_t dst) {
+        Sync::AutoReentrantLock arl(*lock);
+        ASSERT(src == writerkey && dst == readerkey);
         ASSERT(false, "Unimplemented");
     }
 
     void StreamEndpoint::WMHTagChange(Key_t src, Key_t dst) {
+        Sync::AutoReentrantLock arl(*lock);
+        ASSERT(src == readerkey && dst == writerkey);
         ASSERT(false, "Unimplemented");
     }
 
@@ -145,7 +155,7 @@ namespace CPN {
         ENSURE(queue->RawEnqueue(data, length, numchannels, length),
                 "Enqueue throttling over the socket failed.");
         readcount += length;
-        rmh->RMHEnqueue(srckey, dstkey);
+        rmh->RMHEnqueue(writerkey, readerkey);
     }
 
     void StreamEndpoint::ReceivedDequeue(unsigned length, unsigned numchannels) {
@@ -153,15 +163,15 @@ namespace CPN {
                 "Endpoints disagree on number of channels.");
         writecount -= length;
         CheckBlockedEnqueues();
-        wmh->WMHDequeue(srckey, dstkey);
+        wmh->WMHDequeue(readerkey, writerkey);
     }
 
     void StreamEndpoint::ReceivedReadBlock(unsigned requested) {
-        wmh->WMHReadBlock(srckey, dstkey);
+        wmh->WMHReadBlock(readerkey, writerkey);
     }
 
     void StreamEndpoint::ReceivedWriteBlock(unsigned requested) {
-        rmh->RMHWriteBlock(srckey, dstkey);
+        rmh->RMHWriteBlock(writerkey, readerkey);
     }
 
     void StreamEndpoint::CheckBlockedEnqueues() {
