@@ -69,5 +69,11 @@ namespace CPN {
     NodeMessageHandler::~NodeMessageHandler() {}
 
     KernelMessageHandler::~KernelMessageHandler() {}
+
+    void KernelMessageHandlerStreamDead(Key_t streamkey) {}
+    void KernelMessageHandlerSetReaderDescriptor(Key_t readerkey, Async::DescriptorPtr desc) {}
+    void KernelMessageHandlerSetWriterDescriptor(Key_t writerkey, Async::DescriptorPtr desc) {}
+    void KernelMessageHandlerNewKernelStream(Key_t kernelkey, Async::DescriptorPtr desc) {}
+    void KernelMessageHandlerSendWakeup() {}
 }
 

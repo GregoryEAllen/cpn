@@ -77,9 +77,9 @@ namespace CPN {
                 uint64_t hostkey
                 );
 
-        virtual void ReceivedReaderID(uint64_t readerkey);
-        virtual void ReceivedWriterID(uint64_t writerkey);
-        virtual void ReceivedKernelID(uint64_t kernelkey);
+        virtual void ReceivedReaderID(uint64_t readerkey, uint64_t writerkey);
+        virtual void ReceivedWriterID(uint64_t writerkey, uint64_t readerkey);
+        virtual void ReceivedKernelID(uint64_t srckernelkey, uint64_t dstkernelkey);
     private:
         void Fire();
         AutoBuffer buffer;

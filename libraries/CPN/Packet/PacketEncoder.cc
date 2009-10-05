@@ -141,24 +141,27 @@ namespace CPN {
         cbuff.Put(arg);
     }
 
-    void PacketEncoder::SendReaderID(uint64_t readerkey) {
+    void PacketEncoder::SendReaderID(uint64_t readerkey, uint64_t writerkey) {
         PacketHeader header;
         InitPacket(&header, 0, PACKET_ID_READER);
-        header.identify.key = readerkey;
+        header.identify.srckey = readerkey;
+        header.identify.dstkey = writerkey;
         cbuff.Put((char*)&header, sizeof(header));
     }
 
-    void PacketEncoder::SendWriterID(uint64_t writerkey) {
+    void PacketEncoder::SendWriterID(uint64_t writerkey, uint64_t readerkey) {
         PacketHeader header;
         InitPacket(&header, 0, PACKET_ID_WRITER);
-        header.identify.key = writerkey;
+        header.identify.srckey = writerkey;
+        header.identify.dstkey = readerkey;
         cbuff.Put((char*)&header, sizeof(header));
     }
 
-    void PacketEncoder::SendKernelID(uint64_t kernelkey) {
+    void PacketEncoder::SendKernelID(uint64_t srckernelkey, uint64_t dstkernelkey) {
         PacketHeader header;
         InitPacket(&header, 0, PACKET_ID_KERNEL);
-        header.identify.key = kernelkey;
+        header.identify.srckey = srckernelkey;
+        header.identify.dstkey = dstkernelkey;
         cbuff.Put((char*)&header, sizeof(header));
     }
 

@@ -26,7 +26,7 @@ public:
         numEvents(0),
         readerKey(0),
         writerKey(0),
-        kernelKey(0),
+        srcKernelKey(0),
         nodeKey(0)
     {
     }
@@ -38,7 +38,8 @@ public:
     unsigned MaxThreshold() { return maxThreshold; }
     uint64_t ReaderKey() { return readerKey; }
     uint64_t WriterKey() { return writerKey; }
-    uint64_t KernelKey() { return kernelKey; }
+    uint64_t SrcKernelKey() { return srcKernelKey; }
+    uint64_t DstKernelKey() { return dstKernelKey; }
     uint64_t NodeKey() { return nodeKey; }
     unsigned NumEvents() { return numEvents; }
     const std::string &NodeName() { return nodename; }
@@ -117,23 +118,26 @@ protected:
         nodetype = ntype;
         param = prm;
         buff = arg;
-        kernelKey = hkey;
+        srcKernelKey = hkey;
         nodeKey = nkey;
     }
 
-    virtual void ReceivedReaderID(uint64_t key) {
+    virtual void ReceivedReaderID(uint64_t rkey, uint64_t wkey) {
         numEvents++;
-        readerKey = key;
+        readerKey = rkey;
+        writerKey = wkey;
     }
 
-    virtual void ReceivedWriterID(uint64_t key) {
+    virtual void ReceivedWriterID(uint64_t wkey, uint64_t rkey) {
         numEvents++;
-        writerKey = key;
+        writerKey = wkey;
+        readerKey = rkey;
     }
 
-    virtual void ReceivedKernelID(uint64_t key) {
+    virtual void ReceivedKernelID(uint64_t srckernelkey, uint64_t dstkernelkey) {
         numEvents++;
-        kernelKey = key;
+        srcKernelKey = srckernelkey;
+        dstKernelKey = dstkernelkey;
     }
 private:
     AutoBuffer buff;
@@ -145,7 +149,8 @@ private:
     unsigned numEvents;
     uint64_t readerKey;
     uint64_t writerKey;
-    uint64_t kernelKey;
+    uint64_t srcKernelKey;
+    uint64_t dstKernelKey;
     uint64_t nodeKey;
     std::string nodename;
     std::string nodetype;
@@ -303,40 +308,46 @@ void PacketEDTest::CreateNodeTest() {
     CPPUNIT_ASSERT(decoder.Param() == param);
     CPPUNIT_ASSERT(memcmp(arg.GetBuffer(), decoder.Data(), arg.GetSize()) == 0);
     CPPUNIT_ASSERT(decoder.NodeKey() == nodekey);
-    CPPUNIT_ASSERT(decoder.KernelKey() == kernelkey);
+    CPPUNIT_ASSERT(decoder.SrcKernelKey() == kernelkey);
 }
 
 void PacketEDTest::ReaderIDTest() {
     MockDecoder decoder;
     PacketEncoder encoder;
     srand(1);
-    unsigned id = rand();
-    encoder.SendReaderID(id);
+    unsigned srcid = rand();
+    unsigned dstid = rand();
+    encoder.SendReaderID(srcid, dstid);
     Transfer(&encoder, &decoder);
     CPPUNIT_ASSERT(decoder.NumEvents() == 1);
-    CPPUNIT_ASSERT(decoder.ReaderKey() == id);
+    CPPUNIT_ASSERT(decoder.ReaderKey() == srcid);
+    CPPUNIT_ASSERT(decoder.WriterKey() == dstid);
 }
 
 void PacketEDTest::WriterIDTest() {
     MockDecoder decoder;
     PacketEncoder encoder;
     srand(1);
-    unsigned id = rand();
-    encoder.SendWriterID(id);
+    unsigned srcid = rand();
+    unsigned dstid = rand();
+    encoder.SendWriterID(srcid, dstid);
     Transfer(&encoder, &decoder);
     CPPUNIT_ASSERT(decoder.NumEvents() == 1);
-    CPPUNIT_ASSERT(decoder.WriterKey() == id);
+    CPPUNIT_ASSERT(decoder.WriterKey() == srcid);
+    CPPUNIT_ASSERT(decoder.ReaderKey() == dstid);
 }
 
 void PacketEDTest::KernelIDTest() {
     MockDecoder decoder;
     PacketEncoder encoder;
     srand(1);
-    unsigned id = rand();
-    encoder.SendKernelID(id);
+    unsigned srcid = rand();
+    unsigned dstid = rand();
+    encoder.SendKernelID(srcid, dstid);
     Transfer(&encoder, &decoder);
     CPPUNIT_ASSERT(decoder.NumEvents() == 1);
-    CPPUNIT_ASSERT(decoder.KernelKey() == id);
+    CPPUNIT_ASSERT(decoder.SrcKernelKey() == srcid);
+    CPPUNIT_ASSERT(decoder.DstKernelKey() == dstid);
 }
 
 void PacketEDTest::Transfer(PacketEncoder *encoder, PacketDecoder *decoder) {

@@ -121,7 +121,8 @@ namespace CPN {
 
     struct IdentifyPacketHeader {
         PacketHeaderBase base;
-        uint64_t key;
+        uint64_t srckey;
+        uint64_t dstkey;
     };
 
     struct PacketHeader {

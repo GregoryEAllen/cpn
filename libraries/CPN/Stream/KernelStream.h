@@ -37,7 +37,8 @@
 
 namespace CPN {
 
-    class KernelStream : public KernelMessageHandler {
+    class KernelStream : public KernelMessageHandler, public Stream
+    {
     public:
 
         KernelStream(

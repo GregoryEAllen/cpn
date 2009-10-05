@@ -135,13 +135,16 @@ namespace CPN {
             }
             break;
         case PACKET_ID_READER:
-            ReceivedReaderID(header->identify.key);
+            ReceivedReaderID(header->identify.srckey,
+                    header->identify.dstkey);
             break;
         case PACKET_ID_WRITER:
-            ReceivedWriterID(header->identify.key);
+            ReceivedWriterID(header->identify.srckey,
+                    header->identify.dstkey);
             break;
         case PACKET_ID_KERNEL:
-            ReceivedKernelID(header->identify.key);
+            ReceivedKernelID(header->identify.srckey,
+                    header->identify.dstkey);
             break;
         default:
             ASSERT(false, "Unknown packet type!");
@@ -197,15 +200,15 @@ namespace CPN {
         ASSERT(false, "Unexpected packet type received.");
     }
 
-    void PacketDecoder::ReceivedReaderID(uint64_t readerkey) {
+    void PacketDecoder::ReceivedReaderID(uint64_t readerkey, uint64_t writerkey) {
         ASSERT(false, "Unexpected packet type received.");
     }
 
-    void PacketDecoder::ReceivedWriterID(uint64_t writerkey) {
+    void PacketDecoder::ReceivedWriterID(uint64_t writerkey, uint64_t readerkey) {
         ASSERT(false, "Unexpected packet type received.");
     }
 
-    void PacketDecoder::ReceivedKernelID(uint64_t kernelkey) {
+    void PacketDecoder::ReceivedKernelID(uint64_t srckernelkey, uint64_t dstkernelkey) {
         ASSERT(false, "Unexpected packet type received.");
     }
 
