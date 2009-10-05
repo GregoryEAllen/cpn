@@ -28,8 +28,8 @@
 
 namespace CPN {
 
-    QueueWriter(NodeMessageHandler *n, WriterMessageHandler *wmh,
-            Key_t writerkey, Key_t readerkey, shared_ptr<QueueBase>);
+    QueueWriter::QueueWriter(NodeMessageHandler *n, WriterMessageHandler *wmh,
+            Key_t writerkey, Key_t readerkey, shared_ptr<QueueBase> q)
         : WriterMessageHandler(wmh), nodeMsgHan(n), wkey(writerkey),
          rkey(readerkey), queue(q), shutdown(false)
     {
@@ -46,7 +46,7 @@ namespace CPN {
         nodeMsgHan->CheckTerminate();
         void* ptr = queue->GetRawEnqueuePtr(thresh, chan);
         while (0 == ptr) {
-            readerMsgHan->RMHWriterBlock(wkey, rkey);
+            readerMsgHan->RMHWriteBlock(wkey, rkey);
             arl.Unlock();
             nodeMsgHan->WriteBlock(wkey, rkey);
             arl.Lock();
@@ -59,7 +59,7 @@ namespace CPN {
     void QueueWriter::Enqueue(unsigned count) {
         Sync::AutoReentrantLock arl(queue->GetLock());
         queue->Enqueue(count);
-        readerMsgHan->Enqueue(wkey, rkey);
+        readerMsgHan->RMHEnqueue(wkey, rkey);
     }
 
     void QueueWriter::RawEnqueue(void *data, unsigned count,
@@ -68,13 +68,13 @@ namespace CPN {
         if (shutdown) { throw BrokenQueueException(rkey); }
         nodeMsgHan->CheckTerminate();
         while (!queue->RawEnqueue(data, count, numChans, chanStride)) {
-            readerMsgHan->RMHWriterBlock(wkey, rkey);
+            readerMsgHan->RMHWriteBlock(wkey, rkey);
             arl.Unlock();
             nodeMsgHan->WriteBlock(wkey, rkey);
             arl.Lock();
             if (shutdown) { throw BrokenQueueException(rkey); }
         }
-        readerMsgHan->Enqueue(wkey, rkey);
+        readerMsgHan->RMHEnqueue(wkey, rkey);
     }
 
     void QueueWriter::RawEnqueue(void *data, unsigned count) {
@@ -82,7 +82,7 @@ namespace CPN {
         if (shutdown) { throw BrokenQueueException(rkey); }
         nodeMsgHan->CheckTerminate();
         while (!queue->RawEnqueue(data, count)) {
-            readerMsgHan->RMHWriterBlock(wkey, rkey);
+            readerMsgHan->RMHWriteBlock(wkey, rkey);
             arl.Unlock();
             nodeMsgHan->WriteBlock(wkey, rkey);
             arl.Lock();
@@ -101,7 +101,7 @@ namespace CPN {
 
     void QueueWriter::Release() {
         Shutdown();
-        nodeMsgHan->ReleaseWriter(key);
+        nodeMsgHan->ReleaseWriter(wkey);
     }
 
     void QueueWriter::WMHEndOfReadQueue(Key_t src, Key_t dst) {

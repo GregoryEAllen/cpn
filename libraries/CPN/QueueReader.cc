@@ -28,8 +28,11 @@
 
 namespace CPN {
 
-    QueueReader(NodeMessageHandler *n, ReaderMessageHandler *rmh,
-            Key_t readerkey, Key_t writerkey, shared_ptr<QueueBase> q)
+    QueueReader::QueueReader(NodeMessageHandler *n,
+            ReaderMessageHandler *rmh,
+            Key_t readerkey,
+            Key_t writerkey,
+            shared_ptr<QueueBase> q)
         : ReaderMessageHandler(rmh), nodeMsgHan(n), rkey(readerkey), wkey(writerkey),
         queue(q), shutdown(false)
     {

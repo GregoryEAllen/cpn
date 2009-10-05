@@ -23,16 +23,13 @@
  */
 
 #include "Kernel.h"
-#include "NodeAttr.h"
+
 #include "NodeFactory.h"
 #include "NodeBase.h"
 
 #include "SimpleQueue.h"
 #include "ThresholdQueue.h"
-#include "QueueAttr.h"
 
-#include "MessageQueue.h"
-#include "NodeMessage.h"
 #include "Database.h"
 
 #include "ReaderStream.h"
@@ -131,7 +128,7 @@ namespace CPN {
             Key_t key = database->WaitForHostSetup(nodeattr.GetHost());
             arlock.Lock();
             nodeattr.SetHostKey(key);
-            EnqueueMessage(KMsgCreateNode::Create(nodeattr));
+            SendCreateNode(key, nodeattr);
         }
         return nodekey;
     }
@@ -200,33 +197,33 @@ namespace CPN {
                 CreateLocalQueue(attr);
             } else {
                 // Send a message to the other host to create a local queue
-                EnqueueMessage(KMsgCreateQueue::Create(attr, readerhost));
+                SendCreateQueue(readerhost, attr);
             }
         } else if (readerhost == hostkey) {
             // Create the reader end here and queue up a message
             // to the writer host that they need to create an endpoint
             CreateReaderEndpoint(attr);
-            EnqueueMessage(KMsgCreateWriter::Create(attr, writerhost));
+            SendCreateWriter(writerhost, attr);
         } else if (writerhost == hostkey) {
             // Create the writer end here and queue up a message to
             // the reader host that they need to create an endpoint
             CreateWriterEndpoint(attr);
-            EnqueueMessage(KMsgCreateReader::Create(attr, readerhost));
+            SendCreateReader(readerhost, attr);
         } else {
             // Queue up a message to both the reader and writer host
             // to create endpoints
-            EnqueueMessage(KMsgCreateWriter::Create(attr, writerhost));
-            EnqueueMessage(KMsgCreateReader::Create(attr, readerhost));
+            SendCreateWriter(writerhost, attr);
+            SendCreateReader(readerhost, attr);
         }
     }
 
-    void Kernel::EnqueueMessage(KernelMessagePtr msg) {
-        Sync::AutoReentrantLock arlock(lock);
-        if (msg->GetDestinationKey() == 0) {
-            msg->SetDestinationKey(hostkey);
-        }
-        msgqueue.push_back(msg);
-        SendWakeup();
+    void Kernel::SendCreateWriter(Key_t writerhost, const SimpleQueueAttr &attr) {
+    }
+    void Kernel::SendCreateReader(Key_t readerhost, const SimpleQueueAttr &attr) {
+    }
+    void Kernel::SendCreateQueue(Key_t rwhost, const SimpleQueueAttr &attr) {
+    }
+    void Kernel::SendCreateNode(Key_t nhost, const NodeAttr &attr) {
     }
 
     void Kernel::CreateReaderEndpoint(const SimpleQueueAttr &attr) {
@@ -234,17 +231,20 @@ namespace CPN {
         shared_ptr<QueueBase> queue = MakeQueue(attr);
         shared_ptr<NodeBase> readernode = nodemap[attr.GetReaderNodeKey()];
         ASSERT(readernode);
-        readernode->GetMsgPut()->Put(NodeSetReader::Create(attr.GetReaderKey(), queue));
+        readernode->GetNodeMessageHandler()->
+            CreateReader(attr.GetReaderKey(), attr.GetWriterKey(), queue);
+
         shared_ptr<ReaderStream> stream;
         StreamMap::iterator entry = streammap.find(attr.GetReaderKey());
         if (entry == streammap.end()) {
             stream = shared_ptr<ReaderStream>(
-                    new ReaderStream(wakeupwriter, queue, attr.GetReaderKey()));
+                    new ReaderStream(this, attr.GetReaderKey(),
+                        attr.GetWriterKey()));
             streammap.insert(std::make_pair(attr.GetReaderKey(), stream));
         } else {
             stream = dynamic_pointer_cast<ReaderStream>(entry->second);
-            stream->SetQueue(queue);
         }
+        stream->SetQueue(queue);
     }
 
     void Kernel::CreateWriterEndpoint(const SimpleQueueAttr &attr) {
@@ -252,17 +252,20 @@ namespace CPN {
         shared_ptr<QueueBase> queue = MakeQueue(attr);
         shared_ptr<NodeBase> writernode = nodemap[attr.GetWriterNodeKey()];
         ASSERT(writernode);
-        writernode->GetMsgPut()->Put(NodeSetWriter::Create(attr.GetWriterKey(), queue));
+        writernode->GetNodeMessageHandler()->
+            CreateWriter(attr.GetReaderKey(), attr.GetWriterKey(), queue);
+
         shared_ptr<WriterStream> stream;
         StreamMap::iterator entry = streammap.find(attr.GetWriterKey());
         if (entry == streammap.end()) {
             stream = shared_ptr<WriterStream>(
-                    new WriterStream(wakeupwriter, queue, attr.GetWriterKey()));
+                    new WriterStream(this, attr.GetWriterKey(),
+                        attr.GetReaderKey()));
             streammap.insert(std::make_pair(attr.GetWriterKey(), stream));
         } else {
             stream = dynamic_pointer_cast<WriterStream>(entry->second);
-            stream->SetQueue(queue);
         }
+        stream->SetQueue(queue);
     }
 
     void Kernel::CreateLocalQueue(const SimpleQueueAttr &attr) {
@@ -272,11 +275,13 @@ namespace CPN {
 
         shared_ptr<NodeBase> readernode = nodemap[attr.GetReaderNodeKey()];
         ASSERT(readernode);
-        readernode->GetMsgPut()->Put(NodeSetReader::Create(attr.GetReaderKey(), queue));
+        readernode->GetNodeMessageHandler()->
+            CreateReader(attr.GetReaderKey(), attr.GetWriterKey(), queue);
 
         shared_ptr<NodeBase> writernode = nodemap[attr.GetWriterNodeKey()];
         ASSERT(writernode);
-        writernode->GetMsgPut()->Put(NodeSetWriter::Create(attr.GetWriterKey(), queue));
+        writernode->GetNodeMessageHandler()->
+            CreateWriter(attr.GetReaderKey(), attr.GetWriterKey(), queue);
     }
 
     shared_ptr<QueueBase> Kernel::MakeQueue(const SimpleQueueAttr &attr) {
@@ -358,6 +363,7 @@ namespace CPN {
 
     void Kernel::HandleMessages() {
         Sync::AutoReentrantLock arlock(lock);
+        /*
         std::list<KernelMessagePtr>::iterator itr;
         itr = msgqueue.begin();
         while (itr != msgqueue.end()) {
@@ -387,6 +393,7 @@ namespace CPN {
                 }
             }
         }
+        */
     }
 
     void *Kernel::EntryPoint() {
@@ -447,39 +454,43 @@ namespace CPN {
 
     void Kernel::ListenRead() {
         Async::SockPtr sock = listener->Accept();
-        unknownstreams.PushFront(
-                new UnknownStream(sock, sigc::mem_fun(this, &Kernel::EnqueueMessage))
-                );
+        unknownstreams.PushFront(new UnknownStream(sock, this));
     }
 
-    void Kernel::ProcessMessage(KMsgCreateWriter *msg) {
-        CreateWriterEndpoint(msg->GetAttr());
+    void Kernel::CreateWriter(Key_t src, Key_t dst, const SimpleQueueAttr &attr) {
+        CreateWriterEndpoint(attr);
+    }
+    void Kernel::CreateReader(Key_t src, Key_t dst, const SimpleQueueAttr &attr) {
+        CreateReaderEndpoint(attr);
+    }
+    void Kernel::CreateQueue(Key_t src, Key_t dst, const SimpleQueueAttr &attr) {
+        CreateLocalQueue(attr);
+    }
+    void Kernel::CreateNode(Key_t src, Key_t dst, const NodeAttr &attr) {
+        NodeAttr nodeattr(attr);
+        InternalCreateNode(nodeattr);
     }
 
-    void Kernel::ProcessMessage(KMsgCreateReader *msg) {
-        CreateReaderEndpoint(msg->GetAttr());
+    void Kernel::StreamDead(Key_t streamkey) {
+        streammap.erase(streamkey);
     }
 
-    void Kernel::ProcessMessage(KMsgCreateQueue *msg) {
-        CreateLocalQueue(msg->GetAttr());
+    void Kernel::SetReaderDescriptor(Key_t readerkey, Async::DescriptorPtr desc) {
+        StreamMap::iterator entry = streammap.find(readerkey);
+        if (entry == streammap.end()) {
+        }
     }
 
-    void Kernel::ProcessMessage(KMsgCreateNode *msg) {
-        InternalCreateNode(msg->GetAttr());
+    void Kernel::SetWriterDescriptor(Key_t writerkey, Async::DescriptorPtr desc) {
+        StreamMap::iterator entry = streammap.find(writerkey);
+        if (entry == streammap.end()) {
+        }
     }
 
-    void Kernel::ProcessMessage(KMsgStreamDead *msg) {
-        streammap.erase(msg->GetStreamKey());
+    void Kernel::NewKernelStream(Key_t kernelkey, Async::DescriptorPtr desc) {
+        StreamMap::iterator entry = streammap.find(kernelkey);
+        if (entry == streammap.end()) {
+        }
     }
-
-    void Kernel::ProcessMessage(KMsgSetReaderDescriptor *msg) {
-    }
-
-    void Kernel::ProcessMessage(KMsgSetWriterDescriptor *msg) {
-    }
-
-    void Kernel::ProcessMessage(KMsgCreateKernelStream *msg) {
-    }
-
 }
 

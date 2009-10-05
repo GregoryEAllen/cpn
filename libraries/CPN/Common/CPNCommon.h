@@ -81,6 +81,7 @@ namespace CPN {
     class QueueReader;
     class QueueWriter;
     class QueueAttr;
+    class SimpleQueueAttr;
 
     class NodeAttr;
     class NodeBase;

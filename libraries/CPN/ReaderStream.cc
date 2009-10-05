@@ -27,18 +27,13 @@
 namespace CPN {
 
     ReaderStream::ReaderStream(
-            Async::DescriptorPtr wu,
-            shared_ptr<QueueBase> q,
-            Key_t key)
-        : wakeup(wu),
-        queue(q),
-        downstream(q->DownStreamChain()),
-        readerkey(key)
+            KernelMessageHandler *kernMsgHan,
+            Key_t rkey, Key_t wkey)
+        : kmh(kernMsgHan),
+        readerkey(rkey),
+        writerkey(wkey),
+        endpoint(wkey, rkey)
     {
-        endpoint.SetQueue(q, q->DownStreamChain());
-        upstream = MsgQueueSignal<NodeMessagePtr, MsgQueue<NodeMessagePtr> >::Create();
-        upstream->Connect(sigc::mem_fun(this, &ReaderStream::MessageNotice));
-        queue->UpStreamChain()->Chain(upstream);
     }
 
     void ReaderStream::RegisterDescriptor(std::vector<Async::DescriptorPtr> &descriptors) {
@@ -50,13 +45,6 @@ namespace CPN {
     }
 
     void ReaderStream::RunOneIteration() {
-        Async::DescriptorPtr desc = endpoint.GetDescriptor();
-        if (desc && *desc) {
-            while (!upstream->Empty()) {
-                NodeMessagePtr msg = upstream->Get();
-                msg->DispatchOn(&endpoint);
-            }
-        } // else descriptor is gone...
     }
 
     void ReaderStream::SetDescriptor(Async::DescriptorPtr desc) {
@@ -64,13 +52,12 @@ namespace CPN {
     }
 
     void ReaderStream::SetQueue(shared_ptr<QueueBase> q) {
+        q->SetWriterMessageHandler(&endpoint);
+        endpoint.SetQueue(q);
     }
 
     void ReaderStream::MessageNotice() {
-        Async::Stream stream(wakeup);
-        char c = 0;
-        ENSURE(stream.Write(&c, sizeof(c)) == sizeof(c),
-                "The write for notice from ReaderStream was not atomic");
+        kmh->SendWakeup();
     }
 
     void ReaderStream::OnError(int err) {

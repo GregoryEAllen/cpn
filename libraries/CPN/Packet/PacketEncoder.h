@@ -45,6 +45,8 @@ namespace CPN {
         void SendDequeue(unsigned length, unsigned numchannels);
         void SendReadBlock(unsigned requested);
         void SendWriteBlock(unsigned requested);
+        // SendEndOfWriteQueue
+        // SendEndOfReadQueue
 
         void SendCreateReader(
                 unsigned queuehint, unsigned queuelenght, unsigned maxthreshold,
@@ -67,9 +69,9 @@ namespace CPN {
                 uint64_t hostkey
                 );
 
-        void SendReaderID(uint64_t readerkey);
-        void SendWriterID(uint64_t writerkey);
-        void SendKernelID(uint64_t kernelkey);
+        void SendReaderID(uint64_t readerkey, uint64_t writerkey);
+        void SendWriterID(uint64_t writerkey, uint64_t readerkey);
+        void SendKernelID(uint64_t srckernelkey, uint64_t dstkernelkey);
     private:
         AutoCircleBuffer cbuff;
     };

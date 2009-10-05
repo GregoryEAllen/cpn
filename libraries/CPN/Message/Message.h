@@ -25,6 +25,8 @@
 #define CPN_MESSAGE_H
 #pragma once
 #include "CPNCommon.h"
+#include "Assert.h"
+#include "AsyncStream.h"
 
 namespace CPN {
 
@@ -85,6 +87,13 @@ namespace CPN {
         virtual void CreateReader(Key_t src, Key_t dst, const SimpleQueueAttr &attr);
         virtual void CreateQueue(Key_t src, Key_t dst, const SimpleQueueAttr &attr);
         virtual void CreateNode(Key_t src, Key_t dst, const NodeAttr &attr);
+
+        // Functions the streams need of the kernel
+        virtual void StreamDead(Key_t streamkey);
+        virtual void SetReaderDescriptor(Key_t readerkey, Async::DescriptorPtr desc);
+        virtual void SetWriterDescriptor(Key_t writerkey, Async::DescriptorPtr desc);
+        virtual void NewKernelStream(Key_t kernelkey, Async::DescriptorPtr desc);
+        virtual void SendWakeup();
     };
 }
 

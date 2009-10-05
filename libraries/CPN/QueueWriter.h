@@ -106,12 +106,12 @@ namespace CPN {
 		/**
 		 * \return the number of channels supported by this queue.
 		 */
-		unsigned NumChannels() const { CheckQueue(); return queue->NumChannels(); }
+		unsigned NumChannels() const { return queue->NumChannels(); }
 
         /**
          * \return the maximum threshold this queue supports.
          */
-        unsigned MaxThreshold() const { CheckQueue(); return queue->MaxThreshold(); }
+        unsigned MaxThreshold() const { return queue->MaxThreshold(); }
 
 		/**
 		 * Get the space available in elements.
@@ -119,14 +119,14 @@ namespace CPN {
 		 * \return the number of bytes we can add to the queue without
 		 * blocking.
 		 */
-		unsigned Freespace() const { CheckQueue(); return queue->Freespace(); }
+		unsigned Freespace() const { return queue->Freespace(); }
 
 		/**
 		 * Test if the queue is currently full.
 		 * \warning This function violates the rules of CPN.
 		 * \return true if the queue is full, false otherwise
 		 */
-		bool Full() const { CheckQueue(); return queue->Full(); }
+		bool Full() const { return queue->Full(); }
 
 		/**
 		 * \return the typename for this queue
@@ -136,7 +136,7 @@ namespace CPN {
         /**
          * \return the key associated with this endpoint
          */
-        Key_t GetKey() const { return key; }
+        Key_t GetKey() const { return wkey; }
 
         /**
          * Shutdown the queue. Further operations are

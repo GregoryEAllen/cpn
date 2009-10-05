@@ -25,11 +25,10 @@
 
 namespace CPN {
     UnknownStream::UnknownStream(Async::SockPtr desc,
-            sigc::slot<void, KernelMessagePtr> slot)
+            KernelMessageHandler *kernMsgHan)
         : IntrusiveRingElement<UnknownStream>(this),
           descriptor(desc)
     {
-        enqueuemsg.connect(slot);
         readready = descriptor->ConnectOnRead(sigc::mem_fun(this, &UnknownStream::ReadSome));
         readsome = descriptor->ConnectReadable(sigc::mem_fun(this, &UnknownStream::ReadReady));
     }

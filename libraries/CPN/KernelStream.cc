@@ -28,30 +28,12 @@ namespace CPN {
 
     KernelStream::KernelStream(
                 Async::DescriptorPtr desc,
-                sigc::slot<void> wake,
-                sigc::slot<void, KernelMessagePtr> msgq)
+                KernelMessageHandler *kernMsgHan)
         : connected(false),
-        descriptor(desc)
+        descriptor(desc),
+        kmh(kernMsgHan)
     {
         InitDescriptor();
-        wakeup.connect(wake);
-        enqueuemsg.connect(msgq);
-    }
-
-    void KernelStream::ProcessMessage(KMsgCreateWriter *msg) {
-        ASSERT(false, "Unimplemented");
-    }
-
-    void KernelStream::ProcessMessage(KMsgCreateReader *msg) {
-        ASSERT(false, "Unimplemented");
-    }
-
-    void KernelStream::ProcessMessage(KMsgCreateQueue *msg) {
-        ASSERT(false, "Unimplemented");
-    }
-
-    void KernelStream::ProcessMessage(KMsgCreateNode *msg) {
-        ASSERT(false, "Unimplemented");
     }
 
     bool KernelStream::Connected() {

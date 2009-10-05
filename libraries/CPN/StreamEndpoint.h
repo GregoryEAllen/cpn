@@ -28,12 +28,13 @@
 #pragma once
 
 #include "CPNCommon.h"
-#include "NodeMessage.h"
-#include "MessageQueue.h"
+
+#include "Message.h"
 
 #include "PacketDecoder.h"
 #include "PacketEncoder.h"
 
+#include "ReentrantLock.h"
 
 #include "AsyncStream.h"
 #include "AutoCircleBuffer.h"
@@ -47,27 +48,23 @@ namespace CPN {
      * If it receives dequeue messages then it acts like a reader if it is
      * receiving enqueue messages then it acts like a writer.
      */
-    class StreamEndpoint : public NodeMsgDispatch,
+    class StreamEndpoint : public ReaderMessageHandler,
+                           public WriterMessageHandler,
                            private PacketDecoder
     {
     public:
 
-        StreamEndpoint();
+        StreamEndpoint(Key_t skey, Key_t dkey);
 
-        // From NodeMsgDispatch
+        void RMHEnqueue(Key_t src, Key_t dst);
+        void RMHEndOfWriteQueue(Key_t src, Key_t dst);
+        void RMHWriteBlock(Key_t src, Key_t dst);
+        void RMHTagChange(Key_t src, Key_t dst);
 
-        // A StreamEndpoint should not recieve these two messages.
-        void ProcessMessage(NodeSetReader *msg) { ASSERT(false, "Invalid Message Type to StreamEndpoint"); }
-        void ProcessMessage(NodeSetWriter *msg) { ASSERT(false, "Invalid Message Type to StreamEndpoint"); }
-
-        // These messages get sent to the other side
-        void ProcessMessage(NodeEnqueue *msg);
-        void ProcessMessage(NodeDequeue *msg);
-        void ProcessMessage(NodeReadBlock *msg);
-        void ProcessMessage(NodeWriteBlock *msg);
-        void Shutdown();
-        void ProcessMessage(NodeEndOfWriteQueue *msg);
-        void ProcessMessage(NodeEndOfReadQueue *msg);
+        void WMHDequeue(Key_t src, Key_t dst);
+        void WMHEndOfReadQueue(Key_t src, Key_t dst);
+        void WMHReadBlock(Key_t src, Key_t dst);
+        void WMHTagChange(Key_t src, Key_t dst);
 
         /**
          * \return true when we want to be notified 
@@ -91,8 +88,7 @@ namespace CPN {
         Async::DescriptorPtr GetDescriptor() { return descriptor; }
         void SetDescriptor(Async::DescriptorPtr desc);
 
-        void SetQueue(shared_ptr<QueueBase> q,
-                shared_ptr<MsgPut<NodeMessagePtr> > mfs);
+        void SetQueue(shared_ptr<QueueBase> q);
 
     private:
         void ReceivedEnqueue(void *data, unsigned length, unsigned numchannels);
@@ -100,21 +96,27 @@ namespace CPN {
         void ReceivedReadBlock(unsigned requested);
         void ReceivedWriteBlock(unsigned requested);
 
-        void WriteEnqueue(NodeEnqueuePtr msg);
-
         void CheckBlockedEnqueues();
-        bool Blocked();
+        bool WriteEnqueue();
+        bool EnqueueBlocked();
 
+        const Sync::ReentrantLock *lock;
         PacketEncoder encoder;
 
         Async::DescriptorPtr descriptor;
         // This is how many bytes this endpoint thinks it is in
         // the other endpoints queue. Unused in read mode.
         unsigned writecount;
+        // Number of bytes we have placed in the queue and have
+        // not seen a read for
+        unsigned readcount;
         shared_ptr<QueueBase> queue;
+        ReaderMessageHandler *rmh;
+        WriterMessageHandler *wmh;
 
-        shared_ptr<MsgPut<NodeMessagePtr> > msgtoendpoint;
-        std::deque<NodeEnqueuePtr> blockedenqueues;
+        Key_t srckey;
+        Key_t dstkey;
+        bool shuttingdown;
     };
 }
 

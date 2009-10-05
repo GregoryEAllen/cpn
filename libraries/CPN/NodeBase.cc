@@ -46,7 +46,7 @@ namespace CPN {
 
     void NodeBase::CreateReader(Key_t readerkey, Key_t writerkey, shared_ptr<QueueBase> q) {
         Sync::AutoReentrantLock arl(lock);
-        ASSERT(readermap.find(readerkey) == readermap.end());
+        ASSERT(readermap.find(readerkey) == readermap.end(), "The reader already exists");
         shared_ptr<QueueReader> reader;
         reader = shared_ptr<QueueReader>(new QueueReader(this, this, readerkey, writerkey, q));
         readermap.insert(std::make_pair(readerkey, reader));
@@ -55,7 +55,7 @@ namespace CPN {
 
     void NodeBase::CreateWriter(Key_t readerkey, Key_t writerkey, shared_ptr<QueueBase> q) {
         Sync::AutoReentrantLock arl(lock);
-        ASSERT(writermap.find(writerkey) == writerkey.end());
+        ASSERT(writermap.find(writerkey) == writermap.end(), "The writer already exists.");
         shared_ptr<QueueWriter> writer;
         writer = shared_ptr<QueueWriter>(new QueueWriter(this, this, writerkey, readerkey, q));
         writermap.insert(std::make_pair(writerkey, writer));

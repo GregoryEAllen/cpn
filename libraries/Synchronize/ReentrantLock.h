@@ -84,7 +84,7 @@ namespace Sync {
         friend class ReentrantCondition;
     };
 
-    typedef AutoLock<ReentrantLock> AutoReentrantLock;
+    typedef AutoLock<const ReentrantLock> AutoReentrantLock;
 
     /**
      * \brief Works just like a pthread condition

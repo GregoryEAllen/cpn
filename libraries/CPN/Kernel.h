@@ -31,7 +31,7 @@
 #include "NodeAttr.h"
 #include "QueueAttr.h"
 
-#include "KernelMessage.h"
+#include "Message.h"
 
 #include "ReentrantLock.h"
 #include "StatusHandler.h"
@@ -60,7 +60,7 @@ namespace CPN {
      * correctly and to provide a unified interface to
      * the user of the process network.
      */
-    class CPN_API Kernel : private Pthread, private KMsgDispatchable {
+    class CPN_API Kernel : private Pthread, private KernelMessageHandler {
         enum KernelStatus_t {
             INITIALIZED, RUNNING, TERMINATE, DONE
         };
@@ -118,8 +118,6 @@ namespace CPN {
         // the endpoints are already connected fail.
         void CreateQueue(const QueueAttr &attr);
        
-        void EnqueueMessage(KernelMessagePtr msg);
-
         void Logf(int level, const char* const fmt, ...);
 
         void Log(int level, const std::string &msg);
@@ -155,14 +153,20 @@ namespace CPN {
 
         void ListenRead();
 
-        void ProcessMessage(KMsgCreateWriter *msg);
-        void ProcessMessage(KMsgCreateReader *msg);
-        void ProcessMessage(KMsgCreateQueue *msg);
-        void ProcessMessage(KMsgCreateNode *msg);
-        void ProcessMessage(KMsgStreamDead *msg);
-        void ProcessMessage(KMsgSetReaderDescriptor *msg);
-        void ProcessMessage(KMsgSetWriterDescriptor *msg);
-        void ProcessMessage(KMsgCreateKernelStream *msg);
+        void CreateWriter(Key_t src, Key_t dst, const SimpleQueueAttr &attr);
+        void CreateReader(Key_t src, Key_t dst, const SimpleQueueAttr &attr);
+        void CreateQueue(Key_t src, Key_t dst, const SimpleQueueAttr &attr);
+        void CreateNode(Key_t src, Key_t dst, const NodeAttr &attr);
+
+        void StreamDead(Key_t streamkey);
+        void SetReaderDescriptor(Key_t readerkey, Async::DescriptorPtr desc);
+        void SetWriterDescriptor(Key_t writerkey, Async::DescriptorPtr desc);
+        void NewKernelStream(Key_t kernelkey, Async::DescriptorPtr desc);
+
+        void SendCreateWriter(Key_t writerhost, const SimpleQueueAttr &attr);
+        void SendCreateReader(Key_t readerhost, const SimpleQueueAttr &attr);
+        void SendCreateQueue(Key_t rwhost, const SimpleQueueAttr &attr);
+        void SendCreateNode(Key_t nhost, const NodeAttr &attr);
 
         Sync::ReentrantLock lock;
         Sync::StatusHandler<KernelStatus_t> status;
@@ -182,8 +186,6 @@ namespace CPN {
         StreamMap streammap;
 
         IntrusiveRing<UnknownStream> unknownstreams;
-
-        std::list<KernelMessagePtr> msgqueue;
 
         shared_ptr<Database> database;
     };

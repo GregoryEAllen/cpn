@@ -26,15 +26,13 @@
 #define CPN_UNKNOWNSTREAM_H
 #pragma once
 #include "CPNCommon.h"
-#include "KernelMessage.h"
-#include "PacketHeader.h"
+#include "Message.h"
 #include "AsyncSocket.h"
 #include "IntrusiveRing.h"
-#include <sigc++/sigc++.h>
 namespace CPN {
     class UnknownStream : public IntrusiveRingElement<UnknownStream> {
     public:
-        UnknownStream(Async::SockPtr desc, sigc::slot<void, KernelMessagePtr> slot);
+        UnknownStream(Async::SockPtr desc, KernelMessageHandler *kernMsgHan);
 
     private:
 
@@ -42,9 +40,9 @@ namespace CPN {
         void ReadSome();
         void DestroyThis();
         Async::DescriptorPtr descriptor;
-        sigc::signal<void, KernelMessagePtr> enqueuemsg;
         sigc::connection readready;
         sigc::connection readsome;
+        KernelMessageHandler *kmh;
     };
 }
 #endif

@@ -29,13 +29,13 @@
 #include "CPNCommon.h"
 #include "NodeAttr.h"
 #include "Message.h"
-#include "QueueBlocker.h"
 
 #include "ReentrantLock.h"
 
 #include "Pthread.h"
 
 #include <map>
+#include <set>
 
 namespace CPN {
 
@@ -48,9 +48,9 @@ namespace CPN {
 	 */
 	class CPN_API NodeBase
         : private Pthread,
-        private Message::NodeMessageHandler,
-        private Message::ReaderMessageHandler,
-        private Message::WriterMessageHandler
+        private NodeMessageHandler,
+        private ReaderMessageHandler,
+        private WriterMessageHandler
     {
         typedef std::map<Key_t, shared_ptr<QueueReader> > ReaderMap;
         typedef std::map<Key_t, shared_ptr<QueueWriter> > WriterMap;
@@ -70,6 +70,8 @@ namespace CPN {
         shared_ptr<QueueWriter> GetWriter(const std::string &portname);
 
         Kernel *GetKernel() { return &kernel; }
+
+        NodeMessageHandler *GetNodeMessageHandler() { return this; }
 	protected:
 
 		virtual void Process() = 0;

@@ -30,8 +30,7 @@
 #include "CPNCommon.h"
 #include "StreamEndpoint.h"
 #include "CPNStream.h"
-#include "MessageQueue.h"
-#include "NodeMessage.h"
+#include "Message.h"
 #include "AsyncStream.h"
 
 namespace CPN {
@@ -39,9 +38,8 @@ namespace CPN {
     class ReaderStream : public Stream {
     public:
         ReaderStream(
-                Async::DescriptorPtr wu,
-                shared_ptr<QueueBase> q,
-                Key_t key);
+                KernelMessageHandler *kernMsgHan,
+                Key_t rkey, Key_t wkey);
 
         void RegisterDescriptor(std::vector<Async::DescriptorPtr> &descriptors);
 
@@ -52,15 +50,14 @@ namespace CPN {
         void SetQueue(shared_ptr<QueueBase> q);
 
         Key_t GetKey() const { return readerkey; }
+        Key_t GetWriterKey() const { return writerkey; }
     private:
         void MessageNotice();
         void OnError(int err);
 
-        Async::DescriptorPtr wakeup;
-        shared_ptr<QueueBase> queue;
-        shared_ptr<MsgQueueSignal<NodeMessagePtr, MsgQueue<NodeMessagePtr> > > upstream;
-        shared_ptr<MsgPut<NodeMessagePtr> > downstream;
+        KernelMessageHandler *kmh;
         Key_t readerkey;
+        Key_t writerkey;
         StreamEndpoint endpoint;
     };
 

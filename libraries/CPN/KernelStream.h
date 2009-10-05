@@ -29,31 +29,27 @@
 #pragma once
 
 #include "CPNCommon.h"
-#include "KernelMessage.h"
 #include "CPNStream.h"
+#include "Message.h"
 #include "AsyncStream.h"
 
-#include <sigc++/sigc++.h>
 #include <vector>
 
 namespace CPN {
 
-    class KernelStream : public KMsgDispatchable {
+    class KernelStream : public KernelMessageHandler {
     public:
 
         KernelStream(
                 Async::DescriptorPtr desc,
-                sigc::slot<void> wake,
-                sigc::slot<void, KernelMessagePtr> msgq);
+                KernelMessageHandler *kernMsgHan
+                );
 
-        void ProcessMessage(KMsgCreateWriter *msg);
-        void ProcessMessage(KMsgCreateReader *msg);
-        void ProcessMessage(KMsgCreateQueue *msg);
-        void ProcessMessage(KMsgCreateNode *msg);
 
         bool Connected();
         void RegisterDescriptor(std::vector<Async::DescriptorPtr> &descriptors);
         void RunOneIteration();
+        void SetDescriptor(Async::DescriptorPtr desc);
 
         Key_t GetKey() { return hostkey; }
     private:
@@ -69,10 +65,7 @@ namespace CPN {
         bool connected;
         Async::DescriptorPtr descriptor;
 
-        Kernel *kernel;
-
-        sigc::signal<void> wakeup;
-        sigc::signal<void, KernelMessagePtr> enqueuemsg;
+        KernelMessageHandler *kmh;
     };
 
 }
