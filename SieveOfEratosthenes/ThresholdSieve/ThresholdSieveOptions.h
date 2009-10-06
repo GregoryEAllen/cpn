@@ -4,7 +4,7 @@
 #ifndef THRESHOLDSIEVEOPTIOINS_H
 #define THRESHOLDSIEVEOPTIOINS_H
 #pragma once
-#include "common.h"
+#include "CPNCommon.h"
 #include <vector>
 
 struct ThresholdSieveOptions {

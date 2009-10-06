@@ -11,6 +11,7 @@
 #include "ToString.h"
 #include "Assert.h"
 #include <stdexcept>
+#include <cmath>
 
 #if _DEBUG
 #include <cstdio>
@@ -39,21 +40,36 @@ void ThresholdSieveController::Process(void) {
     Initialize();
     CPN::QueueReaderAdapter<NumberT> in = GetReader(ToString(FILTER_FORMAT, filterCount));
     std::vector<NumberT> *results = opts.results;
+    const unsigned long threshold = opts.threshold;
+    const NumberT cutoff = (NumberT)(ceil(sqrt(opts.maxprime)));
+    NumberT primecount = 0;
     NumberT inCount = 0;
+    // Count the number of primes under cutoff/primesperfilter and that is how many filters there are
+    // Alternatively, when the last received prime is greater than cutoff there are no more
+    // filters
     do {
-        if (in.Dequeue(&inCount, 1)) {
-            DEBUG("Consumer Reading %lu values\n", inCount);
-            const NumberT *inBuff = in.GetDequeuePtr(inCount);
-            ASSERT(inBuff);
-            results->insert(results->end(), inBuff, inBuff + inCount);
-            in.Dequeue(inCount);
-        } else {
-            ++filterCount;
-            in.Release();
-            in = GetReader(ToString(FILTER_FORMAT, filterCount));
-            continue;
+        unsigned inCount = threshold;
+        const NumberT *inBuff = in.GetDequeuePtr(inCount);
+        if (!inBuff) {
+            inCount = in.Count();
+            if (inCount == 0) {
+                if (results->back() > cutoff) {
+                    break;
+                }
+                ++filterCount;
+                in.Release();
+                in = GetReader(ToString(FILTER_FORMAT, filterCount));
+                continue;
+            } else {
+                inBuff = in.GetDequeuePtr(inCount);
+            }
         }
-    } while (inCount != 0);
+        DEBUG("Consumer Reading %lu values\n", inCount);
+        ASSERT(inBuff);
+        primecount += inCount;
+        results->insert(results->end(), inBuff, inBuff + inCount);
+        in.Dequeue(inCount);
+    } while (true);
     in.Release();
     DEBUG("%s stopped\n", GetName().c_str());
 }

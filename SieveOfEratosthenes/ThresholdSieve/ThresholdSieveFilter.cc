@@ -40,29 +40,23 @@ void ThresholdSieveFilter::Process() {
     const unsigned long threshold = opts.threshold;
     const NumberT cutoff = (NumberT)(ceil(sqrt(opts.maxprime)));
     PrimeSieve sieve(opts.primesPerFilter);
-    const NumberT* inbuff = 0;
-    NumberT incount = 0;
-    unsigned long inidx = 0;
-    NumberT *outbuff = 0;
-    unsigned long outidx = 0;
     bool createFilter = false;
     bool filterCreated = false;
     do {
-        if (0 == inbuff) {
-            in.Dequeue(&incount, 1);
-            inbuff = in.GetDequeuePtr(incount);
-            inidx = 0;
-//DEBUG("%s read %lu values: %lu\n", GetName().c_str(), incount, inbuff[0]);
+        unsigned incount = threshold;
+        const NumberT* inbuff = in.GetDequeuePtr(incount);
+        unsigned inidx = 0;
+        unsigned outidx = 0;
+        if (!inbuff) {
+            incount = in.Count();
+            if (incount == 0) {
+                break;
+            } else {
+                inbuff = in.GetDequeuePtr(incount);
+            }
         }
-        if (0 == outbuff) {
-            outbuff = out.GetEnqueuePtr(threshold);
-            outidx = 1;
-        }
-        while ( (inidx < incount) &&
-            (outidx < threshold) &&
-                (0 != incount) &&
-                (createFilter == false) ) {
-
+        NumberT *outbuff = out.GetEnqueuePtr(threshold);
+        while ( (inidx < incount) && (createFilter == false) ) {
             NumberT inval = inbuff[inidx];
             switch (sieve.TryCandidate(inval)) {
             case -1:
@@ -89,30 +83,16 @@ void ThresholdSieveFilter::Process() {
                 assert(false);
             }
         }
-        if (inidx >= incount) {
-            in.Dequeue(incount);
-            inbuff = 0;
+        in.Dequeue(inidx);
+        out.Enqueue(outidx);
+        if (createFilter) {
+            createFilter = false;
+            filterCreated = true;
+            out.Release();
+            CreateNewFilter();
+            out = GetWriter(OUT_PORT);
         }
-        if (outidx >= threshold || 0 == incount || createFilter) {
-            outbuff[0] = outidx - 1;
-            if (outidx > 1 || !createFilter) {
-//DEBUG("%s wrote %lu values: %lu\n", GetName().c_str(), outidx -1, outbuff[1]);
-                out.Enqueue(outidx);
-            } else {
-                out.Enqueue(0);
-            }
-            outbuff = 0;
-            if (createFilter) {
-                createFilter = false;
-                filterCreated = true;
-                out.Release();
-                CreateNewFilter();
-                out = GetWriter(OUT_PORT);
-            }
-        }
-    } while (0 != incount);
-    NumberT endMarker = 0;
-    out.Enqueue(&endMarker, 1);
+    } while (true);
     out.Release();
     in.Release();
     DEBUG("%s stopped\n", GetName().c_str());

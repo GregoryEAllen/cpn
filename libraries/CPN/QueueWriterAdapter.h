@@ -85,9 +85,9 @@ namespace CPN {
         /// \return the number of channels
         unsigned NumChannels() const { return queue->NumChannels(); }
         /// \return the maximum threshold in bytes
-        unsigned MaxThreshold() const { return queue->MaxThreshold(); }
+        unsigned MaxThreshold() const { return queue->MaxThreshold()/sizeof(T); }
         /// \return the amount of freespace in bytes
-        unsigned Freespace() const { return queue->Freespace(); }
+        unsigned Freespace() const { return queue->Freespace()/sizeof(T); }
         /// \return true if full
         bool Full() const { return queue->Full(); }
         /// \return the endpoint key

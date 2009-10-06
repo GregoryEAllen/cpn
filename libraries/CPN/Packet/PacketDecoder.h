@@ -63,11 +63,11 @@ namespace CPN {
                 unsigned numchannels, uint64_t readerkey, uint64_t writerkey
                 );
         virtual void ReceivedCreateWriter(
-                unsigned queuehint, unsigned queuelenght, unsigned maxthreshold,
+                unsigned queuehint, unsigned queuelength, unsigned maxthreshold,
                 unsigned numchannels, uint64_t readerkey, uint64_t writerkey
                 );
         virtual void ReceivedCreateQueue(
-                unsigned queuehint, unsigned queuelenght, unsigned maxthreshold,
+                unsigned queuehint, unsigned queuelength, unsigned maxthreshold,
                 unsigned numchannels, uint64_t readerkey, uint64_t writerkey
                 );
         virtual void ReceivedCreateNode(

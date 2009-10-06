@@ -39,18 +39,15 @@ void ThresholdSieveProducer::Process(void) {
     const unsigned long threshold = opts.threshold;
     NumberT counter = 2;
     while (counter < cutoff) {
-        NumberT index = 1;
+        NumberT index = 0;
         NumberT *outbuff = out.GetEnqueuePtr(threshold);
         while (index < threshold && counter < cutoff) {
             outbuff[index] = counter;
             ++index;
             ++counter;
         }
-        outbuff[0] = index - 1;
         out.Enqueue(index);
     }
-    counter = 0;
-    out.Enqueue(&counter, 1);
     out.Release();
     DEBUG("%s stopped\n", GetName().c_str());
 }
