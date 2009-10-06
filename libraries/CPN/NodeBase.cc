@@ -62,44 +62,44 @@ namespace CPN {
         Unblock(writerkey);
     }
 
-    void NodeBase::RMHEnqueue(Key_t src, Key_t dst) {
+    void NodeBase::RMHEnqueue(Key_t writerkey, Key_t readerkey) {
         Sync::AutoReentrantLock arl(lock);
-        Unblock(src);
+        Unblock(writerkey);
     }
 
-    void NodeBase::RMHEndOfWriteQueue(Key_t src, Key_t dst) {
+    void NodeBase::RMHEndOfWriteQueue(Key_t writerkey, Key_t readerkey) {
         Sync::AutoReentrantLock arl(lock);
-        Unblock(src);
+        Unblock(writerkey);
     }
 
 
-    void NodeBase::RMHWriteBlock(Key_t src, Key_t dst) {
+    void NodeBase::RMHWriteBlock(Key_t writerkey, Key_t readerkey, unsigned requested) {
         Sync::AutoReentrantLock arl(lock);
-        Unblock(src);
+        Unblock(writerkey);
     }
 
-    void NodeBase::RMHTagChange(Key_t src, Key_t dst) {
+    void NodeBase::RMHTagChange(Key_t writerkey, Key_t readerkey) {
         Sync::AutoReentrantLock arl(lock);
-        Unblock(src);
+        Unblock(writerkey);
     }
 
-    void NodeBase::WMHDequeue(Key_t src, Key_t dst) {
+    void NodeBase::WMHDequeue(Key_t readerkey, Key_t writerkey) {
         Sync::AutoReentrantLock arl(lock);
-        Unblock(src);
+        Unblock(readerkey);
     }
-    void NodeBase::WMHEndOfReadQueue(Key_t src, Key_t dst) {
+    void NodeBase::WMHEndOfReadQueue(Key_t readerkey, Key_t writerkey) {
         Sync::AutoReentrantLock arl(lock);
-        Unblock(src);
-    }
-
-    void NodeBase::WMHReadBlock(Key_t src, Key_t dst) {
-        Sync::AutoReentrantLock arl(lock);
-        Unblock(src);
+        Unblock(readerkey);
     }
 
-    void NodeBase::WMHTagChange(Key_t src, Key_t dst) {
+    void NodeBase::WMHReadBlock(Key_t readerkey, Key_t writerkey, unsigned requested) {
         Sync::AutoReentrantLock arl(lock);
-        Unblock(src);
+        Unblock(readerkey);
+    }
+
+    void NodeBase::WMHTagChange(Key_t readerkey, Key_t writerkey) {
+        Sync::AutoReentrantLock arl(lock);
+        Unblock(readerkey);
     }
 
     shared_ptr<QueueReader> NodeBase::GetReader(const std::string &portname) {

@@ -23,6 +23,7 @@
  */
 
 #include "Assert.h"
+#include "StackTrace.h"
 #include <sstream>
 
 AssertException::AssertException(const char *exp, const char *file,
@@ -30,7 +31,8 @@ AssertException::AssertException(const char *exp, const char *file,
     std::ostringstream oss;
     oss << "Assert failed in " << file << ":" << line;
     oss << " in " << func;
-    oss << " : " << exp << "\n" << msg;
+    oss << " : " << exp << '\n' << msg << '\n';
+    oss << "\nBacktrace:\n" << GetStack(2);
     message = oss.str();
 }
 
@@ -39,7 +41,8 @@ AssertException::AssertException(const char *exp, const char *file,
     std::ostringstream oss;
     oss << "Assert failed in " << file << ":" << line;
     oss << " in " << func;
-    oss << " : " << exp;
+    oss << " : " << exp << '\n';
+    oss << "\nBacktrace:\n" << GetStack(2);
     message = oss.str();
 }
 

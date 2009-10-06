@@ -38,10 +38,10 @@ namespace CPN {
         ReaderMessageHandler();
         ReaderMessageHandler(ReaderMessageHandler *shan);
         virtual ~ReaderMessageHandler();
-        virtual void RMHEnqueue(Key_t src, Key_t dst);
-        virtual void RMHEndOfWriteQueue(Key_t src, Key_t dst);
-        virtual void RMHWriteBlock(Key_t src, Key_t dst);
-        virtual void RMHTagChange(Key_t src, Key_t dst);
+        virtual void RMHEnqueue(Key_t writerkey, Key_t readerkey);
+        virtual void RMHEndOfWriteQueue(Key_t writerkey, Key_t readerkey);
+        virtual void RMHWriteBlock(Key_t writerkey, Key_t readerkey, unsigned requested);
+        virtual void RMHTagChange(Key_t writerkey, Key_t readerkey);
     protected:
         ReaderMessageHandler *GetSubReaderHandler() const { return subhandler; }
         void SetSubReaderHandler(ReaderMessageHandler *shan) { subhandler = shan; }
@@ -55,10 +55,10 @@ namespace CPN {
         WriterMessageHandler();
         WriterMessageHandler(WriterMessageHandler *shan);
         virtual ~WriterMessageHandler();
-        virtual void WMHDequeue(Key_t src, Key_t dst);
-        virtual void WMHEndOfReadQueue(Key_t src, Key_t dst);
-        virtual void WMHReadBlock(Key_t src, Key_t dst);
-        virtual void WMHTagChange(Key_t src, Key_t dst);
+        virtual void WMHDequeue(Key_t readerkey, Key_t writerkey);
+        virtual void WMHEndOfReadQueue(Key_t readerkey, Key_t writerkey);
+        virtual void WMHReadBlock(Key_t readerkey, Key_t writerkey, unsigned requested);
+        virtual void WMHTagChange(Key_t readerkey, Key_t writerkey);
     protected:
         WriterMessageHandler *GetSubWriterHandler() const { return subhandler; }
         void SetSubWriterHandler(WriterMessageHandler *shan) { subhandler = shan; }

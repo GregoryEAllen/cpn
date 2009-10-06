@@ -95,15 +95,15 @@ namespace CPN {
         void ReleaseWriter(Key_t ekey);
         void CheckTerminate();
 
-        void RMHEnqueue(Key_t src, Key_t dst);
-        void RMHEndOfWriteQueue(Key_t src, Key_t dst);
-        void RMHWriteBlock(Key_t src, Key_t dst);
-        void RMHTagChange(Key_t src, Key_t dst);
+        void RMHEnqueue(Key_t writerkey, Key_t readerkey);
+        void RMHEndOfWriteQueue(Key_t writerkey, Key_t readerkey);
+        void RMHWriteBlock(Key_t writerkey, Key_t readerkey, unsigned requested);
+        void RMHTagChange(Key_t writerkey, Key_t readerkey);
 
-        void WMHDequeue(Key_t src, Key_t dst);
-        void WMHEndOfReadQueue(Key_t src, Key_t dst);
-        void WMHReadBlock(Key_t src, Key_t dst);
-        void WMHTagChange(Key_t src, Key_t dst);
+        void WMHDequeue(Key_t readerkey, Key_t writerkey);
+        void WMHEndOfReadQueue(Key_t readerkey, Key_t writerkey);
+        void WMHReadBlock(Key_t readerkey, Key_t writerkey, unsigned requested);
+        void WMHTagChange(Key_t readerkey, Key_t writerkey);
 
         // Private data
         Sync::ReentrantLock lock;

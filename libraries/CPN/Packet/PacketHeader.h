@@ -47,7 +47,6 @@ namespace CPN {
         PACKET_READBLOCK,
         PACKET_WRITEBLOCK,
 
-        // Shutdown
         // Read end of queue
         // write end of queue
 

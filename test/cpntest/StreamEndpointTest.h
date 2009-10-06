@@ -32,14 +32,15 @@ public:
 	CPPUNIT_TEST_SUITE( StreamEndpointTest );
 	CPPUNIT_TEST( EnqueueTest );
     CPPUNIT_TEST( DequeueTest );
-    //CPPUNIT_TEST( BlockTest );
-    //CPPUNIT_TEST( ThrottleTest );
+    CPPUNIT_TEST( BlockTest );
+    CPPUNIT_TEST( ThrottleTest );
 	CPPUNIT_TEST_SUITE_END();
 
 	void EnqueueTest();
     void DequeueTest();
     void BlockTest();
     void ThrottleTest();
+    void EndOfWriteQueueTest();
 
 private:
 
@@ -65,12 +66,12 @@ private:
 
     void RMHEnqueue(CPN::Key_t src, CPN::Key_t dst);
     void RMHEndOfWriteQueue(CPN::Key_t src, CPN::Key_t dst);
-    void RMHWriteBlock(CPN::Key_t src, CPN::Key_t dst);
+    void RMHWriteBlock(CPN::Key_t src, CPN::Key_t dst, unsigned requested);
     void RMHTagChange(CPN::Key_t src, CPN::Key_t dst);
 
     void WMHDequeue(CPN::Key_t src, CPN::Key_t dst);
     void WMHEndOfReadQueue(CPN::Key_t src, CPN::Key_t dst);
-    void WMHReadBlock(CPN::Key_t src, CPN::Key_t dst);
+    void WMHReadBlock(CPN::Key_t src, CPN::Key_t dst, unsigned requested);
     void WMHTagChange(CPN::Key_t src, CPN::Key_t dst);
 
     CPN::shared_ptr<CPN::QueueBase> wqueue;

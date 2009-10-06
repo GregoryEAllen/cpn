@@ -33,6 +33,8 @@
  * Note that ASSERT and ENSURE will evaluate to the result of the expression on
  * success. 
  *
+ * Also these macros evaluate there arguments only ONCE.
+ *
  * \author John Bridgman
  */
 #ifndef ASSERT_H

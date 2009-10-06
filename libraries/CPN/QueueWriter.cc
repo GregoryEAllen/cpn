@@ -47,7 +47,7 @@ namespace CPN {
         nodeMsgHan->CheckTerminate();
         void* ptr = queue->GetRawEnqueuePtr(thresh, chan);
         while (0 == ptr) {
-            readerMsgHan->RMHWriteBlock(wkey, rkey);
+            readerMsgHan->RMHWriteBlock(wkey, rkey, thresh);
             arl.Unlock();
             nodeMsgHan->WriteBlock(wkey, rkey);
             arl.Lock();
@@ -70,7 +70,7 @@ namespace CPN {
         if (shutdown) { throw BrokenQueueException(rkey); }
         nodeMsgHan->CheckTerminate();
         while (!queue->RawEnqueue(data, count, numChans, chanStride)) {
-            readerMsgHan->RMHWriteBlock(wkey, rkey);
+            readerMsgHan->RMHWriteBlock(wkey, rkey, count);
             arl.Unlock();
             nodeMsgHan->WriteBlock(wkey, rkey);
             arl.Lock();
@@ -84,7 +84,7 @@ namespace CPN {
         if (shutdown) { throw BrokenQueueException(rkey); }
         nodeMsgHan->CheckTerminate();
         while (!queue->RawEnqueue(data, count)) {
-            readerMsgHan->RMHWriteBlock(wkey, rkey);
+            readerMsgHan->RMHWriteBlock(wkey, rkey, count);
             arl.Unlock();
             nodeMsgHan->WriteBlock(wkey, rkey);
             arl.Lock();

@@ -53,12 +53,12 @@ public:
 
     void RMHEnqueue(Key_t src, Key_t dst) {}
     void RMHEndOfWriteQueue(Key_t src, Key_t dst) {}
-    void RMHWriteBlock(Key_t src, Key_t dst) {}
+    void RMHWriteBlock(Key_t src, Key_t dst, unsigned requested) {}
     void RMHTagChange(Key_t src, Key_t dst) {}
 
     void WMHDequeue(Key_t src, Key_t dst) {}
     void WMHEndOfReadQueue(Key_t src, Key_t dst) {}
-    void WMHReadBlock(Key_t src, Key_t dst) {}
+    void WMHReadBlock(Key_t src, Key_t dst, unsigned requested) {}
     void WMHTagChange(Key_t src, Key_t dst) {}
 
     void Shutdown() {}

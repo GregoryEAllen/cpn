@@ -25,10 +25,24 @@
 #include "StackTrace.h"
 #include <execinfo.h>
 #include <cstdlib>
+#include <sstream>
 
-void PrintStack(void) {
+void PrintStack() {
     void* stack[STACKTRACE_MAXTRACE];
     size_t size = backtrace(stack, STACKTRACE_MAXTRACE);
     backtrace_symbols_fd(stack, size, 2);
 }
+
+std::string GetStack(unsigned ignore) {
+    void* stack[STACKTRACE_MAXTRACE];
+    size_t size = backtrace(stack, STACKTRACE_MAXTRACE);
+    char **bt = backtrace_symbols(stack, size);
+    std::ostringstream oss;
+    for (unsigned i = ignore; i < size; ++i) {
+        oss << bt[i] << '\n';
+    }
+    free(bt);
+    return oss.str();
+}
+
 

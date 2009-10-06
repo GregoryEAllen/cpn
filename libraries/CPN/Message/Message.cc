@@ -36,9 +36,9 @@ namespace CPN {
         CheckRMH();
         if (subhandler) subhandler->RMHEndOfWriteQueue(src, dst);
     }
-    void ReaderMessageHandler::RMHWriteBlock(Key_t src, Key_t dst) {
+    void ReaderMessageHandler::RMHWriteBlock(Key_t src, Key_t dst, unsigned requested) {
         CheckRMH();
-        if (subhandler) subhandler->RMHWriteBlock(src, dst);
+        if (subhandler) subhandler->RMHWriteBlock(src, dst, requested);
     }
     void ReaderMessageHandler::RMHTagChange(Key_t src, Key_t dst) {
         CheckRMH();
@@ -57,9 +57,9 @@ namespace CPN {
         CheckWMH();
         if (subhandler) subhandler->WMHEndOfReadQueue(src, dst);
     }
-    void WriterMessageHandler::WMHReadBlock(Key_t src, Key_t dst) {
+    void WriterMessageHandler::WMHReadBlock(Key_t src, Key_t dst, unsigned requested) {
         CheckWMH();
-        if (subhandler) subhandler->WMHReadBlock(src, dst);
+        if (subhandler) subhandler->WMHReadBlock(src, dst, requested);
     }
     void WriterMessageHandler::WMHTagChange(Key_t src, Key_t dst) {
         CheckWMH();

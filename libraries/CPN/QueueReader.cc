@@ -50,7 +50,7 @@ namespace CPN {
         const void *ptr = queue->GetRawDequeuePtr(thresh, chan);
         while (0 == ptr) {
             if (shutdown) { return 0; }
-            writerMsgHan->WMHReadBlock(rkey, wkey);
+            writerMsgHan->WMHReadBlock(rkey, wkey, thresh);
             arl.Unlock();
             nodeMsgHan->ReadBlock(rkey, wkey);
             arl.Lock();
@@ -71,7 +71,7 @@ namespace CPN {
         Sync::AutoReentrantLock arl(queue->GetLock());
         while (!queue->RawDequeue(data, count, numChans, chanStride)) {
             if (shutdown) { return false; }
-            writerMsgHan->WMHReadBlock(rkey, wkey);
+            writerMsgHan->WMHReadBlock(rkey, wkey, count);
             arl.Unlock();
             nodeMsgHan->ReadBlock(rkey, wkey);
             arl.Lock();
@@ -85,7 +85,7 @@ namespace CPN {
         Sync::AutoReentrantLock arl(queue->GetLock());
         while (!queue->RawDequeue(data, count)) {
             if (shutdown) { return false; }
-            writerMsgHan->WMHReadBlock(rkey, wkey);
+            writerMsgHan->WMHReadBlock(rkey, wkey, count);
             arl.Unlock();
             nodeMsgHan->ReadBlock(rkey, wkey);
             arl.Lock();

@@ -19,6 +19,8 @@
 //=============================================================================
 /** \file
  * \brief function for printing out a stack trace
+ * Note that we need to pass -rdynamic to the linker to
+ * be able to see the function names with these functios.
  * \author John Bridgman
  */
 
@@ -26,11 +28,23 @@
 #define STACKTRACE_H
 #pragma once
 
+#include <string>
 #define STACKTRACE_MAXTRACE 10
 /**
  * Prints the a stack trace to stderr
+ * Should work even if we are out of memory
  */
-void PrintStack(void);
+void PrintStack();
+
+/**
+ * Returns a std::string to the stack trace.
+ * May fail if out of memory.
+ * \param ignore the number of top stacks to ignore. This is
+ * useful because this function is often used in error messages
+ * and it is useless garbage to report the stack from of the error
+ * handler.
+ */
+std::string GetStack(unsigned ignore = 0);
 
 #endif
 

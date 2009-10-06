@@ -56,15 +56,15 @@ namespace CPN {
 
         StreamEndpoint(Key_t rkey, Key_t wkey);
 
-        void RMHEnqueue(Key_t src, Key_t dst);
-        void RMHEndOfWriteQueue(Key_t src, Key_t dst);
-        void RMHWriteBlock(Key_t src, Key_t dst);
-        void RMHTagChange(Key_t src, Key_t dst);
+        void RMHEnqueue(Key_t wkey, Key_t rkey);
+        void RMHEndOfWriteQueue(Key_t wkey, Key_t rkey);
+        void RMHWriteBlock(Key_t wkey, Key_t rkey, unsigned requested);
+        void RMHTagChange(Key_t wkey, Key_t rkey);
 
-        void WMHDequeue(Key_t src, Key_t dst);
-        void WMHEndOfReadQueue(Key_t src, Key_t dst);
-        void WMHReadBlock(Key_t src, Key_t dst);
-        void WMHTagChange(Key_t src, Key_t dst);
+        void WMHDequeue(Key_t rkey, Key_t wkey);
+        void WMHEndOfReadQueue(Key_t rkey, Key_t wkey);
+        void WMHReadBlock(Key_t rkey, Key_t wkey, unsigned requested);
+        void WMHTagChange(Key_t rkey, Key_t wkey);
 
         /**
          * \return true when we want to be notified 
