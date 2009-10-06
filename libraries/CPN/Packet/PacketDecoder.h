@@ -55,6 +55,8 @@ namespace CPN {
         virtual void ReceivedDequeue(unsigned length, unsigned numchannels);
         virtual void ReceivedReadBlock(unsigned requested);
         virtual void ReceivedWriteBlock(unsigned requested);
+        virtual void ReceiveEndOfWriteQueue();
+        virtual void ReceiveEndOfReadQueue();
 
         virtual void ReceivedCreateReader(
                 unsigned queuehint, unsigned queuelength, unsigned maxthreshold,

@@ -37,6 +37,10 @@ std::string GetStack(unsigned ignore) {
     void* stack[STACKTRACE_MAXTRACE];
     size_t size = backtrace(stack, STACKTRACE_MAXTRACE);
     char **bt = backtrace_symbols(stack, size);
+    if (!bt) {
+        perror("backtrace_symbols");
+        return "";
+    }
     std::ostringstream oss;
     for (unsigned i = ignore; i < size; ++i) {
         oss << bt[i] << '\n';

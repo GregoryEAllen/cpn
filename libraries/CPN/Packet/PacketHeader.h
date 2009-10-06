@@ -46,9 +46,8 @@ namespace CPN {
         PACKET_DEQUEUE,
         PACKET_READBLOCK,
         PACKET_WRITEBLOCK,
-
-        // Read end of queue
-        // write end of queue
+        PACKET_ENDOFWRITEQUEUE,
+        PACKET_ENDOFREADQUEUE,
 
         PACKET_CREATE_READER,
         PACKET_CREATE_WRITER,

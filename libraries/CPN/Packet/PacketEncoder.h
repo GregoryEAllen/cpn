@@ -45,8 +45,8 @@ namespace CPN {
         void SendDequeue(unsigned length, unsigned numchannels);
         void SendReadBlock(unsigned requested);
         void SendWriteBlock(unsigned requested);
-        // SendEndOfWriteQueue
-        // SendEndOfReadQueue
+        void SendEndOfWriteQueue();
+        void SendEndOfReadQueue();
 
         void SendCreateReader(
                 unsigned queuehint, unsigned queuelenght, unsigned maxthreshold,

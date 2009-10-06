@@ -32,7 +32,7 @@ namespace CPN {
         : kmh(kernMsgHan),
         readerkey(rkey),
         writerkey(wkey),
-        endpoint(wkey, rkey)
+        endpoint(wkey, rkey, StreamEndpoint::READ)
     {
     }
 

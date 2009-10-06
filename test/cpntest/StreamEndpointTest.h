@@ -34,6 +34,8 @@ public:
     CPPUNIT_TEST( DequeueTest );
     CPPUNIT_TEST( BlockTest );
     CPPUNIT_TEST( ThrottleTest );
+    CPPUNIT_TEST( EndOfWriteQueueTest );
+    CPPUNIT_TEST( EndOfReadQueueTest );
 	CPPUNIT_TEST_SUITE_END();
 
 	void EnqueueTest();
@@ -41,6 +43,7 @@ public:
     void BlockTest();
     void ThrottleTest();
     void EndOfWriteQueueTest();
+    void EndOfReadQueueTest();
 
 private:
 

@@ -81,6 +81,12 @@ namespace CPN {
         case PACKET_WRITEBLOCK:
             ReceivedWriteBlock(header->writeblock.requested);
             break;
+        case PACKET_ENDOFWRITEQUEUE:
+            ReceiveEndOfWriteQueue();
+            break;
+        case PACKET_ENDOFREADQUEUE:
+            ReceiveEndOfReadQueue();
+            break;
         case PACKET_CREATE_READER:
             ReceivedCreateReader(
                     header->createqueue.queuehint,
@@ -165,6 +171,14 @@ namespace CPN {
     }
 
     void PacketDecoder::ReceivedWriteBlock(unsigned requested) {
+        ASSERT(false, "Unexpected packet type received.");
+    }
+
+    void PacketDecoder::ReceiveEndOfWriteQueue() {
+        ASSERT(false, "Unexpected packet type received.");
+    }
+
+    void PacketDecoder::ReceiveEndOfReadQueue() {
         ASSERT(false, "Unexpected packet type received.");
     }
 

@@ -53,8 +53,9 @@ namespace CPN {
                            private PacketDecoder
     {
     public:
+        enum Mode_t { READ, WRITE };
 
-        StreamEndpoint(Key_t rkey, Key_t wkey);
+        StreamEndpoint(Key_t rkey, Key_t wkey, Mode_t m);
 
         void RMHEnqueue(Key_t wkey, Key_t rkey);
         void RMHEndOfWriteQueue(Key_t wkey, Key_t rkey);
@@ -90,11 +91,14 @@ namespace CPN {
 
         void SetQueue(shared_ptr<QueueBase> q);
 
+        bool Shuttingdown() const { return shuttingdown; }
     private:
         void ReceivedEnqueue(void *data, unsigned length, unsigned numchannels);
         void ReceivedDequeue(unsigned length, unsigned numchannels);
         void ReceivedReadBlock(unsigned requested);
         void ReceivedWriteBlock(unsigned requested);
+        void ReceiveEndOfWriteQueue();
+        void ReceiveEndOfReadQueue();
 
         void CheckBlockedEnqueues();
         bool WriteEnqueue();
@@ -116,6 +120,7 @@ namespace CPN {
 
         Key_t readerkey;
         Key_t writerkey;
+        Mode_t mode;
         bool shuttingdown;
     };
 }

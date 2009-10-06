@@ -28,7 +28,6 @@ const Key_t RKEY = 1;
 const Key_t WKEY = 2;
 
 void Error(int err) {
-    CPPUNIT_FAIL("Error on sock");
 }
 
 void StreamEndpointTest::setUp() {
@@ -39,11 +38,11 @@ void StreamEndpointTest::setUp() {
     StreamSocket::CreatePair(wsock, rsock);
     wsock->ConnectOnError(sigc::ptr_fun(Error));
     rsock->ConnectOnError(sigc::ptr_fun(Error));
-    wendp = shared_ptr<StreamEndpoint>(new StreamEndpoint(RKEY, WKEY));
+    wendp = shared_ptr<StreamEndpoint>(new StreamEndpoint(RKEY, WKEY, StreamEndpoint::WRITE));
     wendp->SetQueue(wqueue);
     wendp->SetDescriptor(wsock);
 
-    rendp = shared_ptr<StreamEndpoint>(new StreamEndpoint(RKEY, WKEY));
+    rendp = shared_ptr<StreamEndpoint>(new StreamEndpoint(RKEY, WKEY, StreamEndpoint::READ));
     rendp->SetDescriptor(rsock);
     rendp->SetQueue(rqueue);
 
@@ -154,11 +153,38 @@ void StreamEndpointTest::ThrottleTest() {
     CPPUNIT_ASSERT(rqueue->Count() == 1);
 }
 
+void StreamEndpointTest::EndOfWriteQueueTest() {
+	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    rmh->RMHEndOfWriteQueue(WKEY, RKEY);
+    Msg msg = WaitForMessage();
+    CPPUNIT_ASSERT(messages.empty());
+    CPPUNIT_ASSERT(msg.type == RMHENDOFWRITEQUEUE);
+    CPPUNIT_ASSERT(msg.src == WKEY);
+    CPPUNIT_ASSERT(msg.dst == RKEY);
+	CPPUNIT_ASSERT_THROW(rmh->RMHEnqueue(WKEY, RKEY), AssertException);
+    CPPUNIT_ASSERT(rendp->Shuttingdown());
+    CPPUNIT_ASSERT(wendp->Shuttingdown());
+}
+void StreamEndpointTest::EndOfReadQueueTest() {
+	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    wmh->WMHEndOfReadQueue(RKEY, WKEY);
+    Msg msg = WaitForMessage();
+    CPPUNIT_ASSERT(messages.empty());
+    CPPUNIT_ASSERT(msg.type == WMHENDOFREADQUEUE);
+    CPPUNIT_ASSERT(msg.src == RKEY);
+    CPPUNIT_ASSERT(msg.dst == WKEY);
+    CPPUNIT_ASSERT(rendp->Shuttingdown());
+    CPPUNIT_ASSERT(wendp->Shuttingdown());
+}
+
+
+
 StreamEndpointTest::Msg StreamEndpointTest::WaitForMessage() {
-    std::vector<DescriptorPtr> descptrs;
-    descptrs.push_back(wsock);
-    descptrs.push_back(rsock);
     while (messages.empty()) {
+        std::vector<DescriptorPtr> descptrs;
+        if (*wsock) descptrs.push_back(wsock);
+        if (*rsock) descptrs.push_back(rsock);
+        CPPUNIT_ASSERT(!descptrs.empty());
         CPPUNIT_ASSERT(0 < Descriptor::Poll(descptrs, -1));
     }
     Msg msg = messages.front();

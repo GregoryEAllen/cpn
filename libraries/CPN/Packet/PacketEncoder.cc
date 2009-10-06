@@ -73,6 +73,18 @@ namespace CPN {
         cbuff.Put((char*)&header, sizeof(header));
     }
 
+    void PacketEncoder::SendEndOfWriteQueue() {
+        PacketHeader header;
+        InitPacket(&header, 0, PACKET_ENDOFWRITEQUEUE);
+        cbuff.Put((char*)&header, sizeof(header));
+    }
+
+    void PacketEncoder::SendEndOfReadQueue() {
+        PacketHeader header;
+        InitPacket(&header, 0, PACKET_ENDOFREADQUEUE);
+        cbuff.Put((char*)&header, sizeof(header));
+    }
+
     void PacketEncoder::SendCreateReader(
             unsigned queuehint, unsigned queuelength, unsigned maxthreshold,
             unsigned numchannels, uint64_t readerkey, uint64_t writerkey)
