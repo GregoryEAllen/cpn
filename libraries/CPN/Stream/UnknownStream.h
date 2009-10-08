@@ -27,14 +27,22 @@
 #pragma once
 #include "CPNCommon.h"
 #include "Message.h"
+#include "PacketDecoder.h"
 #include "AsyncSocket.h"
 #include "IntrusiveRing.h"
 namespace CPN {
-    class UnknownStream : public IntrusiveRingElement<UnknownStream> {
+    class UnknownStream
+        : public IntrusiveRingElement<UnknownStream>,
+        public PacketDecoder
+   {
     public:
         UnknownStream(Async::SockPtr desc, KernelMessageHandler *kernMsgHan);
 
     private:
+
+        void ReceivedReaderID(uint64_t readerkey, uint64_t writerkey);
+        void ReceivedWriterID(uint64_t writerkey, uint64_t readerkey);
+        void ReceivedKernelID(uint64_t srckernelkey, uint64_t dstkernelkey);
 
         bool ReadReady();
         void ReadSome();

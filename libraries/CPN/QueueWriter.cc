@@ -38,7 +38,9 @@ namespace CPN {
     }
 
     QueueWriter::~QueueWriter() {
+        Shutdown();
         queue->ClearWriterMessageHandler();
+        SetSubWriterHandler(0);
     }
 
     void* QueueWriter::GetRawEnqueuePtr(unsigned thresh, unsigned chan) {

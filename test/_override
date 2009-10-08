@@ -10,5 +10,5 @@ CC_OTHER += -Wall
 #CXX_OTHER += -Wall
 LD_OTHER += -Wall -rdynamic
 
-#OS_DEFS += -D_DEBUG
+OS_DEFS += -D_DEBUG
 

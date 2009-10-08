@@ -141,6 +141,8 @@ namespace CPN {
         void CreateWriterEndpoint(const SimpleQueueAttr &attr);
         void CreateLocalQueue(const SimpleQueueAttr &attr);
         shared_ptr<QueueBase> MakeQueue(const SimpleQueueAttr &attr);
+        shared_ptr<ReaderStream> GetReaderStream(Key_t readerkey, Key_t writerkey);
+        shared_ptr<WriterStream> GetWriterStream(Key_t writerkey, Key_t readerkey);
         void InternalCreateNode(NodeAttr &nodeattr);
         void ClearGarbage();
         void HandleMessages();
@@ -149,7 +151,11 @@ namespace CPN {
 
         bool True() { return true; }
         void WakeupReader();
-        void SendWakeup();
+        // Note: this is done because SendWakeup is a virtual function
+        // and helgrind complains about calling virtual functions
+        // after the descrictor is called.
+        void SendWakeup() { SendWakeupIntern(); }
+        void SendWakeupIntern();
 
         void ListenRead();
 
@@ -159,8 +165,8 @@ namespace CPN {
         void CreateNode(Key_t src, Key_t dst, const NodeAttr &attr);
 
         void StreamDead(Key_t streamkey);
-        void SetReaderDescriptor(Key_t readerkey, Async::DescriptorPtr desc);
-        void SetWriterDescriptor(Key_t writerkey, Async::DescriptorPtr desc);
+        void SetReaderDescriptor(Key_t readerkey, Key_t writerkey, Async::DescriptorPtr desc);
+        void SetWriterDescriptor(Key_t writerkey, Key_t readerkey, Async::DescriptorPtr desc);
         void NewKernelStream(Key_t kernelkey, Async::DescriptorPtr desc);
 
         void SendCreateWriter(Key_t writerhost, const SimpleQueueAttr &attr);
@@ -184,6 +190,7 @@ namespace CPN {
 
         typedef std::map<Key_t, shared_ptr<Stream> > StreamMap;
         StreamMap streammap;
+        std::list<Key_t> deadstreams;
 
         IntrusiveRing<UnknownStream> unknownstreams;
 

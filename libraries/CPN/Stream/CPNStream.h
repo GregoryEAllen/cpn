@@ -36,7 +36,6 @@ namespace CPN {
     public:
         virtual ~Stream() {};
         virtual void RegisterDescriptor(std::vector<Async::DescriptorPtr> &descriptors) = 0;
-        virtual void RunOneIteration() = 0;
         virtual void SetDescriptor(Async::DescriptorPtr desc) = 0;
         virtual Key_t GetKey() const = 0;
     };

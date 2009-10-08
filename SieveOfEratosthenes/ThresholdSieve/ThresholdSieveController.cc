@@ -43,7 +43,6 @@ void ThresholdSieveController::Process(void) {
     const unsigned long threshold = opts.threshold;
     const NumberT cutoff = (NumberT)(ceil(sqrt(opts.maxprime)));
     NumberT primecount = 0;
-    NumberT inCount = 0;
     // Count the number of primes under cutoff/primesperfilter and that is how many filters there are
     // Alternatively, when the last received prime is greater than cutoff there are no more
     // filters

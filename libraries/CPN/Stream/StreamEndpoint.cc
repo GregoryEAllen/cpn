@@ -144,6 +144,7 @@ namespace CPN {
                 if  (!stream) {
                     // The other end closed the connection!!
                     stream.Close();
+                    descriptor.reset();
                 }
                 loop = false;
             } else {
@@ -168,6 +169,7 @@ namespace CPN {
                                 && shuttingdown) {
                             // Nothing left to write
                             stream.Close();
+                            descriptor.reset();
                         }
                     }
                 }
@@ -257,11 +259,16 @@ namespace CPN {
     }
 
     void StreamEndpoint::SetDescriptor(Async::DescriptorPtr desc) {
+        ASSERT(!descriptor);
         descriptor = desc;
         descriptor->ConnectReadable(sigc::mem_fun(this, &StreamEndpoint::ReadReady));
         descriptor->ConnectWriteable(sigc::mem_fun(this, &StreamEndpoint::WriteReady));
         descriptor->ConnectOnRead(sigc::mem_fun(this, &StreamEndpoint::ReadSome));
         descriptor->ConnectOnWrite(sigc::mem_fun(this, &StreamEndpoint::WriteSome));
+    }
+
+    void StreamEndpoint::ResetDescriptor() {
+        descriptor.reset();
     }
 
     void StreamEndpoint::SetQueue(shared_ptr<QueueBase> q) {

@@ -208,8 +208,8 @@ namespace CPN {
         Sync::ReentrantLock lock;
         Sync::ReentrantCondition cond;
 	private:
-        void CheckRMH();
-        void CheckWMH();
+        bool CheckRMH();
+        bool CheckWMH();
         bool shutdown;
 	};
 

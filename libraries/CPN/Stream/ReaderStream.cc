@@ -40,11 +40,10 @@ namespace CPN {
         Async::DescriptorPtr desc = endpoint.GetDescriptor();
         if (desc) {
             descriptors.push_back(endpoint.GetDescriptor());
+        } else if (endpoint.Shuttingdown()) {
+            kmh->StreamDead(readerkey);
         }
         // Writer will be setup to create a new connection.
-    }
-
-    void ReaderStream::RunOneIteration() {
     }
 
     void ReaderStream::SetDescriptor(Async::DescriptorPtr desc) {
@@ -61,8 +60,10 @@ namespace CPN {
     }
 
     void ReaderStream::OnError(int err) {
-        // TODO actual error handling, abort for now
-        ASSERT(false);
+        endpoint.ResetDescriptor();
+        if (endpoint.Shuttingdown()) {
+            kmh->StreamDead(readerkey);
+        }
     }
 }
 

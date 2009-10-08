@@ -45,7 +45,7 @@ namespace CPN {
     protected:
         ReaderMessageHandler *GetSubReaderHandler() const { return subhandler; }
         void SetSubReaderHandler(ReaderMessageHandler *shan) { subhandler = shan; }
-        virtual void CheckRMH() { ASSERT(subhandler); }
+        virtual bool CheckRMH() { return subhandler; }
     private:
         ReaderMessageHandler *subhandler;
     };
@@ -62,7 +62,7 @@ namespace CPN {
     protected:
         WriterMessageHandler *GetSubWriterHandler() const { return subhandler; }
         void SetSubWriterHandler(WriterMessageHandler *shan) { subhandler = shan; }
-        virtual void CheckWMH() { ASSERT(subhandler); }
+        virtual bool CheckWMH() { return subhandler; }
     private:
         WriterMessageHandler *subhandler;
     };
@@ -90,8 +90,8 @@ namespace CPN {
 
         // Functions the streams need of the kernel
         virtual void StreamDead(Key_t streamkey);
-        virtual void SetReaderDescriptor(Key_t readerkey, Async::DescriptorPtr desc);
-        virtual void SetWriterDescriptor(Key_t writerkey, Async::DescriptorPtr desc);
+        virtual void SetReaderDescriptor(Key_t readerkey, Key_t writerkey, Async::DescriptorPtr desc);
+        virtual void SetWriterDescriptor(Key_t writerkey, Key_t readerkey, Async::DescriptorPtr desc);
         virtual void NewKernelStream(Key_t kernelkey, Async::DescriptorPtr desc);
         virtual void SendWakeup();
     };

@@ -41,7 +41,9 @@ namespace CPN {
     }
 
     QueueReader::~QueueReader() {
+        Shutdown();
         queue->ClearReaderMessageHandler();
+        SetSubReaderHandler(0);
     }
 
     const void* QueueReader::GetRawDequeuePtr(unsigned thresh, unsigned chan) {

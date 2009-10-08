@@ -34,6 +34,8 @@ namespace CPN {
     { }
 
     ThresholdQueue::~ThresholdQueue() {
+        Sync::AutoReentrantLock l(lock);
+        queue.Reset();
     }
 
     void* ThresholdQueue::GetRawEnqueuePtr(unsigned thresh, unsigned chan) {

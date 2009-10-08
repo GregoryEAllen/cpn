@@ -40,6 +40,11 @@ namespace CPN {
     }
 
     SimpleQueue::~SimpleQueue() {
+        Sync::AutoReentrantLock l(lock);
+        maxThreshold = 0;
+        chanStride = 0;
+        head = 0;
+        tail = 0;
     }
 
     void* SimpleQueue::GetRawEnqueuePtr(unsigned thresh, unsigned chan) {

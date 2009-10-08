@@ -27,43 +27,35 @@ namespace CPN {
 
     ReaderMessageHandler::ReaderMessageHandler() : subhandler(0) {}
     ReaderMessageHandler::ReaderMessageHandler(ReaderMessageHandler *shan) : subhandler(shan) {}
-    ReaderMessageHandler::~ReaderMessageHandler() {}
+    ReaderMessageHandler::~ReaderMessageHandler() { subhandler = 0; }
     void ReaderMessageHandler::RMHEnqueue(Key_t src, Key_t dst) {
-        CheckRMH();
-        if (subhandler) subhandler->RMHEnqueue(src, dst);
+        if (CheckRMH()) subhandler->RMHEnqueue(src, dst);
     }
     void ReaderMessageHandler::RMHEndOfWriteQueue(Key_t src, Key_t dst) {
-        CheckRMH();
-        if (subhandler) subhandler->RMHEndOfWriteQueue(src, dst);
+        if (CheckRMH()) subhandler->RMHEndOfWriteQueue(src, dst);
     }
     void ReaderMessageHandler::RMHWriteBlock(Key_t src, Key_t dst, unsigned requested) {
-        CheckRMH();
-        if (subhandler) subhandler->RMHWriteBlock(src, dst, requested);
+        if (CheckRMH()) subhandler->RMHWriteBlock(src, dst, requested);
     }
     void ReaderMessageHandler::RMHTagChange(Key_t src, Key_t dst) {
-        CheckRMH();
-        if (subhandler) subhandler->RMHTagChange(src, dst);
+        if (CheckRMH()) subhandler->RMHTagChange(src, dst);
     }
 
 
     WriterMessageHandler::WriterMessageHandler() : subhandler(0) {}
     WriterMessageHandler::WriterMessageHandler(WriterMessageHandler *shan) : subhandler(shan) {}
-    WriterMessageHandler::~WriterMessageHandler() {}
+    WriterMessageHandler::~WriterMessageHandler() { subhandler = 0; }
     void WriterMessageHandler::WMHDequeue(Key_t src, Key_t dst) {
-        CheckWMH();
-        if (subhandler) subhandler->WMHDequeue(src, dst);
+        if (CheckWMH()) subhandler->WMHDequeue(src, dst);
     }
     void WriterMessageHandler::WMHEndOfReadQueue(Key_t src, Key_t dst) {
-        CheckWMH();
-        if (subhandler) subhandler->WMHEndOfReadQueue(src, dst);
+        if (CheckWMH()) subhandler->WMHEndOfReadQueue(src, dst);
     }
     void WriterMessageHandler::WMHReadBlock(Key_t src, Key_t dst, unsigned requested) {
-        CheckWMH();
-        if (subhandler) subhandler->WMHReadBlock(src, dst, requested);
+        if (CheckWMH()) subhandler->WMHReadBlock(src, dst, requested);
     }
     void WriterMessageHandler::WMHTagChange(Key_t src, Key_t dst) {
-        CheckWMH();
-        if (subhandler) subhandler->WMHTagChange(src, dst);
+        if (CheckWMH()) subhandler->WMHTagChange(src, dst);
     }
 
     NodeMessageHandler::~NodeMessageHandler() {}
@@ -71,8 +63,8 @@ namespace CPN {
     KernelMessageHandler::~KernelMessageHandler() {}
 
     void KernelMessageHandler::StreamDead(Key_t streamkey) {}
-    void KernelMessageHandler::SetReaderDescriptor(Key_t readerkey, Async::DescriptorPtr desc) {}
-    void KernelMessageHandler::SetWriterDescriptor(Key_t writerkey, Async::DescriptorPtr desc) {}
+    void KernelMessageHandler::SetReaderDescriptor(Key_t readerkey, Key_t writerkey, Async::DescriptorPtr desc) {}
+    void KernelMessageHandler::SetWriterDescriptor(Key_t writerkey, Key_t readerkey, Async::DescriptorPtr desc) {}
     void KernelMessageHandler::NewKernelStream(Key_t kernelkey, Async::DescriptorPtr desc) {}
     void KernelMessageHandler::SendWakeup() {}
 }

@@ -46,12 +46,15 @@
 #include <stdarg.h>
 
 #include <stdexcept>
+#include <cassert>
 
 //#define KERNEL_FUNC_TRACE
 #ifdef KERNEL_FUNC_TRACE
-#define FUNCBEGIN printf("%s\n",__PRETTY_FUNCTION__)
+#define FUNCBEGIN printf("%s begin\n",__PRETTY_FUNCTION__)
+#define FUNCEND printf("%s end\n",__PRETTY_FUNCTION__)
 #else
 #define FUNCBEGIN
+#define FUNCEND
 #endif
 
 namespace CPN {
@@ -87,33 +90,41 @@ namespace CPN {
     }
 
     Kernel::~Kernel() {
+        Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
         Terminate();
         Wait();
         database->DestroyHostKey(hostkey);
-        while (!unknownstreams.Empty()) {
-            delete unknownstreams.PopFront();
-        }
+        assert(status.Get() == DONE);
+        assert(nodemap.empty());
+        assert(garbagenodes.empty());
+        assert(streammap.empty());
+        assert(unknownstreams.Empty());
+        wakeupwriter.reset();
+        wakeuplisten.reset();
+        FUNCEND;
     }
 
     void Kernel::Wait() {
-        FUNCBEGIN;
         Sync::AutoReentrantLock arlock(lock);
+        FUNCBEGIN;
         KernelStatus_t s = status.Get();
         while (s != DONE) {
             s = status.CompareAndWait(s);
         }
+        FUNCEND;
     }
 
     void Kernel::Terminate() {
         FUNCBEGIN;
         status.CompareAndPost(RUNNING, TERMINATE);
-        SendWakeup();
+        SendWakeupIntern();
     }
 
     Key_t Kernel::CreateNode(const NodeAttr &attr) {
         FUNCBEGIN;
         Sync::AutoReentrantLock arlock(lock, false);
+        ASSERT(status.Get() == RUNNING);
         Key_t nodekey = database->CreateNodeKey(attr.GetName());
         NodeAttr nodeattr = attr;
         nodeattr.SetKey(nodekey);
@@ -146,6 +157,7 @@ namespace CPN {
     void Kernel::CreateQueue(const QueueAttr &qattr) {
         FUNCBEGIN;
         Sync::AutoReentrantLock arlock(lock, false);
+        ASSERT(status.Get() == RUNNING);
         // Normalize the QueueAttr into a SimpleQueueAttr
         // This gets rid of the names and translates to IDs
         SimpleQueueAttr attr = qattr;
@@ -233,17 +245,8 @@ namespace CPN {
         ASSERT(readernode);
         readernode->GetNodeMessageHandler()->
             CreateReader(attr.GetReaderKey(), attr.GetWriterKey(), queue);
-
-        shared_ptr<ReaderStream> stream;
-        StreamMap::iterator entry = streammap.find(attr.GetReaderKey());
-        if (entry == streammap.end()) {
-            stream = shared_ptr<ReaderStream>(
-                    new ReaderStream(this, attr.GetReaderKey(),
-                        attr.GetWriterKey()));
-            streammap.insert(std::make_pair(attr.GetReaderKey(), stream));
-        } else {
-            stream = dynamic_pointer_cast<ReaderStream>(entry->second);
-        }
+        shared_ptr<ReaderStream> stream = GetReaderStream(attr.GetReaderKey(),
+                attr.GetWriterKey());
         stream->SetQueue(queue);
     }
 
@@ -255,16 +258,8 @@ namespace CPN {
         writernode->GetNodeMessageHandler()->
             CreateWriter(attr.GetReaderKey(), attr.GetWriterKey(), queue);
 
-        shared_ptr<WriterStream> stream;
-        StreamMap::iterator entry = streammap.find(attr.GetWriterKey());
-        if (entry == streammap.end()) {
-            stream = shared_ptr<WriterStream>(
-                    new WriterStream(this, attr.GetWriterKey(),
-                        attr.GetReaderKey()));
-            streammap.insert(std::make_pair(attr.GetWriterKey(), stream));
-        } else {
-            stream = dynamic_pointer_cast<WriterStream>(entry->second);
-        }
+        shared_ptr<WriterStream> stream = GetWriterStream(attr.GetWriterKey(),
+                attr.GetReaderKey());
         stream->SetQueue(queue);
     }
 
@@ -297,6 +292,33 @@ namespace CPN {
             break;
         }
         return queue;
+    }
+
+    shared_ptr<ReaderStream> Kernel::GetReaderStream(Key_t readerkey, Key_t writerkey) {
+        shared_ptr<ReaderStream> stream;
+        StreamMap::iterator entry = streammap.find(readerkey);
+        if (entry == streammap.end()) {
+            stream = shared_ptr<ReaderStream>(
+                    new ReaderStream(this, readerkey, writerkey));
+            streammap.insert(std::make_pair(readerkey, stream));
+        } else {
+            stream = dynamic_pointer_cast<ReaderStream>(entry->second);
+        }
+        return stream;
+    }
+
+    shared_ptr<WriterStream> Kernel::GetWriterStream(Key_t writerkey, Key_t readerkey) {
+        shared_ptr<WriterStream> stream;
+        StreamMap::iterator entry = streammap.find(writerkey);
+        if (entry == streammap.end()) {
+            stream = shared_ptr<WriterStream>(
+                    new WriterStream(this, writerkey, readerkey));
+            streammap.insert(std::make_pair(writerkey, stream));
+        } else {
+            stream = dynamic_pointer_cast<WriterStream>(entry->second);
+            ASSERT(stream);
+        }
+        return stream;
     }
 
     void Kernel::Logf(int level, const char* const fmt, ...) {
@@ -332,8 +354,9 @@ namespace CPN {
     }
 
     void Kernel::InternalCreateNode(NodeAttr &nodeattr) {
-        FUNCBEGIN;
         Sync::AutoReentrantLock arlock(lock);
+        FUNCBEGIN;
+        ASSERT(status.Get() == RUNNING);
         nodeattr.SetDatabase(database);
         database->AffiliateNodeWithHost(hostkey, nodeattr.GetKey());
         shared_ptr<NodeFactory> factory = CPNGetNodeFactory(nodeattr.GetTypeName());
@@ -346,19 +369,26 @@ namespace CPN {
     }
 
     void Kernel::NodeTerminated(Key_t key) {
-        FUNCBEGIN;
         Sync::AutoReentrantLock arlock(lock);
+        FUNCBEGIN;
+        ASSERT(status.Get() != DONE);
         database->DestroyNodeKey(key);
         shared_ptr<NodeBase> node = nodemap[key];
         nodemap.erase(key);
         garbagenodes.push_back(node);
-        SendWakeup();
+        SendWakeupIntern();
     }
 
     void Kernel::ClearGarbage() {
-        FUNCBEGIN;
         Sync::AutoReentrantLock arlock(lock);
+        FUNCBEGIN;
         garbagenodes.clear();
+        arlock.Unlock();
+
+        while (!deadstreams.empty()) {
+            streammap.erase(deadstreams.front());
+            deadstreams.pop_front();
+        }
     }
 
     void Kernel::HandleMessages() {
@@ -409,7 +439,6 @@ namespace CPN {
 
             for (StreamMap::iterator itr = streammap.begin();
                     itr != streammap.end(); ++itr) {
-                itr->second->RunOneIteration();
                 itr->second->RegisterDescriptor(descriptors);
             }
 
@@ -417,21 +446,36 @@ namespace CPN {
         }
         // Close the listen port
         listener.reset();
+        // Close all pending connections...
+        while (!unknownstreams.Empty()) {
+            delete unknownstreams.PopFront();
+        }
         // Tell everybody that is left to die.
         arlock.Lock();
         for (NodeMap::iterator itr = nodemap.begin();
                 itr != nodemap.end(); ++itr) {
             itr->second->Shutdown();
         }
-        while (!nodemap.empty()) {
-            arlock.Unlock();
+        // Wait for all nodes to end and all stream endpoints
+        // to finish sending data
+        while (!nodemap.empty() || !streammap.empty()) {
+            ClearGarbage();
             std::vector<Async::DescriptorPtr> descriptors;
             descriptors.push_back(wakeuplisten);
-            ENSURE(Async::Descriptor::Poll(descriptors, -1) > 0);
-            arlock.Lock();
+            for (StreamMap::iterator itr = streammap.begin();
+                    itr != streammap.end(); ++itr) {
+                itr->second->RegisterDescriptor(descriptors);
+            }
+            if (descriptors.size() > 1 || !nodemap.empty()) {
+                arlock.Unlock();
+                ENSURE(Async::Descriptor::Poll(descriptors, -1) > 0);
+                arlock.Lock();
+            }
         }
         arlock.Unlock();
+        ClearGarbage();
         status.Post(DONE);
+        FUNCEND;
         return 0;
     }
 
@@ -445,8 +489,10 @@ namespace CPN {
         ASSERT(stream, "EOF on the wakeup pipe!!!");
     }
 
-    void Kernel::SendWakeup() {
+    void Kernel::SendWakeupIntern() {
+        Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
+        ASSERT(wakeupwriter && *wakeupwriter);
         Async::Stream stream(wakeupwriter);
         char c = 0;
         while(stream.Write(&c, sizeof(c)) != sizeof(c));
@@ -472,19 +518,17 @@ namespace CPN {
     }
 
     void Kernel::StreamDead(Key_t streamkey) {
-        streammap.erase(streamkey);
+        deadstreams.push_back(streamkey);
     }
 
-    void Kernel::SetReaderDescriptor(Key_t readerkey, Async::DescriptorPtr desc) {
-        StreamMap::iterator entry = streammap.find(readerkey);
-        if (entry == streammap.end()) {
-        }
+    void Kernel::SetReaderDescriptor(Key_t readerkey, Key_t writerkey, Async::DescriptorPtr desc) {
+        shared_ptr<ReaderStream> stream = GetReaderStream(readerkey, writerkey);
+        stream->SetDescriptor(desc);
     }
 
-    void Kernel::SetWriterDescriptor(Key_t writerkey, Async::DescriptorPtr desc) {
-        StreamMap::iterator entry = streammap.find(writerkey);
-        if (entry == streammap.end()) {
-        }
+    void Kernel::SetWriterDescriptor(Key_t writerkey, Key_t readerkey, Async::DescriptorPtr desc) {
+        shared_ptr<WriterStream> stream = GetWriterStream(writerkey, readerkey);
+        stream->SetDescriptor(desc);
     }
 
     void Kernel::NewKernelStream(Key_t kernelkey, Async::DescriptorPtr desc) {

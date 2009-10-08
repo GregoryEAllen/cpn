@@ -63,18 +63,20 @@ namespace CPN {
         cond.Signal();
     }
 
-    void QueueBase::CheckRMH() {
+    bool QueueBase::CheckRMH() {
         Sync::AutoReentrantLock arl(lock);
         while (GetSubReaderHandler() == 0 && !shutdown) {
             cond.Wait(lock);
         }
+        return !shutdown;
     }
 
-    void QueueBase::CheckWMH() {
+    bool QueueBase::CheckWMH() {
         Sync::AutoReentrantLock arl(lock);
         while (GetSubWriterHandler() == 0 && !shutdown) {
             cond.Wait(lock);
         }
+        return !shutdown;
     }
 }
 

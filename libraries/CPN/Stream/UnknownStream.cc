@@ -33,6 +33,15 @@ namespace CPN {
         readsome = descriptor->ConnectReadable(sigc::mem_fun(this, &UnknownStream::ReadReady));
     }
 
+    void UnknownStream::ReceivedReaderID(uint64_t readerkey, uint64_t writerkey) {
+    }
+
+    void UnknownStream::ReceivedWriterID(uint64_t writerkey, uint64_t readerkey) {
+    }
+
+    void UnknownStream::ReceivedKernelID(uint64_t srckernelkey, uint64_t dstkernelkey) {
+    }
+
     bool UnknownStream::ReadReady() { return true; }
 
     void UnknownStream::ReadSome() {

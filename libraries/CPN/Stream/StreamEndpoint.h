@@ -88,6 +88,7 @@ namespace CPN {
 
         Async::DescriptorPtr GetDescriptor() { return descriptor; }
         void SetDescriptor(Async::DescriptorPtr desc);
+        void ResetDescriptor();
 
         void SetQueue(shared_ptr<QueueBase> q);
 
