@@ -62,10 +62,32 @@ namespace CPN {
 
     KernelMessageHandler::~KernelMessageHandler() {}
 
-    void KernelMessageHandler::StreamDead(Key_t streamkey) {}
-    void KernelMessageHandler::SetReaderDescriptor(Key_t readerkey, Key_t writerkey, Async::DescriptorPtr desc) {}
-    void KernelMessageHandler::SetWriterDescriptor(Key_t writerkey, Key_t readerkey, Async::DescriptorPtr desc) {}
-    void KernelMessageHandler::NewKernelStream(Key_t kernelkey, Async::DescriptorPtr desc) {}
-    void KernelMessageHandler::SendWakeup() {}
+    void KernelMessageHandler::CreateWriter(Key_t src, Key_t dst, const SimpleQueueAttr &attr) {
+        ASSERT(false, "Unexpected message");
+    }
+    void KernelMessageHandler::CreateReader(Key_t src, Key_t dst, const SimpleQueueAttr &attr) {
+        ASSERT(false, "Unexpected message");
+    }
+    void KernelMessageHandler::CreateQueue(Key_t src, Key_t dst, const SimpleQueueAttr &attr) {
+        ASSERT(false, "Unexpected message");
+    }
+    void KernelMessageHandler::CreateNode(Key_t src, Key_t dst, const NodeAttr &attr) {
+        ASSERT(false, "Unexpected message");
+    }
+    void KernelMessageHandler::StreamDead(Key_t streamkey) {
+        ASSERT(false, "Unexpected message");
+    }
+    void KernelMessageHandler::SetReaderDescriptor(Key_t readerkey, Key_t writerkey, Async::DescriptorPtr desc) {
+        ASSERT(false, "Unexpected message");
+    }
+    void KernelMessageHandler::SetWriterDescriptor(Key_t writerkey, Key_t readerkey, Async::DescriptorPtr desc) {
+        ASSERT(false, "Unexpected message");
+    }
+    void KernelMessageHandler::NewKernelStream(Key_t kernelkey, Async::DescriptorPtr desc) {
+        ASSERT(false, "Unexpected message");
+    }
+    void KernelMessageHandler::SendWakeup() {
+        ASSERT(false, "Unexpected message");
+    }
 }
 

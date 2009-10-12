@@ -50,8 +50,6 @@ namespace CPN {
         Key_t GetKey() const { return readerkey; }
         Key_t GetWriterKey() const { return writerkey; }
     private:
-        void MessageNotice();
-        void OnError(int err);
 
         KernelMessageHandler *kmh;
         Key_t readerkey;

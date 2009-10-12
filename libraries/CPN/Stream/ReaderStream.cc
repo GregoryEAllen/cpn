@@ -32,7 +32,7 @@ namespace CPN {
         : kmh(kernMsgHan),
         readerkey(rkey),
         writerkey(wkey),
-        endpoint(wkey, rkey, StreamEndpoint::READ)
+        endpoint(kernMsgHan, wkey, rkey, StreamEndpoint::READ)
     {
     }
 
@@ -51,19 +51,8 @@ namespace CPN {
     }
 
     void ReaderStream::SetQueue(shared_ptr<QueueBase> q) {
-        q->SetWriterMessageHandler(&endpoint);
         endpoint.SetQueue(q);
     }
 
-    void ReaderStream::MessageNotice() {
-        kmh->SendWakeup();
-    }
-
-    void ReaderStream::OnError(int err) {
-        endpoint.ResetDescriptor();
-        if (endpoint.Shuttingdown()) {
-            kmh->StreamDead(readerkey);
-        }
-    }
 }
 

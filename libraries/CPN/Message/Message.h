@@ -83,10 +83,10 @@ namespace CPN {
     class KernelMessageHandler {
     public:
         virtual ~KernelMessageHandler();
-        virtual void CreateWriter(Key_t src, Key_t dst, const SimpleQueueAttr &attr) = 0;
-        virtual void CreateReader(Key_t src, Key_t dst, const SimpleQueueAttr &attr) = 0;
-        virtual void CreateQueue(Key_t src, Key_t dst, const SimpleQueueAttr &attr) = 0;
-        virtual void CreateNode(Key_t src, Key_t dst, const NodeAttr &attr) = 0;
+        virtual void CreateWriter(Key_t src, Key_t dst, const SimpleQueueAttr &attr);
+        virtual void CreateReader(Key_t src, Key_t dst, const SimpleQueueAttr &attr);
+        virtual void CreateQueue(Key_t src, Key_t dst, const SimpleQueueAttr &attr);
+        virtual void CreateNode(Key_t src, Key_t dst, const NodeAttr &attr);
 
         // Functions the streams need of the kernel
         virtual void StreamDead(Key_t streamkey);

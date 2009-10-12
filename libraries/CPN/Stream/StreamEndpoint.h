@@ -28,6 +28,7 @@
 #pragma once
 
 #include "CPNCommon.h"
+#include "CPNStream.h"
 
 #include "Message.h"
 
@@ -37,8 +38,6 @@
 #include "ReentrantLock.h"
 
 #include "AsyncStream.h"
-#include "AutoCircleBuffer.h"
-#include "Assert.h"
 
 namespace CPN {
 
@@ -50,12 +49,13 @@ namespace CPN {
      */
     class StreamEndpoint : public ReaderMessageHandler,
                            public WriterMessageHandler,
-                           private PacketDecoder
+                           private PacketDecoder,
+                           public Stream
     {
     public:
         enum Mode_t { READ, WRITE };
 
-        StreamEndpoint(Key_t rkey, Key_t wkey, Mode_t m);
+        StreamEndpoint(KernelMessageHandler *kernMsgHan, Key_t rkey, Key_t wkey, Mode_t m);
 
         void RMHEnqueue(Key_t wkey, Key_t rkey);
         void RMHEndOfWriteQueue(Key_t wkey, Key_t rkey);
@@ -86,13 +86,21 @@ namespace CPN {
          */
         void WriteSome();
 
+        void OnError(int err);
+
+        void RegisterDescriptor(std::vector<Async::DescriptorPtr> &descriptors);
         Async::DescriptorPtr GetDescriptor() { return descriptor; }
         void SetDescriptor(Async::DescriptorPtr desc);
         void ResetDescriptor();
 
         void SetQueue(shared_ptr<QueueBase> q);
 
-        bool Shuttingdown() const { return shuttingdown; }
+        bool Shuttingdown() const;
+
+        Mode_t GetMode() const { return mode; }
+        Key_t ReaderKey() const { return readerkey; }
+        Key_t WriterKey() const { return writerkey; }
+        Key_t GetKey() const;
     private:
         void ReceivedEnqueue(void *data, unsigned length, unsigned numchannels);
         void ReceivedDequeue(unsigned length, unsigned numchannels);
@@ -104,6 +112,8 @@ namespace CPN {
         void CheckBlockedEnqueues();
         bool WriteEnqueue();
         bool EnqueueBlocked();
+        void SignalDeath();
+        void Wakeup();
 
         const Sync::ReentrantLock *lock;
         PacketEncoder encoder;
@@ -118,10 +128,11 @@ namespace CPN {
         shared_ptr<QueueBase> queue;
         ReaderMessageHandler *rmh;
         WriterMessageHandler *wmh;
+        KernelMessageHandler *kmh;
 
-        Key_t readerkey;
-        Key_t writerkey;
-        Mode_t mode;
+        const Key_t readerkey;
+        const Key_t writerkey;
+        const Mode_t mode;
         bool shuttingdown;
     };
 }

@@ -5,6 +5,7 @@
 
 #include "SimpleQueue.h"
 #include "AsyncStream.h"
+#include "AsyncSocket.h"
 
 #include <tr1/memory>
 #include <vector>
@@ -35,14 +36,14 @@ void StreamEndpointTest::setUp() {
     rqueue = shared_ptr<SimpleQueue>(new SimpleQueue(QUEUESIZE,QUEUESIZE,1));
 
 
+    Async::SockPtr wsock;
+    Async::SockPtr rsock;
     StreamSocket::CreatePair(wsock, rsock);
-    wsock->ConnectOnError(sigc::ptr_fun(Error));
-    rsock->ConnectOnError(sigc::ptr_fun(Error));
-    wendp = shared_ptr<StreamEndpoint>(new StreamEndpoint(RKEY, WKEY, StreamEndpoint::WRITE));
+    wendp = shared_ptr<StreamEndpoint>(new StreamEndpoint(this, RKEY, WKEY, StreamEndpoint::WRITE));
     wendp->SetQueue(wqueue);
     wendp->SetDescriptor(wsock);
 
-    rendp = shared_ptr<StreamEndpoint>(new StreamEndpoint(RKEY, WKEY, StreamEndpoint::READ));
+    rendp = shared_ptr<StreamEndpoint>(new StreamEndpoint(this, RKEY, WKEY, StreamEndpoint::READ));
     rendp->SetDescriptor(rsock);
     rendp->SetQueue(rqueue);
 
@@ -51,18 +52,14 @@ void StreamEndpointTest::setUp() {
     wmh = rqueue->GetWriterMessageHandler();
     rmh = wqueue->GetReaderMessageHandler();
 
-    wqueue->SetReaderMessageHandler(wendp.get());
     wqueue->SetWriterMessageHandler(this);
 
-    rqueue->SetWriterMessageHandler(rendp.get());
     rqueue->SetReaderMessageHandler(this);
 }
 
 void StreamEndpointTest::tearDown() {
     wqueue.reset();
     rqueue.reset();
-    wsock.reset();
-    rsock.reset();
     wendp.reset();
     rendp.reset();
     messages.clear();
@@ -182,8 +179,8 @@ void StreamEndpointTest::EndOfReadQueueTest() {
 StreamEndpointTest::Msg StreamEndpointTest::WaitForMessage() {
     while (messages.empty()) {
         std::vector<DescriptorPtr> descptrs;
-        if (*wsock) descptrs.push_back(wsock);
-        if (*rsock) descptrs.push_back(rsock);
+        wendp->RegisterDescriptor(descptrs);
+        rendp->RegisterDescriptor(descptrs);
         CPPUNIT_ASSERT(!descptrs.empty());
         CPPUNIT_ASSERT(0 < Descriptor::Poll(descptrs, -1));
     }
@@ -222,5 +219,11 @@ void StreamEndpointTest::WMHReadBlock(Key_t src, Key_t dst, unsigned requested) 
 
 void StreamEndpointTest::WMHTagChange(Key_t src, Key_t dst) {
     messages.push_back(Msg(WMHTAGCHANGE, src, dst));
+}
+
+void StreamEndpointTest::StreamDead(Key_t streamkey) {
+}
+
+void StreamEndpointTest::SendWakeup() {
 }
 

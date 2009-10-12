@@ -24,11 +24,14 @@
 #include "StreamEndpoint.h"
 #include "QueueBase.h"
 
+#include "Assert.h"
+
 namespace CPN {
 
-    StreamEndpoint::StreamEndpoint(Key_t rkey, Key_t wkey, Mode_t m)
-        : writecount(0),
+    StreamEndpoint::StreamEndpoint(KernelMessageHandler *kernMsgHan, Key_t rkey, Key_t wkey, Mode_t m)
+        : lock(0), writecount(0),
         readcount(0),
+        rmh(0), wmh(0), kmh(kernMsgHan),
         readerkey(rkey),
         writerkey(wkey),
         mode(m),
@@ -44,6 +47,7 @@ namespace CPN {
         ASSERT(mode == WRITE);
         CheckBlockedEnqueues();
         WriteSome();
+        Wakeup();
     }
 
 
@@ -58,6 +62,7 @@ namespace CPN {
         encoder.SendDequeue(length, numchans);
         readcount -= length;
         WriteSome();
+        Wakeup();
     }
 
     void StreamEndpoint::WMHReadBlock(Key_t rkey, Key_t wkey, unsigned requested) {
@@ -67,6 +72,7 @@ namespace CPN {
         ASSERT(mode == READ);
         encoder.SendReadBlock(requested);
         WriteSome();
+        Wakeup();
     }
 
     void StreamEndpoint::RMHWriteBlock(Key_t wkey, Key_t rkey, unsigned requested) {
@@ -77,6 +83,7 @@ namespace CPN {
         CheckBlockedEnqueues();
         encoder.SendWriteBlock(requested);
         WriteSome();
+        Wakeup();
     }
 
     void StreamEndpoint::RMHEndOfWriteQueue(Key_t wkey, Key_t rkey) {
@@ -87,6 +94,7 @@ namespace CPN {
         shuttingdown = true;
         encoder.SendEndOfWriteQueue();
         WriteSome();
+        Wakeup();
     }
 
     void StreamEndpoint::WMHEndOfReadQueue(Key_t rkey, Key_t wkey) {
@@ -97,6 +105,7 @@ namespace CPN {
         shuttingdown = true;
         encoder.SendEndOfReadQueue();
         WriteSome();
+        Wakeup();
     }
 
     void StreamEndpoint::RMHTagChange(Key_t wkey, Key_t rkey) {
@@ -184,6 +193,13 @@ namespace CPN {
         }
     }
 
+    void StreamEndpoint::OnError(int err) {
+        descriptor.reset();
+        if (Shuttingdown()) {
+            SignalDeath();
+        }
+    }
+
     // All of these Receive functions will end up beign called in the
     // context of ReadSome.
 
@@ -265,6 +281,7 @@ namespace CPN {
         descriptor->ConnectWriteable(sigc::mem_fun(this, &StreamEndpoint::WriteReady));
         descriptor->ConnectOnRead(sigc::mem_fun(this, &StreamEndpoint::ReadSome));
         descriptor->ConnectOnWrite(sigc::mem_fun(this, &StreamEndpoint::WriteSome));
+        descriptor->ConnectOnError(sigc::mem_fun(this, &StreamEndpoint::OnError));
     }
 
     void StreamEndpoint::ResetDescriptor() {
@@ -276,7 +293,55 @@ namespace CPN {
         queue = q;
         rmh = queue->GetReaderMessageHandler();
         wmh = queue->GetWriterMessageHandler();
+        if (mode == READ) {
+            q->SetWriterMessageHandler(this);
+        } else if (mode == WRITE) {
+            q->SetReaderMessageHandler(this);
+        } else {
+            ASSERT(false, "Invaid stream endpoint mode.");
+        }
         PacketDecoder::Enable(true);
+    }
+
+    bool StreamEndpoint::Shuttingdown() const {
+        Sync::AutoReentrantLock arl(*lock);
+        return shuttingdown;
+    }
+
+    void StreamEndpoint::SignalDeath() {
+        if (mode == READ) {
+            kmh->StreamDead(readerkey);
+        } else if (mode == WRITE) {
+            kmh->StreamDead(writerkey);
+        } else {
+            ASSERT(false, "Invalid stream endpoint mode.");
+        }
+    }
+
+    void StreamEndpoint::Wakeup() {
+        if (encoder.BytesReady()) {
+            kmh->SendWakeup();
+        }
+    }
+
+    void StreamEndpoint::RegisterDescriptor(std::vector<Async::DescriptorPtr> &descriptors) {
+        if (descriptor) {
+            descriptors.push_back(descriptor);
+        } else if (Shuttingdown()) {
+            SignalDeath();
+        } else if (mode == WRITE) {
+            // Writer will be setup to create a new connection.
+        }
+    }
+
+    Key_t StreamEndpoint::GetKey() const {
+        if (mode == READ) {
+            return readerkey;
+        } else if (mode == WRITE) {
+            return writerkey;
+        } else {
+            ASSERT(false, "Invalid stream endpoint mode.");
+        }
     }
 }
 

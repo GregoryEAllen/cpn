@@ -32,10 +32,8 @@
 
 #include "Database.h"
 
-#include "ReaderStream.h"
-#include "WriterStream.h"
-#include "KernelStream.h"
 #include "CPNStream.h"
+#include "StreamEndpoint.h"
 #include "UnknownStream.h"
 
 #include "AutoBuffer.h"
@@ -245,7 +243,7 @@ namespace CPN {
         ASSERT(readernode);
         readernode->GetNodeMessageHandler()->
             CreateReader(attr.GetReaderKey(), attr.GetWriterKey(), queue);
-        shared_ptr<ReaderStream> stream = GetReaderStream(attr.GetReaderKey(),
+        shared_ptr<StreamEndpoint> stream = GetReaderStream(attr.GetReaderKey(),
                 attr.GetWriterKey());
         stream->SetQueue(queue);
     }
@@ -258,7 +256,7 @@ namespace CPN {
         writernode->GetNodeMessageHandler()->
             CreateWriter(attr.GetReaderKey(), attr.GetWriterKey(), queue);
 
-        shared_ptr<WriterStream> stream = GetWriterStream(attr.GetWriterKey(),
+        shared_ptr<StreamEndpoint> stream = GetWriterStream(attr.GetWriterKey(),
                 attr.GetReaderKey());
         stream->SetQueue(queue);
     }
@@ -294,29 +292,32 @@ namespace CPN {
         return queue;
     }
 
-    shared_ptr<ReaderStream> Kernel::GetReaderStream(Key_t readerkey, Key_t writerkey) {
-        shared_ptr<ReaderStream> stream;
+    shared_ptr<StreamEndpoint> Kernel::GetReaderStream(Key_t readerkey, Key_t writerkey) {
+        shared_ptr<StreamEndpoint> stream;
         StreamMap::iterator entry = streammap.find(readerkey);
         if (entry == streammap.end()) {
-            stream = shared_ptr<ReaderStream>(
-                    new ReaderStream(this, readerkey, writerkey));
+            stream = shared_ptr<StreamEndpoint>(
+                    new StreamEndpoint(this, readerkey, writerkey, StreamEndpoint::READ));
             streammap.insert(std::make_pair(readerkey, stream));
         } else {
-            stream = dynamic_pointer_cast<ReaderStream>(entry->second);
+            stream = dynamic_pointer_cast<StreamEndpoint>(entry->second);
+            ASSERT(stream);
+            ASSERT(stream->GetMode() == StreamEndpoint::READ);
         }
         return stream;
     }
 
-    shared_ptr<WriterStream> Kernel::GetWriterStream(Key_t writerkey, Key_t readerkey) {
-        shared_ptr<WriterStream> stream;
+    shared_ptr<StreamEndpoint> Kernel::GetWriterStream(Key_t writerkey, Key_t readerkey) {
+        shared_ptr<StreamEndpoint> stream;
         StreamMap::iterator entry = streammap.find(writerkey);
         if (entry == streammap.end()) {
-            stream = shared_ptr<WriterStream>(
-                    new WriterStream(this, writerkey, readerkey));
+            stream = shared_ptr<StreamEndpoint>(
+                    new StreamEndpoint(this, writerkey, readerkey, StreamEndpoint::WRITE));
             streammap.insert(std::make_pair(writerkey, stream));
         } else {
-            stream = dynamic_pointer_cast<WriterStream>(entry->second);
+            stream = dynamic_pointer_cast<StreamEndpoint>(entry->second);
             ASSERT(stream);
+            ASSERT(stream->GetMode() == StreamEndpoint::WRITE);
         }
         return stream;
     }
@@ -522,12 +523,12 @@ namespace CPN {
     }
 
     void Kernel::SetReaderDescriptor(Key_t readerkey, Key_t writerkey, Async::DescriptorPtr desc) {
-        shared_ptr<ReaderStream> stream = GetReaderStream(readerkey, writerkey);
+        shared_ptr<StreamEndpoint> stream = GetReaderStream(readerkey, writerkey);
         stream->SetDescriptor(desc);
     }
 
     void Kernel::SetWriterDescriptor(Key_t writerkey, Key_t readerkey, Async::DescriptorPtr desc) {
-        shared_ptr<WriterStream> stream = GetWriterStream(writerkey, readerkey);
+        shared_ptr<StreamEndpoint> stream = GetWriterStream(writerkey, readerkey);
         stream->SetDescriptor(desc);
     }
 

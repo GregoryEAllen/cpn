@@ -17,12 +17,12 @@ CPPUNIT_TEST_SUITE_REGISTRATION( StreamEndpointTest );
 #include "StreamEndpoint.h"
 #include "Message.h"
 #include "QueueBase.h"
-#include "AsyncSocket.h"
 #include <deque>
 
 class StreamEndpointTest : public CppUnit::TestFixture,
 public CPN::ReaderMessageHandler,
-public CPN::WriterMessageHandler {
+public CPN::WriterMessageHandler,
+public CPN::KernelMessageHandler {
 public:
 
 	void setUp();
@@ -77,10 +77,11 @@ private:
     void WMHReadBlock(CPN::Key_t src, CPN::Key_t dst, unsigned requested);
     void WMHTagChange(CPN::Key_t src, CPN::Key_t dst);
 
+    void StreamDead(CPN::Key_t streamkey);
+    void SendWakeup();
+
     CPN::shared_ptr<CPN::QueueBase> wqueue;
     CPN::shared_ptr<CPN::QueueBase> rqueue;
-    Async::SockPtr wsock;
-    Async::SockPtr rsock;
     CPN::shared_ptr<CPN::StreamEndpoint> wendp;
     CPN::shared_ptr<CPN::StreamEndpoint> rendp;
     ReaderMessageHandler *rmh;

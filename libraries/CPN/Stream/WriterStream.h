@@ -35,7 +35,6 @@
 #include "Message.h"
 
 #include "AsyncStream.h"
-#include <vector>
 
 namespace CPN {
 
@@ -55,8 +54,6 @@ namespace CPN {
         Key_t GetKey() const { return writerkey; }
         Key_t GetReaderKey() const { return readerkey; }
     private:
-        void MessageNotice();
-        void OnError(int err);
 
         KernelMessageHandler *kmh;
         Key_t writerkey;

@@ -141,8 +141,8 @@ namespace CPN {
         void CreateWriterEndpoint(const SimpleQueueAttr &attr);
         void CreateLocalQueue(const SimpleQueueAttr &attr);
         shared_ptr<QueueBase> MakeQueue(const SimpleQueueAttr &attr);
-        shared_ptr<ReaderStream> GetReaderStream(Key_t readerkey, Key_t writerkey);
-        shared_ptr<WriterStream> GetWriterStream(Key_t writerkey, Key_t readerkey);
+        shared_ptr<StreamEndpoint> GetReaderStream(Key_t readerkey, Key_t writerkey);
+        shared_ptr<StreamEndpoint> GetWriterStream(Key_t writerkey, Key_t readerkey);
         void InternalCreateNode(NodeAttr &nodeattr);
         void ClearGarbage();
         void HandleMessages();
