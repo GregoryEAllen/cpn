@@ -142,6 +142,7 @@ namespace CPN {
 
     void StreamEndpoint::ReadSome() {
         Sync::AutoReentrantLock arl(*lock);
+        if (!descriptor) { return; }
         Async::Stream stream(descriptor);
         unsigned numtoread = 0;
         unsigned numread = 0;
@@ -164,6 +165,7 @@ namespace CPN {
 
     void StreamEndpoint::WriteSome() {
         Sync::AutoReentrantLock arl(*lock);
+        if (!descriptor) { return; }
         Async::Stream stream(descriptor);
         while (true) {
             unsigned towrite = 0;
@@ -243,6 +245,18 @@ namespace CPN {
         ASSERT(mode == WRITE);
         shuttingdown = true;
         wmh->WMHEndOfReadQueue(readerkey, writerkey);
+    }
+
+    void StreamEndpoint::ReceivedReaderID(uint64_t rkey, uint64_t wkey) {
+        ASSERT(mode == WRITE);
+        ASSERT(readerkey == rkey);
+        ASSERT(writerkey == wkey);
+    }
+
+    void StreamEndpoint::ReceivedWriterID(uint64_t wkey, uint64_t rkey) {
+        ASSERT(mode == READ);
+        ASSERT(readerkey == rkey);
+        ASSERT(writerkey == wkey);
     }
 
     void StreamEndpoint::CheckBlockedEnqueues() {
@@ -329,8 +343,9 @@ namespace CPN {
             descriptors.push_back(descriptor);
         } else if (Shuttingdown()) {
             SignalDeath();
-        } else if (mode == WRITE) {
+        } else if (mode == WRITE && pendingconn.expired()) {
             // Writer will be setup to create a new connection.
+            pendingconn = kmh->CreateNewQueueStream(readerkey, writerkey);
         }
     }
 

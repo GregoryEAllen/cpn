@@ -36,8 +36,6 @@
 #include "ReentrantLock.h"
 #include "StatusHandler.h"
 
-#include "IntrusiveRing.h"
-
 #include "AsyncStream.h"
 #include "AsyncSocket.h"
 
@@ -167,6 +165,7 @@ namespace CPN {
         void StreamDead(Key_t streamkey);
         void SetReaderDescriptor(Key_t readerkey, Key_t writerkey, Async::DescriptorPtr desc);
         void SetWriterDescriptor(Key_t writerkey, Key_t readerkey, Async::DescriptorPtr desc);
+        weak_ptr<UnknownStream> CreateNewQueueStream(Key_t readerkey, Key_t writerkey);
         void NewKernelStream(Key_t kernelkey, Async::DescriptorPtr desc);
 
         void SendCreateWriter(Key_t writerhost, const SimpleQueueAttr &attr);
@@ -192,7 +191,7 @@ namespace CPN {
         StreamMap streammap;
         std::list<Key_t> deadstreams;
 
-        IntrusiveRing<UnknownStream> unknownstreams;
+        std::list<shared_ptr<UnknownStream> > unknownstreams;
 
         shared_ptr<Database> database;
     };

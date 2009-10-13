@@ -97,7 +97,7 @@ namespace CPN {
         assert(nodemap.empty());
         assert(garbagenodes.empty());
         assert(streammap.empty());
-        assert(unknownstreams.Empty());
+        assert(unknownstreams.empty());
         wakeupwriter.reset();
         wakeuplisten.reset();
         FUNCEND;
@@ -442,15 +442,22 @@ namespace CPN {
                     itr != streammap.end(); ++itr) {
                 itr->second->RegisterDescriptor(descriptors);
             }
+            std::list<shared_ptr<UnknownStream> >::iterator unknownitr = unknownstreams.begin();
+            while (unknownitr != unknownstreams.end()) {
+                if (unknownitr->get()->Dead()) {
+                    unknownitr = unknownstreams.erase(unknownitr);
+                } else {
+                    descriptors.push_back(unknownitr->get()->GetDescriptor());
+                    ++unknownitr;
+                }
+            }
 
             ENSURE(Async::Descriptor::Poll(descriptors, -1) > 0);
         }
         // Close the listen port
         listener.reset();
         // Close all pending connections...
-        while (!unknownstreams.Empty()) {
-            delete unknownstreams.PopFront();
-        }
+        unknownstreams.clear();
         // Tell everybody that is left to die.
         arlock.Lock();
         for (NodeMap::iterator itr = nodemap.begin();
@@ -501,7 +508,7 @@ namespace CPN {
 
     void Kernel::ListenRead() {
         Async::SockPtr sock = listener->Accept();
-        unknownstreams.PushFront(new UnknownStream(sock, this));
+        unknownstreams.push_back(shared_ptr<UnknownStream>(new UnknownStream(sock, this)));
     }
 
     void Kernel::CreateWriter(Key_t src, Key_t dst, const SimpleQueueAttr &attr) {
@@ -530,6 +537,33 @@ namespace CPN {
     void Kernel::SetWriterDescriptor(Key_t writerkey, Key_t readerkey, Async::DescriptorPtr desc) {
         shared_ptr<StreamEndpoint> stream = GetWriterStream(writerkey, readerkey);
         stream->SetDescriptor(desc);
+    }
+
+    weak_ptr<UnknownStream> Kernel::CreateNewQueueStream(Key_t readerkey, Key_t writerkey) {
+        Key_t readerhost = database->GetReaderHost(readerkey);
+        Key_t writerhost = database->GetWriterHost(writerkey);
+        Key_t otherhost = 0;
+        Async::SockAddrList addrlist;
+        if (readerhost == hostkey) {
+            otherhost = writerhost;
+        } else if (writerhost == hostkey) {
+            otherhost = readerhost;
+        } else {
+            ASSERT(false);
+        }
+        KernelAttr attr = database->GetHostInfo(otherhost);
+        addrlist = Async::SocketAddress::CreateIP(
+                attr.GetHostName().c_str(),
+                attr.GetServName().c_str());
+        Async::SockPtr sock = Async::StreamSocket::Create(addrlist);
+        if (readerhost == hostkey) {
+            unknownstreams.push_back(shared_ptr<UnknownStream>(
+                    new UnknownStream(sock, this, readerkey, writerkey, UnknownStream::READ)));
+        } else if (writerhost == hostkey) {
+            unknownstreams.push_back(shared_ptr<UnknownStream>(
+                    new UnknownStream(sock, this, readerkey, writerkey, UnknownStream::WRITE)));
+        }
+        return unknownstreams.back();
     }
 
     void Kernel::NewKernelStream(Key_t kernelkey, Async::DescriptorPtr desc) {

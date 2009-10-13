@@ -26,16 +26,21 @@
 
 namespace CPN {
 
-    PacketDecoder::PacketDecoder() {
+    PacketDecoder::PacketDecoder() : enable(true) {
         Reset();
     }
 
     void *PacketDecoder::GetDecoderBytes(unsigned &amount) {
+        if (!enable) {
+            amount = 0;
+            return 0;
+        }
         amount = packetsize - numbytes;
         return buffer.GetBuffer(numbytes);
     }
 
     void PacketDecoder::ReleaseDecoderBytes(unsigned amount) {
+        ASSERT(enable);
         numbytes += amount;
         ASSERT(numbytes <= packetsize, "Tried to add more bytes than there are in the packet to"
                 " the decoder.");

@@ -108,6 +108,8 @@ namespace CPN {
         void ReceivedWriteBlock(unsigned requested);
         void ReceiveEndOfWriteQueue();
         void ReceiveEndOfReadQueue();
+        void ReceivedReaderID(uint64_t rkey, uint64_t wkey);
+        void ReceivedWriterID(uint64_t wkey, uint64_t rkey);
 
         void CheckBlockedEnqueues();
         bool WriteEnqueue();
@@ -134,6 +136,7 @@ namespace CPN {
         const Key_t writerkey;
         const Mode_t mode;
         bool shuttingdown;
+        weak_ptr<UnknownStream> pendingconn;
     };
 }
 

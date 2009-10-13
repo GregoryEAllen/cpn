@@ -241,6 +241,11 @@ namespace CPN {
         return entry->second->nodekey;
     }
 
+    Key_t LocalDatabase::GetReaderHost(Key_t portkey) {
+        Key_t nodekey = GetReaderNode(portkey);
+        return GetNodeHost(nodekey);
+    }
+
     const std::string &LocalDatabase::GetReaderName(Key_t portkey) {
         PthreadMutexProtected pl(lock);
         PortMap::iterator entry = readports.find(portkey);
@@ -291,6 +296,11 @@ namespace CPN {
             throw std::invalid_argument("No such port");
         }
         return entry->second->nodekey;
+    }
+
+    Key_t LocalDatabase::GetWriterHost(Key_t portkey) {
+        Key_t nodekey = GetWriterNode(portkey);
+        return GetNodeHost(nodekey);
     }
 
     const std::string &LocalDatabase::GetWriterName(Key_t portkey) {

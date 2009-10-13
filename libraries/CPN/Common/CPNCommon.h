@@ -90,8 +90,6 @@ namespace CPN {
     class Database;
 
     class StreamEndpoint;
-    class WriterStream;
-    class ReaderStream;
     class KernelStream;
     class Stream;
     class UnknownStream;

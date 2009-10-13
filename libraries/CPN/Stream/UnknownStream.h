@@ -28,16 +28,29 @@
 #include "CPNCommon.h"
 #include "Message.h"
 #include "PacketDecoder.h"
+#include "PacketEncoder.h"
 #include "AsyncSocket.h"
-#include "IntrusiveRing.h"
 namespace CPN {
     class UnknownStream
-        : public IntrusiveRingElement<UnknownStream>,
-        public PacketDecoder
+        : public PacketDecoder,
+        public sigc::trackable
    {
     public:
-        UnknownStream(Async::SockPtr desc, KernelMessageHandler *kernMsgHan);
+        enum Mode_t {
+            READ,
+            WRITE,
+            UNKNOWN
+        };
 
+        UnknownStream(Async::SockPtr desc, KernelMessageHandler *kernMsgHan);
+        UnknownStream(Async::SockPtr desc, KernelMessageHandler *kernMsgHan,
+            Key_t rkey, Key_t wkey, Mode_t m);
+
+        bool Dead() const { return dead; }
+
+        Async::DescriptorPtr GetDescriptor() const { return descriptor; }
+
+        Mode_t GetMode() const { return mode; }
     private:
 
         void ReceivedReaderID(uint64_t readerkey, uint64_t writerkey);
@@ -45,12 +58,18 @@ namespace CPN {
         void ReceivedKernelID(uint64_t srckernelkey, uint64_t dstkernelkey);
 
         bool ReadReady();
+        bool WriteReady();
         void ReadSome();
-        void DestroyThis();
+        void WriteSome();
+        void Error(int err);
+        void SetupDescriptor();
         Async::DescriptorPtr descriptor;
-        sigc::connection readready;
-        sigc::connection readsome;
+        PacketEncoder encoder;
         KernelMessageHandler *kmh;
+        Key_t readerkey;
+        Key_t writerkey;
+        const Mode_t mode;
+        bool dead;
     };
 }
 #endif

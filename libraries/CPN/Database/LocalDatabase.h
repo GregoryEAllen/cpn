@@ -90,11 +90,13 @@ namespace CPN {
 
         virtual Key_t GetCreateReaderKey(Key_t nodekey, const std::string &portname);
         virtual Key_t GetReaderNode(Key_t portkey);
+        virtual Key_t GetReaderHost(Key_t portkey);
         virtual const std::string &GetReaderName(Key_t portkey);
         virtual void DestroyReaderKey(Key_t portkey);
 
         virtual Key_t GetCreateWriterKey(Key_t nodekey, const std::string &portname);
         virtual Key_t GetWriterNode(Key_t portkey);
+        virtual Key_t GetWriterHost(Key_t portkey);
         virtual const std::string &GetWriterName(Key_t portkey);
         virtual void DestroyWriterKey(Key_t portkey);
 
