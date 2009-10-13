@@ -43,9 +43,9 @@ public:
     AutoCircleBuffer(int initialsize);
     ~AutoCircleBuffer() {}
     /// \return the current maximum amount that can fit
-    unsigned MaxSize() { return buff.GetSize(); }
+    unsigned MaxSize() const { return buff.GetSize(); }
     /// \return the number of bytes of data this AutoCircleBuffer has
-    unsigned Size() { return size; }
+    unsigned Size() const { return size; }
     /// Reset the buffer and loose all data currently in it
     void Reset() { size = put = get = 0; }
     /**

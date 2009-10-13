@@ -180,6 +180,7 @@ namespace CPN {
     void NodeBase::Block(Key_t ekey) {
         Sync::AutoReentrantLock arl(lock);
         BlockSet::iterator entry = blockset.find(ekey);
+        ASSERT(blockkey == 0);
         blockkey = ekey;
         while (blockkey == ekey) {
             CheckTerminate();

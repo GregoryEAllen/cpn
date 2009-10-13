@@ -43,6 +43,7 @@ namespace CPN {
             std::string name;
             std::string hostname;
             std::string servname;
+            KernelMessageHandler *kmh;
         };
 
         struct NodeInfo {
@@ -70,11 +71,16 @@ namespace CPN {
         virtual int LogLevel() const;
         virtual int LogLevel(int level);
 
-        virtual Key_t SetupHost(const KernelAttr &attr);
+        virtual Key_t SetupHost(const KernelAttr &attr, KernelMessageHandler *kmh);
         virtual Key_t GetHostKey(const std::string &host);
         virtual KernelAttr GetHostInfo(Key_t hostkey);
         virtual void DestroyHostKey(Key_t hostkey);
         virtual Key_t WaitForHostSetup(const std::string &host);
+
+        virtual void SendCreateWriter(Key_t hostkey, const SimpleQueueAttr &attr);
+        virtual void SendCreateReader(Key_t hostkey, const SimpleQueueAttr &attr);
+        virtual void SendCreateQueue(Key_t hostkey, const SimpleQueueAttr &attr);
+        virtual void SendCreateNode(Key_t hostkey, const NodeAttr &attr);
 
         virtual Key_t CreateNodeKey(const std::string &nodename);
         virtual Key_t GetNodeKey(const std::string &nodename);

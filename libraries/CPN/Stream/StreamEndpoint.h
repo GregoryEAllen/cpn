@@ -101,6 +101,8 @@ namespace CPN {
         Key_t ReaderKey() const { return readerkey; }
         Key_t WriterKey() const { return writerkey; }
         Key_t GetKey() const;
+
+        void PrintState();
     private:
         void ReceivedEnqueue(void *data, unsigned length, unsigned numchannels);
         void ReceivedDequeue(unsigned length, unsigned numchannels);
@@ -117,7 +119,10 @@ namespace CPN {
         void SignalDeath();
         void Wakeup();
 
-        const Sync::ReentrantLock *lock;
+        // If both locks are aquired, aquire the
+        // queuelock first because we may already have it
+        const Sync::ReentrantLock *queuelock;
+        const Sync::ReentrantLock lock;
         PacketEncoder encoder;
 
         Async::DescriptorPtr descriptor;

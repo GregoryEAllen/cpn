@@ -46,7 +46,7 @@
 #include <stdexcept>
 #include <cassert>
 
-//#define KERNEL_FUNC_TRACE
+#define KERNEL_FUNC_TRACE
 #ifdef KERNEL_FUNC_TRACE
 #define FUNCBEGIN printf("%s begin\n",__PRETTY_FUNCTION__)
 #define FUNCEND printf("%s end\n",__PRETTY_FUNCTION__)
@@ -78,7 +78,7 @@ namespace CPN {
         listener->ConnectReadable(sigc::mem_fun(this, &Kernel::True));
         listener->ConnectOnRead(sigc::mem_fun(this, &Kernel::ListenRead));
 
-        hostkey = database->SetupHost(kattr);
+        hostkey = database->SetupHost(kattr, this);
         Async::StreamSocket::CreatePair(wakeuplisten, wakeupwriter);
         wakeuplisten->ConnectOnRead(sigc::mem_fun(this, &Kernel::WakeupReader));
         wakeuplisten->ConnectReadable(sigc::mem_fun(this, &Kernel::True));
@@ -135,9 +135,8 @@ namespace CPN {
         } else {
             arlock.Unlock();
             Key_t key = database->WaitForHostSetup(nodeattr.GetHost());
-            arlock.Lock();
             nodeattr.SetHostKey(key);
-            SendCreateNode(key, nodeattr);
+            database->SendCreateNode(key, attr);
         }
         return nodekey;
     }
@@ -154,7 +153,6 @@ namespace CPN {
 
     void Kernel::CreateQueue(const QueueAttr &qattr) {
         FUNCBEGIN;
-        Sync::AutoReentrantLock arlock(lock, false);
         ASSERT(status.Get() == RUNNING);
         // Normalize the QueueAttr into a SimpleQueueAttr
         // This gets rid of the names and translates to IDs
@@ -207,33 +205,24 @@ namespace CPN {
                 CreateLocalQueue(attr);
             } else {
                 // Send a message to the other host to create a local queue
-                SendCreateQueue(readerhost, attr);
+                database->SendCreateQueue(readerhost, attr);
             }
         } else if (readerhost == hostkey) {
             // Create the reader end here and queue up a message
             // to the writer host that they need to create an endpoint
             CreateReaderEndpoint(attr);
-            SendCreateWriter(writerhost, attr);
+            database->SendCreateWriter(writerhost, attr);
         } else if (writerhost == hostkey) {
             // Create the writer end here and queue up a message to
             // the reader host that they need to create an endpoint
             CreateWriterEndpoint(attr);
-            SendCreateReader(readerhost, attr);
+            database->SendCreateReader(readerhost, attr);
         } else {
             // Queue up a message to both the reader and writer host
             // to create endpoints
-            SendCreateWriter(writerhost, attr);
-            SendCreateReader(readerhost, attr);
+            database->SendCreateWriter(writerhost, attr);
+            database->SendCreateReader(readerhost, attr);
         }
-    }
-
-    void Kernel::SendCreateWriter(Key_t writerhost, const SimpleQueueAttr &attr) {
-    }
-    void Kernel::SendCreateReader(Key_t readerhost, const SimpleQueueAttr &attr) {
-    }
-    void Kernel::SendCreateQueue(Key_t rwhost, const SimpleQueueAttr &attr) {
-    }
-    void Kernel::SendCreateNode(Key_t nhost, const NodeAttr &attr) {
     }
 
     void Kernel::CreateReaderEndpoint(const SimpleQueueAttr &attr) {
@@ -312,7 +301,7 @@ namespace CPN {
         StreamMap::iterator entry = streammap.find(writerkey);
         if (entry == streammap.end()) {
             stream = shared_ptr<StreamEndpoint>(
-                    new StreamEndpoint(this, writerkey, readerkey, StreamEndpoint::WRITE));
+                    new StreamEndpoint(this, readerkey, writerkey, StreamEndpoint::WRITE));
             streammap.insert(std::make_pair(writerkey, stream));
         } else {
             stream = dynamic_pointer_cast<StreamEndpoint>(entry->second);
@@ -511,35 +500,51 @@ namespace CPN {
         unknownstreams.push_back(shared_ptr<UnknownStream>(new UnknownStream(sock, this)));
     }
 
-    void Kernel::CreateWriter(Key_t src, Key_t dst, const SimpleQueueAttr &attr) {
+    void Kernel::CreateWriter(Key_t dst, const SimpleQueueAttr &attr) {
+        Sync::AutoReentrantLock arlock(lock);
+        FUNCBEGIN;
+        ASSERT(dst == hostkey);
         CreateWriterEndpoint(attr);
     }
-    void Kernel::CreateReader(Key_t src, Key_t dst, const SimpleQueueAttr &attr) {
+    void Kernel::CreateReader(Key_t dst, const SimpleQueueAttr &attr) {
+        Sync::AutoReentrantLock arlock(lock);
+        FUNCBEGIN;
+        ASSERT(dst == hostkey);
         CreateReaderEndpoint(attr);
     }
-    void Kernel::CreateQueue(Key_t src, Key_t dst, const SimpleQueueAttr &attr) {
+    void Kernel::CreateQueue(Key_t dst, const SimpleQueueAttr &attr) {
+        Sync::AutoReentrantLock arlock(lock);
+        FUNCBEGIN;
+        ASSERT(dst == hostkey);
         CreateLocalQueue(attr);
     }
-    void Kernel::CreateNode(Key_t src, Key_t dst, const NodeAttr &attr) {
+    void Kernel::CreateNode(Key_t dst, const NodeAttr &attr) {
+        Sync::AutoReentrantLock arlock(lock);
+        FUNCBEGIN;
+        ASSERT(dst == hostkey);
         NodeAttr nodeattr(attr);
         InternalCreateNode(nodeattr);
     }
 
     void Kernel::StreamDead(Key_t streamkey) {
+        FUNCBEGIN;
         deadstreams.push_back(streamkey);
     }
 
     void Kernel::SetReaderDescriptor(Key_t readerkey, Key_t writerkey, Async::DescriptorPtr desc) {
+        FUNCBEGIN;
         shared_ptr<StreamEndpoint> stream = GetReaderStream(readerkey, writerkey);
         stream->SetDescriptor(desc);
     }
 
     void Kernel::SetWriterDescriptor(Key_t writerkey, Key_t readerkey, Async::DescriptorPtr desc) {
+        FUNCBEGIN;
         shared_ptr<StreamEndpoint> stream = GetWriterStream(writerkey, readerkey);
         stream->SetDescriptor(desc);
     }
 
     weak_ptr<UnknownStream> Kernel::CreateNewQueueStream(Key_t readerkey, Key_t writerkey) {
+        FUNCBEGIN;
         Key_t readerhost = database->GetReaderHost(readerkey);
         Key_t writerhost = database->GetWriterHost(writerkey);
         Key_t otherhost = 0;
@@ -569,6 +574,13 @@ namespace CPN {
     void Kernel::NewKernelStream(Key_t kernelkey, Async::DescriptorPtr desc) {
         StreamMap::iterator entry = streammap.find(kernelkey);
         if (entry == streammap.end()) {
+        }
+    }
+
+    void Kernel::PrintStreamState() {
+        for (StreamMap::iterator itr = streammap.begin();
+                itr != streammap.end(); ++itr) {
+            itr->second->PrintState();
         }
     }
 }

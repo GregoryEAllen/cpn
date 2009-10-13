@@ -26,7 +26,7 @@
 namespace CPN {
     UnknownStream::UnknownStream(Async::SockPtr desc,
             KernelMessageHandler *kernMsgHan)
-        : descriptor(desc), readerkey(0), writerkey(0), mode(UNKNOWN), dead(false)
+        : descriptor(desc), kmh(kernMsgHan), readerkey(0), writerkey(0), mode(UNKNOWN), dead(false)
     {
         PacketDecoder::Enable(true);
         SetupDescriptor();
@@ -35,7 +35,7 @@ namespace CPN {
     UnknownStream::UnknownStream(Async::SockPtr desc,
             KernelMessageHandler *kernMsgHan,
             Key_t rkey, Key_t wkey, Mode_t m)
-        : descriptor(desc), readerkey(rkey), writerkey(wkey), mode(m), dead(false)
+        : descriptor(desc), kmh(kernMsgHan), readerkey(rkey), writerkey(wkey), mode(m), dead(false)
     {
         if (mode == READ) {
             encoder.SendReaderID(readerkey, writerkey);

@@ -62,16 +62,16 @@ namespace CPN {
 
     KernelMessageHandler::~KernelMessageHandler() {}
 
-    void KernelMessageHandler::CreateWriter(Key_t src, Key_t dst, const SimpleQueueAttr &attr) {
+    void KernelMessageHandler::CreateWriter(Key_t dst, const SimpleQueueAttr &attr) {
         ASSERT(false, "Unexpected message");
     }
-    void KernelMessageHandler::CreateReader(Key_t src, Key_t dst, const SimpleQueueAttr &attr) {
+    void KernelMessageHandler::CreateReader(Key_t dst, const SimpleQueueAttr &attr) {
         ASSERT(false, "Unexpected message");
     }
-    void KernelMessageHandler::CreateQueue(Key_t src, Key_t dst, const SimpleQueueAttr &attr) {
+    void KernelMessageHandler::CreateQueue(Key_t dst, const SimpleQueueAttr &attr) {
         ASSERT(false, "Unexpected message");
     }
-    void KernelMessageHandler::CreateNode(Key_t src, Key_t dst, const NodeAttr &attr) {
+    void KernelMessageHandler::CreateNode(Key_t dst, const NodeAttr &attr) {
         ASSERT(false, "Unexpected message");
     }
     void KernelMessageHandler::StreamDead(Key_t streamkey) {

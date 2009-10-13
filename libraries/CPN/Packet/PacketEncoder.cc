@@ -28,7 +28,7 @@ namespace CPN {
     PacketEncoder::PacketEncoder() {
     }
 
-    bool PacketEncoder::BytesReady() {
+    bool PacketEncoder::BytesReady() const {
         return cbuff.Size() > 0;
     }
 

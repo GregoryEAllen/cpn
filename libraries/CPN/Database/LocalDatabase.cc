@@ -45,12 +45,13 @@ namespace CPN {
         return loglevel = level;
     }
 
-    Key_t LocalDatabase::SetupHost(const KernelAttr &attr) {
+    Key_t LocalDatabase::SetupHost(const KernelAttr &attr, KernelMessageHandler *kmh) {
         PthreadMutexProtected pl(lock);
         shared_ptr<HostInfo> hinfo = shared_ptr<HostInfo>(new HostInfo);
         hinfo->name = attr.GetName();
         hinfo->hostname = attr.GetHostName();
         hinfo->servname = attr.GetServName();
+        hinfo->kmh = kmh;
         Key_t key = NewKey();
         hostmap.insert(std::make_pair(key, hinfo));
         hostnames.insert(std::make_pair(attr.GetName(), key));
@@ -92,6 +93,46 @@ namespace CPN {
                 return entry->second;
             }
         }
+    }
+
+    void LocalDatabase::SendCreateWriter(Key_t hostkey, const SimpleQueueAttr &attr) {
+        KernelMessageHandler *kmh;
+        {
+            PthreadMutexProtected pl(lock);
+            shared_ptr<HostInfo> hinfo = hostmap[hostkey];
+            kmh = hinfo->kmh;
+        }
+        kmh->CreateWriter(hostkey, attr);
+    }
+
+    void LocalDatabase::SendCreateReader(Key_t hostkey, const SimpleQueueAttr &attr) {
+        KernelMessageHandler *kmh;
+        {
+            PthreadMutexProtected pl(lock);
+            shared_ptr<HostInfo> hinfo = hostmap[hostkey];
+            kmh = hinfo->kmh;
+        }
+        kmh->CreateReader(hostkey, attr);
+    }
+
+    void LocalDatabase::SendCreateQueue(Key_t hostkey, const SimpleQueueAttr &attr) {
+        KernelMessageHandler *kmh;
+        {
+            PthreadMutexProtected pl(lock);
+            shared_ptr<HostInfo> hinfo = hostmap[hostkey];
+            kmh = hinfo->kmh;
+        }
+        kmh->CreateQueue(hostkey, attr);
+    }
+
+    void LocalDatabase::SendCreateNode(Key_t hostkey, const NodeAttr &attr) {
+        KernelMessageHandler *kmh;
+        {
+            PthreadMutexProtected pl(lock);
+            shared_ptr<HostInfo> hinfo = hostmap[hostkey];
+            kmh = hinfo->kmh;
+        }
+        kmh->CreateNode(hostkey, attr);
     }
 
     Key_t LocalDatabase::CreateNodeKey(const std::string &nodename) {

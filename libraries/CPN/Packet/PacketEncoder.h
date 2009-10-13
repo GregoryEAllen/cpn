@@ -35,11 +35,12 @@ namespace CPN {
     class PacketEncoder {
     public:
         PacketEncoder();
-        bool BytesReady();
+        bool BytesReady() const;
 
         const void *GetEncodedBytes(unsigned &amount);
         void ReleaseEncodedBytes(unsigned amount);
         void Reset() { cbuff.Reset(); }
+        unsigned NumBytes() const { return cbuff.Size(); }
 
         void SendEnqueue(const void **data, unsigned length, unsigned numchannels);
         void SendDequeue(unsigned length, unsigned numchannels);

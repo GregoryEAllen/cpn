@@ -25,6 +25,7 @@
 #define CPNDB_DATABASE_H
 #pragma once
 #include "CPNCommon.h"
+#include "Message.h"
 #include <string>
 
 namespace CPN {
@@ -43,11 +44,16 @@ namespace CPN {
         virtual int LogLevel() const = 0;
         virtual int LogLevel(int level) = 0;
 
-        virtual Key_t SetupHost(const KernelAttr &attr) = 0;
+        virtual Key_t SetupHost(const KernelAttr &attr, KernelMessageHandler *kmh) = 0;
         virtual Key_t GetHostKey(const std::string &host) = 0;
         virtual KernelAttr GetHostInfo(Key_t hostkey) = 0;
         virtual void DestroyHostKey(Key_t hostkey) = 0;
         virtual Key_t WaitForHostSetup(const std::string &host) = 0;
+
+        virtual void SendCreateWriter(Key_t hostkey, const SimpleQueueAttr &attr) = 0;
+        virtual void SendCreateReader(Key_t hostkey, const SimpleQueueAttr &attr) = 0;
+        virtual void SendCreateQueue(Key_t hostkey, const SimpleQueueAttr &attr) = 0;
+        virtual void SendCreateNode(Key_t hostkey, const NodeAttr &attr) = 0;
 
         virtual Key_t CreateNodeKey(const std::string &nodename) = 0;
         virtual Key_t GetNodeKey(const std::string &nodename) = 0;

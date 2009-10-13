@@ -48,6 +48,7 @@ namespace CPN {
         void ReleaseDecoderBytes(unsigned amount);
         void Reset();
         void Enable(bool en = true) { enable = en; }
+        unsigned NumBytes() const { return numbytes; }
 
     protected:
         // The data will have a chan stride of length

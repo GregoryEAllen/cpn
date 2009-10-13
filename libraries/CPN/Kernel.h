@@ -157,10 +157,10 @@ namespace CPN {
 
         void ListenRead();
 
-        void CreateWriter(Key_t src, Key_t dst, const SimpleQueueAttr &attr);
-        void CreateReader(Key_t src, Key_t dst, const SimpleQueueAttr &attr);
-        void CreateQueue(Key_t src, Key_t dst, const SimpleQueueAttr &attr);
-        void CreateNode(Key_t src, Key_t dst, const NodeAttr &attr);
+        void CreateWriter(Key_t dst, const SimpleQueueAttr &attr);
+        void CreateReader(Key_t dst, const SimpleQueueAttr &attr);
+        void CreateQueue(Key_t dst, const SimpleQueueAttr &attr);
+        void CreateNode(Key_t dst, const NodeAttr &attr);
 
         void StreamDead(Key_t streamkey);
         void SetReaderDescriptor(Key_t readerkey, Key_t writerkey, Async::DescriptorPtr desc);
@@ -168,10 +168,7 @@ namespace CPN {
         weak_ptr<UnknownStream> CreateNewQueueStream(Key_t readerkey, Key_t writerkey);
         void NewKernelStream(Key_t kernelkey, Async::DescriptorPtr desc);
 
-        void SendCreateWriter(Key_t writerhost, const SimpleQueueAttr &attr);
-        void SendCreateReader(Key_t readerhost, const SimpleQueueAttr &attr);
-        void SendCreateQueue(Key_t rwhost, const SimpleQueueAttr &attr);
-        void SendCreateNode(Key_t nhost, const NodeAttr &attr);
+        void PrintStreamState();
 
         Sync::ReentrantLock lock;
         Sync::StatusHandler<KernelStatus_t> status;

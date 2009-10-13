@@ -4,6 +4,7 @@
 #include "QueueReaderAdapter.h"
 #include <string>
 
+#define _DEBUG 1
 #if _DEBUG
 #include <cstdio>
 #define DEBUG(frmt, ...) printf(frmt, __VA_ARGS__)
