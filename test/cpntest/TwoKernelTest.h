@@ -23,7 +23,7 @@ public:
 
 	CPPUNIT_TEST_SUITE( TwoKernelTest );
 	CPPUNIT_TEST( SimpleTwoNodeTest );
-	CPPUNIT_TEST( TestSync );
+	//CPPUNIT_TEST( TestSync );
 	CPPUNIT_TEST_SUITE_END();
 
     void SimpleTwoNodeTest();

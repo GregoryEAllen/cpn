@@ -32,16 +32,19 @@ namespace CPN {
     LocalDatabase::~LocalDatabase() {}
 
     void LocalDatabase::Log(int level, const std::string &msg) {
+        PthreadMutexProtected pl(lock);
         if (level > loglevel) {
             std::cout << msg << std::endl;
         }
     }
 
     int LocalDatabase::LogLevel() const {
+        PthreadMutexProtected pl(lock);
         return loglevel;
     }
 
     int LocalDatabase::LogLevel(int level) {
+        PthreadMutexProtected pl(lock);
         return loglevel = level;
     }
 
@@ -143,6 +146,7 @@ namespace CPN {
             shared_ptr<NodeInfo> ninfo = shared_ptr<NodeInfo>(new NodeInfo);
             ninfo->name = nodename;
             ninfo->started = false;
+            ninfo->dead = false;
             key = NewKey();
             nodenames.insert(std::make_pair(nodename, key));
             nodemap.insert(std::make_pair(key, ninfo));
@@ -185,10 +189,12 @@ namespace CPN {
     void LocalDatabase::DestroyNodeKey(Key_t nodekey) {
         PthreadMutexProtected pl(lock);
         NodeMap::iterator entry = nodemap.find(nodekey);
-        if (entry == nodemap.end()) { return; }
-        nodenames.erase(entry->second->name);
-        nodemap.erase(entry);
-        nodelivedead.Broadcast();
+        if (entry == nodemap.end()) {
+            throw std::invalid_argument("No such node");
+        } else {
+            entry->second->dead = true;
+            nodelivedead.Broadcast();
+        }
     }
 
     Key_t LocalDatabase::WaitForNodeStart(const std::string &nodename) {
@@ -214,20 +220,28 @@ namespace CPN {
             if (nameentry != nodenames.end()) {
                 NodeMap::iterator entry = nodemap.find(nameentry->second);
                 if (entry != nodemap.end()) {
-                    nodelivedead.Wait(lock);
-                } else {
-                    break;
+                    if (entry->second->dead) {
+                        return;
+                    }
                 }
-            } else {
-                break;
             }
+            nodelivedead.Wait(lock);
         }
     }
 
     void LocalDatabase::WaitForAllNodeEnd() {
         PthreadMutexProtected pl(lock);
         while (true) {
-            if (!nodemap.empty()) {
+            bool deadyet = true;
+            NodeMap::iterator entry = nodemap.begin();
+            while (entry != nodemap.end()) {
+                if (!entry->second->dead) {
+                    deadyet = false;
+                    break;
+                }
+                ++entry;
+            }
+            if (!deadyet) {
                 nodelivedead.Wait(lock);
             } else {
                 break;

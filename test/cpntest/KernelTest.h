@@ -27,9 +27,8 @@ public:
 
 
 	// Support functions
-	void AddNoOps();
+	void AddNoOps(CPN::Kernel &kernel);
 
 private:
-	CPN::Kernel* kernel;
 };
 #endif

@@ -3,6 +3,7 @@
 #include <cppunit/ui/text/TestRunner.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <signal.h>
 
 const char VALID_OPS[] = "p";
 
@@ -10,6 +11,8 @@ const char VALID_OPS[] = "p";
  * Code from http://cppunit.sourceforge.net/doc/lastest/cppunit_cookbook.html
  */
 int main(int argc, char **argv) {
+    // Ignore sigpipe
+	signal(SIGPIPE,SIG_IGN);
     bool pause = false;
     bool procOpts = true;
     while (procOpts) {

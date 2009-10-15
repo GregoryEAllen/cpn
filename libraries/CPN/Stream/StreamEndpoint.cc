@@ -26,7 +26,7 @@
 
 #include "Assert.h"
 
-#if 0
+#if 1
 #include <stdio.h>
 #define DEBUG(frmt, ...) printf(frmt, __VA_ARGS__)
 #else
@@ -42,7 +42,7 @@ namespace CPN {
         rmh(0), wmh(0), kmh(kernMsgHan),
         readerkey(rkey),
         writerkey(wkey),
-        mode(m),
+        mode(m), descriptorset(false),
         shuttingdown(false), readdead(false), writedead(false)
     {
         PacketDecoder::Enable(false);
@@ -50,7 +50,17 @@ namespace CPN {
     }
 
     StreamEndpoint::~StreamEndpoint() {
+        if (queue) {
+            if (mode == READ) {
+                queue->ClearWriterMessageHandler();
+            } else if (mode == WRITE) {
+                queue->ClearReaderMessageHandler();
+            } else {
+                ASSERT(false, "Invaid stream endpoint mode.");
+            }
+        }
         DEBUG("StreamEndpoint destructed r: %lu, w: %lu, mode: %s\n", readerkey, writerkey, mode == READ ? "read" : "write");
+        PrintState();
     }
 
     void StreamEndpoint::RMHEnqueue(Key_t wkey, Key_t rkey) {
@@ -225,6 +235,7 @@ namespace CPN {
                                 && !encoder.BytesReady()
                                 && shuttingdown) {
                             // Nothing left to write
+                            DEBUG("Nothing left to write on write endpoint closing descriptor %lu\n", writerkey);
                             stream.Close();
                             descriptor.reset();
                             SignalDeath();
@@ -357,6 +368,7 @@ namespace CPN {
         descriptor->ConnectOnRead(sigc::mem_fun(this, &StreamEndpoint::ReadSome));
         descriptor->ConnectOnWrite(sigc::mem_fun(this, &StreamEndpoint::WriteSome));
         descriptor->ConnectOnError(sigc::mem_fun(this, &StreamEndpoint::OnError));
+        descriptorset = true;
     }
 
     void StreamEndpoint::ResetDescriptor() {
@@ -394,6 +406,7 @@ namespace CPN {
         if (mode == READ) {
             kmh->StreamDead(readerkey);
         } else if (mode == WRITE) {
+            ASSERT(!encoder.BytesReady());
             kmh->StreamDead(writerkey);
         } else {
             ASSERT(false, "Invalid stream endpoint mode.");
@@ -411,11 +424,15 @@ namespace CPN {
         BEGIN_FUNC;
         if (descriptor) {
             descriptors.push_back(descriptor);
-        } else if (Shuttingdown()) {
-            SignalDeath();
         } else if (mode == WRITE && pendingconn.expired()) {
             // Writer will be setup to create a new connection.
             pendingconn = kmh->CreateNewQueueStream(readerkey, writerkey);
+        } else if (Shuttingdown() && (descriptorset || mode == READ)) {
+            // If we do not have he descriptor and we are in read mode or
+            // the descriptor has been set then die.
+            // I.e. We don't want to die if we are in write mode and shutdown
+            // but never got the descriptor yet.
+            SignalDeath();
         }
     }
 

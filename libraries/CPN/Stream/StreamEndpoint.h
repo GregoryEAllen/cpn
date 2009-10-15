@@ -141,6 +141,9 @@ namespace CPN {
         const Key_t readerkey;
         const Key_t writerkey;
         const Mode_t mode;
+        // Indicates that the descriptor has been set
+        // otherwise we never had the descriptor so we cannot shutdown yet
+        bool descriptorset;
         // Indicate we are in the shutdown process
         bool shuttingdown;
         // Inidicate that our end is gone (i.e. for write no more data will be coming to send

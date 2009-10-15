@@ -52,12 +52,14 @@ namespace CPN {
             bool started;
             NameMap readers;
             NameMap writers;
+            bool dead;
         };
 
         struct PortInfo {
             std::string name;
             Key_t nodekey;
             Key_t opposingport;
+            bool dead;
         };
 
         typedef std::map< Key_t, shared_ptr<HostInfo> > HostMap;
@@ -111,7 +113,7 @@ namespace CPN {
         virtual Key_t GetWritersReader(Key_t writerkey);
     private:
         int loglevel;
-        PthreadMutex lock;
+        mutable PthreadMutex lock;
         PthreadCondition nodelivedead;
         PthreadCondition hostlivedead;
         NameMap hostnames;

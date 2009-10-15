@@ -224,6 +224,10 @@ void StreamEndpointTest::WMHTagChange(Key_t src, Key_t dst) {
 void StreamEndpointTest::StreamDead(Key_t streamkey) {
 }
 
+CPN::weak_ptr<CPN::UnknownStream> StreamEndpointTest::CreateNewQueueStream(CPN::Key_t readerkey, CPN::Key_t writerkey) {
+    return CPN::weak_ptr<CPN::UnknownStream>();
+}
+
 void StreamEndpointTest::SendWakeup() {
 }
 

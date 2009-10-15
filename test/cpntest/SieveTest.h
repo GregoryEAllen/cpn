@@ -6,7 +6,6 @@
  */
 #ifndef SIEVETEST_H
 #define SIEVETEST_H
-#include "Kernel.h"
 #include <cppunit/extensions/HelperMacros.h>
 class SieveTest : public CppUnit::TestFixture {
 public:
@@ -16,11 +15,12 @@ public:
 
     CPPUNIT_TEST_SUITE( SieveTest );
     CPPUNIT_TEST( RunTest );
+    //CPPUNIT_TEST( RunTwoKernelTest );
     CPPUNIT_TEST_SUITE_END();
 
     void RunTest();
+    void RunTwoKernelTest();
 
 private:
-    CPN::Kernel* kernel;
 };
 #endif

@@ -46,10 +46,10 @@
 #include <stdexcept>
 #include <cassert>
 
-//#define KERNEL_FUNC_TRACE
+#define KERNEL_FUNC_TRACE
 #ifdef KERNEL_FUNC_TRACE
-#define FUNCBEGIN printf("%s begin\n",__PRETTY_FUNCTION__)
-#define FUNCEND printf("%s end\n",__PRETTY_FUNCTION__)
+#define FUNCBEGIN printf("%s begin %s\n",__PRETTY_FUNCTION__, kernelname.c_str())
+#define FUNCEND printf("%s end %s\n",__PRETTY_FUNCTION__, kernelname.c_str())
 #else
 #define FUNCBEGIN
 #define FUNCEND
@@ -491,18 +491,21 @@ namespace CPN {
     }
 
     void Kernel::StreamDead(Key_t streamkey) {
+        Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
         deadstreams.push_back(streamkey);
     }
 
     void Kernel::SetReaderDescriptor(Key_t readerkey, Key_t writerkey, Async::DescriptorPtr desc) {
         FUNCBEGIN;
+        Sync::AutoReentrantLock arlock(lock);
         shared_ptr<StreamEndpoint> stream = GetReaderStream(readerkey, writerkey);
         stream->SetDescriptor(desc);
     }
 
     void Kernel::SetWriterDescriptor(Key_t writerkey, Key_t readerkey, Async::DescriptorPtr desc) {
         FUNCBEGIN;
+        Sync::AutoReentrantLock arlock(lock);
         shared_ptr<StreamEndpoint> stream = GetWriterStream(writerkey, readerkey);
         stream->SetDescriptor(desc);
     }

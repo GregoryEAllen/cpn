@@ -78,6 +78,7 @@ private:
     void WMHTagChange(CPN::Key_t src, CPN::Key_t dst);
 
     void StreamDead(CPN::Key_t streamkey);
+    CPN::weak_ptr<CPN::UnknownStream> CreateNewQueueStream(CPN::Key_t readerkey, CPN::Key_t writerkey);
     void SendWakeup();
 
     CPN::shared_ptr<CPN::QueueBase> wqueue;
