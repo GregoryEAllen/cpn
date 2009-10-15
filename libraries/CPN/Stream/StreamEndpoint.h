@@ -141,6 +141,8 @@ namespace CPN {
         const Key_t writerkey;
         const Mode_t mode;
         bool shuttingdown;
+        bool readdead;
+        bool writedead;
         weak_ptr<UnknownStream> pendingconn;
     };
 }

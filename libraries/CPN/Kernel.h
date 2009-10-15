@@ -143,7 +143,6 @@ namespace CPN {
         shared_ptr<StreamEndpoint> GetWriterStream(Key_t writerkey, Key_t readerkey);
         void InternalCreateNode(NodeAttr &nodeattr);
         void ClearGarbage();
-        void HandleMessages();
 
         void *EntryPoint();
 

@@ -381,48 +381,12 @@ namespace CPN {
         }
     }
 
-    void Kernel::HandleMessages() {
-        Sync::AutoReentrantLock arlock(lock);
-        /*
-        std::list<KernelMessagePtr>::iterator itr;
-        itr = msgqueue.begin();
-        while (itr != msgqueue.end()) {
-            KernelMessagePtr msg = *itr;
-            // Look at the destination of the message.
-            if (msg->GetDestinationKey() == hostkey) {
-                // Is it us? process it.
-                msg->DispatchOn(this);
-                itr = msgqueue.erase(itr);
-            } else {
-                // if not us lookup to see if we have a control
-                StreamMap::iterator entry = streammap.find(msg->GetDestinationKey());
-                if (entry == streammap.end()) {
-                    // if we dont have one create one and keep the message around
-                    ++itr;
-                } else {
-                    shared_ptr<KernelStream> kernelstream =
-                        dynamic_pointer_cast<KernelStream>(entry->second);
-                    if (kernelstream->Connected()) {
-                        // if we have one forward it
-                        msg->DispatchOn(kernelstream.get());
-                        itr = msgqueue.erase(itr);
-                    } else {
-                        // It is waiting to be connected keep the message around
-                        ++itr;
-                    }
-                }
-            }
-        }
-        */
-    }
-
     void *Kernel::EntryPoint() {
         FUNCBEGIN;
         Sync::AutoReentrantLock arlock(lock, false);
         status.CompareAndPost(INITIALIZED, RUNNING);
         while (status.Get() == RUNNING) {
             ClearGarbage();
-            HandleMessages();
             std::vector<Async::DescriptorPtr> descriptors;
             descriptors.push_back(wakeuplisten);
             descriptors.push_back(listener);

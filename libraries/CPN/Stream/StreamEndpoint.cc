@@ -35,7 +35,7 @@ namespace CPN {
         readerkey(rkey),
         writerkey(wkey),
         mode(m),
-        shuttingdown(false)
+        shuttingdown(false), readdead(false), writedead(false)
     {
         PacketDecoder::Enable(false);
     }
@@ -57,6 +57,10 @@ namespace CPN {
         Sync::AutoReentrantLock arl(lock);
         ASSERT(rkey == readerkey && wkey == writerkey);
         ASSERT(mode == READ);
+        if (shuttingdown && (!descriptor || (!*descriptor))) {
+            SignalDeath();
+            return;
+        }
         unsigned numchans = queue->NumChannels();
         // Difference between how many bytes we think are in the
         // queue and how many are actually there
@@ -97,6 +101,7 @@ namespace CPN {
         ASSERT(mode == WRITE);
         // send the message on and start our shutdown
         shuttingdown = true;
+        writedead = true;
         encoder.SendEndOfWriteQueue();
         WriteSome();
         Wakeup();
@@ -109,6 +114,7 @@ namespace CPN {
         ASSERT(mode == READ);
         // send the message on and start our shutdown
         shuttingdown = true;
+        readdead = true;
         encoder.SendEndOfReadQueue();
         WriteSome();
         Wakeup();
@@ -156,19 +162,17 @@ namespace CPN {
         Sync::AutoReentrantLock arl(lock);
         if (!descriptor) { return; }
         Async::Stream stream(descriptor);
-        unsigned numtoread = 0;
-        unsigned numread = 0;
-        bool loop = true;
-        while (loop) {
+        while (stream) {
+            unsigned numtoread = 0;
             void *ptr = PacketDecoder::GetDecoderBytes(numtoread);
-            numread = stream.Read(ptr, numtoread);
+            unsigned numread = stream.Read(ptr, numtoread);
             if (0 == numread) {
                 if  (!stream) {
                     // The other end closed the connection!!
                     stream.Close();
                     descriptor.reset();
                 }
-                loop = false;
+                break;
             } else {
                 PacketDecoder::ReleaseDecoderBytes(numread);
             }
@@ -180,7 +184,7 @@ namespace CPN {
         Sync::AutoReentrantLock arl(lock);
         if (!descriptor) { return; }
         Async::Stream stream(descriptor);
-        while (true) {
+        while (stream) {
             unsigned towrite = 0;
             const void *ptr = encoder.GetEncodedBytes(towrite);
             if (0 == towrite) {
@@ -194,6 +198,7 @@ namespace CPN {
                             // Nothing left to write
                             stream.Close();
                             descriptor.reset();
+                            SignalDeath();
                         }
                     }
                 }
@@ -251,13 +256,16 @@ namespace CPN {
     void StreamEndpoint::ReceiveEndOfWriteQueue() {
         ASSERT(mode == READ);
         shuttingdown = true;
+        writedead = true;
         rmh->RMHEndOfWriteQueue(writerkey, readerkey);
     }
 
     void StreamEndpoint::ReceiveEndOfReadQueue() {
         ASSERT(mode == WRITE);
         shuttingdown = true;
+        readdead = true;
         wmh->WMHEndOfReadQueue(readerkey, writerkey);
+        SignalDeath();
     }
 
     void StreamEndpoint::ReceivedReaderID(uint64_t rkey, uint64_t wkey) {
@@ -332,7 +340,7 @@ namespace CPN {
             ASSERT(false, "Invaid stream endpoint mode.");
         }
         PacketDecoder::Enable(true);
-        Wakeup();
+        kmh->SendWakeup();
     }
 
     bool StreamEndpoint::Shuttingdown() const {
@@ -357,7 +365,9 @@ namespace CPN {
     }
 
     void StreamEndpoint::RegisterDescriptor(std::vector<Async::DescriptorPtr> &descriptors) {
-        if (descriptor) {
+        if (readdead) {
+            SignalDeath();
+        } else if (descriptor) {
             descriptors.push_back(descriptor);
         } else if (Shuttingdown()) {
             SignalDeath();
