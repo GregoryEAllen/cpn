@@ -26,6 +26,14 @@
 
 #include "Assert.h"
 
+#if 0
+#include <stdio.h>
+#define DEBUG(frmt, ...) printf(frmt, __VA_ARGS__)
+#else
+#define DEBUG(frmt, ...)
+#endif
+#define BEGIN_FUNC DEBUG("%s begin r: %lu, w: %lu, mode: %s\n", __PRETTY_FUNCTION__, readerkey, writerkey, mode == READ ? "read" : "write")
+
 namespace CPN {
 
     StreamEndpoint::StreamEndpoint(KernelMessageHandler *kernMsgHan, Key_t rkey, Key_t wkey, Mode_t m)
@@ -38,11 +46,17 @@ namespace CPN {
         shuttingdown(false), readdead(false), writedead(false)
     {
         PacketDecoder::Enable(false);
+        DEBUG("StreamEndpoint constructed r: %lu, w: %lu, mode: %s\n", readerkey, writerkey, mode == READ ? "read" : "write");
+    }
+
+    StreamEndpoint::~StreamEndpoint() {
+        DEBUG("StreamEndpoint destructed r: %lu, w: %lu, mode: %s\n", readerkey, writerkey, mode == READ ? "read" : "write");
     }
 
     void StreamEndpoint::RMHEnqueue(Key_t wkey, Key_t rkey) {
         Sync::AutoReentrantLock qarl(*queuelock);
         Sync::AutoReentrantLock arl(lock);
+        BEGIN_FUNC;
         ASSERT(!shuttingdown, "Enqueue on a shutdown queue!");
         ASSERT(wkey == writerkey && rkey == readerkey);
         ASSERT(mode == WRITE);
@@ -55,6 +69,7 @@ namespace CPN {
     void StreamEndpoint::WMHDequeue(Key_t rkey, Key_t wkey) {
         Sync::AutoReentrantLock qarl(*queuelock);
         Sync::AutoReentrantLock arl(lock);
+        BEGIN_FUNC;
         ASSERT(rkey == readerkey && wkey == writerkey);
         ASSERT(mode == READ);
         if (shuttingdown && (!descriptor || (!*descriptor))) {
@@ -74,6 +89,7 @@ namespace CPN {
     void StreamEndpoint::WMHReadBlock(Key_t rkey, Key_t wkey, unsigned requested) {
         Sync::AutoReentrantLock qarl(*queuelock);
         Sync::AutoReentrantLock arl(lock);
+        BEGIN_FUNC;
         ASSERT(!shuttingdown, "Block on a shutdown queue!");
         ASSERT(rkey == readerkey && wkey == writerkey);
         ASSERT(mode == READ);
@@ -85,6 +101,7 @@ namespace CPN {
     void StreamEndpoint::RMHWriteBlock(Key_t wkey, Key_t rkey, unsigned requested) {
         Sync::AutoReentrantLock qarl(*queuelock);
         Sync::AutoReentrantLock arl(lock);
+        BEGIN_FUNC;
         ASSERT(!shuttingdown, "Block on a shutdown queue!");
         ASSERT(wkey == writerkey && rkey == readerkey);
         ASSERT(mode == WRITE);
@@ -97,6 +114,7 @@ namespace CPN {
     void StreamEndpoint::RMHEndOfWriteQueue(Key_t wkey, Key_t rkey) {
         Sync::AutoReentrantLock qarl(*queuelock);
         Sync::AutoReentrantLock arl(lock);
+        BEGIN_FUNC;
         ASSERT(wkey == writerkey && rkey == readerkey);
         ASSERT(mode == WRITE);
         // send the message on and start our shutdown
@@ -110,6 +128,7 @@ namespace CPN {
     void StreamEndpoint::WMHEndOfReadQueue(Key_t rkey, Key_t wkey) {
         Sync::AutoReentrantLock qarl(*queuelock);
         Sync::AutoReentrantLock arl(lock);
+        BEGIN_FUNC;
         ASSERT(rkey == readerkey && wkey == writerkey);
         ASSERT(mode == READ);
         // send the message on and start our shutdown
@@ -123,6 +142,7 @@ namespace CPN {
     void StreamEndpoint::RMHTagChange(Key_t wkey, Key_t rkey) {
         Sync::AutoReentrantLock qarl(*queuelock);
         Sync::AutoReentrantLock arl(lock);
+        BEGIN_FUNC;
         ASSERT(wkey == writerkey && rkey == readerkey);
         ASSERT(mode == WRITE);
         ASSERT(false, "Unimplemented");
@@ -131,6 +151,7 @@ namespace CPN {
     void StreamEndpoint::WMHTagChange(Key_t rkey, Key_t wkey) {
         Sync::AutoReentrantLock qarl(*queuelock);
         Sync::AutoReentrantLock arl(lock);
+        BEGIN_FUNC;
         ASSERT(rkey == readerkey && wkey == writerkey);
         ASSERT(mode == READ);
         ASSERT(false, "Unimplemented");
@@ -138,19 +159,25 @@ namespace CPN {
 
     bool StreamEndpoint::ReadReady() {
         Sync::AutoReentrantLock arl(lock);
+        BEGIN_FUNC;
         return PacketDecoder::Enabled();
     }
 
     bool StreamEndpoint::WriteReady() {
         Sync::AutoReentrantLock arl(lock);
+        BEGIN_FUNC;
         if (!encoder.BytesReady()) {
             if (mode == WRITE && queue) {
                 arl.Unlock();
                 Sync::AutoReentrantLock qarl(*queuelock);
                 arl.Lock();
-                if (!EnqueueBlocked()) {
-                    return WriteEnqueue();
+                if (!EnqueueBlocked() && WriteEnqueue()) {
+                    return true;
+                } else if (shuttingdown) {
+                    SignalDeath();
                 }
+            } else if (mode == READ && readdead) {
+                SignalDeath();
             }
             return false;
         }
@@ -160,6 +187,7 @@ namespace CPN {
     void StreamEndpoint::ReadSome() {
         Sync::AutoReentrantLock qarl(*queuelock);
         Sync::AutoReentrantLock arl(lock);
+        BEGIN_FUNC;
         if (!descriptor) { return; }
         Async::Stream stream(descriptor);
         while (stream) {
@@ -182,6 +210,7 @@ namespace CPN {
     void StreamEndpoint::WriteSome() {
         Sync::AutoReentrantLock qarl(*queuelock);
         Sync::AutoReentrantLock arl(lock);
+        BEGIN_FUNC;
         if (!descriptor) { return; }
         Async::Stream stream(descriptor);
         while (stream) {
@@ -214,6 +243,7 @@ namespace CPN {
     }
 
     void StreamEndpoint::OnError(int err) {
+        BEGIN_FUNC;
         descriptor.reset();
         if (Shuttingdown()) {
             SignalDeath();
@@ -224,6 +254,7 @@ namespace CPN {
     // context of ReadSome.
 
     void StreamEndpoint::ReceivedEnqueue(void *data, unsigned length, unsigned numchannels) {
+        BEGIN_FUNC;
         ASSERT(numchannels == queue->NumChannels(),
                 "Endpoints disagree on number of channels.");
         ASSERT(mode == READ);
@@ -235,6 +266,7 @@ namespace CPN {
     }
 
     void StreamEndpoint::ReceivedDequeue(unsigned length, unsigned numchannels) {
+        BEGIN_FUNC;
         ASSERT(numchannels == queue->NumChannels(),
                 "Endpoints disagree on number of channels.");
         ASSERT(mode == WRITE);
@@ -244,49 +276,55 @@ namespace CPN {
     }
 
     void StreamEndpoint::ReceivedReadBlock(unsigned requested) {
+        BEGIN_FUNC;
         ASSERT(mode == WRITE);
         wmh->WMHReadBlock(readerkey, writerkey, requested);
     }
 
     void StreamEndpoint::ReceivedWriteBlock(unsigned requested) {
+        BEGIN_FUNC;
         ASSERT(mode == READ);
         rmh->RMHWriteBlock(writerkey, readerkey, requested);
     }
 
     void StreamEndpoint::ReceiveEndOfWriteQueue() {
+        BEGIN_FUNC;
         ASSERT(mode == READ);
         shuttingdown = true;
-        writedead = true;
         rmh->RMHEndOfWriteQueue(writerkey, readerkey);
     }
 
     void StreamEndpoint::ReceiveEndOfReadQueue() {
+        BEGIN_FUNC;
         ASSERT(mode == WRITE);
         shuttingdown = true;
-        readdead = true;
         wmh->WMHEndOfReadQueue(readerkey, writerkey);
         SignalDeath();
     }
 
     void StreamEndpoint::ReceivedReaderID(uint64_t rkey, uint64_t wkey) {
+        BEGIN_FUNC;
         ASSERT(mode == WRITE);
         ASSERT(readerkey == rkey);
         ASSERT(writerkey == wkey);
     }
 
     void StreamEndpoint::ReceivedWriterID(uint64_t wkey, uint64_t rkey) {
+        BEGIN_FUNC;
         ASSERT(mode == READ);
         ASSERT(readerkey == rkey);
         ASSERT(writerkey == wkey);
     }
 
     void StreamEndpoint::CheckBlockedEnqueues() {
+        BEGIN_FUNC;
         while (!EnqueueBlocked() && WriteEnqueue()) {
             // Would it be a good idea to call WriteSome here?
         }
     }
 
     bool StreamEndpoint::WriteEnqueue() {
+        BEGIN_FUNC;
         ASSERT(mode == WRITE);
         // Send as much as we can, but no more than maxthreshold
         unsigned maxthresh = queue->MaxThreshold();
@@ -311,6 +349,7 @@ namespace CPN {
 
     void StreamEndpoint::SetDescriptor(Async::DescriptorPtr desc) {
         Sync::AutoReentrantLock arl(lock);
+        BEGIN_FUNC;
         ASSERT(!descriptor);
         descriptor = desc;
         descriptor->ConnectReadable(sigc::mem_fun(this, &StreamEndpoint::ReadReady));
@@ -322,12 +361,14 @@ namespace CPN {
 
     void StreamEndpoint::ResetDescriptor() {
         Sync::AutoReentrantLock arl(lock);
+        BEGIN_FUNC;
         descriptor.reset();
     }
 
     void StreamEndpoint::SetQueue(shared_ptr<QueueBase> q) {
         Sync::AutoReentrantLock qarl(q->GetLock());
         Sync::AutoReentrantLock arl(lock);
+        BEGIN_FUNC;
         queuelock = &q->GetLock();
         queue = q;
         rmh = queue->GetReaderMessageHandler();
@@ -349,6 +390,7 @@ namespace CPN {
     }
 
     void StreamEndpoint::SignalDeath() {
+        BEGIN_FUNC;
         if (mode == READ) {
             kmh->StreamDead(readerkey);
         } else if (mode == WRITE) {
@@ -356,6 +398,7 @@ namespace CPN {
         } else {
             ASSERT(false, "Invalid stream endpoint mode.");
         }
+        kmh->SendWakeup();
     }
 
     void StreamEndpoint::Wakeup() {
@@ -365,9 +408,8 @@ namespace CPN {
     }
 
     void StreamEndpoint::RegisterDescriptor(std::vector<Async::DescriptorPtr> &descriptors) {
-        if (readdead) {
-            SignalDeath();
-        } else if (descriptor) {
+        BEGIN_FUNC;
+        if (descriptor) {
             descriptors.push_back(descriptor);
         } else if (Shuttingdown()) {
             SignalDeath();

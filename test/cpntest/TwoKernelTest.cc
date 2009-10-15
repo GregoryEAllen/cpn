@@ -5,6 +5,7 @@
 #include "Database.h"
 #include "MockNodeFactory.h"
 #include "MockNode.h"
+#include "MockSyncNode.h"
 
 using CPN::Database;
 using CPN::Kernel;
@@ -54,5 +55,21 @@ void TwoKernelTest::SimpleTwoNodeTest() {
     kone->CreateQueue(qattr);
     kone->WaitNodeTerminate("sink");
     kone->WaitNodeTerminate("source");
+}
+
+void TwoKernelTest::TestSync() {
+	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    MockSyncNode::RegisterType();
+    MockSyncNode::Param param;
+    NodeAttr attr("sync1", MOCKSYNCNODE_TYPENAME);
+    strncpy(param.othernode, "sync2", 50);
+    param.mode = MockSyncNode::MODE_SOURCE;
+    attr.SetParam(StaticConstBuffer(&param, sizeof(param)));
+    kone->CreateNode(attr);
+    strncpy(param.othernode, "sync1", 50);
+    param.mode = MockSyncNode::MODE_SINK;
+    attr.SetName("sync2").SetParam(StaticConstBuffer(&param, sizeof(param)));
+    ktwo->CreateNode(attr);
+    ktwo->WaitNodeTerminate("sync2");
 }
 

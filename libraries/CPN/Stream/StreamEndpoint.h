@@ -56,6 +56,7 @@ namespace CPN {
         enum Mode_t { READ, WRITE };
 
         StreamEndpoint(KernelMessageHandler *kernMsgHan, Key_t rkey, Key_t wkey, Mode_t m);
+        ~StreamEndpoint();
 
         void RMHEnqueue(Key_t wkey, Key_t rkey);
         void RMHEndOfWriteQueue(Key_t wkey, Key_t rkey);
@@ -140,7 +141,10 @@ namespace CPN {
         const Key_t readerkey;
         const Key_t writerkey;
         const Mode_t mode;
+        // Indicate we are in the shutdown process
         bool shuttingdown;
+        // Inidicate that our end is gone (i.e. for write no more data will be coming to send
+        // and for read no more data will be read).
         bool readdead;
         bool writedead;
         weak_ptr<UnknownStream> pendingconn;

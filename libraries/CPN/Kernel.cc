@@ -46,7 +46,7 @@
 #include <stdexcept>
 #include <cassert>
 
-#define KERNEL_FUNC_TRACE
+//#define KERNEL_FUNC_TRACE
 #ifdef KERNEL_FUNC_TRACE
 #define FUNCBEGIN printf("%s begin\n",__PRETTY_FUNCTION__)
 #define FUNCEND printf("%s end\n",__PRETTY_FUNCTION__)

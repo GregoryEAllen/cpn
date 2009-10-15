@@ -41,7 +41,7 @@ void MockNode::Process() {
 	std::string ourname = GetName();
 	DEBUG("%s started\n", ourname.c_str());
 	unsigned long counter = 0;
-	unsigned long threshold = 10;
+	unsigned long threshold = 20;
 	switch (mode) {
 		case MODE_SOURCE:
             {
