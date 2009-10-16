@@ -130,12 +130,14 @@ namespace CPN {
             shared_ptr<QueueReader> reader = readermap.begin()->second;
             arl.Unlock();
             reader->Release();
+            reader.reset();
             arl.Lock();
         }
         while (!writermap.empty()) {
             shared_ptr<QueueWriter> writer = writermap.begin()->second;
             arl.Unlock();
             writer->Release();
+            writer.reset();
             arl.Lock();
         }
         arl.Unlock();

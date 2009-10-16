@@ -23,12 +23,13 @@
 
 #include "LocalDatabase.h"
 #include "KernelAttr.h"
+#include "Assert.h"
 #include <iostream>
 #include <stdexcept>
 
 namespace CPN {
 
-    LocalDatabase::LocalDatabase() : counter(0) {}
+    LocalDatabase::LocalDatabase() : numlivenodes(0), counter(0) {}
     LocalDatabase::~LocalDatabase() {}
 
     void LocalDatabase::Log(int level, const std::string &msg) {
@@ -55,6 +56,7 @@ namespace CPN {
         hinfo->hostname = attr.GetHostName();
         hinfo->servname = attr.GetServName();
         hinfo->kmh = kmh;
+        hinfo->dead = false;
         Key_t key = NewKey();
         hostmap.insert(std::make_pair(key, hinfo));
         hostnames.insert(std::make_pair(attr.GetName(), key));
@@ -82,8 +84,7 @@ namespace CPN {
 
     void LocalDatabase::DestroyHostKey(Key_t hostkey) {
         PthreadMutexProtected pl(lock);
-        hostnames.erase(hostmap[hostkey]->name);
-        hostmap.erase(hostkey);
+        hostmap[hostkey]->dead = true;
     }
 
     Key_t LocalDatabase::WaitForHostSetup(const std::string &host) {
@@ -105,6 +106,7 @@ namespace CPN {
             shared_ptr<HostInfo> hinfo = hostmap[hostkey];
             kmh = hinfo->kmh;
         }
+        ASSERT(kmh);
         kmh->CreateWriter(hostkey, attr);
     }
 
@@ -115,6 +117,7 @@ namespace CPN {
             shared_ptr<HostInfo> hinfo = hostmap[hostkey];
             kmh = hinfo->kmh;
         }
+        ASSERT(kmh);
         kmh->CreateReader(hostkey, attr);
     }
 
@@ -125,6 +128,7 @@ namespace CPN {
             shared_ptr<HostInfo> hinfo = hostmap[hostkey];
             kmh = hinfo->kmh;
         }
+        ASSERT(kmh);
         kmh->CreateQueue(hostkey, attr);
     }
 
@@ -135,6 +139,7 @@ namespace CPN {
             shared_ptr<HostInfo> hinfo = hostmap[hostkey];
             kmh = hinfo->kmh;
         }
+        ASSERT(kmh);
         kmh->CreateNode(hostkey, attr);
     }
 
@@ -182,6 +187,7 @@ namespace CPN {
             throw std::invalid_argument("No such node");
         } else {
             entry->second->started = true;
+            ++numlivenodes;
             nodelivedead.Broadcast();
         }
     }
@@ -193,6 +199,7 @@ namespace CPN {
             throw std::invalid_argument("No such node");
         } else {
             entry->second->dead = true;
+            --numlivenodes;
             nodelivedead.Broadcast();
         }
     }
@@ -231,21 +238,8 @@ namespace CPN {
 
     void LocalDatabase::WaitForAllNodeEnd() {
         PthreadMutexProtected pl(lock);
-        while (true) {
-            bool deadyet = true;
-            NodeMap::iterator entry = nodemap.begin();
-            while (entry != nodemap.end()) {
-                if (!entry->second->dead) {
-                    deadyet = false;
-                    break;
-                }
-                ++entry;
-            }
-            if (!deadyet) {
-                nodelivedead.Wait(lock);
-            } else {
-                break;
-            }
+        while (numlivenodes > 0) {
+            nodelivedead.Wait(lock);
         }
     }
 
@@ -281,6 +275,7 @@ namespace CPN {
             pinfo->name = portname;
             pinfo->nodekey = nodekey;
             pinfo->opposingport = 0;
+            pinfo->dead = false;
             readports.insert(std::make_pair(key, pinfo));
             return key;
         } else {
@@ -313,15 +308,8 @@ namespace CPN {
     void LocalDatabase::DestroyReaderKey(Key_t portkey) {
         PthreadMutexProtected pl(lock);
         PortMap::iterator entry = readports.find(portkey);
-        if (entry == readports.end()) { return; }
-        if (entry->second->opposingport != 0) {
-            PortMap::iterator otherentry = writeports.find(entry->second->opposingport);
-            if (otherentry != writeports.end()) {
-                otherentry->second->opposingport = 0;
-            }
-        }
-        nodemap[entry->second->nodekey]->readers.erase(entry->second->name);
-        readports.erase(entry);
+        ASSERT(entry != readports.end());
+        entry->second->dead = true;
     }
 
     Key_t LocalDatabase::GetCreateWriterKey(Key_t nodekey, const std::string &portname) {
@@ -338,6 +326,7 @@ namespace CPN {
             pinfo->name = portname;
             pinfo->nodekey = nodekey;
             pinfo->opposingport = 0;
+            pinfo->dead = false;
             writeports.insert(std::make_pair(key, pinfo));
             return key;
         } else {
@@ -370,15 +359,8 @@ namespace CPN {
     void LocalDatabase::DestroyWriterKey(Key_t portkey) {
         PthreadMutexProtected pl(lock);
         PortMap::iterator entry = writeports.find(portkey);
-        if (entry == writeports.end()) { return; }
-        if (entry->second->opposingport != 0) {
-            PortMap::iterator otherentry = readports.find(entry->second->opposingport);
-            if (otherentry != readports.end()) {
-                otherentry->second->opposingport = 0;
-            }
-        }
-        nodemap[entry->second->nodekey]->writers.erase(entry->second->name);
-        writeports.erase(entry);
+        ASSERT(entry != writeports.end());
+        entry->second->dead = true;
     }
 
     void LocalDatabase::ConnectEndpoints(Key_t writerkey, Key_t readerkey) {

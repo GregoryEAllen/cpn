@@ -215,6 +215,15 @@ namespace Async {
                 case ENOBUFS: // Buffers are full
                     loop = false;
                     break;
+                case EPIPE:
+                    loop = false;
+                    break;
+                case EBADF:
+                case EFAULT:
+                case EFBIG:
+                case EINVAL:
+                case EIO:
+                case ENOSPC:
                 default:
                     throw StreamException(error);
                 }

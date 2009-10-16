@@ -64,7 +64,7 @@ namespace CPN {
     void QueueReader::Dequeue(unsigned count) {
         Sync::AutoReentrantLock arl(queue->GetLock());
         queue->Dequeue(count);
-        if (!shutdown) { writerMsgHan->WMHDequeue(rkey, wkey); }
+        writerMsgHan->WMHDequeue(rkey, wkey);
     }
 
     bool QueueReader::RawDequeue(void *data, unsigned count,
@@ -78,7 +78,7 @@ namespace CPN {
             nodeMsgHan->ReadBlock(rkey, wkey);
             arl.Lock();
         }
-        if (!shutdown) { writerMsgHan->WMHDequeue(rkey, wkey); }
+        writerMsgHan->WMHDequeue(rkey, wkey);
         return true;
     }
 
@@ -92,7 +92,7 @@ namespace CPN {
             nodeMsgHan->ReadBlock(rkey, wkey);
             arl.Lock();
         }
-        if (!shutdown) { writerMsgHan->WMHDequeue(rkey, wkey); }
+        writerMsgHan->WMHDequeue(rkey, wkey);
         return true;
     }
 
@@ -101,7 +101,6 @@ namespace CPN {
         if (!shutdown) {
             writerMsgHan->WMHEndOfReadQueue(rkey, wkey);
             shutdown = true;
-            writerMsgHan = 0;
         }
     }
 
@@ -113,7 +112,6 @@ namespace CPN {
     void QueueReader::RMHEndOfWriteQueue(Key_t src, Key_t dst) {
         Sync::AutoReentrantLock arl(queue->GetLock());
         shutdown = true;
-        writerMsgHan = 0;
         ReaderMessageHandler::RMHEndOfWriteQueue(src, dst);
     }
 }

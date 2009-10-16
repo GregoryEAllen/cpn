@@ -72,7 +72,11 @@ namespace CPN {
         ASSERT(mode == WRITE);
         CheckBlockedEnqueues();
         WriteSome();
-        Wakeup();
+        if (encoder.BytesReady()) {
+            arl.Unlock();
+            qarl.Unlock();
+            kmh->SendWakeup();
+        }
     }
 
 
@@ -82,10 +86,6 @@ namespace CPN {
         BEGIN_FUNC;
         ASSERT(rkey == readerkey && wkey == writerkey);
         ASSERT(mode == READ);
-        if (shuttingdown && (!descriptor || (!*descriptor))) {
-            SignalDeath();
-            return;
-        }
         unsigned numchans = queue->NumChannels();
         // Difference between how many bytes we think are in the
         // queue and how many are actually there
@@ -93,19 +93,29 @@ namespace CPN {
         encoder.SendDequeue(length, numchans);
         readcount -= length;
         WriteSome();
-        Wakeup();
+        if (encoder.BytesReady()) {
+            arl.Unlock();
+            qarl.Unlock();
+            kmh->SendWakeup();
+        }
     }
 
     void StreamEndpoint::WMHReadBlock(Key_t rkey, Key_t wkey, unsigned requested) {
         Sync::AutoReentrantLock qarl(*queuelock);
         Sync::AutoReentrantLock arl(lock);
         BEGIN_FUNC;
-        ASSERT(!shuttingdown, "Block on a shutdown queue!");
         ASSERT(rkey == readerkey && wkey == writerkey);
         ASSERT(mode == READ);
-        encoder.SendReadBlock(requested);
+        ReadSome();
+        if (queue->Count() < requested && !shuttingdown) {
+            encoder.SendReadBlock(requested);
+        }
         WriteSome();
-        Wakeup();
+        if (encoder.BytesReady()) {
+            arl.Unlock();
+            qarl.Unlock();
+            kmh->SendWakeup();
+        }
     }
 
     void StreamEndpoint::RMHWriteBlock(Key_t wkey, Key_t rkey, unsigned requested) {
@@ -115,10 +125,17 @@ namespace CPN {
         ASSERT(!shuttingdown, "Block on a shutdown queue!");
         ASSERT(wkey == writerkey && rkey == readerkey);
         ASSERT(mode == WRITE);
+        ReadSome();
         CheckBlockedEnqueues();
-        encoder.SendWriteBlock(requested);
+        if (queue->Freespace() < requested) {
+            encoder.SendWriteBlock(requested);
+        }
         WriteSome();
-        Wakeup();
+        if (encoder.BytesReady()) {
+            arl.Unlock();
+            qarl.Unlock();
+            kmh->SendWakeup();
+        }
     }
 
     void StreamEndpoint::RMHEndOfWriteQueue(Key_t wkey, Key_t rkey) {
@@ -132,7 +149,11 @@ namespace CPN {
         writedead = true;
         encoder.SendEndOfWriteQueue();
         WriteSome();
-        Wakeup();
+        if (encoder.BytesReady()) {
+            arl.Unlock();
+            qarl.Unlock();
+            kmh->SendWakeup();
+        }
     }
 
     void StreamEndpoint::WMHEndOfReadQueue(Key_t rkey, Key_t wkey) {
@@ -146,7 +167,11 @@ namespace CPN {
         readdead = true;
         encoder.SendEndOfReadQueue();
         WriteSome();
-        Wakeup();
+        if (encoder.BytesReady()) {
+            arl.Unlock();
+            qarl.Unlock();
+            kmh->SendWakeup();
+        }
     }
 
     void StreamEndpoint::RMHTagChange(Key_t wkey, Key_t rkey) {
@@ -181,13 +206,18 @@ namespace CPN {
                 arl.Unlock();
                 Sync::AutoReentrantLock qarl(*queuelock);
                 arl.Lock();
-                if (!EnqueueBlocked() && WriteEnqueue()) {
+                if (!EnqueueBlocked() && !queue->Empty()) {
                     return true;
-                } else if (shuttingdown) {
+                } else if (writedead && queue->Empty()) {
+                    arl.Unlock();
+                    qarl.Unlock();
                     SignalDeath();
+                    return false;
                 }
             } else if (mode == READ && readdead) {
+                arl.Unlock();
                 SignalDeath();
+                return false;
             }
             return false;
         }
@@ -200,7 +230,7 @@ namespace CPN {
         BEGIN_FUNC;
         if (!descriptor) { return; }
         Async::Stream stream(descriptor);
-        while (stream) {
+        while (true) {
             unsigned numtoread = 0;
             void *ptr = PacketDecoder::GetDecoderBytes(numtoread);
             unsigned numread = stream.Read(ptr, numtoread);
@@ -209,6 +239,13 @@ namespace CPN {
                     // The other end closed the connection!!
                     stream.Close();
                     descriptor.reset();
+                    if (mode == READ && writedead) {
+                        // Ordered shutdown
+                        arl.Unlock();
+                        qarl.Unlock();
+                        SignalDeath();
+                        return;
+                    }
                 }
                 break;
             } else {
@@ -238,7 +275,10 @@ namespace CPN {
                             DEBUG("Nothing left to write on write endpoint closing descriptor %lu\n", writerkey);
                             stream.Close();
                             descriptor.reset();
+                            arl.Unlock();
+                            qarl.Unlock();
                             SignalDeath();
+                            return;
                         }
                     }
                 }
@@ -256,12 +296,9 @@ namespace CPN {
     void StreamEndpoint::OnError(int err) {
         BEGIN_FUNC;
         descriptor.reset();
-        if (Shuttingdown()) {
-            SignalDeath();
-        }
     }
 
-    // All of these Receive functions will end up beign called in the
+    // All of these Receive functions will end up being called in the
     // context of ReadSome.
 
     void StreamEndpoint::ReceivedEnqueue(void *data, unsigned length, unsigned numchannels) {
@@ -302,15 +339,18 @@ namespace CPN {
         BEGIN_FUNC;
         ASSERT(mode == READ);
         shuttingdown = true;
-        rmh->RMHEndOfWriteQueue(writerkey, readerkey);
+        writedead = true;
+        // Will send the message later when we have finished
+        // receiving all data available
+        //rmh->RMHEndOfWriteQueue(writerkey, readerkey);
     }
 
     void StreamEndpoint::ReceiveEndOfReadQueue() {
         BEGIN_FUNC;
         ASSERT(mode == WRITE);
         shuttingdown = true;
+        readdead = true;
         wmh->WMHEndOfReadQueue(readerkey, writerkey);
-        SignalDeath();
     }
 
     void StreamEndpoint::ReceivedReaderID(uint64_t rkey, uint64_t wkey) {
@@ -329,9 +369,7 @@ namespace CPN {
 
     void StreamEndpoint::CheckBlockedEnqueues() {
         BEGIN_FUNC;
-        while (!EnqueueBlocked() && WriteEnqueue()) {
-            // Would it be a good idea to call WriteSome here?
-        }
+        while (!EnqueueBlocked() && WriteEnqueue()) { }
     }
 
     bool StreamEndpoint::WriteEnqueue() {
@@ -355,7 +393,7 @@ namespace CPN {
     }
 
     bool StreamEndpoint::EnqueueBlocked() {
-        return 2*writecount >= queue->QueueLength();
+        return (2*writecount >= queue->QueueLength());
     }
 
     void StreamEndpoint::SetDescriptor(Async::DescriptorPtr desc) {
@@ -393,6 +431,8 @@ namespace CPN {
             ASSERT(false, "Invaid stream endpoint mode.");
         }
         PacketDecoder::Enable(true);
+        arl.Unlock();
+        qarl.Unlock();
         kmh->SendWakeup();
     }
 
@@ -401,9 +441,15 @@ namespace CPN {
         return shuttingdown;
     }
 
+    // do not call any kmh functiosn while holding locks
     void StreamEndpoint::SignalDeath() {
         BEGIN_FUNC;
         if (mode == READ) {
+            {
+                Sync::AutoReentrantLock qarl(*queuelock);
+                Sync::AutoReentrantLock arl(lock);
+                rmh->RMHEndOfWriteQueue(writerkey, readerkey);
+            }
             kmh->StreamDead(readerkey);
         } else if (mode == WRITE) {
             ASSERT(!encoder.BytesReady());
@@ -414,25 +460,23 @@ namespace CPN {
         kmh->SendWakeup();
     }
 
-    void StreamEndpoint::Wakeup() {
-        if (encoder.BytesReady()) {
-            kmh->SendWakeup();
-        }
-    }
-
     void StreamEndpoint::RegisterDescriptor(std::vector<Async::DescriptorPtr> &descriptors) {
         BEGIN_FUNC;
         if (descriptor) {
             descriptors.push_back(descriptor);
-        } else if (mode == WRITE && pendingconn.expired()) {
-            // Writer will be setup to create a new connection.
-            pendingconn = kmh->CreateNewQueueStream(readerkey, writerkey);
-        } else if (Shuttingdown() && (descriptorset || mode == READ)) {
-            // If we do not have he descriptor and we are in read mode or
-            // the descriptor has been set then die.
-            // I.e. We don't want to die if we are in write mode and shutdown
-            // but never got the descriptor yet.
-            SignalDeath();
+        } else {
+            Sync::AutoReentrantLock arl(lock);
+            if (mode == WRITE && pendingconn.expired() && !writedead) {
+                // Writer will be setup to create a new connection.
+                pendingconn = kmh->CreateNewQueueStream(readerkey, writerkey);
+            } else if (readdead || (writedead && descriptorset)) {
+                // If we do not have he descriptor and we are in read mode or
+                // the descriptor has been set then die.
+                // I.e. We don't want to die if we are in write mode and shutdown
+                // but never got the descriptor yet.
+                arl.Unlock();
+                SignalDeath();
+            }
         }
     }
 
@@ -451,7 +495,8 @@ namespace CPN {
                 readerkey, writerkey, mode == READ ? "read" : "write");
         printf("Readcount %u, Writecount %u\n", readcount, writecount);
         if (shuttingdown) {
-            printf("Currently shutting down\n");
+            printf("Currently shutting down: reader %s, writer %s\n",
+                    readdead ? "dead" : "live", writedead ? "dead" : "live");
         }
         if (encoder.BytesReady()) {
             printf("%u Bytes in encoder\n", encoder.NumBytes());

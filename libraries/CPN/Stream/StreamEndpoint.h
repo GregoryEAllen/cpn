@@ -117,8 +117,8 @@ namespace CPN {
         void CheckBlockedEnqueues();
         bool WriteEnqueue();
         bool EnqueueBlocked();
+        // SignalDeath should not be called while holding any locks
         void SignalDeath();
-        void Wakeup();
 
         // If both locks are aquired, aquire the
         // queuelock first because we may already have it

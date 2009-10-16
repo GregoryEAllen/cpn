@@ -44,6 +44,7 @@ namespace CPN {
             std::string hostname;
             std::string servname;
             KernelMessageHandler *kmh;
+            bool dead;
         };
 
         struct NodeInfo {
@@ -122,6 +123,7 @@ namespace CPN {
         NodeMap nodemap;
         PortMap readports;
         PortMap writeports;
+        unsigned numlivenodes;
 
         Key_t NewKey() { return ++counter; }
         Key_t counter;

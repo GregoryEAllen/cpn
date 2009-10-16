@@ -46,7 +46,7 @@
 #include <stdexcept>
 #include <cassert>
 
-#define KERNEL_FUNC_TRACE
+//#define KERNEL_FUNC_TRACE
 #ifdef KERNEL_FUNC_TRACE
 #define FUNCBEGIN printf("%s begin %s\n",__PRETTY_FUNCTION__, kernelname.c_str())
 #define FUNCEND printf("%s end %s\n",__PRETTY_FUNCTION__, kernelname.c_str())
@@ -282,6 +282,7 @@ namespace CPN {
     }
 
     shared_ptr<StreamEndpoint> Kernel::GetReaderStream(Key_t readerkey, Key_t writerkey) {
+        Sync::AutoReentrantLock arlock(lock);
         shared_ptr<StreamEndpoint> stream;
         StreamMap::iterator entry = streammap.find(readerkey);
         if (entry == streammap.end()) {
@@ -297,6 +298,7 @@ namespace CPN {
     }
 
     shared_ptr<StreamEndpoint> Kernel::GetWriterStream(Key_t writerkey, Key_t readerkey) {
+        Sync::AutoReentrantLock arlock(lock);
         shared_ptr<StreamEndpoint> stream;
         StreamMap::iterator entry = streammap.find(writerkey);
         if (entry == streammap.end()) {
@@ -420,6 +422,7 @@ namespace CPN {
         // Wait for all nodes to end and all stream endpoints
         // to finish sending data
         while (!nodemap.empty() || !streammap.empty()) {
+            arlock.Unlock();
             ClearGarbage();
             std::vector<Async::DescriptorPtr> descriptors;
             descriptors.push_back(wakeuplisten);
@@ -427,6 +430,7 @@ namespace CPN {
                     itr != streammap.end(); ++itr) {
                 itr->second->RegisterDescriptor(descriptors);
             }
+            arlock.Lock();
             if (descriptors.size() > 1 || !nodemap.empty()) {
                 arlock.Unlock();
                 ENSURE(Async::Descriptor::Poll(descriptors, -1) > 0);
@@ -498,14 +502,12 @@ namespace CPN {
 
     void Kernel::SetReaderDescriptor(Key_t readerkey, Key_t writerkey, Async::DescriptorPtr desc) {
         FUNCBEGIN;
-        Sync::AutoReentrantLock arlock(lock);
         shared_ptr<StreamEndpoint> stream = GetReaderStream(readerkey, writerkey);
         stream->SetDescriptor(desc);
     }
 
     void Kernel::SetWriterDescriptor(Key_t writerkey, Key_t readerkey, Async::DescriptorPtr desc) {
         FUNCBEGIN;
-        Sync::AutoReentrantLock arlock(lock);
         shared_ptr<StreamEndpoint> stream = GetWriterStream(writerkey, readerkey);
         stream->SetDescriptor(desc);
     }
@@ -528,14 +530,18 @@ namespace CPN {
                 attr.GetHostName().c_str(),
                 attr.GetServName().c_str());
         Async::SockPtr sock = Async::StreamSocket::Create(addrlist);
+        shared_ptr<UnknownStream> stream;
         if (readerhost == hostkey) {
-            unknownstreams.push_back(shared_ptr<UnknownStream>(
-                    new UnknownStream(sock, this, readerkey, writerkey, UnknownStream::READ)));
+            stream = shared_ptr<UnknownStream>(
+                    new UnknownStream(sock, this, readerkey, writerkey, UnknownStream::READ));
         } else if (writerhost == hostkey) {
-            unknownstreams.push_back(shared_ptr<UnknownStream>(
-                    new UnknownStream(sock, this, readerkey, writerkey, UnknownStream::WRITE)));
+            stream = shared_ptr<UnknownStream>(
+                    new UnknownStream(sock, this, readerkey, writerkey, UnknownStream::WRITE));
         }
-        return unknownstreams.back();
+        Sync::AutoReentrantLock arlock(lock);
+        unknownstreams.push_back(stream);
+        arlock.Unlock();
+        return stream;
     }
 
     void Kernel::NewKernelStream(Key_t kernelkey, Async::DescriptorPtr desc) {

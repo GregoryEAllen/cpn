@@ -52,6 +52,7 @@ void MockNode::Process() {
                     DEBUG("Source %s sent %lu\n", ourname.c_str(), counter);
                     ++counter;
                 }
+                out.Release();
             }
 			break;
 		case MODE_TRANSMUTE:
@@ -68,18 +69,23 @@ void MockNode::Process() {
                     DEBUG("Transmuter %s sent %lu\n", ourname.c_str(), value);
                     ++counter;
                 }
+                out.Release();
+                in.Release();
             }
 			break;
 		case MODE_SINK:
             {
                 CPN::QueueReaderAdapter<unsigned long> in = GetReader("x");
 		    	DEBUG("%s acting as sink\n", ourname.c_str());
-                while (counter < threshold) {
+                while (true) {
                     unsigned long value = 0;
-                    in.Dequeue(&value, 1);
-                    DEBUG("Sink %s got %lu\n", ourname.c_str(), value);
+                    if (!in.Dequeue(&value, 1)) {
+                        break;
+                    }
+                    DEBUG("Sink %s got %lu in iter %lu\n", ourname.c_str(), value, counter);
                     ++counter;
                 }
+                in.Release();
             }
 			break;
 		case MODE_NOP:
