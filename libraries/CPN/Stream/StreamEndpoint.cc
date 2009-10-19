@@ -340,9 +340,7 @@ namespace CPN {
         ASSERT(mode == READ);
         shuttingdown = true;
         writedead = true;
-        // Will send the message later when we have finished
-        // receiving all data available
-        //rmh->RMHEndOfWriteQueue(writerkey, readerkey);
+        rmh->RMHEndOfWriteQueue(writerkey, readerkey);
     }
 
     void StreamEndpoint::ReceiveEndOfReadQueue() {
@@ -445,11 +443,6 @@ namespace CPN {
     void StreamEndpoint::SignalDeath() {
         BEGIN_FUNC;
         if (mode == READ) {
-            {
-                Sync::AutoReentrantLock qarl(*queuelock);
-                Sync::AutoReentrantLock arl(lock);
-                rmh->RMHEndOfWriteQueue(writerkey, readerkey);
-            }
             kmh->StreamDead(readerkey);
         } else if (mode == WRITE) {
             ASSERT(!encoder.BytesReady());

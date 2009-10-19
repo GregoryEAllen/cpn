@@ -18,7 +18,7 @@ using namespace CPN;
 using namespace Async;
 
 #if _DEBUG
-#define DEBUG(frmt, ...) printf(frmt, __VA_ARGS__)
+#define DEBUG(frmt, ...) printf(frmt, ## __VA_ARGS__)
 #else
 #define DEBUG(frmt, ...)
 #endif
@@ -32,7 +32,7 @@ void Error(int err) {
 }
 
 void StreamEndpointTest::setUp() {
-    wqueue = shared_ptr<SimpleQueue>(new SimpleQueue(QUEUESIZE,QUEUESIZE,1));
+    wqueue = shared_ptr<SimpleQueue>(new SimpleQueue(2*QUEUESIZE,QUEUESIZE,1));
     rqueue = shared_ptr<SimpleQueue>(new SimpleQueue(QUEUESIZE,QUEUESIZE,1));
 
 
@@ -102,6 +102,7 @@ void StreamEndpointTest::DequeueTest() {
 void StreamEndpointTest::BlockTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
 
+    DEBUG("ReadBlock\n");
     wmh->WMHReadBlock(RKEY, WKEY, 1);
     Msg msg = WaitForMessage();
     CPPUNIT_ASSERT(messages.empty());
@@ -109,8 +110,22 @@ void StreamEndpointTest::BlockTest() {
     CPPUNIT_ASSERT(msg.src == RKEY);
     CPPUNIT_ASSERT(msg.dst == WKEY);
 
-    rmh->RMHWriteBlock(WKEY, RKEY, 1);
-    msg = WaitForMessage();
+    // Got to have data in the queue for the block to go through
+    // StreamEndpoint first checks to see if it can write some more
+    // to the socket, if it can it does, then it checks if requested
+    // is available, if so it does nothing more. If not then it queues up
+    // a block packet. So we must request here enough to ensure a block
+    // packet will be sent.
+    DEBUG("WriteBlock\n");
+    while (wqueue->GetRawEnqueuePtr(QUEUESIZE) != 0) {
+        wqueue->Enqueue(QUEUESIZE);
+        rmh->RMHEnqueue(WKEY, RKEY);
+    }
+
+    rmh->RMHWriteBlock(WKEY, RKEY, QUEUESIZE);
+    do {
+        msg = WaitForMessage();
+    } while (msg.type != RMHWRITEBLOCK);
     CPPUNIT_ASSERT(messages.empty());
     CPPUNIT_ASSERT(msg.type == RMHWRITEBLOCK);
     CPPUNIT_ASSERT(msg.src == WKEY);
@@ -120,17 +135,17 @@ void StreamEndpointTest::BlockTest() {
 void StreamEndpointTest::ThrottleTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
     char data[5] = {0};
-    wqueue->RawEnqueue(&data[0], 3);
+    CPPUNIT_ASSERT(wqueue->RawEnqueue(&data[0], QUEUESIZE));
     rmh->RMHEnqueue(WKEY, RKEY);
-    wqueue->RawEnqueue(&data[0], 1);
+    CPPUNIT_ASSERT(wqueue->RawEnqueue(&data[0], QUEUESIZE));
     rmh->RMHEnqueue(WKEY, RKEY);
     Msg msg = WaitForMessage();
     CPPUNIT_ASSERT(messages.empty());
     CPPUNIT_ASSERT(msg.type == RMHENQUEUE);
     CPPUNIT_ASSERT(msg.src == WKEY);
     CPPUNIT_ASSERT(msg.dst == RKEY);
-    CPPUNIT_ASSERT(rqueue->Count() == 3);
-    rqueue->Dequeue(3);
+    CPPUNIT_ASSERT(rqueue->Count() == QUEUESIZE);
+    rqueue->Dequeue(QUEUESIZE);
     wmh->WMHDequeue(RKEY, WKEY);
     for (int i = 2; i > 0; --i) {
         msg = WaitForMessage();
@@ -147,7 +162,7 @@ void StreamEndpointTest::ThrottleTest() {
         }
     }
     CPPUNIT_ASSERT(messages.empty());
-    CPPUNIT_ASSERT(rqueue->Count() == 1);
+    CPPUNIT_ASSERT(rqueue->Count() == QUEUESIZE);
 }
 
 void StreamEndpointTest::EndOfWriteQueueTest() {
