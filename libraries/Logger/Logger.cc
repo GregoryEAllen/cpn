@@ -121,10 +121,12 @@ void Logger::vLogf(int level, const char *fmt, va_list ap) const {
     if (level < loglevel) { return; }
     // This code was based on an example of how
     // to use vsnprintf in the unix man pages.
-    AutoBuffer buff(100);
+    AutoBuffer buff(128);
     while (1) {
         /* Try to print in the allocated space. */
-        int n = vsnprintf((char*)buff.GetBuffer(), buff.GetSize(), fmt, ap);
+        va_list ap_copy;
+        va_copy(ap_copy, ap);
+        int n = vsnprintf((char*)buff.GetBuffer(), buff.GetSize(), fmt, ap_copy);
         /* If that worked, return the string. */
         if (n > -1 && unsigned(n) < buff.GetSize()) {
             std::string ret = (char*)buff.GetBuffer();

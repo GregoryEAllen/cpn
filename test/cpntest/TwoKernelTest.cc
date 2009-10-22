@@ -30,11 +30,11 @@ CPPUNIT_TEST_SUITE_REGISTRATION( TwoKernelTest );
 void TwoKernelTest::setUp() {
     CPNRegisterNodeFactory(shared_ptr<MockNodeFactory>(new MockNodeFactory("MockNode")));
     shared_ptr<Database> database = Database::Local();
-    database->LogLevel(0);
+    database->LogLevel(50);
     KernelAttr kattrone("one");
-    kattrone.SetDatabase(database).SetHostName("localhost").SetServName("");
+    kattrone.SetDatabase(database);
     KernelAttr kattrtwo("two");
-    kattrtwo.SetDatabase(database).SetHostName("localhost").SetServName("");
+    kattrtwo.SetDatabase(database);
     kone = new Kernel(kattrone);
     ktwo = new Kernel(kattrtwo);
 }

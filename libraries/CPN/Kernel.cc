@@ -352,7 +352,6 @@ namespace CPN {
         Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
         garbagenodes.clear();
-        arlock.Unlock();
 
         while (!deadstreams.empty()) {
             streammap.erase(deadstreams.front());
@@ -370,10 +369,15 @@ namespace CPN {
             descriptors.push_back(wakeuplisten);
             descriptors.push_back(listener);
 
+            arlock.Lock();
             for (StreamMap::iterator itr = streammap.begin();
                     itr != streammap.end(); ++itr) {
+                arlock.Unlock();
                 itr->second->RegisterDescriptor(descriptors);
+                arlock.Lock();
             }
+            arlock.Unlock();
+
             std::list<shared_ptr<UnknownStream> >::iterator unknownitr = unknownstreams.begin();
             while (unknownitr != unknownstreams.end()) {
                 if (unknownitr->get()->Dead()) {
@@ -399,15 +403,15 @@ namespace CPN {
         // Wait for all nodes to end and all stream endpoints
         // to finish sending data
         while (!nodemap.empty() || !streammap.empty()) {
-            arlock.Unlock();
             ClearGarbage();
             std::vector<Async::DescriptorPtr> descriptors;
             descriptors.push_back(wakeuplisten);
             for (StreamMap::iterator itr = streammap.begin();
                     itr != streammap.end(); ++itr) {
+                arlock.Unlock();
                 itr->second->RegisterDescriptor(descriptors);
+                arlock.Lock();
             }
-            arlock.Lock();
             if (descriptors.size() > 1 || !nodemap.empty()) {
                 arlock.Unlock();
                 ENSURE(Async::Descriptor::Poll(descriptors, -1) > 0);

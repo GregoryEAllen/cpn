@@ -28,13 +28,12 @@
 
 #include "ToString.h"
 
-#if 0
+#if 1
 #include <stdio.h>
-#define DEBUG(frmt, ...) printf(frmt, __VA_ARGS__)
+#define BEGIN_FUNC SCOPE_TRACE(logger);
 #else
-#define DEBUG(frmt, ...)
+#define BEGIN_FUNC
 #endif
-#define BEGIN_FUNC DEBUG("%s begin r: %lu, w: %lu, mode: %s\n", __PRETTY_FUNCTION__, readerkey, writerkey, mode == READ ? "read" : "write")
 
 namespace CPN {
 
@@ -51,7 +50,7 @@ namespace CPN {
     {
         logger.Name(ToString("StreamEndpoint(m:%s, r:%lu, w: %lu)", mode == READ ? "r" : "w", readerkey, writerkey));
         PacketDecoder::Enable(false);
-        DEBUG("StreamEndpoint constructed r: %lu, w: %lu, mode: %s\n", readerkey, writerkey, mode == READ ? "read" : "write");
+        logger.Debug("StreamEndpoint constructed");
     }
 
     StreamEndpoint::~StreamEndpoint() {
@@ -64,8 +63,7 @@ namespace CPN {
                 ASSERT(false, "Invaid stream endpoint mode.");
             }
         }
-        DEBUG("StreamEndpoint destructed r: %lu, w: %lu, mode: %s\n", readerkey, writerkey, mode == READ ? "read" : "write");
-        //PrintState();
+        logger.Debug("StreamEndpoint distructed");
     }
 
     void StreamEndpoint::RMHEnqueue(Key_t wkey, Key_t rkey) {
@@ -250,7 +248,6 @@ namespace CPN {
                 if (0 == numread) {
                     if  (!stream) {
                         // The other end closed the connection!!
-                        stream.Close();
                         descriptor.reset();
                         if (ShouldDie()) {
                             // Ordered shutdown
@@ -266,10 +263,7 @@ namespace CPN {
                 }
             }
         } catch (const Async::StreamException &e) {
-#ifndef NDEBUG
-            printf("Error on read stream(r: %lu w: %lu) errno: %d: %s\n", readerkey, writerkey,
-                    e.Error(), e.what());
-#endif
+            logger.Warn("Read error %d on stream: %s", e.Error(), e.what());
         }
     }
 
@@ -294,9 +288,7 @@ namespace CPN {
                                 continue;
                             } else {
                                 // Nothing left to write
-                                DEBUG("Nothing left to write on write endpoint closing descriptor %lu\n",
-                                        writerkey);
-                                stream.Close();
+                                logger.Debug("Writing complete shutting down");
                                 descriptor.reset();
                                 arl.Unlock();
                                 qarl.Unlock();
@@ -315,18 +307,15 @@ namespace CPN {
                 }
             }
         } catch (const Async::StreamException  &e) {
-#ifndef NDEBUG
-            printf("Error on write stream(r: %lu w: %lu) errno: %d: %s\n", readerkey, writerkey,
-                    e.Error(), e.what());
-#endif
+            logger.Warn("Read error %d on stream: %s", e.Error(), e.what());
             // close the descriptor will reconnect if needed automatically
-            stream.Close();
             descriptor.reset();
         }
     }
 
     void StreamEndpoint::OnError(int err) {
         BEGIN_FUNC;
+        logger.Warn("Error from stream");
         descriptor.reset();
     }
 
@@ -523,10 +512,7 @@ namespace CPN {
         // want to check for our death conditions
         if (descriptor) {
             if (ShouldDie()) {
-                Sync::AutoReentrantLock arl(lock);
-                descriptor->Close();
                 descriptor.reset();
-                arl.Unlock();
                 SignalDeath();
             } else {
                 descriptors.push_back(descriptor);
@@ -536,7 +522,11 @@ namespace CPN {
                 SignalDeath();
             } else if (mode == WRITE && pendingconn.expired()) {
                 // Writer will be setup to create a new connection.
-                pendingconn = kmh->CreateNewQueueStream(readerkey, writerkey);
+                try {
+                    pendingconn = kmh->CreateNewQueueStream(readerkey, writerkey);
+                } catch (const Async::StreamException &e) {
+                    logger.Warn("Error(%d) establishing connection: %s", e.Error(), e.what());
+                }
             }
         }
     }

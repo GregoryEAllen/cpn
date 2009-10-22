@@ -38,7 +38,7 @@ namespace CPN {
 		KernelAttr(const std::string &name_)
 			: name(name_),
             hostname("localhost"),
-            servname("12345")
+            servname("")
         {}
 
         KernelAttr &SetHostName(const std::string &hn) {

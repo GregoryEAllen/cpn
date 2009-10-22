@@ -34,7 +34,7 @@ namespace CPN {
 
     void LocalDatabase::Log(int level, const std::string &msg) const {
         PthreadMutexProtected pl(lock);
-        if (level > loglevel) {
+        if (level >= loglevel) {
             std::cout << level << ":" << msg << std::endl;
         }
     }

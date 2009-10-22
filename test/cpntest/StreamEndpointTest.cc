@@ -117,7 +117,9 @@ void StreamEndpointTest::BlockTest() {
     // a block packet. So we must request here enough to ensure a block
     // packet will be sent.
     DEBUG("WriteBlock\n");
-    while (wqueue->GetRawEnqueuePtr(QUEUESIZE) != 0) {
+    void *ptr = 0;
+    while ((ptr = wqueue->GetRawEnqueuePtr(QUEUESIZE)) != 0) {
+        memset(ptr, 0, QUEUESIZE);
         wqueue->Enqueue(QUEUESIZE);
         rmh->RMHEnqueue(WKEY, RKEY);
     }
