@@ -246,3 +246,7 @@ CPN::weak_ptr<CPN::UnknownStream> StreamEndpointTest::CreateNewQueueStream(CPN::
 void StreamEndpointTest::SendWakeup() {
 }
 
+const LoggerOutput *StreamEndpointTest::GetLogger() const {
+    return &logger;
+}
+

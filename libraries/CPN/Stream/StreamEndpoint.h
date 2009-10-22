@@ -119,12 +119,15 @@ namespace CPN {
         bool EnqueueBlocked();
         // SignalDeath should not be called while holding any locks
         void SignalDeath();
+        bool ShouldDie();
 
         // If both locks are aquired, aquire the
         // queuelock first because we may already have it
         const Sync::ReentrantLock *queuelock;
         const Sync::ReentrantLock lock;
         PacketEncoder encoder;
+
+        Logger logger;
 
         Async::DescriptorPtr descriptor;
         // This is how many bytes this endpoint thinks it is in
@@ -141,15 +144,13 @@ namespace CPN {
         const Key_t readerkey;
         const Key_t writerkey;
         const Mode_t mode;
-        // Indicates that the descriptor has been set
-        // otherwise we never had the descriptor so we cannot shutdown yet
-        bool descriptorset;
         // Indicate we are in the shutdown process
         bool shuttingdown;
         // Inidicate that our end is gone (i.e. for write no more data will be coming to send
         // and for read no more data will be read).
         bool readdead;
         bool writedead;
+        bool sentendofwrite;
         weak_ptr<UnknownStream> pendingconn;
     };
 }

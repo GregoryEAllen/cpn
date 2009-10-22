@@ -54,16 +54,34 @@ public:
 
 namespace Async {
 
-    StreamException::StreamException(int err) throw()
-    : error(err), errstr(64, '\0') {
-        while (strerror_r(error, &errstr[0], errstr.size()) < 0) {
-            if (errno == ERANGE) {
-                errstr.resize(2*errstr.size(), '\0');
+    StreamException::StreamException(int err) throw() : error(err), errstr(256,
+            '\0') { do { char *str = strerror_r(error, &errstr[0],
+                errstr.size());
+            // Wierdness with different versions of strerror... From the man
+            // page:
+            //
+            //  The strerror() and strerror_r() functions return the
+            //  appropriate error description string, or an "Unknown error nnn"
+            //  message if the error number is unknown.
+            //
+            //  The XSI-compliant strerror_r() function returns 0 on success;
+            //  on error, -1 is returned and errno is set to indicate the
+            //  error.
+            //
+            if (str == (char*)-1) {
+                if (errno == ERANGE) {
+                    errstr.resize(2*errstr.size(), '\0');
+                } else {
+                    errstr.assign(UNKNOWN_ERROR, UNKNOWN_ERROR+sizeof(UNKNOWN_ERROR));
+                    break;
+                }
+            } else if (str == 0) {
+                break;
             } else {
-                errstr.assign(UNKNOWN_ERROR, UNKNOWN_ERROR+sizeof(UNKNOWN_ERROR));
+                errstr.assign(str, str + strlen(str));
                 break;
             }
-        }
+        } while (true);
     }
 
     StreamException::StreamException(const char *msg, int err) throw()
@@ -216,8 +234,6 @@ namespace Async {
                     loop = false;
                     break;
                 case EPIPE:
-                    loop = false;
-                    break;
                 case EBADF:
                 case EFAULT:
                 case EFBIG:

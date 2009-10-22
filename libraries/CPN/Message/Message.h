@@ -27,6 +27,7 @@
 #include "CPNCommon.h"
 #include "Assert.h"
 #include "AsyncStream.h"
+#include "Logger.h"
 
 namespace CPN {
 
@@ -87,6 +88,8 @@ namespace CPN {
         virtual void CreateReader(Key_t dst, const SimpleQueueAttr &attr);
         virtual void CreateQueue(Key_t dst, const SimpleQueueAttr &attr);
         virtual void CreateNode(Key_t dst, const NodeAttr &attr);
+
+        virtual const LoggerOutput *GetLogger() const = 0;
 
         // Functions the streams need of the kernel
         virtual void StreamDead(Key_t streamkey);

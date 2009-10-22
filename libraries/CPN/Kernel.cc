@@ -38,6 +38,7 @@
 
 #include "AutoBuffer.h"
 #include "Assert.h"
+#include "Logger.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -75,13 +76,20 @@ namespace CPN {
         if (!database) {
             database = Database::Local();
         }
+        logger.Output(database.get());
+        logger.LogLevel(database->LogLevel());
+        logger.Name(kernelname);
+
         listener->ConnectReadable(sigc::mem_fun(this, &Kernel::True));
         listener->ConnectOnRead(sigc::mem_fun(this, &Kernel::ListenRead));
 
-        hostkey = database->SetupHost(kattr, this);
+        Async::SocketAddress addr = listener->GetAddress();
+        hostkey = database->SetupHost(kernelname, addr.GetHostName(), addr.GetServName(), this);
+
         Async::StreamSocket::CreatePair(wakeuplisten, wakeupwriter);
         wakeuplisten->ConnectOnRead(sigc::mem_fun(this, &Kernel::WakeupReader));
         wakeuplisten->ConnectReadable(sigc::mem_fun(this, &Kernel::True));
+        logger.Info("New kernel, listening on %s:%s", addr.GetHostName().c_str(), addr.GetServName().c_str());
         // Start up and don't finish until actually started.
         Pthread::Start();
         status.CompareAndWait(INITIALIZED);
@@ -131,12 +139,13 @@ namespace CPN {
         arlock.Lock();
         if (nodeattr.GetHost().empty() ||
                 nodeattr.GetHost() == kernelname) {
+            nodeattr.SetHostKey(hostkey);
             InternalCreateNode(nodeattr);
         } else {
             arlock.Unlock();
             Key_t key = database->WaitForHostSetup(nodeattr.GetHost());
             nodeattr.SetHostKey(key);
-            database->SendCreateNode(key, attr);
+            database->SendCreateNode(key, nodeattr);
         }
         return nodekey;
     }
@@ -311,38 +320,6 @@ namespace CPN {
             ASSERT(stream->GetMode() == StreamEndpoint::WRITE);
         }
         return stream;
-    }
-
-    void Kernel::Logf(int level, const char* const fmt, ...) {
-        FUNCBEGIN;
-        // This code was taken from an example of how
-        // to use vsnprintf in the unix man pages.
-        va_list ap;
-        AutoBuffer buff(100);
-        while (1) {
-            /* Try to print in the allocated space. */
-            va_start(ap, fmt);
-            int n = vsnprintf((char*)buff.GetBuffer(), buff.GetSize(), fmt, ap);
-            va_end(ap);
-            /* If that worked, return the string. */
-            if (n > -1 && unsigned(n) < buff.GetSize()) {
-                std::string ret = (char*)buff.GetBuffer();
-                Log(level, ret);
-                return;
-            }
-            /* Else try again with more space. */
-            if (n > -1) { /* glibc 2.1 */ /* precisely what is needed */
-                buff.ChangeSize(n+1);
-            }
-            else { /* glibc 2.0 */ /* twice the old size */
-                buff.ChangeSize(buff.GetSize()*2);
-            }
-        }
-    }
-
-    void Kernel::Log(int level, const std::string &msg) {
-        FUNCBEGIN;
-        database->Log(level, msg);
     }
 
     void Kernel::InternalCreateNode(NodeAttr &nodeattr) {
@@ -525,10 +502,11 @@ namespace CPN {
         } else {
             ASSERT(false);
         }
-        KernelAttr attr = database->GetHostInfo(otherhost);
+        std::string hostname, servname;
+        database->GetHostConnectionInfo(otherhost, hostname, servname);
         addrlist = Async::SocketAddress::CreateIP(
-                attr.GetHostName().c_str(),
-                attr.GetServName().c_str());
+                hostname.c_str(),
+                servname.c_str());
         Async::SockPtr sock = Async::StreamSocket::Create(addrlist);
         shared_ptr<UnknownStream> stream;
         if (readerhost == hostkey) {

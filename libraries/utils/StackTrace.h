@@ -31,7 +31,7 @@
 #include <string>
 #define STACKTRACE_MAXTRACE 20
 /**
- * Prints the a stack trace to stderr
+ * Prints the stack trace to stderr
  * Should work even if we are out of memory
  */
 void PrintStack();
@@ -41,7 +41,7 @@ void PrintStack();
  * May fail if out of memory.
  * \param ignore the number of top stacks to ignore. This is
  * useful because this function is often used in error messages
- * and it is useless garbage to report the stack from of the error
+ * and it is useless garbage to report the stack from the error
  * handler.
  */
 std::string GetStack(unsigned ignore = 0);

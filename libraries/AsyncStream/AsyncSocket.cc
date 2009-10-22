@@ -385,6 +385,8 @@ namespace Async {
         }
         int opt = 1;
         setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+        address.GetLen() = sizeof(sockaddr_storage);
+        getsockname(fd, address.GetAddr(), &address.GetLen());
         return true;
     }
 

@@ -42,7 +42,7 @@ namespace Async {
         StreamException(const char *msg, int err) throw();
         virtual ~StreamException() throw();
         virtual const char* what() const throw();
-        int Error() { return error; }
+        int Error() const { return error; }
     private:
         int error;
         std::vector<char> errstr;

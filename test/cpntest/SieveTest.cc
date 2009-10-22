@@ -83,7 +83,7 @@ void SieveResultNode::Process() {
     SieveNumber index = 0;
     while (index < resultsize) {
         SieveNumber value;
-        in.Dequeue(&value, 1);
+        ASSERT(in.Dequeue(&value, 1));
         if (value == 0) {
             ++portnum;
             DBPRINT("Result swapped port to %lu\n", portnum);
@@ -96,8 +96,8 @@ void SieveResultNode::Process() {
         }
     }
     SieveNumber val = -1;
-    in.Dequeue(&val, 1);
-    assert(0 == val);
+    ASSERT(in.Dequeue(&val, 1));
+    ASSERT(0 == val);
     DBPRINT("%s stopped\n", ourname.c_str());
 }
 
@@ -143,7 +143,7 @@ void SieveFilterNode::Process() {
     CPN::QueueWriterAdapter<SieveNumber> out;
     SieveNumber input = 0;
     SieveNumber value = 0;
-    in.Dequeue(&input, 1);
+    ASSERT(in.Dequeue(&input, 1));
     result.Enqueue(&input, 1);
     if (0 == input) {
         DBPRINT("%s stopped early\n", ourname.c_str());
@@ -159,7 +159,7 @@ void SieveFilterNode::Process() {
         out = result;
     }
     while (true) {
-        in.Dequeue(&input, 1);
+        ASSERT(in.Dequeue(&input, 1));
         if (input%value != 0) {
             out.Enqueue(&input, 1);
         }

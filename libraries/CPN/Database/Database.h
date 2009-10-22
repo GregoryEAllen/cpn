@@ -26,27 +26,23 @@
 #pragma once
 #include "CPNCommon.h"
 #include "Message.h"
+#include "Logger.h"
 #include <string>
 
 namespace CPN {
 
-    class CPN_API Database {
+    class CPN_API Database : public LoggerOutput {
     public:
 
         static shared_ptr<Database> Local();
 
         virtual ~Database();
 
-        /**
-         * Log some info.
-         */
-        virtual void Log(int level, const std::string &msg) = 0;
-        virtual int LogLevel() const = 0;
-        virtual int LogLevel(int level) = 0;
-
-        virtual Key_t SetupHost(const KernelAttr &attr, KernelMessageHandler *kmh) = 0;
+        virtual Key_t SetupHost(const std::string &name, const std::string &hostname,
+                const std::string &servname, KernelMessageHandler *kmh) = 0;
         virtual Key_t GetHostKey(const std::string &host) = 0;
-        virtual KernelAttr GetHostInfo(Key_t hostkey) = 0;
+        virtual const std::string &GetHostName(Key_t hostkey) = 0;
+        virtual void GetHostConnectionInfo(Key_t hostkey, std::string &hostname, std::string &servname) = 0;
         virtual void DestroyHostKey(Key_t hostkey) = 0;
         virtual Key_t WaitForHostSetup(const std::string &host) = 0;
 

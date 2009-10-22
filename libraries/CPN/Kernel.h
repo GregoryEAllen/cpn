@@ -39,6 +39,8 @@
 #include "AsyncStream.h"
 #include "AsyncSocket.h"
 
+#include "Logger.h"
+
 #include "Pthread.h"
 
 #include <string>
@@ -116,9 +118,7 @@ namespace CPN {
         // the endpoints are already connected fail.
         void CreateQueue(const QueueAttr &attr);
        
-        void Logf(int level, const char* const fmt, ...);
-
-        void Log(int level, const std::string &msg);
+        const LoggerOutput *GetLogger() const { return &logger; }
 
         /** 
          * \return the name of this kernel.
@@ -173,6 +173,7 @@ namespace CPN {
         Sync::StatusHandler<KernelStatus_t> status;
         const std::string kernelname;
         Key_t hostkey;
+        Logger logger;
 
         Async::SockPtr wakeuplisten;
         Async::SockPtr wakeupwriter;

@@ -25,6 +25,8 @@ public CPN::WriterMessageHandler,
 public CPN::KernelMessageHandler {
 public:
 
+    StreamEndpointTest() : logger(Logger::INFO) {}
+
 	void setUp();
 
 	void tearDown();
@@ -80,6 +82,9 @@ private:
     void StreamDead(CPN::Key_t streamkey);
     CPN::weak_ptr<CPN::UnknownStream> CreateNewQueueStream(CPN::Key_t readerkey, CPN::Key_t writerkey);
     void SendWakeup();
+    const LoggerOutput *GetLogger() const;
+
+    LoggerStdOutput logger;
 
     CPN::shared_ptr<CPN::QueueBase> wqueue;
     CPN::shared_ptr<CPN::QueueBase> rqueue;

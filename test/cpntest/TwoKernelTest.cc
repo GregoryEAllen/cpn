@@ -3,9 +3,11 @@
 #include <cppunit/TestAssert.h>
 #include "Kernel.h"
 #include "Database.h"
+#include "FunctionNode.h"
 #include "MockNodeFactory.h"
 #include "MockNode.h"
 #include "MockSyncNode.h"
+#include "ToString.h"
 
 using CPN::Database;
 using CPN::Kernel;
@@ -13,6 +15,8 @@ using CPN::KernelAttr;
 using CPN::shared_ptr;
 using CPN::NodeAttr;
 using CPN::QueueAttr;
+using CPN::FunctionNode;
+using CPN::MemberFunction;
 
 #if _DEBUG
 #define DEBUG(frmt, ...) printf(frmt, __VA_ARGS__)
@@ -26,10 +30,11 @@ CPPUNIT_TEST_SUITE_REGISTRATION( TwoKernelTest );
 void TwoKernelTest::setUp() {
     CPNRegisterNodeFactory(shared_ptr<MockNodeFactory>(new MockNodeFactory("MockNode")));
     shared_ptr<Database> database = Database::Local();
+    database->LogLevel(0);
     KernelAttr kattrone("one");
-    kattrone.SetDatabase(database).SetHostName("localhost").SetServName("12345");
+    kattrone.SetDatabase(database).SetHostName("localhost").SetServName("");
     KernelAttr kattrtwo("two");
-    kattrtwo.SetDatabase(database).SetHostName("localhost").SetServName("12346");
+    kattrtwo.SetDatabase(database).SetHostName("localhost").SetServName("");
     kone = new Kernel(kattrone);
     ktwo = new Kernel(kattrtwo);
 }
@@ -71,5 +76,49 @@ void TwoKernelTest::TestSync() {
     attr.SetName("sync2").SetParam(StaticConstBuffer(&param, sizeof(param)));
     ktwo->CreateNode(attr);
     ktwo->WaitNodeTerminate("sync2");
+}
+
+
+
+void TwoKernelTest::DoSyncTest(void (SyncSource::*fun1)(CPN::NodeBase*),
+        void (SyncSink::*fun2)(CPN::NodeBase*), unsigned run) {
+
+    std::string sourcename = ToString("source %u", run);
+    std::string sinkname = ToString("sink %u", run);
+    FunctionNode<MemberFunction<SyncSource> >::RegisterType(sourcename);
+    FunctionNode<MemberFunction<SyncSink> >::RegisterType(sinkname);
+
+    // Create local to kone
+    NodeAttr attr(sourcename, sourcename);
+    SyncSource syncsource = SyncSource(sinkname);
+    MemberFunction<SyncSource> memfun1(&syncsource, fun1);
+    attr.SetParam(StaticConstBuffer(&memfun1, sizeof(memfun1)));
+    kone->CreateNode(attr);
+
+    // Create local to ktwo
+    attr.SetName(sinkname).SetTypeName(sinkname);
+    SyncSink syncsink = SyncSink(sourcename);
+    MemberFunction<SyncSink> memfun2(&syncsink, fun2);
+    attr.SetParam(StaticConstBuffer(&memfun2, sizeof(memfun2)));
+    ktwo->CreateNode(attr);
+
+    kone->WaitNodeTerminate(sinkname);
+    kone->WaitNodeTerminate(sourcename);
+}
+
+void TwoKernelTest::TestSyncSourceSink() {
+	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    unsigned run = 0;
+    DoSyncTest(&SyncSource::Run1, &SyncSink::Run1, run++);
+    DoSyncTest(&SyncSource::Run2, &SyncSink::Run1, run++);
+    DoSyncTest(&SyncSource::Run3, &SyncSink::Run1, run++);
+    DoSyncTest(&SyncSource::Run4, &SyncSink::Run1, run++);
+
+    DoSyncTest(&SyncSource::Run1, &SyncSink::Run2, run++);
+    DoSyncTest(&SyncSource::Run2, &SyncSink::Run2, run++);
+    DoSyncTest(&SyncSource::Run3, &SyncSink::Run2, run++);
+    DoSyncTest(&SyncSource::Run4, &SyncSink::Run2, run++);
+
+    DoSyncTest(&SyncSource::Run5, &SyncSink::Run3, run++);
 }
 

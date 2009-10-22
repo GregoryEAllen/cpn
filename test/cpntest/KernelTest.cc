@@ -101,91 +101,10 @@ void KernelTest::TestSync() {
     kernel.WaitNodeTerminate("sync2");
 }
 
-struct SyncSource {
-    public:
-    SyncSource(const std::string &onode) : othernode(onode) {}
-    void Run1(NodeBase *nb) {
-        nb->GetKernel()->WaitNodeStart(othernode);
-        QueueAttr qattr(sizeof(unsigned long), sizeof(unsigned long));
-        qattr.SetReader(othernode, "x").SetWriter(nb->GetName(), "y");
-        nb->GetKernel()->CreateQueue(qattr);
-        CPN::QueueWriterAdapter<unsigned long> out = nb->GetWriter("y");
-        unsigned long val = 1;
-        out.Enqueue(&val, 1);
-    }
-    void Run2(NodeBase *nb) {
-        QueueAttr qattr(sizeof(unsigned long), sizeof(unsigned long));
-        qattr.SetReader(othernode, "x").SetWriter(nb->GetName(), "y");
-        nb->GetKernel()->CreateQueue(qattr);
-        CPN::QueueWriterAdapter<unsigned long> out = nb->GetWriter("y");
-        unsigned long val = 1;
-        out.Enqueue(&val, 1);
-    }
-    void Run3(NodeBase *nb) {
-        QueueAttr qattr(sizeof(unsigned long), sizeof(unsigned long));
-        qattr.SetReader(othernode, "x").SetWriter(nb->GetName(), "y");
-        nb->GetKernel()->CreateQueue(qattr);
-        CPN::QueueWriterAdapter<unsigned long> out = nb->GetWriter("y");
-        unsigned long val = 1;
-        out.Enqueue(&val, 1);
-        out.Release();
-    }
-    void Run4(NodeBase *nb) {
-        nb->GetKernel()->WaitNodeStart(othernode);
-        QueueAttr qattr(sizeof(unsigned long), sizeof(unsigned long));
-        qattr.SetReader(othernode, "x").SetWriter(nb->GetName(), "y");
-        nb->GetKernel()->CreateQueue(qattr);
-        CPN::QueueWriterAdapter<unsigned long> out = nb->GetWriter("y");
-        unsigned long val = 1;
-        out.Enqueue(&val, 1);
-        out.Release();
-    }
-    // goes only with SyncSink::Run3
-    void Run5(NodeBase *nb) {
-        CPN::QueueWriterAdapter<unsigned long> out = nb->GetWriter("y");
-        unsigned long val = 1;
-        out.Enqueue(&val, 1);
-        out.Release();
-    }
-    std::string othernode;
-};
-
-struct SyncSink {
-    public:
-    SyncSink(const std::string &onode) :othernode(onode) {}
-    void Run1(NodeBase *nb) {
-        nb->GetKernel()->WaitNodeTerminate(othernode);
-        CPN::QueueReaderAdapter<unsigned long> in = nb->GetReader("x");
-        unsigned long val;
-        ASSERT(in.Dequeue(&val, 1));
-        ASSERT(val == 1);
-        ASSERT(!in.Dequeue(&val, 1));
-    }
-    void Run2(NodeBase *nb) {
-        CPN::QueueReaderAdapter<unsigned long> in = nb->GetReader("x");
-        unsigned long val;
-        ASSERT(in.Dequeue(&val, 1));
-        ASSERT(val == 1);
-        ASSERT(!in.Dequeue(&val, 1));
-    }
-    // goes only with SyncSource::Run5
-    void Run3(NodeBase *nb) {
-        QueueAttr qattr(sizeof(unsigned long), sizeof(unsigned long));
-        qattr.SetWriter(othernode, "y").SetReader(nb->GetName(), "x");
-        nb->GetKernel()->CreateQueue(qattr);
-        CPN::QueueReaderAdapter<unsigned long> in = nb->GetReader("x");
-        unsigned long val;
-        ASSERT(in.Dequeue(&val, 1));
-        ASSERT(val == 1);
-        ASSERT(!in.Dequeue(&val, 1));
-    }
-    std::string othernode;
-};
-
 #define SINKNAME "sinkname"
 #define SOURCENAME "sourcename"
 
-void DoSyncTest(void (SyncSource::*fun1)(NodeBase*),
+static void DoSyncTest(void (SyncSource::*fun1)(NodeBase*),
         void (SyncSink::*fun2)(NodeBase*)) {
 
     CPN::Kernel kernel(KernelAttr("test"));

@@ -29,13 +29,13 @@
 
 namespace CPN {
 
-    LocalDatabase::LocalDatabase() : numlivenodes(0), counter(0) {}
+    LocalDatabase::LocalDatabase() : loglevel(Logger::WARNING), numlivenodes(0), counter(0) {}
     LocalDatabase::~LocalDatabase() {}
 
-    void LocalDatabase::Log(int level, const std::string &msg) {
+    void LocalDatabase::Log(int level, const std::string &msg) const {
         PthreadMutexProtected pl(lock);
         if (level > loglevel) {
-            std::cout << msg << std::endl;
+            std::cout << level << ":" << msg << std::endl;
         }
     }
 
@@ -49,17 +49,20 @@ namespace CPN {
         return loglevel = level;
     }
 
-    Key_t LocalDatabase::SetupHost(const KernelAttr &attr, KernelMessageHandler *kmh) {
+    Key_t LocalDatabase::SetupHost(const std::string &name, const std::string &hostname,
+            const std::string &servname, KernelMessageHandler *kmh) {
         PthreadMutexProtected pl(lock);
+        ASSERT(kmh, "Must have non null KernelMessageHandler.");
+        ASSERT(hostnames.find(name) == hostnames.end(), "Names must be unique.");
         shared_ptr<HostInfo> hinfo = shared_ptr<HostInfo>(new HostInfo);
-        hinfo->name = attr.GetName();
-        hinfo->hostname = attr.GetHostName();
-        hinfo->servname = attr.GetServName();
+        hinfo->name = name;
+        hinfo->hostname = hostname;
+        hinfo->servname = servname;
         hinfo->kmh = kmh;
         hinfo->dead = false;
         Key_t key = NewKey();
         hostmap.insert(std::make_pair(key, hinfo));
-        hostnames.insert(std::make_pair(attr.GetName(), key));
+        hostnames.insert(std::make_pair(name, key));
         hostlivedead.Broadcast();
         return key;
     }
@@ -73,18 +76,29 @@ namespace CPN {
         return entry->second;
     }
 
-    KernelAttr LocalDatabase::GetHostInfo(Key_t hostkey) {
+    const std::string &LocalDatabase::GetHostName(Key_t hostkey) {
         PthreadMutexProtected pl(lock);
-        shared_ptr<HostInfo> hinfo = hostmap[hostkey];
-        KernelAttr attr(hinfo->name);
-        attr.SetHostName(hinfo->hostname);
-        attr.SetServName(hinfo->servname);
-        return attr;
+        HostMap::iterator entry = hostmap.find(hostkey);
+        if (entry == hostmap.end()) {
+            throw std::invalid_argument("No such host");
+        }
+        return entry->second->name;
+    }
+
+    void LocalDatabase::GetHostConnectionInfo(Key_t hostkey, std::string &hostname, std::string &servname) {
+        PthreadMutexProtected pl(lock);
+        HostMap::iterator entry = hostmap.find(hostkey);
+        if (entry == hostmap.end()) {
+            throw std::invalid_argument("No such host");
+        }
+        hostname = entry->second->hostname;
+        servname = entry->second->servname;
     }
 
     void LocalDatabase::DestroyHostKey(Key_t hostkey) {
         PthreadMutexProtected pl(lock);
         hostmap[hostkey]->dead = true;
+        hostlivedead.Broadcast();
     }
 
     Key_t LocalDatabase::WaitForHostSetup(const std::string &host) {

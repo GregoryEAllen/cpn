@@ -70,13 +70,15 @@ namespace CPN {
         LocalDatabase();
         virtual ~LocalDatabase();
 
-        virtual void Log(int level, const std::string &msg);
+        virtual void Log(int level, const std::string &msg) const;
         virtual int LogLevel() const;
         virtual int LogLevel(int level);
 
-        virtual Key_t SetupHost(const KernelAttr &attr, KernelMessageHandler *kmh);
+        virtual Key_t SetupHost(const std::string &name, const std::string &hostname,
+                const std::string &servname, KernelMessageHandler *kmh);
         virtual Key_t GetHostKey(const std::string &host);
-        virtual KernelAttr GetHostInfo(Key_t hostkey);
+        virtual const std::string &GetHostName(Key_t hostkey);
+        virtual void GetHostConnectionInfo(Key_t hostkey, std::string &hostname, std::string &servname);
         virtual void DestroyHostKey(Key_t hostkey);
         virtual Key_t WaitForHostSetup(const std::string &host);
 
