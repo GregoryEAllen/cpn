@@ -436,7 +436,6 @@ namespace CPN {
     }
 
     void Kernel::SendWakeupIntern() {
-        Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
         ASSERT(wakeupwriter && *wakeupwriter);
         Async::Stream stream(wakeupwriter);

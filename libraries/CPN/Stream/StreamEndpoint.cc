@@ -315,7 +315,11 @@ namespace CPN {
 
     void StreamEndpoint::OnError(int err) {
         BEGIN_FUNC;
-        logger.Warn("Error from stream");
+        if (descriptor && *descriptor) {
+            logger.Warn("Error from stream");
+        } else {
+            logger.Debug("Poll called on closed descriptor");
+        }
         descriptor.reset();
     }
 
