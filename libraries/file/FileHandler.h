@@ -15,7 +15,7 @@ public:
 
     FileHandler();
     FileHandler(int filed);
-    ~FileHandler();
+    virtual ~FileHandler();
 
     int Poll(double timeout);
 

@@ -1,5 +1,5 @@
 
-#include "AsyncSocket.h"
+#include "SocketAddress.h"
 #include "Assert.h"
 #include <unistd.h>
 #include <stdio.h>
@@ -23,24 +23,24 @@ int main(int argc, char **argv) {
             printf("Unknown option");
         }
     }
-    Async::SockAddrList list;
+    SockAddrList list;
     if (host && port) {
-        list = Async::SocketAddress::CreateIP(host, port);
+        list = SocketAddress::CreateIP(host, port);
     } else if (port) {
-        list = Async::SocketAddress::CreateIPFromServ(port);
+        list = SocketAddress::CreateIPFromServ(port);
     } else if (host) {
-        list = Async::SocketAddress::CreateIPFromHost(host);
+        list = SocketAddress::CreateIPFromHost(host);
     }
-    for (Async::SockAddrList::iterator itr = list.begin();
+    for (SockAddrList::iterator itr = list.begin();
             itr != list.end(); ++itr) {
         switch (itr->GetType()) {
-        case Async::SocketAddress::IPV4:
+        case SocketAddress::IPV4:
             printf("IPV4 ");
             break;
-        case Async::SocketAddress::IPV6:
+        case SocketAddress::IPV6:
             printf("IPV6 ");
             break;
-        case Async::SocketAddress::LOCAL:
+        case SocketAddress::LOCAL:
             printf("LOCAL ");
             break;
         default:

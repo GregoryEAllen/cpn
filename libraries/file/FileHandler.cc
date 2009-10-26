@@ -22,7 +22,7 @@ int FileHandler::Poll(FileHandler **fileds, unsigned numfds, double timeout) {
     }
     int ret = poll(&pollfdset[0], pollfdset.size(), (int)(timeout*1e6 + 0.5));
     if (ret > 0) {
-        for (int i = 0; i < numfds; ++i) {
+        for (unsigned i = 0; i < numfds; ++i) {
             if (pollfdset[i].revents & POLLNVAL) { fileds[i]->OnInval(); }
             if (pollfdset[i].revents & POLLHUP) { fileds[i]->OnHup(); }
             if (pollfdset[i].revents & POLLERR) { fileds[i]->OnError(); }
