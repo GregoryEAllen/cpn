@@ -1,6 +1,4 @@
 
-OS_LIBS += `pkg-config --libs sigc++-2.0`
-OS_INCDIR += `pkg-config --cflags sigc++-2.0`
 # Turn on all warnings
 CC_OTHER += -Wall
 #CXX_OTHER += -Wall

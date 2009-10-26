@@ -1,19 +1,12 @@
 /** \file
  */
 
-#include "AsyncSocket.h"
-#include "AsyncStream.h"
+#include "SocketAddress.h"
 #include "StreamForwarder.h"
+#include "ErrnoException.h"
 #include <string>
 #include <cstdio>
 
-using Async::Stream;
-using Async::StreamSocket;
-using Async::SocketAddress;
-using Async::Descriptor;
-using Async::SockAddrList;
-using Async::SockPtr;
-using Async::DescriptorPtr;
 
 int main(int argc, char **argv) {
     if (argc != 3) {
@@ -23,38 +16,31 @@ int main(int argc, char **argv) {
     SockAddrList addresses;
     try {
         addresses = SocketAddress::CreateIP(argv[1], argv[2]);
-    } catch (Async::StreamException &e) {
+    } catch (const ErrnoException &e) {
         printf("Lookup failed: %s\n", e.what());
         return 1;
     }
-    SockPtr sock;
-    for (SockAddrList::iterator itr = addresses.begin();
-            itr != addresses.end(); ++itr) {
-        printf("Attempting to connect to %s %s\n", itr->GetHostName().c_str(),
-                itr->GetServName().c_str());
-        try {
-            sock = StreamSocket::Create(*itr);
-        } catch (Async::StreamException &e) {
-            printf("Connection failed: %s\n", e.what());
-        }
-        if (sock) break;
-    }
-    if (!sock) {
-        return 1;
-    }
-    printf("Connected\n");
+
     
-    DescriptorPtr in = Descriptor::Create(fileno(stdin));
-    DescriptorPtr out = Descriptor::Create(fileno(stdout));
-    StreamForwarder readside = StreamForwarder(Stream(in), Stream(sock));
-    StreamForwarder writeside = StreamForwarder(Stream(sock), Stream(out));
-    std::vector<DescriptorPtr> fds;
-    fds.push_back(in);
-    fds.push_back(out);
-    fds.push_back(sock);
+    StreamForwarder sock;
+    sock.Connect(addresses);
+    printf("Connected\n");
+
+    StreamForwarder outside;
+    outside.FD(fileno(stdout));
+    sock.SetForward(&outside);
+
+    StreamForwarder inside;
+    inside.FD(fileno(stdin));
+    inside.SetForward(&sock);
+
+    std::vector<FileHandler*> fds;
+    fds.push_back(&sock);
+    fds.push_back(&outside);
+    fds.push_back(&inside);
     try {
-        while (readside.Good() && writeside.Good()) {
-            Descriptor::Poll(fds, -1);
+        while (sock.Good()) {
+            FileHandler::Poll(&fds[0], fds.size(), -1);
         }
     } catch (std::exception &e) {
         printf("Error: %s\n", e.what());
