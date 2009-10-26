@@ -1,86 +1,67 @@
 /** \file
  */
 
+#include "ListenSockHandler.h"
 #include "StreamForwarder.h"
-#include "AsyncStream.h"
-#include "AsyncSocket.h"
+#include "ErrnoException.h"
 
-#include <utility>
-#include <cstdio>
+#include <list>
 #include <tr1/memory>
 
-using Async::SocketAddress;
-using Async::SockAddrList;
-using Async::StreamSocket;
-using Async::Descriptor;
-using Async::DescriptorPtr;
-using Async::ListenSocket;
-using Async::ListenSockPtr;
-using Async::SockPtr;
-using Async::Stream;
 using std::tr1::shared_ptr;
 
-class Controller : public sigc::trackable {
+class Controller : public ListenSockHandler {
 public:
-    typedef std::vector<std::pair<shared_ptr<StreamForwarder>, DescriptorPtr > > StreamList;
-    Controller(DescriptorPtr input, ListenSockPtr listensock)
-    : in(input), lsock(listensock) {
-        in->ConnectReadable(sigc::mem_fun(this, &Controller::ReturnTrue));
-        in->ConnectOnRead(sigc::mem_fun(this, &Controller::StdRead));
-        in->ConnectOnError(sigc::mem_fun(this, &Controller::Error));
-        lsock->ConnectReadable(sigc::mem_fun(this, &Controller::ReturnTrue));
-        lsock->ConnectOnRead(sigc::mem_fun(this, &Controller::ListenRead));
-        lsock->ConnectOnError(sigc::mem_fun(this, &Controller::Error));
-    }
-    bool ReturnTrue() { return true; }
-    void StdRead() {
-        //printf("%s\n",__PRETTY_FUNCTION__);
-        if (getchar() == 'q') {
-            running = false;
-        }
+    typedef std::list<shared_ptr<StreamForwarder> > StreamList;
+    Controller()
+    {
+        Readable(true);
     }
 
-    void ListenRead() {
+    void OnRead() {
         printf("%s\n",__PRETTY_FUNCTION__);
-        SockPtr s = lsock->Accept();
-        if (s) {
+        SocketAddress conaddr;
+        int newfd = Accept(conaddr);
+        if (newfd >= 0) {
             printf("Accepted a connection from %s %s\n",
-                    s->GetRemoteAddress().GetHostName().c_str(),
-                    s->GetRemoteAddress().GetServName().c_str());
+                    conaddr.GetHostName().c_str(),
+                    conaddr.GetServName().c_str());
 
-            sockets.push_back(std::make_pair(
-                    shared_ptr<StreamForwarder>(new StreamForwarder(Stream(s), Stream(s))), s));
+            sockets.push_back(shared_ptr<StreamForwarder>(new StreamForwarder()));
+            sockets.back()->FD(newfd);
+            sockets.back()->SetForward(sockets.back().get());
         }
     }
 
-    void Error(int err) {
-        printf("Error %d\n", err);
+    void OnError() {
+        printf("%s\n",__PRETTY_FUNCTION__);
+        running = false;
+    }
+
+    void OnInval() {
+        printf("%s\n",__PRETTY_FUNCTION__);
         running = false;
     }
     
     void Run() {
         running = true;
         while (running) {
-            StreamList keepsocks;
-            std::vector<DescriptorPtr> polllist;
-            for (StreamList::iterator itr = sockets.begin();
-                    itr != sockets.end(); ++itr) {
-                if (*(itr->second)) {
-                    keepsocks.push_back(*itr);
-                    polllist.push_back(itr->second);
+            std::vector<FileHandler*> polllist;
+            StreamList::iterator itr = sockets.begin();
+            while (itr != sockets.end()) {
+                if (itr->get()->Good()) {
+                    polllist.push_back(itr->get());
+                    ++itr;
                 } else {
                     printf("A connection closed\n");
+                    itr = sockets.erase(itr);
                 }
             }
-            polllist.push_back(in);
-            polllist.push_back(lsock);
-            sockets = keepsocks;
-            Descriptor::Poll(polllist, -1);
+            polllist.push_back(this);
+            FileHandler::Poll(&polllist[0], polllist.size(), -1);
         }
     }
 private:
-    DescriptorPtr in;
-    ListenSockPtr lsock;
     StreamList sockets;
     bool running;
 };
@@ -93,29 +74,13 @@ int main(int argc, char **argv) {
     SockAddrList addresses;
     try {
         addresses = SocketAddress::CreateIPFromServ(argv[1]);
-    } catch (Async::StreamException &e) {
+    } catch (const ErrnoException &e) {
         printf("Invalid servname: %s\n", e.what());
         return 1;
     }
 
-    ListenSockPtr listensock;
-    for (SockAddrList::iterator itr = addresses.begin();
-            itr != addresses.end(); ++itr) {
-        printf("Attempting bind to %s %s\n", itr->GetHostName().c_str(),
-                itr->GetServName().c_str());
-        try {
-            listensock = ListenSocket::Create(*itr);
-        } catch (Async::StreamException &e) {
-            printf("Socket setup failed: %s\n", e.what());
-        }
-        if (listensock) break;
-    }
-    if (!listensock) {
-        printf("Unable to create a listening socket.\n");
-        return 1;
-    }
-    DescriptorPtr in = Descriptor::Create(fileno(stdin));
-    Controller controller = Controller(in, listensock);
+    Controller controller;
+    controller.Listen(addresses);
     controller.Run();
 	return 0;
 }
