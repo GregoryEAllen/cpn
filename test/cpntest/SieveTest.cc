@@ -284,12 +284,9 @@ void SieveTest::RunTwoKernelTest() {
     AutoBuffer buffer(NUMPRIMES*sizeof(SieveNumber));
     CPPUNIT_ASSERT(buffer.GetBuffer());
     CPN::shared_ptr<CPN::Database> database = CPN::Database::Local();
-    CPN::KernelAttr kattrone("one");
-    kattrone.SetDatabase(database).SetHostName("localhost").SetServName("12345");
-    CPN::KernelAttr kattrtwo("two");
-    kattrtwo.SetDatabase(database).SetHostName("localhost").SetServName("12346");
-    CPN::Kernel kone(kattrone);
-    CPN::Kernel ktwo(kattrtwo);
+    database->LogLevel(Logger::DEBUG);
+    CPN::Kernel kone(CPN::KernelAttr("one").SetDatabase(database));
+    CPN::Kernel ktwo(CPN::KernelAttr("two").SetDatabase(database));
     std::vector<std::string> hosts;
     hosts.push_back("one");
     hosts.push_back("two");

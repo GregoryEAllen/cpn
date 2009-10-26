@@ -25,7 +25,6 @@
 #include <string.h>
 #include <errno.h>
 #include <poll.h>
-#include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <iostream>
@@ -141,6 +140,22 @@ namespace Async {
             }
         }
         fd = -1;
+    }
+
+    void Descriptor::Flush() const {
+        if (fd >= 0) {
+            if (fsync(fd) < 0) {
+                int error = errno;
+                switch (error) {
+                case EBADF:
+                case EIO:
+                case EINVAL:
+                default:
+                    throw StreamException(error);
+                    break;
+                }
+            }
+        }
     }
 
     void Descriptor::SetNonBlocking(bool nonblocking) {

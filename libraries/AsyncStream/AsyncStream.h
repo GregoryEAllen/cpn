@@ -80,6 +80,8 @@ namespace Async {
         bool Eof() const throw() { return eof; }
         bool Closed() const throw() { return fd < 0; }
         operator bool() const throw() { return !Eof() && !Closed(); }
+
+        void Flush() const;
         
         sigc::connection ConnectReadable(sigc::slot<bool> slot) {
             return readable.connect(slot);

@@ -64,6 +64,7 @@ namespace CPN {
             }
         }
         logger.Debug("StreamEndpoint distructed");
+        PrintState();
     }
 
     void StreamEndpoint::RMHEnqueue(Key_t wkey, Key_t rkey) {
@@ -248,7 +249,7 @@ namespace CPN {
                 if (0 == numread) {
                     if  (!stream) {
                         // The other end closed the connection!!
-                        descriptor.reset();
+                        ResetDescriptor();
                         if (ShouldDie()) {
                             // Ordered shutdown
                             arl.Unlock();
@@ -263,7 +264,14 @@ namespace CPN {
                 }
             }
         } catch (const Async::StreamException &e) {
-            logger.Warn("Read error %d on stream: %s", e.Error(), e.what());
+            if (ShouldDie()) {
+                ResetDescriptor();
+                arl.Unlock();
+                qarl.Unlock();
+                SignalDeath();
+            } else {
+                logger.Warn("Read error %d on stream: %s", e.Error(), e.what());
+            }
         }
     }
 
@@ -289,7 +297,7 @@ namespace CPN {
                             } else {
                                 // Nothing left to write
                                 logger.Debug("Writing complete shutting down");
-                                descriptor.reset();
+                                ResetDescriptor();
                                 arl.Unlock();
                                 qarl.Unlock();
                                 SignalDeath();
@@ -307,9 +315,9 @@ namespace CPN {
                 }
             }
         } catch (const Async::StreamException  &e) {
-            logger.Warn("Read error %d on stream: %s", e.Error(), e.what());
+            logger.Warn("Write error %d on stream: %s", e.Error(), e.what());
             // close the descriptor will reconnect if needed automatically
-            descriptor.reset();
+            ResetDescriptor();
         }
     }
 
@@ -320,7 +328,7 @@ namespace CPN {
         } else {
             logger.Debug("Poll called on closed descriptor");
         }
-        descriptor.reset();
+        ResetDescriptor();
     }
 
     // All of these Receive functions will end up being called in the
@@ -437,6 +445,9 @@ namespace CPN {
     void StreamEndpoint::ResetDescriptor() {
         Sync::AutoReentrantLock arl(lock);
         BEGIN_FUNC;
+        if (descriptor) {
+            descriptor->SetNonBlocking(false);
+        }
         descriptor.reset();
     }
 
@@ -477,6 +488,7 @@ namespace CPN {
         } else {
             ASSERT(false, "Invalid stream endpoint mode.");
         }
+        logger.Debug("Death signaled.");
         kmh->SendWakeup();
     }
 
@@ -514,12 +526,13 @@ namespace CPN {
     void StreamEndpoint::RegisterDescriptor(std::vector<Async::DescriptorPtr> &descriptors) {
         BEGIN_FUNC;
         // want to check for our death conditions
-        if (descriptor) {
+        Async::DescriptorPtr desc = descriptor;
+        if (desc) {
             if (ShouldDie()) {
-                descriptor.reset();
+                ResetDescriptor();
                 SignalDeath();
             } else {
-                descriptors.push_back(descriptor);
+                descriptors.push_back(desc);
             }
         } else {
             if (ShouldDie()) {
@@ -552,6 +565,9 @@ namespace CPN {
         if (shuttingdown) {
             printf("Currently shutting down: reader %s, writer %s\n",
                     readdead ? "dead" : "live", writedead ? "dead" : "live");
+            if (sentendofwrite) {
+                printf("Sent end of write.\n");
+            }
         }
         if (encoder.BytesReady()) {
             printf("%u Bytes in encoder\n", encoder.NumBytes());
@@ -562,6 +578,9 @@ namespace CPN {
             printf("Descriptor set and %s\n", *descriptor ? "open" : "closed");
         } else {
             printf("Descriptor not set\n");
+            if (!pendingconn.expired()) {
+                printf("Waiting on new connection to finish\n");
+            }
         }
         if (queue) {
             printf("Queue set with %u bytes in it\n", queue->Count());
