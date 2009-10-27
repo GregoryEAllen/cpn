@@ -86,9 +86,6 @@ namespace CPN {
     weak_ptr<UnknownStream> KernelMessageHandler::CreateNewQueueStream(Key_t readerkey, Key_t writerkey) {
         ASSERT(false, "Unexpected message");
     }
-    void KernelMessageHandler::NewKernelStream(Key_t kernelkey, Async::DescriptorPtr desc) {
-        ASSERT(false, "Unexpected message");
-    }
     void KernelMessageHandler::SendWakeup() {
         ASSERT(false, "Unexpected message");
     }

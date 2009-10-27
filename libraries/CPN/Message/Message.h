@@ -96,7 +96,6 @@ namespace CPN {
         virtual void SetReaderDescriptor(Key_t readerkey, Key_t writerkey, Async::DescriptorPtr desc);
         virtual void SetWriterDescriptor(Key_t writerkey, Key_t readerkey, Async::DescriptorPtr desc);
         virtual weak_ptr<UnknownStream> CreateNewQueueStream(Key_t readerkey, Key_t writerkey);
-        virtual void NewKernelStream(Key_t kernelkey, Async::DescriptorPtr desc);
         virtual void SendWakeup();
     };
 }

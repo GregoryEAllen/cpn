@@ -40,7 +40,6 @@ namespace CPN {
     }
 
     SimpleQueue::~SimpleQueue() {
-        Sync::AutoReentrantLock l(lock);
         maxThreshold = 0;
         chanStride = 0;
         head = 0;
@@ -48,7 +47,6 @@ namespace CPN {
     }
 
     void* SimpleQueue::GetRawEnqueuePtr(unsigned thresh, unsigned chan) {
-        Sync::AutoReentrantLock l(lock);
         ASSERT(chan < numChannels);
         if (Freespace() >= thresh && maxThreshold >= thresh) {
             return buffer.GetBuffer(head + (chanStride)*chan);
@@ -58,7 +56,6 @@ namespace CPN {
     }
 
     void SimpleQueue::Enqueue(unsigned count) {
-        Sync::AutoReentrantLock l(lock);
         ASSERT(count <= Freespace());
         unsigned newHead = head + count;
         if (newHead >= queueLength) {
@@ -79,7 +76,6 @@ namespace CPN {
 
     bool SimpleQueue::RawEnqueue(const void* data, unsigned count,
             unsigned numChans, unsigned chanStride) {
-        Sync::AutoReentrantLock l(lock);
         ASSERT(numChans <= numChannels);
         void* dest = GetRawEnqueuePtr(count, 0);
         const void* src = data;
@@ -96,12 +92,10 @@ namespace CPN {
 
 
     unsigned SimpleQueue::NumChannels() const {
-        Sync::AutoReentrantLock l(lock);
         return numChannels;
     }
 
     unsigned SimpleQueue::Freespace() const {
-        Sync::AutoReentrantLock l(lock);
         if (head >= tail) {
             return queueLength - (head - tail) - 1;
         } else {
@@ -114,7 +108,6 @@ namespace CPN {
     }
 
     const void* SimpleQueue::GetRawDequeuePtr(unsigned thresh, unsigned chan) {
-        Sync::AutoReentrantLock l(lock);
         unsigned long chanOff = (chanStride)*chan;
         if (Count() >= thresh && maxThreshold >= thresh) {
             if (tail + thresh > queueLength) {
@@ -129,7 +122,6 @@ namespace CPN {
     }
 
     void SimpleQueue::Dequeue(unsigned count) {
-        Sync::AutoReentrantLock l(lock);
         ASSERT(count <= Count());
         unsigned long newTail = tail + count;
         if (newTail >= queueLength) {
@@ -144,7 +136,6 @@ namespace CPN {
 
     bool SimpleQueue::RawDequeue(void* data, unsigned count,
             unsigned numChans, unsigned chanStride) {
-        Sync::AutoReentrantLock l(lock);
         ASSERT(numChans <= numChannels);
         const void* src = GetRawDequeuePtr(count, 0);
         void* dest = data;
@@ -160,7 +151,6 @@ namespace CPN {
     }
 
     unsigned SimpleQueue::Count() const {
-        Sync::AutoReentrantLock l(lock);
         if (head >= tail) {
             return head - tail;
         } else {
@@ -169,27 +159,22 @@ namespace CPN {
     }
 
     bool SimpleQueue::Empty() const {
-        Sync::AutoReentrantLock l(lock);
         return head == tail;
     }
 
     unsigned SimpleQueue::ChannelStride() const {
-        Sync::AutoReentrantLock l(lock);
         return chanStride;
     }
 
     unsigned SimpleQueue::MaxThreshold() const {
-        Sync::AutoReentrantLock l(lock);
         return maxThreshold;
     }
 
     unsigned SimpleQueue::QueueLength() const {
-        Sync::AutoReentrantLock l(lock);
         return queueLength - 1;
     }
 
     void SimpleQueue::Grow(unsigned queueLen, unsigned maxThresh) {
-        Sync::AutoReentrantLock l(lock);
         // Enforce interface contract of not reducing size
         if (queueLen < queueLength && maxThresh < maxThreshold) return;
         if (queueLen < queueLength) { queueLen = queueLength; }

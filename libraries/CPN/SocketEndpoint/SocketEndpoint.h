@@ -27,8 +27,68 @@
 
 #include "CPNCommon.h"
 #include "QueueBase.h"
+#include "SockHandler.h"
+#include "PacketHeader.h"
 
 namespace CPN {
+    
+    class SocketEndpoint : public QueueBase, public SockHandler {
+    public:
+
+        enum Status_t {
+            INIT,
+            CONNECTING,
+            LIVE,
+            DIEING,
+            DEAD
+        };
+
+        enum Mode_t {
+            READ,
+            WRITE
+        }
+
+        SocketEndpoint(Key_t readerkey, Key_t writerkey, Mode_t mode,
+                KernelMessageHandler *kmh_);
+
+        Status_t GetStatus() const;
+
+        Mode_t GetMode() const { return mode; }
+        Key_t GetWriterKey() const { return writerkey; }
+        Key_t GetReaderKey() const { return readerkey; }
+        Key_t GetKey() const { return mode == READ ? readerkey : writerkey; }
+
+    protected:
+
+        virtual void RMHEnqueue(Key_t writerkey, Key_t readerkey);
+        virtual void RMHEndOfWriteQueue(Key_t writerkey, Key_t readerkey);
+        virtual void RMHWriteBlock(Key_t writerkey, Key_t readerkey, unsigned requested);
+        virtual void RMHTagChange(Key_t writerkey, Key_t readerkey);
+
+        virtual void WMHDequeue(Key_t readerkey, Key_t writerkey);
+        virtual void WMHEndOfReadQueue(Key_t readerkey, Key_t writerkey);
+        virtual void WMHReadBlock(Key_t readerkey, Key_t writerkey, unsigned requested);
+        virtual void WMHTagChange(Key_t readerkey, Key_t writerkey);
+
+        virtual void OnRead();
+        virtual void OnWrite();
+        virtual void OnError();
+        virtual void OnHup();
+        virtual void OnInval();
+
+    private:
+
+        Logger logger;
+
+        Status_t status;
+        const Mode_t mode;
+        const Key_t writerkey;
+        const Key_t readerkey;
+        KernelMessageHandler *kmh;
+
+        unsigned writecount;
+        unsigned readcount;
+    };
 }
 
 #endif

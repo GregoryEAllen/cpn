@@ -36,8 +36,8 @@
 #include "ReentrantLock.h"
 #include "StatusHandler.h"
 
-#include "AsyncStream.h"
-#include "AsyncSocket.h"
+#include "ListenSockHandler.h"
+#include "WakeupHandler.h"
 
 #include "Logger.h"
 
@@ -139,22 +139,12 @@ namespace CPN {
         void CreateWriterEndpoint(const SimpleQueueAttr &attr);
         void CreateLocalQueue(const SimpleQueueAttr &attr);
         shared_ptr<QueueBase> MakeQueue(const SimpleQueueAttr &attr);
-        shared_ptr<StreamEndpoint> GetReaderStream(Key_t readerkey, Key_t writerkey);
-        shared_ptr<StreamEndpoint> GetWriterStream(Key_t writerkey, Key_t readerkey);
         void InternalCreateNode(NodeAttr &nodeattr);
         void ClearGarbage();
 
         void *EntryPoint();
 
-        bool True() { return true; }
-        void WakeupReader();
-        // Note: this is done because SendWakeup is a virtual function
-        // and helgrind complains about calling virtual functions
-        // after the descrictor is called.
-        void SendWakeup() { SendWakeupIntern(); }
-        void SendWakeupIntern();
-
-        void ListenRead();
+        void SendWakeup() { wakeuphandler.SendWakeup(); }
 
         void CreateWriter(Key_t dst, const SimpleQueueAttr &attr);
         void CreateReader(Key_t dst, const SimpleQueueAttr &attr);
@@ -165,9 +155,6 @@ namespace CPN {
         void SetReaderDescriptor(Key_t readerkey, Key_t writerkey, Async::DescriptorPtr desc);
         void SetWriterDescriptor(Key_t writerkey, Key_t readerkey, Async::DescriptorPtr desc);
         weak_ptr<UnknownStream> CreateNewQueueStream(Key_t readerkey, Key_t writerkey);
-        void NewKernelStream(Key_t kernelkey, Async::DescriptorPtr desc);
-
-        void PrintStreamState();
 
         Sync::ReentrantLock lock;
         Sync::StatusHandler<KernelStatus_t> status;
@@ -175,20 +162,13 @@ namespace CPN {
         Key_t hostkey;
         Logger logger;
 
-        Async::SockPtr wakeuplisten;
-        Async::SockPtr wakeupwriter;
-        Async::ListenSockPtr listener;
+        WakeupHandler wakeuphandler;
+        KernelListener listener;
 
         typedef std::map<Key_t, shared_ptr<NodeBase> > NodeMap;
         typedef std::vector< shared_ptr<NodeBase> > NodeList;
         NodeMap nodemap;
         NodeList garbagenodes;
-
-        typedef std::map<Key_t, shared_ptr<Stream> > StreamMap;
-        StreamMap streammap;
-        std::list<Key_t> deadstreams;
-
-        std::list<shared_ptr<UnknownStream> > unknownstreams;
 
         shared_ptr<Database> database;
     };

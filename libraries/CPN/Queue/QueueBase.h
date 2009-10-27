@@ -35,7 +35,7 @@ namespace CPN {
 	 * \brief The base class for all queues in the CPN library.
 	 */
 	class CPN_LOCAL QueueBase 
-    : private ReaderMessageHandler, private WriterMessageHandler
+    : protected ReaderMessageHandler, protected WriterMessageHandler
     {
 	public:
 
@@ -207,9 +207,9 @@ namespace CPN {
 		QueueBase();
         Sync::ReentrantLock lock;
         Sync::ReentrantCondition cond;
-	private:
         bool CheckRMH();
         bool CheckWMH();
+	private:
         bool shutdown;
 	};
 

@@ -32,11 +32,9 @@
 
 #include "Database.h"
 
-#include "CPNStream.h"
-#include "StreamEndpoint.h"
-#include "UnknownStream.h"
+#include "SocketAddress.h"
+#include "FileHandler.h"
 
-#include "AutoBuffer.h"
 #include "Assert.h"
 #include "Logger.h"
 
@@ -68,10 +66,10 @@ namespace CPN {
         database(kattr.GetDatabase())
     {
         FUNCBEGIN;
-        Async::SockAddrList addrlist = Async::SocketAddress::CreateIP(
+        SockAddrList addrlist = SocketAddress::CreateIP(
                 kattr.GetHostName().c_str(),
                 kattr.GetServName().c_str());
-        listener = Async::ListenSocket::Create(addrlist);
+        listener.Connect(addrlist);
 
         if (!database) {
             database = Database::Local();
@@ -80,15 +78,10 @@ namespace CPN {
         logger.LogLevel(database->LogLevel());
         logger.Name(kernelname);
 
-        listener->ConnectReadable(sigc::mem_fun(this, &Kernel::True));
-        listener->ConnectOnRead(sigc::mem_fun(this, &Kernel::ListenRead));
-
-        Async::SocketAddress addr = listener->GetAddress();
+        SocketAddress addr;
+        addr.SetFromSockName(listener.FD());
         hostkey = database->SetupHost(kernelname, addr.GetHostName(), addr.GetServName(), this);
 
-        Async::StreamSocket::CreatePair(wakeuplisten, wakeupwriter);
-        wakeuplisten->ConnectOnRead(sigc::mem_fun(this, &Kernel::WakeupReader));
-        wakeuplisten->ConnectReadable(sigc::mem_fun(this, &Kernel::True));
         logger.Info("New kernel, listening on %s:%s", addr.GetHostName().c_str(), addr.GetServName().c_str());
         // Start up and don't finish until actually started.
         Pthread::Start();
@@ -106,8 +99,6 @@ namespace CPN {
         assert(garbagenodes.empty());
         assert(streammap.empty());
         assert(unknownstreams.empty());
-        wakeupwriter.reset();
-        wakeuplisten.reset();
         FUNCEND;
     }
 
@@ -124,7 +115,7 @@ namespace CPN {
     void Kernel::Terminate() {
         FUNCBEGIN;
         status.CompareAndPost(RUNNING, TERMINATE);
-        SendWakeupIntern();
+        wakeuphandler.SendWakeup();
     }
 
     Key_t Kernel::CreateNode(const NodeAttr &attr) {
@@ -236,27 +227,24 @@ namespace CPN {
 
     void Kernel::CreateReaderEndpoint(const SimpleQueueAttr &attr) {
         Sync::AutoReentrantLock arlock(lock);
-        shared_ptr<QueueBase> queue = MakeQueue(attr);
+
+        shared_ptr<QueueBase> queue;
+
         shared_ptr<NodeBase> readernode = nodemap[attr.GetReaderNodeKey()];
         ASSERT(readernode);
+
         readernode->GetNodeMessageHandler()->
             CreateReader(attr.GetReaderKey(), attr.GetWriterKey(), queue);
-        shared_ptr<StreamEndpoint> stream = GetReaderStream(attr.GetReaderKey(),
-                attr.GetWriterKey());
-        stream->SetQueue(queue);
     }
 
     void Kernel::CreateWriterEndpoint(const SimpleQueueAttr &attr) {
         Sync::AutoReentrantLock arlock(lock);
-        shared_ptr<QueueBase> queue = MakeQueue(attr);
+
         shared_ptr<NodeBase> writernode = nodemap[attr.GetWriterNodeKey()];
         ASSERT(writernode);
+
         writernode->GetNodeMessageHandler()->
             CreateWriter(attr.GetReaderKey(), attr.GetWriterKey(), queue);
-
-        shared_ptr<StreamEndpoint> stream = GetWriterStream(attr.GetWriterKey(),
-                attr.GetReaderKey());
-        stream->SetQueue(queue);
     }
 
     void Kernel::CreateLocalQueue(const SimpleQueueAttr &attr) {
@@ -290,38 +278,6 @@ namespace CPN {
         return queue;
     }
 
-    shared_ptr<StreamEndpoint> Kernel::GetReaderStream(Key_t readerkey, Key_t writerkey) {
-        Sync::AutoReentrantLock arlock(lock);
-        shared_ptr<StreamEndpoint> stream;
-        StreamMap::iterator entry = streammap.find(readerkey);
-        if (entry == streammap.end()) {
-            stream = shared_ptr<StreamEndpoint>(
-                    new StreamEndpoint(this, readerkey, writerkey, StreamEndpoint::READ));
-            streammap.insert(std::make_pair(readerkey, stream));
-        } else {
-            stream = dynamic_pointer_cast<StreamEndpoint>(entry->second);
-            ASSERT(stream);
-            ASSERT(stream->GetMode() == StreamEndpoint::READ);
-        }
-        return stream;
-    }
-
-    shared_ptr<StreamEndpoint> Kernel::GetWriterStream(Key_t writerkey, Key_t readerkey) {
-        Sync::AutoReentrantLock arlock(lock);
-        shared_ptr<StreamEndpoint> stream;
-        StreamMap::iterator entry = streammap.find(writerkey);
-        if (entry == streammap.end()) {
-            stream = shared_ptr<StreamEndpoint>(
-                    new StreamEndpoint(this, readerkey, writerkey, StreamEndpoint::WRITE));
-            streammap.insert(std::make_pair(writerkey, stream));
-        } else {
-            stream = dynamic_pointer_cast<StreamEndpoint>(entry->second);
-            ASSERT(stream);
-            ASSERT(stream->GetMode() == StreamEndpoint::WRITE);
-        }
-        return stream;
-    }
-
     void Kernel::InternalCreateNode(NodeAttr &nodeattr) {
         Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
@@ -345,7 +301,7 @@ namespace CPN {
         shared_ptr<NodeBase> node = nodemap[key];
         nodemap.erase(key);
         garbagenodes.push_back(node);
-        SendWakeupIntern();
+        wakeuphandler.SendWakeup();
     }
 
     void Kernel::ClearGarbage() {
@@ -425,29 +381,6 @@ namespace CPN {
         return 0;
     }
 
-    void Kernel::WakeupReader() {
-        FUNCBEGIN;
-        Async::Stream stream(wakeuplisten);
-        // read data out of the stream until it's empty
-        // the buffer size is random
-        char buffer[256];
-        while (stream.Read(buffer, sizeof(buffer)) > 0);
-        ASSERT(stream, "EOF on the wakeup pipe!!!");
-    }
-
-    void Kernel::SendWakeupIntern() {
-        FUNCBEGIN;
-        ASSERT(wakeupwriter && *wakeupwriter);
-        Async::Stream stream(wakeupwriter);
-        char c = 0;
-        while(stream.Write(&c, sizeof(c)) != sizeof(c));
-    }
-
-    void Kernel::ListenRead() {
-        Async::SockPtr sock = listener->Accept();
-        unknownstreams.push_back(shared_ptr<UnknownStream>(new UnknownStream(sock, this)));
-    }
-
     void Kernel::CreateWriter(Key_t dst, const SimpleQueueAttr &attr) {
         Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
@@ -477,65 +410,19 @@ namespace CPN {
     void Kernel::StreamDead(Key_t streamkey) {
         Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
-        deadstreams.push_back(streamkey);
     }
 
     void Kernel::SetReaderDescriptor(Key_t readerkey, Key_t writerkey, Async::DescriptorPtr desc) {
         FUNCBEGIN;
-        shared_ptr<StreamEndpoint> stream = GetReaderStream(readerkey, writerkey);
-        stream->SetDescriptor(desc);
     }
 
     void Kernel::SetWriterDescriptor(Key_t writerkey, Key_t readerkey, Async::DescriptorPtr desc) {
         FUNCBEGIN;
-        shared_ptr<StreamEndpoint> stream = GetWriterStream(writerkey, readerkey);
-        stream->SetDescriptor(desc);
     }
 
     weak_ptr<UnknownStream> Kernel::CreateNewQueueStream(Key_t readerkey, Key_t writerkey) {
         FUNCBEGIN;
-        Key_t readerhost = database->GetReaderHost(readerkey);
-        Key_t writerhost = database->GetWriterHost(writerkey);
-        Key_t otherhost = 0;
-        Async::SockAddrList addrlist;
-        if (readerhost == hostkey) {
-            otherhost = writerhost;
-        } else if (writerhost == hostkey) {
-            otherhost = readerhost;
-        } else {
-            ASSERT(false);
-        }
-        std::string hostname, servname;
-        database->GetHostConnectionInfo(otherhost, hostname, servname);
-        addrlist = Async::SocketAddress::CreateIP(
-                hostname.c_str(),
-                servname.c_str());
-        Async::SockPtr sock = Async::StreamSocket::Create(addrlist);
-        shared_ptr<UnknownStream> stream;
-        if (readerhost == hostkey) {
-            stream = shared_ptr<UnknownStream>(
-                    new UnknownStream(sock, this, readerkey, writerkey, UnknownStream::READ));
-        } else if (writerhost == hostkey) {
-            stream = shared_ptr<UnknownStream>(
-                    new UnknownStream(sock, this, readerkey, writerkey, UnknownStream::WRITE));
-        }
-        Sync::AutoReentrantLock arlock(lock);
-        unknownstreams.push_back(stream);
-        arlock.Unlock();
-        return stream;
     }
 
-    void Kernel::NewKernelStream(Key_t kernelkey, Async::DescriptorPtr desc) {
-        StreamMap::iterator entry = streammap.find(kernelkey);
-        if (entry == streammap.end()) {
-        }
-    }
-
-    void Kernel::PrintStreamState() {
-        for (StreamMap::iterator itr = streammap.begin();
-                itr != streammap.end(); ++itr) {
-            itr->second->PrintState();
-        }
-    }
 }
 

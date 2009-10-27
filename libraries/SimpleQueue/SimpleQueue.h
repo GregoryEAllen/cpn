@@ -18,24 +18,20 @@
 //	World Wide Web at http://www.fsf.org.
 //=============================================================================
 /** \file
- * \brief A simple implementation of the QueueBase interface.
+ * \brief A simple circular queue similar to ThresholdQueue.
  * \author John Bridgman
  */
 
-#ifndef CPN_SIMPLEQUEUE_H
-#define CPN_SIMPLEQUEUE_H
+#ifndef SIMPLEQUEUE_H
+#define SIMPLEQUEUE_H
 #pragma once
 
-#include "CPNCommon.h"
-#include "QueueBase.h"
-#include "ReentrantLock.h"
 #include "AutoBuffer.h"
-
 
 namespace CPN {
 
     /**
-     * /brief A very simple implementatin of QueueBase.
+     * /brief A very simple circular queue.
      * 
      * No special memory mapping or any other stuff, just a
      * plain memory buffer. Multiple calls the Enqueue are not
@@ -46,9 +42,8 @@ namespace CPN {
      * Unlike ThresholdQueue this does not do any memory mapping so
      * has no minimum size.
      *
-     * \see QueueBase
      */
-    class CPN_LOCAL SimpleQueue : public QueueBase {
+    class SimpleQueue {
     public:
 
         SimpleQueue(unsigned size, unsigned maxThresh, unsigned numChans);
@@ -73,6 +68,7 @@ namespace CPN {
 
         unsigned ChannelStride() const;
 
+        // Only increases size
         void Grow(unsigned queueLen, unsigned maxThresh);
 
     private:
