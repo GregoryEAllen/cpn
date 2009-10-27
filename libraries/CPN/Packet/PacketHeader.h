@@ -19,6 +19,11 @@
 //=============================================================================
 /** \file
  * \brief Declarations of a generic binary packet format.
+ *
+ * Note that the order of the fields in these structs is deliberate in most
+ * cases. They are ordered mostly to ensure that the compiler will pack the
+ * data correctly into the 64 byte header.
+ *
  * \author John Bridgman
  */
 
@@ -63,6 +68,17 @@ namespace CPN {
         uint32_t syncWord;
         uint32_t dataLength;
         uint32_t dataType;
+    };
+
+    struct SocketEndpointHeader {
+        PacketHeaderBase base;
+        uint32_t bytesQueued;
+        uint64_t srckey;
+        uint64_t dstkey;
+        uint32_t amount;
+        uint32_t numChans;
+        uint8_t mode;
+        uint8_t status;
     };
 
     struct EnqueuePacketHeader {

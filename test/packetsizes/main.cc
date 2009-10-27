@@ -13,6 +13,6 @@ int main(int argc, char **argv) {
     printf("WriteBlockPacketheader size = %lu\n", sizeof(CPN::WriteBlockPacketHeader));
     printf("CreateQueuePacketHeader size = %lu\n", sizeof(CPN::CreateQueuePacketHeader));
     printf("CreateNodePacketHeader size = %lu\n", sizeof(CPN::CreateNodePacketHeader));
-    printf("StreamPacketHeader size = %lu\n", sizeof(CPN::StreamPacketHeader));
+    printf("SocketEndpointHeader size = %lu\n", sizeof(CPN::SocketEndpointHeader));
 }
 

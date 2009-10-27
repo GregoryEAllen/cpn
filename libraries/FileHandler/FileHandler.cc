@@ -1,3 +1,25 @@
+//=============================================================================
+//	Computational Process Networks class library
+//	Copyright (C) 1997-2006  Gregory E. Allen and The University of Texas
+//
+//	This library is free software; you can redistribute it and/or modify it
+//	under the terms of the GNU Library General Public License as published
+//	by the Free Software Foundation; either version 2 of the License, or
+//	(at your option) any later version.
+//
+//	This library is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//	Library General Public License for more details.
+//
+//	The GNU Public License is available in the file LICENSE, or you
+//	can write to the Free Software Foundation, Inc., 59 Temple Place -
+//	Suite 330, Boston, MA 02111-1307, USA, or you can find it on the
+//	World Wide Web at http://www.fsf.org.
+//=============================================================================
+/** \file
+ * \author John Bridgman
+ */
 
 #include "FileHandler.h"
 #include "ErrnoException.h"
@@ -112,6 +134,28 @@ unsigned FileHandler::Read(void *ptr, unsigned len) {
     return bytesread;
 }
 
+unsigned FileHandler::Readv(const iovec *iov, int iovcnt) {
+    if (eof) { return 0; }
+    unsigned bytesread = 0;
+    int num = readv(fd, iov, iovcnt);
+    if (num < 0) {
+        int error = errno;
+        switch (error) {
+        case EINTR:
+        case EAGAIN:
+        case ENOMEM:
+            break;
+        default:
+            throw ErrnoException(error);
+        }
+    } else if (num == 0) {
+        eof = true;
+    } else {
+        bytesread = num;
+    }
+    return bytesread;
+}
+
 unsigned FileHandler::Write(const void *ptr, unsigned len) {
     unsigned written = 0;
     int num = write(fd, ptr, len);
@@ -131,6 +175,26 @@ unsigned FileHandler::Write(const void *ptr, unsigned len) {
         case EINVAL:
         case EIO:
         case ENOSPC:
+        default:
+            throw ErrnoException(error);
+        }
+    } else {
+        written = num;
+    }
+    return written;
+}
+
+unsigned FileHandler::Writev(const iovec *iov, int iovcnt) {
+    unsigned written = 0;
+    int num = writev(fd, iov, iovcnt);
+    if (num < 0) {
+        int error = errno;
+        switch (error) {
+        case EINTR:
+        case ENOMEM:
+        case EAGAIN:
+        case ENOBUFS:
+            break;
         default:
             throw ErrnoException(error);
         }
