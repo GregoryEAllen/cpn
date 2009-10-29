@@ -25,7 +25,6 @@
 #pragma once
 
 #include "PacketHeader.h"
-#include "AutoBuffer.h"
 #include "AutoCircleBuffer.h"
 #include <string>
 
@@ -49,30 +48,8 @@ namespace CPN {
         void SendEndOfWriteQueue();
         void SendEndOfReadQueue();
 
-        void SendCreateReader(
-                unsigned queuehint, unsigned queuelenght, unsigned maxthreshold,
-                unsigned numchannels, uint64_t readerkey, uint64_t writerkey
-                );
-        void SendCreateWriter(
-                unsigned queuehint, unsigned queuelenght, unsigned maxthreshold,
-                unsigned numchannels, uint64_t readerkey, uint64_t writerkey
-                );
-        void SendCreateQueue(
-                unsigned queuehint, unsigned queuelenght, unsigned maxthreshold,
-                unsigned numchannels, uint64_t readerkey, uint64_t writerkey
-                );
-        void SendCreateNode(
-                const std::string &nodename,
-                const std::string &nodetype,
-                const std::string &param,
-                const StaticConstBuffer arg,
-                uint64_t nodekey,
-                uint64_t hostkey
-                );
-
         void SendReaderID(uint64_t readerkey, uint64_t writerkey);
         void SendWriterID(uint64_t writerkey, uint64_t readerkey);
-        void SendKernelID(uint64_t srckernelkey, uint64_t dstkernelkey);
     private:
         AutoCircleBuffer cbuff;
     };

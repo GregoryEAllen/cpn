@@ -2,7 +2,7 @@
 #include "QueueTest.h"
 #include "QueueBase.h"
 #include "ThresholdQueue.h"
-#include "SimpleQueue.h"
+#include "CPNSimpleQueue.h"
 #include <stdlib.h>
 #include <cppunit/TestAssert.h>
 #include <vector>
@@ -19,7 +19,6 @@ CPPUNIT_TEST_SUITE_REGISTRATION( QueueTest );
 using CPN::shared_ptr;
 using CPN::QueueBase;
 using CPN::ThresholdQueue;
-using CPN::SimpleQueue;
 
 void QueueTest::setUp() {
 }
@@ -33,14 +32,14 @@ void QueueTest::SimpleQueueTest() {
     unsigned maxthresh = 10;
     unsigned chans = 1;
 	//DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, size, maxthresh, chans);
-    shared_ptr<QueueBase> queue = shared_ptr<QueueBase>(new SimpleQueue(size, maxthresh, chans));
+    shared_ptr<QueueBase> queue = shared_ptr<QueueBase>(new CPN::SimpleQueue(size, maxthresh, chans));
     TestBulk(queue.get());
     TestDirect(queue.get());
     TestBulk(queue.get());
     TestDirect(queue.get());
     chans = 10;
 	//DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, size, maxthresh, chans);
-    queue = shared_ptr<QueueBase>(new SimpleQueue(size, maxthresh, chans));
+    queue = shared_ptr<QueueBase>(new CPN::SimpleQueue(size, maxthresh, chans));
     TestBulk(queue.get());
     TestDirect(queue.get());
     TestBulk(queue.get());

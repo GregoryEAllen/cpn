@@ -38,6 +38,7 @@
 
 #include "ListenSockHandler.h"
 #include "WakeupHandler.h"
+#include "KernelListener.h"
 
 #include "Logger.h"
 
@@ -144,6 +145,7 @@ namespace CPN {
 
         void *EntryPoint();
 
+        void Poll();
         void SendWakeup() { wakeuphandler.SendWakeup(); }
 
         void CreateWriter(Key_t dst, const SimpleQueueAttr &attr);
@@ -161,6 +163,7 @@ namespace CPN {
         const std::string kernelname;
         Key_t hostkey;
         Logger logger;
+        shared_ptr<Database> database;
 
         WakeupHandler wakeuphandler;
         KernelListener listener;
@@ -170,7 +173,8 @@ namespace CPN {
         NodeMap nodemap;
         NodeList garbagenodes;
 
-        shared_ptr<Database> database;
+        typedef std::map<Key_t, shared_ptr<SocketEndpoint> > EndpointMap;
+        EndpointMap endpointmap;
     };
 }
 #endif

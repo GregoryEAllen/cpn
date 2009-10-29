@@ -3,7 +3,7 @@
 #include "StreamEndpointTest.h"
 #include <cppunit/TestAssert.h>
 
-#include "SimpleQueue.h"
+#include "CPNSimpleQueue.h"
 #include "AsyncStream.h"
 #include "AsyncSocket.h"
 
@@ -32,8 +32,8 @@ void Error(int err) {
 }
 
 void StreamEndpointTest::setUp() {
-    wqueue = shared_ptr<SimpleQueue>(new SimpleQueue(2*QUEUESIZE,QUEUESIZE,1));
-    rqueue = shared_ptr<SimpleQueue>(new SimpleQueue(QUEUESIZE,QUEUESIZE,1));
+    wqueue = shared_ptr<CPN::SimpleQueue>(new CPN::SimpleQueue(2*QUEUESIZE,QUEUESIZE,1));
+    rqueue = shared_ptr<CPN::SimpleQueue>(new CPN::SimpleQueue(QUEUESIZE,QUEUESIZE,1));
 
 
     Async::SockPtr wsock;

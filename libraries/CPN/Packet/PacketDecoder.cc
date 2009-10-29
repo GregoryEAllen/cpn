@@ -92,69 +92,12 @@ namespace CPN {
         case PACKET_ENDOFREADQUEUE:
             ReceiveEndOfReadQueue();
             break;
-        case PACKET_CREATE_READER:
-            ReceivedCreateReader(
-                    header->createqueue.queuehint,
-                    header->createqueue.queuelength,
-                    header->createqueue.maxthreshold,
-                    header->createqueue.numchannels,
-                    header->createqueue.readerkey,
-                    header->createqueue.writerkey
-                    );
-            break;
-        case PACKET_CREATE_WRITER:
-            ReceivedCreateWriter(
-                    header->createqueue.queuehint,
-                    header->createqueue.queuelength,
-                    header->createqueue.maxthreshold,
-                    header->createqueue.numchannels,
-                    header->createqueue.readerkey,
-                    header->createqueue.writerkey
-                    );
-            break;
-        case PACKET_CREATE_QUEUE:
-            ReceivedCreateQueue(
-                    header->createqueue.queuehint,
-                    header->createqueue.queuelength,
-                    header->createqueue.maxthreshold,
-                    header->createqueue.numchannels,
-                    header->createqueue.readerkey,
-                    header->createqueue.writerkey
-                    );
-            break;
-        case PACKET_CREATE_NODE:
-            {
-                char *strbase = (char*)buffer.GetBuffer(PACKET_HEADERLENGTH);
-                unsigned length = header->createnode.namelen;
-                std::string nodename(strbase, length);
-                strbase += length;
-                length = header->createnode.typelen;
-                std::string nodetype(strbase, length);
-                strbase += length;
-                length = header->createnode.paramlen;
-                std::string param(strbase, length);
-                strbase += length;
-                length = header->createnode.arglen;
-                ReceivedCreateNode(
-                        nodename,
-                        nodetype,
-                        param,
-                        StaticConstBuffer(strbase, length),
-                        header->createnode.nodekey,
-                        header->createnode.hostkey
-                        );
-            }
-            break;
         case PACKET_ID_READER:
             ReceivedReaderID(header->identify.srckey,
                     header->identify.dstkey);
             break;
         case PACKET_ID_WRITER:
             ReceivedWriterID(header->identify.srckey,
-                    header->identify.dstkey);
-            break;
-        case PACKET_ID_KERNEL:
-            ReceivedKernelID(header->identify.srckey,
                     header->identify.dstkey);
             break;
         default:
@@ -187,47 +130,11 @@ namespace CPN {
         ASSERT(false, "Unexpected packet type received.");
     }
 
-    void PacketDecoder::ReceivedCreateReader(
-            unsigned queuehint, unsigned queuelenght, unsigned maxthreshold,
-            unsigned numchannels, uint64_t readerkey, uint64_t writerkey)
-    {
-        ASSERT(false, "Unexpected packet type received.");
-    }
-
-    void PacketDecoder::ReceivedCreateWriter(
-            unsigned queuehint, unsigned queuelenght, unsigned maxthreshold,
-            unsigned numchannels, uint64_t readerkey, uint64_t writerkey)
-    {
-        ASSERT(false, "Unexpected packet type received.");
-    }
-
-    void PacketDecoder::ReceivedCreateQueue(
-            unsigned queuehint, unsigned queuelenght, unsigned maxthreshold,
-            unsigned numchannels, uint64_t readerkey, uint64_t writerkey)
-    {
-        ASSERT(false, "Unexpected packet type received.");
-    }
-
-    void PacketDecoder::ReceivedCreateNode(
-            const std::string &nodename,
-            const std::string &nodetype,
-            const std::string &param,
-            const StaticConstBuffer arg,
-            uint64_t nodekey,
-            uint64_t hostkey)
-    {
-        ASSERT(false, "Unexpected packet type received.");
-    }
-
     void PacketDecoder::ReceivedReaderID(uint64_t readerkey, uint64_t writerkey) {
         ASSERT(false, "Unexpected packet type received.");
     }
 
     void PacketDecoder::ReceivedWriterID(uint64_t writerkey, uint64_t readerkey) {
-        ASSERT(false, "Unexpected packet type received.");
-    }
-
-    void PacketDecoder::ReceivedKernelID(uint64_t srckernelkey, uint64_t dstkernelkey) {
         ASSERT(false, "Unexpected packet type received.");
     }
 

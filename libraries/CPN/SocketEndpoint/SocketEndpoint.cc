@@ -42,48 +42,131 @@ namespace CPN {
         return status;
     }
 
+    const void* GetRawDequeuePtr(unsigned thresh, unsigned chan=0) {
+        Sync::AutoReentrantLock arl(lock);
+    }
+
+    void Dequeue(unsigned count) {
+        Sync::AutoReentrantLock arl(lock);
+    }
+
+    bool RawDequeue(void* data, unsigned count,
+            unsigned numChans, unsigned chanStride) {
+        Sync::AutoReentrantLock arl(lock);
+    }
+
+    bool RawDequeue(void* data, unsigned count) {
+        Sync::AutoReentrantLock arl(lock);
+    }
+
+    void* GetRawEnqueuePtr(unsigned thresh, unsigned chan=0) {
+        Sync::AutoReentrantLock arl(lock);
+    }
+
+    void Enqueue(unsigned count) {
+        Sync::AutoReentrantLock arl(lock);
+    }
+
+    bool RawEnqueue(const void* data, unsigned count,
+            unsigned numChans, unsigned chanStride) {
+        Sync::AutoReentrantLock arl(lock);
+    }
+
+    bool RawEnqueue(const void* data, unsigned count) {
+        Sync::AutoReentrantLock arl(lock);
+    }
+
+    unsigned NumChannels() const {
+        Sync::AutoReentrantLock arl(lock);
+    }
+
+    unsigned Count() const {
+        Sync::AutoReentrantLock arl(lock);
+    }
+
+    bool Empty() const {
+        Sync::AutoReentrantLock arl(lock);
+    }
+
+    unsigned Freespace() const {
+        Sync::AutoReentrantLock arl(lock);
+    }
+
+    bool Full() const {
+        Sync::AutoReentrantLock arl(lock);
+    }
+
+    unsigned MaxThreshold() const {
+        Sync::AutoReentrantLock arl(lock);
+    }
+
+    unsigned QueueLength() const {
+        Sync::AutoReentrantLock arl(lock);
+    }
+
+    void Grow(unsigned queueLen, unsigned maxThresh) {
+        Sync::AutoReentrantLock arl(lock);
+    }
+
+
+
     void SocketEndpoint::RMHEnqueue(Key_t writerkey, Key_t readerkey) {
+        Sync::AutoReentrantLock arl(lock);
     }
 
     void SocketEndpoint::RMHEndOfWriteQueue(Key_t writerkey, Key_t readerkey) {
+        Sync::AutoReentrantLock arl(lock);
     }
 
     void SocketEndpoint::RMHWriteBlock(Key_t writerkey, Key_t readerkey, unsigned requested) {
+        Sync::AutoReentrantLock arl(lock);
     }
 
     void SocketEndpoint::RMHTagChange(Key_t writerkey, Key_t readerkey) {
+        Sync::AutoReentrantLock arl(lock);
     }
 
 
     void SocketEndpoint::WMHDequeue(Key_t readerkey, Key_t writerkey) {
+        Sync::AutoReentrantLock arl(lock);
     }
 
     void SocketEndpoint::WMHEndOfReadQueue(Key_t readerkey, Key_t writerkey) {
+        Sync::AutoReentrantLock arl(lock);
     }
 
     void SocketEndpoint::WMHReadBlock(Key_t readerkey, Key_t writerkey, unsigned requested) {
+        Sync::AutoReentrantLock arl(lock);
     }
 
     void SocketEndpoint::WMHTagChange(Key_t readerkey, Key_t writerkey) {
+        Sync::AutoReentrantLock arl(lock);
     }
 
 
     void SocketEndpoint::OnRead() {
+        Sync::AutoReentrantLock arl(lock);
     }
 
     void SocketEndpoint::OnWrite() {
+        Sync::AutoReentrantLock arl(lock);
     }
 
     void SocketEndpoint::OnError() {
+        Sync::AutoReentrantLock arl(lock);
+        // Error on socket.
     }
 
     void SocketEndpoint::OnHup() {
+        Sync::AutoReentrantLock arl(lock);
+        // If I understand correctly this will be called if
+        // poll detects that if we try to write we would get EPIPE
     }
 
     void SocketEndpoint::OnInval() {
+        Sync::AutoReentrantLock arl(lock);
+        // Our file descriptor is invalid
     }
-
-
 
 }
 

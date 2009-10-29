@@ -21,22 +21,43 @@
  * \author John Bridgman
  */
 
-#ifndef CPN_KERNELLISTENER_H
-#define CPN_KERNELLISTENER_H
-#pragma once
-
-#include "CPNCommon.h"
-#include "ListenSockHandler.h"
-#include "Message.h"
+#include "PacketHeader.h"
+#include "Assert.h"
 
 namespace CPN {
-    class KernelListener : public ListenSockHandler {
-    public:
-        KernelListener(KernelMessageHandler *kmh_);
-        void OnRead();
-        void OnError();
-        void OnInval();
-    };
+
+    PacketHandler::~PacketHandler() {}
+
+    void PacketHandler::FirePacket(const Packet &packet) {
+        ASSERT(packet.Valid(), "Invalid packet");
+        switch (packet.Type()) {
+        case PACKET_ENQUEUE:
+            EnqueuePacket(packet);
+            break;
+        case PACKET_DEQUEUE:
+            DequeuePacket(packet);
+            break;
+        case PACKET_READBLOCK:
+            ReadBlockPacket(packet);
+            break;
+        case PACKET_WRITEBLOCK:
+            WriteBlockPacket(packet);
+            break;
+        case PACKET_ENDOFWRITE:
+            EndOfWritePacket(packet);
+            break;
+        case PACKET_ENDOFREAD:
+            EndOfReadPacket(packet);
+            break;
+        case PACKET_ID_READER:
+            IDReaderPacket(packet);
+            break;
+        case PACKET_ID_WRITER:
+            IDWriterPacket(packet);
+            break;
+        default:
+            ASSERT(false, "Invalid packet type.");
+        }
+    }
 }
 
-#endif

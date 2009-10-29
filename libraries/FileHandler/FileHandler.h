@@ -61,6 +61,7 @@ public:
     bool Eof() const { return eof; }
     bool Eof(bool e) { return eof = e; }
     bool Good() const { return !(eof || fd == -1); }
+    bool Closed() const { return fd == -1; }
 
     void SetBlocking(bool blocking);
     bool IsBlocking() const;

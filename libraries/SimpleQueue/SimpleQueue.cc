@@ -30,164 +30,162 @@
 #include "Assert.h"
 #include <cstring>
 
-namespace CPN {
 
-    SimpleQueue::SimpleQueue(unsigned size, unsigned maxThresh, unsigned numChans)
-           : QueueBase(), queueLength(size + 1),
-        maxThreshold(maxThresh), numChannels(numChans),
-        chanStride(size + 1 + maxThresh),
-        head(0), tail(0), buffer((size + 1 + maxThresh)*numChans) {
+SimpleQueue::SimpleQueue(unsigned size, unsigned maxThresh, unsigned numChans)
+       : QueueBase(), queueLength(size + 1),
+    maxThreshold(maxThresh), numChannels(numChans),
+    chanStride(size + 1 + maxThresh),
+    head(0), tail(0), buffer((size + 1 + maxThresh)*numChans) {
+}
+
+SimpleQueue::~SimpleQueue() {
+    maxThreshold = 0;
+    chanStride = 0;
+    head = 0;
+    tail = 0;
+}
+
+void* SimpleQueue::GetRawEnqueuePtr(unsigned thresh, unsigned chan) {
+    ASSERT(chan < numChannels);
+    if (Freespace() >= thresh && maxThreshold >= thresh) {
+        return buffer.GetBuffer(head + (chanStride)*chan);
+    } else {
+        return 0;
     }
+}
 
-    SimpleQueue::~SimpleQueue() {
-        maxThreshold = 0;
-        chanStride = 0;
-        head = 0;
-        tail = 0;
-    }
-
-    void* SimpleQueue::GetRawEnqueuePtr(unsigned thresh, unsigned chan) {
-        ASSERT(chan < numChannels);
-        if (Freespace() >= thresh && maxThreshold >= thresh) {
-            return buffer.GetBuffer(head + (chanStride)*chan);
-        } else {
-            return 0;
+void SimpleQueue::Enqueue(unsigned count) {
+    ASSERT(count <= Freespace());
+    unsigned newHead = head + count;
+    if (newHead >= queueLength) {
+        newHead -= queueLength;
+        for (unsigned chan = 0; chan < numChannels; ++chan) {
+            unsigned chanOff = (chanStride)*chan;
+            memcpy(buffer.GetBuffer(chanOff),
+                   buffer.GetBuffer(queueLength + chanOff),
+                   newHead);
         }
     }
+    head = newHead;
+}
 
-    void SimpleQueue::Enqueue(unsigned count) {
-        ASSERT(count <= Freespace());
-        unsigned newHead = head + count;
-        if (newHead >= queueLength) {
-            newHead -= queueLength;
-            for (unsigned chan = 0; chan < numChannels; ++chan) {
-                unsigned chanOff = (chanStride)*chan;
-                memcpy(buffer.GetBuffer(chanOff),
-                       buffer.GetBuffer(queueLength + chanOff),
-                       newHead);
-            }
-        }
-        head = newHead;
-    }
+bool SimpleQueue::RawEnqueue(const void* data, unsigned count) {
+    return RawEnqueue(data, count, 1, 0);
+}
 
-    bool SimpleQueue::RawEnqueue(const void* data, unsigned count) {
-        return RawEnqueue(data, count, 1, 0);
-    }
-
-    bool SimpleQueue::RawEnqueue(const void* data, unsigned count,
-            unsigned numChans, unsigned chanStride) {
-        ASSERT(numChans <= numChannels);
-        void* dest = GetRawEnqueuePtr(count, 0);
-        const void* src = data;
-        if (!dest) { return false; }
+bool SimpleQueue::RawEnqueue(const void* data, unsigned count,
+        unsigned numChans, unsigned chanStride) {
+    ASSERT(numChans <= numChannels);
+    void* dest = GetRawEnqueuePtr(count, 0);
+    const void* src = data;
+    if (!dest) { return false; }
+    memcpy(dest, src, count);
+    for (unsigned chan = 1; chan < numChans; ++chan) {
+        dest = GetRawEnqueuePtr(count, chan);
+        src = ((char*)data) + chanStride*chan;
         memcpy(dest, src, count);
-        for (unsigned chan = 1; chan < numChans; ++chan) {
-            dest = GetRawEnqueuePtr(count, chan);
-            src = ((char*)data) + chanStride*chan;
-            memcpy(dest, src, count);
+    }
+    Enqueue(count);
+    return true;
+}
+
+
+unsigned SimpleQueue::NumChannels() const {
+    return numChannels;
+}
+
+unsigned SimpleQueue::Freespace() const {
+    if (head >= tail) {
+        return queueLength - (head - tail) - 1;
+    } else {
+        return tail - head - 1;
+    }
+}
+
+bool SimpleQueue::Full() const {
+    return Freespace() == 0;
+}
+
+const void* SimpleQueue::GetRawDequeuePtr(unsigned thresh, unsigned chan) {
+    unsigned long chanOff = (chanStride)*chan;
+    if (Count() >= thresh && maxThreshold >= thresh) {
+        if (tail + thresh > queueLength) {
+            memcpy(buffer.GetBuffer(queueLength + chanOff),
+                   buffer.GetBuffer(chanOff),
+                   tail + thresh - queueLength);
         }
-        Enqueue(count);
-        return true;
+        return buffer.GetBuffer(tail + chanOff);
+    } else {
+        return 0;
     }
+}
 
-
-    unsigned SimpleQueue::NumChannels() const {
-        return numChannels;
+void SimpleQueue::Dequeue(unsigned count) {
+    ASSERT(count <= Count());
+    unsigned long newTail = tail + count;
+    if (newTail >= queueLength) {
+        newTail -= queueLength;
     }
+    tail = newTail;
+}
 
-    unsigned SimpleQueue::Freespace() const {
-        if (head >= tail) {
-            return queueLength - (head - tail) - 1;
-        } else {
-            return tail - head - 1;
-        }
-    }
+bool SimpleQueue::RawDequeue(void* data, unsigned count) {
+    return RawDequeue(data, count, 1, 0);
+}
 
-    bool SimpleQueue::Full() const {
-        return Freespace() == 0;
-    }
-
-    const void* SimpleQueue::GetRawDequeuePtr(unsigned thresh, unsigned chan) {
-        unsigned long chanOff = (chanStride)*chan;
-        if (Count() >= thresh && maxThreshold >= thresh) {
-            if (tail + thresh > queueLength) {
-                memcpy(buffer.GetBuffer(queueLength + chanOff),
-                       buffer.GetBuffer(chanOff),
-                       tail + thresh - queueLength);
-            }
-            return buffer.GetBuffer(tail + chanOff);
-        } else {
-            return 0;
-        }
-    }
-
-    void SimpleQueue::Dequeue(unsigned count) {
-        ASSERT(count <= Count());
-        unsigned long newTail = tail + count;
-        if (newTail >= queueLength) {
-            newTail -= queueLength;
-        }
-        tail = newTail;
-    }
-
-    bool SimpleQueue::RawDequeue(void* data, unsigned count) {
-        return RawDequeue(data, count, 1, 0);
-    }
-
-    bool SimpleQueue::RawDequeue(void* data, unsigned count,
-            unsigned numChans, unsigned chanStride) {
-        ASSERT(numChans <= numChannels);
-        const void* src = GetRawDequeuePtr(count, 0);
-        void* dest = data;
-        if (!src) { return false; }
+bool SimpleQueue::RawDequeue(void* data, unsigned count,
+        unsigned numChans, unsigned chanStride) {
+    ASSERT(numChans <= numChannels);
+    const void* src = GetRawDequeuePtr(count, 0);
+    void* dest = data;
+    if (!src) { return false; }
+    memcpy(dest, src, count);
+    for (unsigned chan = 1; chan < numChans; ++chan) {
+        src = GetRawDequeuePtr(count, chan);
+        dest = ((char*)data) + chanStride*chan;
         memcpy(dest, src, count);
-        for (unsigned chan = 1; chan < numChans; ++chan) {
-            src = GetRawDequeuePtr(count, chan);
-            dest = ((char*)data) + chanStride*chan;
-            memcpy(dest, src, count);
-        }
-        Dequeue(count);
-        return true;
     }
+    Dequeue(count);
+    return true;
+}
 
-    unsigned SimpleQueue::Count() const {
-        if (head >= tail) {
-            return head - tail;
-        } else {
-            return head + (queueLength - tail);
-        }
+unsigned SimpleQueue::Count() const {
+    if (head >= tail) {
+        return head - tail;
+    } else {
+        return head + (queueLength - tail);
     }
+}
 
-    bool SimpleQueue::Empty() const {
-        return head == tail;
-    }
+bool SimpleQueue::Empty() const {
+    return head == tail;
+}
 
-    unsigned SimpleQueue::ChannelStride() const {
-        return chanStride;
-    }
+unsigned SimpleQueue::ChannelStride() const {
+    return chanStride;
+}
 
-    unsigned SimpleQueue::MaxThreshold() const {
-        return maxThreshold;
-    }
+unsigned SimpleQueue::MaxThreshold() const {
+    return maxThreshold;
+}
 
-    unsigned SimpleQueue::QueueLength() const {
-        return queueLength - 1;
-    }
+unsigned SimpleQueue::QueueLength() const {
+    return queueLength - 1;
+}
 
-    void SimpleQueue::Grow(unsigned queueLen, unsigned maxThresh) {
-        // Enforce interface contract of not reducing size
-        if (queueLen < queueLength && maxThresh < maxThreshold) return;
-        if (queueLen < queueLength) { queueLen = queueLength; }
-        if (maxThresh < maxThreshold) { maxThresh = maxThreshold; }
-        AutoBuffer copybuff = AutoBuffer(buffer.GetSize());
-        unsigned oldcount = Count();
-        unsigned oldchanstride = ChannelStride();
-        RawDequeue(copybuff.GetBuffer(), oldcount, NumChannels(), oldchanstride);
-        head = tail = 0;
-        queueLength = queueLen;
-        maxThreshold = maxThresh;
-        chanStride = queueLength + maxThreshold;
-        RawEnqueue(copybuff.GetBuffer(), oldcount, NumChannels(), oldchanstride);
-    }
+void SimpleQueue::Grow(unsigned queueLen, unsigned maxThresh) {
+    // Enforce interface contract of not reducing size
+    if (queueLen < queueLength && maxThresh < maxThreshold) return;
+    if (queueLen < queueLength) { queueLen = queueLength; }
+    if (maxThresh < maxThreshold) { maxThresh = maxThreshold; }
+    AutoBuffer copybuff = AutoBuffer(buffer.GetSize());
+    unsigned oldcount = Count();
+    unsigned oldchanstride = ChannelStride();
+    RawDequeue(copybuff.GetBuffer(), oldcount, NumChannels(), oldchanstride);
+    head = tail = 0;
+    queueLength = queueLen;
+    maxThreshold = maxThresh;
+    chanStride = queueLength + maxThreshold;
+    RawEnqueue(copybuff.GetBuffer(), oldcount, NumChannels(), oldchanstride);
 }
 

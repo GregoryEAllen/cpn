@@ -4,7 +4,7 @@
 #include "QueueReader.h"
 #include "Message.h"
 #include "QueueBase.h"
-#include "SimpleQueue.h"
+#include "CPNSimpleQueue.h"
 #include <cppunit/TestAssert.h>
 
 CPPUNIT_TEST_SUITE_REGISTRATION( QueueRWTest );
@@ -20,7 +20,6 @@ using CPN::QueueReader;
 using CPN::QueueWriter;
 using CPN::Key_t;
 using CPN::QueueBase;
-using CPN::SimpleQueue;
 using CPN::NodeMessageHandler;
 using CPN::ReaderMessageHandler;
 using CPN::WriterMessageHandler;
@@ -37,7 +36,7 @@ public:
         writekey = 1;
         readkey = 2;
         numtransfer = 100;
-        queue = shared_ptr<QueueBase>(new SimpleQueue(2, 1, 1));
+        queue = shared_ptr<QueueBase>(new CPN::SimpleQueue(2, 1, 1));
         writer = shared_ptr<QueueWriter>(new QueueWriter(this, this, writekey, readkey, queue));
         reader = shared_ptr<QueueReader>(new QueueReader(this, this, readkey, writekey, queue));
     }

@@ -21,22 +21,25 @@
  * \author John Bridgman
  */
 
-#ifndef CPN_KERNELLISTENER_H
-#define CPN_KERNELLISTENER_H
-#pragma once
+#ifndef FUTURE_H
+#define FUTURE_H
 
-#include "CPNCommon.h"
-#include "ListenSockHandler.h"
-#include "Message.h"
+/** 
+ * A Future represents a returned result of a computation that will be
+ * completed asynchroniously.
+ */
+template<typename Value>
+class Future {
+public:
+    /**
+     * Poll if the result is ready.
+     */
+    virtual bool Done() const = 0;
 
-namespace CPN {
-    class KernelListener : public ListenSockHandler {
-    public:
-        KernelListener(KernelMessageHandler *kmh_);
-        void OnRead();
-        void OnError();
-        void OnInval();
-    };
-}
+    /**
+     * Get the result, implementation dependent behavior if not ready.
+     */
+    virtual Value Get() const = 0;
+};
 
 #endif

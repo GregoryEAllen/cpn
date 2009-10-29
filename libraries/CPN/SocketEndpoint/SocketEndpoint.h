@@ -29,10 +29,13 @@
 #include "QueueBase.h"
 #include "SockHandler.h"
 #include "PacketHeader.h"
+#include "SimpleQueue.h"
 
 namespace CPN {
     
-    class SocketEndpoint : public QueueBase, public SockHandler {
+    class SocketEndpoint 
+        : public QueueBase, public SockHandler, private PacketHandler
+    {
     public:
 
         enum Status_t {
@@ -58,6 +61,35 @@ namespace CPN {
         Key_t GetReaderKey() const { return readerkey; }
         Key_t GetKey() const { return mode == READ ? readerkey : writerkey; }
 
+        /** Signal that the kernel is shutting down.
+         */
+        void Shutdown();
+
+        /** Do any periodic things (like timing out a connection)
+         * and/or return the maximum time we want to be checked again.
+         */
+        double CheckStatus();
+
+        // From queuebase
+        virtual const void* GetRawDequeuePtr(unsigned thresh, unsigned chan=0);
+        virtual void Dequeue(unsigned count);
+        virtual bool RawDequeue(void* data, unsigned count,
+                unsigned numChans, unsigned chanStride);
+        virtual bool RawDequeue(void* data, unsigned count);
+		virtual void* GetRawEnqueuePtr(unsigned thresh, unsigned chan=0);
+		virtual void Enqueue(unsigned count);
+		virtual bool RawEnqueue(const void* data, unsigned count,
+                unsigned numChans, unsigned chanStride);
+		virtual bool RawEnqueue(const void* data, unsigned count);
+        virtual unsigned NumChannels() const;
+        virtual unsigned Count() const;
+        virtual bool Empty() const;
+		virtual unsigned Freespace() const;
+		virtual bool Full() const;
+        virtual unsigned MaxThreshold() const;
+        virtual unsigned QueueLength() const;
+        virtual void Grow(unsigned queueLen, unsigned maxThresh);
+
     protected:
 
         virtual void RMHEnqueue(Key_t writerkey, Key_t readerkey);
@@ -78,7 +110,17 @@ namespace CPN {
 
     private:
 
+        virtual void EnqueuePacket(const Packet &packet);
+        virtual void DequeuePacket(const Packet &packet);
+        virtual void ReadBlockPacket(const Packet &packet);
+        virtual void WriteBlockPacket(const Packet &packet);
+        virtual void EndOfWritePacket(const Packet &packet);
+        virtual void EndOfReadPacket(const Packet &packet);
+        virtual void IDReaderPacket(const Packet &packet);
+        virtual void IDWriterPacket(const Packet &packet);
+
         Logger logger;
+        ::SimpleQueue queue;
 
         Status_t status;
         const Mode_t mode;

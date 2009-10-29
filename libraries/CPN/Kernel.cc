@@ -308,11 +308,6 @@ namespace CPN {
         Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
         garbagenodes.clear();
-
-        while (!deadstreams.empty()) {
-            streammap.erase(deadstreams.front());
-            deadstreams.pop_front();
-        }
     }
 
     void *Kernel::EntryPoint() {
@@ -321,64 +316,54 @@ namespace CPN {
         status.CompareAndPost(INITIALIZED, RUNNING);
         while (status.Get() == RUNNING) {
             ClearGarbage();
-            std::vector<Async::DescriptorPtr> descriptors;
-            descriptors.push_back(wakeuplisten);
-            descriptors.push_back(listener);
-
-            arlock.Lock();
-            for (StreamMap::iterator itr = streammap.begin();
-                    itr != streammap.end(); ++itr) {
-                arlock.Unlock();
-                itr->second->RegisterDescriptor(descriptors);
-                arlock.Lock();
-            }
-            arlock.Unlock();
-
-            std::list<shared_ptr<UnknownStream> >::iterator unknownitr = unknownstreams.begin();
-            while (unknownitr != unknownstreams.end()) {
-                if (unknownitr->get()->Dead()) {
-                    unknownitr = unknownstreams.erase(unknownitr);
-                } else {
-                    descriptors.push_back(unknownitr->get()->GetDescriptor());
-                    ++unknownitr;
-                }
-            }
-
-            ENSURE(Async::Descriptor::Poll(descriptors, -1) > 0);
+            Poll();
         }
         // Close the listen port
-        listener.reset();
-        // Close all pending connections...
-        unknownstreams.clear();
+        listener.Close();
         // Tell everybody that is left to die.
         arlock.Lock();
         for (NodeMap::iterator itr = nodemap.begin();
                 itr != nodemap.end(); ++itr) {
             itr->second->Shutdown();
         }
-        // Wait for all nodes to end and all stream endpoints
+        for (EndpointMap::iterator itr = endpointmap.begin();
+                itr != endpointmap.end(); ++itr) {
+            itr->second->Shutdown();
+        }
+        // Wait for all nodes to end and all endpoints
         // to finish sending data
-        while (!nodemap.empty() || !streammap.empty()) {
+        while (!nodemap.empty()) {
+            arlock.Unlock();
             ClearGarbage();
-            std::vector<Async::DescriptorPtr> descriptors;
-            descriptors.push_back(wakeuplisten);
-            for (StreamMap::iterator itr = streammap.begin();
-                    itr != streammap.end(); ++itr) {
-                arlock.Unlock();
-                itr->second->RegisterDescriptor(descriptors);
-                arlock.Lock();
-            }
-            if (descriptors.size() > 1 || !nodemap.empty()) {
-                arlock.Unlock();
-                ENSURE(Async::Descriptor::Poll(descriptors, -1) > 0);
-                arlock.Lock();
-            }
+            Poll();
+            arlock.Lock();
         }
         arlock.Unlock();
         ClearGarbage();
         status.Post(DONE);
         FUNCEND;
         return 0;
+    }
+
+    void Kernel::Poll() {
+        Sync::AutoReentrantLock arlock(lock, false);
+        double timeout = static_cast<unsigned>(-1); // a long time, arbitrary
+        std::vector<FileHandler*> filehandlers;
+        if (!listener.Closed()) { filehandlers.push_back(&listener); }
+        if (!wakeuphandler.Closed()) { filehandlers.push_back(&wakeuphandler); }
+
+        arlock.Lock();
+        for (EndpointMap::iterator itr = endpointmap.begin();
+                itr != endpointmap.end(); ++itr) {
+            double time = itr->second->CheckStatus();
+            if (time < timeout) { timeout = time; }
+            if (!itr->second->Closed()) {
+                filehandlers.push_back(itr->second.get());
+            }
+        }
+        arl.Unlock();
+
+        FileHandler::Poll(&filehandlers[0], filehandlers.size(), timeout);
     }
 
     void Kernel::CreateWriter(Key_t dst, const SimpleQueueAttr &attr) {

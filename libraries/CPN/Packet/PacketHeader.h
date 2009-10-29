@@ -51,119 +51,99 @@ namespace CPN {
         PACKET_DEQUEUE,
         PACKET_READBLOCK,
         PACKET_WRITEBLOCK,
-        PACKET_ENDOFWRITEQUEUE,
-        PACKET_ENDOFREADQUEUE,
-
-        PACKET_CREATE_READER,
-        PACKET_CREATE_WRITER,
-        PACKET_CREATE_QUEUE,
-        PACKET_CREATE_NODE,
+        PACKET_ENDOFWRITE,
+        PACKET_ENDOFREAD,
+        PACKET_CHANGESIZE,
 
         PACKET_ID_READER,
-        PACKET_ID_WRITER,
-        PACKET_ID_KERNEL
+        PACKET_ID_WRITER
     };
 
-    struct PacketHeaderBase {
+    struct PacketHeader {
         uint32_t syncWord;
         uint32_t dataLength;
         uint32_t dataType;
-    };
-
-    struct SocketEndpointHeader {
-        PacketHeaderBase base;
-        uint32_t bytesQueued;
+        union {
+            uint32_t bytesQueued;
+            uint32_t queueSize;
+        };
         uint64_t srckey;
         uint64_t dstkey;
-        uint32_t amount;
+        union {
+            uint32_t requested;
+            uint32_t maxThresh;
+        };
         uint32_t numChans;
         uint8_t mode;
         uint8_t status;
     };
 
-    struct EnqueuePacketHeader {
-        PacketHeaderBase base;
-        uint32_t amount;
-        uint32_t numchannels;
-    };
-
-    struct DequeuePacketHeader {
-        PacketHeaderBase base;
-        uint32_t amount;
-        uint32_t numchannels;
-    };
-
-    struct ReadBlockPacketHeader {
-        PacketHeaderBase base;
-        uint32_t requested;
-    };
-
-    struct WriteBlockPacketHeader {
-        PacketHeaderBase base;
-        uint32_t requested;
-    };
-
-    struct CreateQueuePacketHeader {
-        PacketHeaderBase base;
-        uint32_t queuehint;
-        uint32_t queuelength;
-        uint32_t maxthreshold;
-        uint32_t numchannels;
-
-        uint32_t packet_header_field_alignment;
-
-        uint64_t readerkey;
-        uint64_t writerkey;
-    };
-
-    struct CreateNodePacketHeader {
-        PacketHeaderBase base;
-        // The parameters name, nodetype, param, and arg
-        // will we placed in the data section in that order
-        // These four fields give the length of each of those sections.
-        // To compute the offset just add up the length.
-        uint32_t namelen;
-        uint32_t typelen;
-        uint32_t paramlen;
-        uint32_t arglen;
-
-        uint32_t packet_header_field_alignment;
-
-        uint64_t nodekey;
-        uint64_t hostkey;
-    };
-
-    struct IdentifyPacketHeader {
-        PacketHeaderBase base;
-        uint64_t srckey;
-        uint64_t dstkey;
-    };
-
-    struct PacketHeader {
-        union {
-            PacketHeaderBase base;
-            EnqueuePacketHeader enqueue;
-            DequeuePacketHeader dequeue;
-            ReadBlockPacketHeader readblock;
-            WriteBlockPacketHeader writeblock;
-            CreateQueuePacketHeader createqueue;
-            CreateNodePacketHeader createnode;
-            IdentifyPacketHeader identify;
-            uint8_t pad[PACKET_HEADERLENGTH];
-        };
-        char data[0];
-    };
-
-    inline bool ValidPacket(PacketHeader *ph) {
-        return ph->base.syncWord == PACKET_SYNCWORD;
+    inline bool ValidPacket(const PacketHeader *ph) {
+        return ph->syncWord == PACKET_SYNCWORD;
     }
 
     inline void InitPacket(PacketHeader *ph, uint32_t datalen, PacketType_t type) {
         memset(ph, 0, sizeof(PacketHeader));
-        ph->base.syncWord = PACKET_SYNCWORD;
-        ph->base.dataLength = datalen;
-        ph->base.dataType = type;
+        ph->syncWord = PACKET_SYNCWORD;
+        ph->dataLength = datalen;
+        ph->dataType = type;
     }
+
+    class Packet {
+    public:
+        Packet() { memset(&header, 0, sizeof(header)); }
+        Packet(uint32_t datalen, PacketType_t type) { Init(datalen, type); }
+        Packet(PacketType_t type) { Init(0, type); }
+        Packet(const PacketHeader &ph) : header(ph) {}
+
+        Packet &Init(uint32_t datalen, PacketType_t type) {
+            InitPacket(&header, datalen, type);
+            return *this;
+        }
+
+        uint32_t DataLength() const { return header.dataLength; }
+        PacketType_t Type() const { return header.dataType; }
+        uint32_t BytesQueued() const { return header.bytesQueued; }
+        uint32_t QueueSize() const { return header.queueSize; }
+        uint64_t SourceKey() const { return header.srckey; }
+        uint64_t DestinationKey() const { return header.dstkey; }
+        uint32_t Requested() const { return header.requested; }
+        uint32_t MaxThreshold() const { return header.maxThresh; }
+        uint32_t NumChannels() const { return header.numChans; }
+        uint8_t Mode() const { return header.mode; }
+        uint8_t Status() const { return header.status; }
+        bool Valid() const { return ValidPacket(&header); }
+
+        Packet &DataLength(uint32_t dl) { header.dataLength = dl; return *this; }
+        Packet &Type(PacketType_t t) { header.dataType = t; return *this; }
+        Packet &BytesQueued(uint32_t bq) { header.bytesQueued = bq; return *this; }
+        Packet &QueueSize(uint32_t qs) { header.queueSize = qs; return *this; }
+        Packet &SourceKey(uint64_t k) { header.srckey = k; return *this; }
+        Packet &DestinationKey(uint64_t k) { header.dstkey = k; return *this; }
+        Packet &Requested(uint32_t r) { header.requested = r; return *this; }
+        Packet &MaxThreshold(uint32_t mt) { header.maxThresh = mt; return *this; }
+        Packet &NumChannels(uint32_t nc) { header.numChans = nc; return *this; }
+        Packet &Mode(uint8_t m) { header.mode = m; return *this; }
+        Packet &Status(uint8_t s) { header.status = s; return *this; }
+
+    public:
+        PacketHeader header;
+    };
+
+    class PacketHandler {
+    public:
+        virtual ~PacketHandler();
+        void FirePacket(const Packet &packet);
+
+        virtual void EnqueuePacket(const Packet &packet) = 0;
+        virtual void DequeuePacket(const Packet &packet) = 0;
+        virtual void ReadBlockPacket(const Packet &packet) = 0;
+        virtual void WriteBlockPacket(const Packet &packet) = 0;
+        virtual void EndOfWritePacket(const Packet &packet) = 0;
+        virtual void EndOfReadPacket(const Packet &packet) = 0;
+        virtual void IDReaderPacket(const Packet &packet) = 0;
+        virtual void IDWriterPacket(const Packet &packet) = 0;
+    };
 }
 
 #endif

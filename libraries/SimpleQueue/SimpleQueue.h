@@ -28,61 +28,58 @@
 
 #include "AutoBuffer.h"
 
-namespace CPN {
+/**
+ * /brief A very simple circular queue.
+ * 
+ * No special memory mapping or any other stuff, just a
+ * plain memory buffer. Multiple calls the Enqueue are not
+ * checked for invalid input. So the user can try to 
+ * submit more than there queue space and predictable
+ * errors will follow.
+ *
+ * Unlike ThresholdQueue this does not do any memory mapping so
+ * has no minimum size.
+ *
+ */
+class SimpleQueue {
+public:
 
-    /**
-     * /brief A very simple circular queue.
-     * 
-     * No special memory mapping or any other stuff, just a
-     * plain memory buffer. Multiple calls the Enqueue are not
-     * checked for invalid input. So the user can try to 
-     * submit more than there queue space and predictable
-     * errors will follow.
-     *
-     * Unlike ThresholdQueue this does not do any memory mapping so
-     * has no minimum size.
-     *
-     */
-    class SimpleQueue {
-    public:
+    SimpleQueue(unsigned size, unsigned maxThresh, unsigned numChans);
+    ~SimpleQueue();
 
-        SimpleQueue(unsigned size, unsigned maxThresh, unsigned numChans);
-        ~SimpleQueue();
+    void* GetRawEnqueuePtr(unsigned thresh, unsigned chan=0);
+    void Enqueue(unsigned count);
+    bool RawEnqueue(const void* data, unsigned count);
+    bool RawEnqueue(const void* data, unsigned count, unsigned numChans, unsigned chanStride);
+    const void* GetRawDequeuePtr(unsigned thresh, unsigned chan=0);
+    void Dequeue(unsigned count);
+    bool RawDequeue(void* data, unsigned count);
+    bool RawDequeue(void* data, unsigned count, unsigned numChans, unsigned chanStride);
 
-        void* GetRawEnqueuePtr(unsigned thresh, unsigned chan=0);
-        void Enqueue(unsigned count);
-        bool RawEnqueue(const void* data, unsigned count);
-        bool RawEnqueue(const void* data, unsigned count, unsigned numChans, unsigned chanStride);
-        const void* GetRawDequeuePtr(unsigned thresh, unsigned chan=0);
-        void Dequeue(unsigned count);
-        bool RawDequeue(void* data, unsigned count);
-        bool RawDequeue(void* data, unsigned count, unsigned numChans, unsigned chanStride);
+    unsigned NumChannels() const;
+    unsigned MaxThreshold() const;
+    unsigned QueueLength() const;
+    unsigned Freespace() const;
+    bool Full() const;
+    unsigned Count() const;
+    bool Empty() const;
 
-        unsigned NumChannels() const;
-        unsigned MaxThreshold() const;
-        unsigned QueueLength() const;
-        unsigned Freespace() const;
-        bool Full() const;
-        unsigned Count() const;
-        bool Empty() const;
+    unsigned ChannelStride() const;
 
-        unsigned ChannelStride() const;
+    // Only increases size
+    void Grow(unsigned queueLen, unsigned maxThresh);
 
-        // Only increases size
-        void Grow(unsigned queueLen, unsigned maxThresh);
-
-    private:
-        unsigned queueLength;
-        unsigned maxThreshold;
-        const unsigned numChannels;
-        unsigned chanStride;
-        // head points to the next empty byte
-        unsigned head;
-        // tail points to the next byte to read
-        unsigned tail;
-        AutoBuffer buffer;
-    };
-}
+private:
+    unsigned queueLength;
+    unsigned maxThreshold;
+    const unsigned numChannels;
+    unsigned chanStride;
+    // head points to the next empty byte
+    unsigned head;
+    // tail points to the next byte to read
+    unsigned tail;
+    AutoBuffer buffer;
+};
 
 #endif
 

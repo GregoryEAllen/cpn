@@ -85,74 +85,6 @@ namespace CPN {
         cbuff.Put((char*)&header, sizeof(header));
     }
 
-    void PacketEncoder::SendCreateReader(
-            unsigned queuehint, unsigned queuelength, unsigned maxthreshold,
-            unsigned numchannels, uint64_t readerkey, uint64_t writerkey)
-    {
-        PacketHeader header;
-        InitPacket(&header, 0, PACKET_CREATE_READER);
-        header.createqueue.queuehint = queuehint;
-        header.createqueue.queuelength = queuelength;
-        header.createqueue.maxthreshold = maxthreshold;
-        header.createqueue.numchannels = numchannels;
-        header.createqueue.readerkey = readerkey;
-        header.createqueue.writerkey = writerkey;
-        cbuff.Put((char*)&header, sizeof(header));
-    }
-    void PacketEncoder::SendCreateWriter(
-            unsigned queuehint, unsigned queuelength, unsigned maxthreshold,
-            unsigned numchannels, uint64_t readerkey, uint64_t writerkey)
-    {
-        PacketHeader header;
-        InitPacket(&header, 0, PACKET_CREATE_WRITER);
-        header.createqueue.queuehint = queuehint;
-        header.createqueue.queuelength = queuelength;
-        header.createqueue.maxthreshold = maxthreshold;
-        header.createqueue.numchannels = numchannels;
-        header.createqueue.readerkey = readerkey;
-        header.createqueue.writerkey = writerkey;
-        cbuff.Put((char*)&header, sizeof(header));
-    }
-    void PacketEncoder::SendCreateQueue(
-            unsigned queuehint, unsigned queuelength, unsigned maxthreshold,
-            unsigned numchannels, uint64_t readerkey, uint64_t writerkey)
-    {
-        PacketHeader header;
-        InitPacket(&header, 0, PACKET_CREATE_QUEUE);
-        header.createqueue.queuehint = queuehint;
-        header.createqueue.queuelength = queuelength;
-        header.createqueue.maxthreshold = maxthreshold;
-        header.createqueue.numchannels = numchannels;
-        header.createqueue.readerkey = readerkey;
-        header.createqueue.writerkey = writerkey;
-        cbuff.Put((char*)&header, sizeof(header));
-    }
-    void PacketEncoder::SendCreateNode(
-            const std::string &nodename,
-            const std::string &nodetype,
-            const std::string &param,
-            const StaticConstBuffer arg,
-            uint64_t nodekey,
-            uint64_t hostkey)
-    {
-        PacketHeader header;
-        InitPacket(&header, 0, PACKET_CREATE_NODE);
-        unsigned totalLen = 0;
-        totalLen += header.createnode.namelen = nodename.length();
-        totalLen += header.createnode.typelen = nodetype.length();
-        totalLen += header.createnode.paramlen = param.length();
-        totalLen += header.createnode.arglen = arg.GetSize();
-        header.createnode.nodekey = nodekey;
-        header.createnode.hostkey = hostkey;
-        header.base.dataLength = totalLen;
-
-        cbuff.Put((char*)&header, sizeof(header));
-        cbuff.Put(nodename.data(), nodename.length());
-        cbuff.Put(nodetype.data(), nodetype.length());
-        cbuff.Put(param.data(), param.length());
-        cbuff.Put(arg);
-    }
-
     void PacketEncoder::SendReaderID(uint64_t readerkey, uint64_t writerkey) {
         PacketHeader header;
         InitPacket(&header, 0, PACKET_ID_READER);
@@ -168,14 +100,5 @@ namespace CPN {
         header.identify.dstkey = readerkey;
         cbuff.Put((char*)&header, sizeof(header));
     }
-
-    void PacketEncoder::SendKernelID(uint64_t srckernelkey, uint64_t dstkernelkey) {
-        PacketHeader header;
-        InitPacket(&header, 0, PACKET_ID_KERNEL);
-        header.identify.srckey = srckernelkey;
-        header.identify.dstkey = dstkernelkey;
-        cbuff.Put((char*)&header, sizeof(header));
-    }
-
 }
 

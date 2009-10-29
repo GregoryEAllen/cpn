@@ -15,7 +15,7 @@ public:
 
     CPPUNIT_TEST_SUITE( SieveTest );
     CPPUNIT_TEST( RunTest );
-    CPPUNIT_TEST( RunTwoKernelTest );
+    //CPPUNIT_TEST( RunTwoKernelTest );
     CPPUNIT_TEST_SUITE_END();
 
     void RunTest();
