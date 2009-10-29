@@ -22,8 +22,8 @@
  * \author John Bridgman
  */
 
-#ifndef SIMPLEQUEUE_H
-#define SIMPLEQUEUE_H
+#ifndef CIRCULARQUEUE_H
+#define CIRCULARQUEUE_H
 #pragma once
 
 #include "AutoBuffer.h"
@@ -41,11 +41,11 @@
  * has no minimum size.
  *
  */
-class SimpleQueue {
+class CircularQueue {
 public:
 
-    SimpleQueue(unsigned size, unsigned maxThresh, unsigned numChans);
-    ~SimpleQueue();
+    CircularQueue(unsigned size, unsigned maxThresh, unsigned numChans);
+    ~CircularQueue();
 
     void* GetRawEnqueuePtr(unsigned thresh, unsigned chan=0);
     void Enqueue(unsigned count);

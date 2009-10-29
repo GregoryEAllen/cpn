@@ -61,10 +61,11 @@ void WakeupHandler::OnRead() {
 }
 
 void WakeupHandler::OnWrite() {
-    ASSERT(false, "Should be impossible read end of pipes");
+    ASSERT(false, "Should be impossible on read end of pipes");
 }
 
 void WakeupHandler::OnError() {
+    // This should get the error.
     Read(0,0);
 }
 

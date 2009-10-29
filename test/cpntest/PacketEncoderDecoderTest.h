@@ -30,13 +30,13 @@ public:
 	CPPUNIT_TEST( DequeueTest );
 	CPPUNIT_TEST( ReadBlockTest );
 	CPPUNIT_TEST( WriteBlockTest );
-	CPPUNIT_TEST( CreateReaderTest );
-	CPPUNIT_TEST( CreateWriterTest );
-	CPPUNIT_TEST( CreateQueueTest );
-	CPPUNIT_TEST( CreateNodeTest );
-	CPPUNIT_TEST( ReaderIDTest );
-	CPPUNIT_TEST( WriterIDTest );
-	CPPUNIT_TEST( KernelIDTest );
+	//CPPUNIT_TEST( CreateReaderTest );
+	//CPPUNIT_TEST( CreateWriterTest );
+	//CPPUNIT_TEST( CreateQueueTest );
+	//CPPUNIT_TEST( CreateNodeTest );
+	//CPPUNIT_TEST( ReaderIDTest );
+	//CPPUNIT_TEST( WriterIDTest );
+	//CPPUNIT_TEST( KernelIDTest );
 	CPPUNIT_TEST_SUITE_END();
 
 	void EnqueueTest();

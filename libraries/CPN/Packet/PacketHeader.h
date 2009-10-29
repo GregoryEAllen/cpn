@@ -102,7 +102,7 @@ namespace CPN {
         }
 
         uint32_t DataLength() const { return header.dataLength; }
-        PacketType_t Type() const { return header.dataType; }
+        PacketType_t Type() const { return static_cast<PacketType_t>(header.dataType); }
         uint32_t BytesQueued() const { return header.bytesQueued; }
         uint32_t QueueSize() const { return header.queueSize; }
         uint64_t SourceKey() const { return header.srckey; }

@@ -27,11 +27,15 @@
 
 namespace CPN {
 
-    SocketEndpoint(Key_t readerkey_, Key_t writerkey_, Mode_t mode_,
-            KernelMessageHandler *kmh_)
+    SocketEndpoint::SocketEndpoint(Key_t readerkey_, Key_t writerkey_, Mode_t mode_,
+            KernelMessageHandler *kmh_, unsigned size, unsigned maxThresh, unsigned numChans)
         : logger(kmh_->GetLogger(), Logger::INFO),
+        queue(size, maxThresh, numChans),
         status(INIT),
-        mode(mode_), readerkey(readerkey_), writerkey(writerkey_), kmh(kmh_)
+        mode(mode_),
+        writerkey(writerkey_),
+        readerkey(readerkey_),
+        kmh(kmh_)
     {
         logger.Name(ToString("SocketEndpoint(m:%s, r:%lu, w: %lu)",
                     mode == READ ? "r" : "w", readerkey, writerkey));
@@ -42,70 +46,86 @@ namespace CPN {
         return status;
     }
 
-    const void* GetRawDequeuePtr(unsigned thresh, unsigned chan=0) {
+    const void* SocketEndpoint::GetRawDequeuePtr(unsigned thresh, unsigned chan) {
         Sync::AutoReentrantLock arl(lock);
+        return queue.GetRawDequeuePtr(thresh, chan);
     }
 
-    void Dequeue(unsigned count) {
+    void SocketEndpoint::Dequeue(unsigned count) {
         Sync::AutoReentrantLock arl(lock);
+        return queue.Dequeue(count);
     }
 
-    bool RawDequeue(void* data, unsigned count,
+    bool SocketEndpoint::RawDequeue(void* data, unsigned count,
             unsigned numChans, unsigned chanStride) {
         Sync::AutoReentrantLock arl(lock);
+        return queue.RawDequeue(data, count, numChans, chanStride);
     }
 
-    bool RawDequeue(void* data, unsigned count) {
+    bool SocketEndpoint::RawDequeue(void* data, unsigned count) {
         Sync::AutoReentrantLock arl(lock);
+        return queue.RawDequeue(data, count);
     }
 
-    void* GetRawEnqueuePtr(unsigned thresh, unsigned chan=0) {
+    void* SocketEndpoint::GetRawEnqueuePtr(unsigned thresh, unsigned chan) {
         Sync::AutoReentrantLock arl(lock);
+        return queue.GetRawEnqueuePtr(thresh, chan);
     }
 
-    void Enqueue(unsigned count) {
+    void SocketEndpoint::Enqueue(unsigned count) {
         Sync::AutoReentrantLock arl(lock);
+        return queue.Enqueue(count);
     }
 
-    bool RawEnqueue(const void* data, unsigned count,
+    bool SocketEndpoint::RawEnqueue(const void* data, unsigned count,
             unsigned numChans, unsigned chanStride) {
         Sync::AutoReentrantLock arl(lock);
+        return queue.RawEnqueue(data, count, numChans, chanStride);
     }
 
-    bool RawEnqueue(const void* data, unsigned count) {
+    bool SocketEndpoint::RawEnqueue(const void* data, unsigned count) {
         Sync::AutoReentrantLock arl(lock);
+        return queue.RawEnqueue(data, count);
     }
 
-    unsigned NumChannels() const {
+    unsigned SocketEndpoint::NumChannels() const {
         Sync::AutoReentrantLock arl(lock);
+        return queue.NumChannels();
     }
 
-    unsigned Count() const {
+    unsigned SocketEndpoint::Count() const {
         Sync::AutoReentrantLock arl(lock);
+        return queue.Count();
     }
 
-    bool Empty() const {
+    bool SocketEndpoint::Empty() const {
         Sync::AutoReentrantLock arl(lock);
+        return queue.Empty();
     }
 
-    unsigned Freespace() const {
+    unsigned SocketEndpoint::Freespace() const {
         Sync::AutoReentrantLock arl(lock);
+        return queue.Freespace();
     }
 
-    bool Full() const {
+    bool SocketEndpoint::Full() const {
         Sync::AutoReentrantLock arl(lock);
+        return queue.Full();
     }
 
-    unsigned MaxThreshold() const {
+    unsigned SocketEndpoint::MaxThreshold() const {
         Sync::AutoReentrantLock arl(lock);
+        return queue.MaxThreshold();
     }
 
-    unsigned QueueLength() const {
+    unsigned SocketEndpoint::QueueLength() const {
         Sync::AutoReentrantLock arl(lock);
+        return queue.QueueLength();
     }
 
-    void Grow(unsigned queueLen, unsigned maxThresh) {
+    void SocketEndpoint::Grow(unsigned queueLen, unsigned maxThresh) {
         Sync::AutoReentrantLock arl(lock);
+        return queue.Grow(queueLen, maxThresh);
     }
 
 

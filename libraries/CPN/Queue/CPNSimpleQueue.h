@@ -29,7 +29,7 @@
 #include "CPNCommon.h"
 #include "QueueBase.h"
 #include "ReentrantLock.h"
-#include "SimpleQueue.h"
+#include "CircularQueue.h"
 
 namespace CPN {
 
@@ -122,7 +122,7 @@ namespace CPN {
         }
 
     private:
-        ::SimpleQueue queue;
+        ::CircularQueue queue;
     };
 }
 

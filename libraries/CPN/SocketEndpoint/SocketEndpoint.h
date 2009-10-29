@@ -29,7 +29,7 @@
 #include "QueueBase.h"
 #include "SockHandler.h"
 #include "PacketHeader.h"
-#include "SimpleQueue.h"
+#include "CircularQueue.h"
 
 namespace CPN {
     
@@ -49,10 +49,11 @@ namespace CPN {
         enum Mode_t {
             READ,
             WRITE
-        }
+        };
 
         SocketEndpoint(Key_t readerkey, Key_t writerkey, Mode_t mode,
-                KernelMessageHandler *kmh_);
+                KernelMessageHandler *kmh_, unsigned size, unsigned maxThresh,
+                unsigned numChans);
 
         Status_t GetStatus() const;
 
@@ -120,7 +121,7 @@ namespace CPN {
         virtual void IDWriterPacket(const Packet &packet);
 
         Logger logger;
-        ::SimpleQueue queue;
+        ::CircularQueue queue;
 
         Status_t status;
         const Mode_t mode;

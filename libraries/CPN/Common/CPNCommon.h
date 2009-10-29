@@ -89,6 +89,8 @@ namespace CPN {
 
     class Database;
 
+    class SocketEndpoint;
+
     class StreamEndpoint;
     class KernelStream;
     class Stream;

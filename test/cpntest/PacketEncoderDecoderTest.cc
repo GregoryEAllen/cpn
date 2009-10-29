@@ -224,6 +224,7 @@ void PacketEDTest::WriteBlockTest() {
     CPPUNIT_ASSERT(decoder.DataLength() == 100);
 }
 
+/*
 void PacketEDTest::CreateReaderTest() {
     MockDecoder decoder;
     PacketEncoder encoder;
@@ -349,6 +350,7 @@ void PacketEDTest::KernelIDTest() {
     CPPUNIT_ASSERT(decoder.SrcKernelKey() == srcid);
     CPPUNIT_ASSERT(decoder.DstKernelKey() == dstid);
 }
+*/
 
 void PacketEDTest::Transfer(PacketEncoder *encoder, PacketDecoder *decoder) {
     while (encoder->BytesReady()) {

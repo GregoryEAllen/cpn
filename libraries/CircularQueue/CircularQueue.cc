@@ -26,26 +26,26 @@
  * \author John Bridgman
  */
 
-#include "SimpleQueue.h"
+#include "CircularQueue.h"
 #include "Assert.h"
 #include <cstring>
 
 
-SimpleQueue::SimpleQueue(unsigned size, unsigned maxThresh, unsigned numChans)
-       : QueueBase(), queueLength(size + 1),
+CircularQueue::CircularQueue(unsigned size, unsigned maxThresh, unsigned numChans)
+       : queueLength(size + 1),
     maxThreshold(maxThresh), numChannels(numChans),
     chanStride(size + 1 + maxThresh),
     head(0), tail(0), buffer((size + 1 + maxThresh)*numChans) {
 }
 
-SimpleQueue::~SimpleQueue() {
+CircularQueue::~CircularQueue() {
     maxThreshold = 0;
     chanStride = 0;
     head = 0;
     tail = 0;
 }
 
-void* SimpleQueue::GetRawEnqueuePtr(unsigned thresh, unsigned chan) {
+void* CircularQueue::GetRawEnqueuePtr(unsigned thresh, unsigned chan) {
     ASSERT(chan < numChannels);
     if (Freespace() >= thresh && maxThreshold >= thresh) {
         return buffer.GetBuffer(head + (chanStride)*chan);
@@ -54,7 +54,7 @@ void* SimpleQueue::GetRawEnqueuePtr(unsigned thresh, unsigned chan) {
     }
 }
 
-void SimpleQueue::Enqueue(unsigned count) {
+void CircularQueue::Enqueue(unsigned count) {
     ASSERT(count <= Freespace());
     unsigned newHead = head + count;
     if (newHead >= queueLength) {
@@ -69,11 +69,11 @@ void SimpleQueue::Enqueue(unsigned count) {
     head = newHead;
 }
 
-bool SimpleQueue::RawEnqueue(const void* data, unsigned count) {
+bool CircularQueue::RawEnqueue(const void* data, unsigned count) {
     return RawEnqueue(data, count, 1, 0);
 }
 
-bool SimpleQueue::RawEnqueue(const void* data, unsigned count,
+bool CircularQueue::RawEnqueue(const void* data, unsigned count,
         unsigned numChans, unsigned chanStride) {
     ASSERT(numChans <= numChannels);
     void* dest = GetRawEnqueuePtr(count, 0);
@@ -90,11 +90,11 @@ bool SimpleQueue::RawEnqueue(const void* data, unsigned count,
 }
 
 
-unsigned SimpleQueue::NumChannels() const {
+unsigned CircularQueue::NumChannels() const {
     return numChannels;
 }
 
-unsigned SimpleQueue::Freespace() const {
+unsigned CircularQueue::Freespace() const {
     if (head >= tail) {
         return queueLength - (head - tail) - 1;
     } else {
@@ -102,11 +102,11 @@ unsigned SimpleQueue::Freespace() const {
     }
 }
 
-bool SimpleQueue::Full() const {
+bool CircularQueue::Full() const {
     return Freespace() == 0;
 }
 
-const void* SimpleQueue::GetRawDequeuePtr(unsigned thresh, unsigned chan) {
+const void* CircularQueue::GetRawDequeuePtr(unsigned thresh, unsigned chan) {
     unsigned long chanOff = (chanStride)*chan;
     if (Count() >= thresh && maxThreshold >= thresh) {
         if (tail + thresh > queueLength) {
@@ -120,7 +120,7 @@ const void* SimpleQueue::GetRawDequeuePtr(unsigned thresh, unsigned chan) {
     }
 }
 
-void SimpleQueue::Dequeue(unsigned count) {
+void CircularQueue::Dequeue(unsigned count) {
     ASSERT(count <= Count());
     unsigned long newTail = tail + count;
     if (newTail >= queueLength) {
@@ -129,11 +129,11 @@ void SimpleQueue::Dequeue(unsigned count) {
     tail = newTail;
 }
 
-bool SimpleQueue::RawDequeue(void* data, unsigned count) {
+bool CircularQueue::RawDequeue(void* data, unsigned count) {
     return RawDequeue(data, count, 1, 0);
 }
 
-bool SimpleQueue::RawDequeue(void* data, unsigned count,
+bool CircularQueue::RawDequeue(void* data, unsigned count,
         unsigned numChans, unsigned chanStride) {
     ASSERT(numChans <= numChannels);
     const void* src = GetRawDequeuePtr(count, 0);
@@ -149,7 +149,7 @@ bool SimpleQueue::RawDequeue(void* data, unsigned count,
     return true;
 }
 
-unsigned SimpleQueue::Count() const {
+unsigned CircularQueue::Count() const {
     if (head >= tail) {
         return head - tail;
     } else {
@@ -157,23 +157,23 @@ unsigned SimpleQueue::Count() const {
     }
 }
 
-bool SimpleQueue::Empty() const {
+bool CircularQueue::Empty() const {
     return head == tail;
 }
 
-unsigned SimpleQueue::ChannelStride() const {
+unsigned CircularQueue::ChannelStride() const {
     return chanStride;
 }
 
-unsigned SimpleQueue::MaxThreshold() const {
+unsigned CircularQueue::MaxThreshold() const {
     return maxThreshold;
 }
 
-unsigned SimpleQueue::QueueLength() const {
+unsigned CircularQueue::QueueLength() const {
     return queueLength - 1;
 }
 
-void SimpleQueue::Grow(unsigned queueLen, unsigned maxThresh) {
+void CircularQueue::Grow(unsigned queueLen, unsigned maxThresh) {
     // Enforce interface contract of not reducing size
     if (queueLen < queueLength && maxThresh < maxThreshold) return;
     if (queueLen < queueLength) { queueLen = queueLength; }

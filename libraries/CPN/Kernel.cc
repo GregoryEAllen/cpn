@@ -27,10 +27,12 @@
 #include "NodeFactory.h"
 #include "NodeBase.h"
 
-#include "SimpleQueue.h"
+#include "CPNSimpleQueue.h"
 #include "ThresholdQueue.h"
 
 #include "Database.h"
+
+#include "SocketEndpoint.h"
 
 #include "SocketAddress.h"
 #include "FileHandler.h"
@@ -61,15 +63,14 @@ namespace CPN {
         status(INITIALIZED, &lock),
         kernelname(kattr.GetName()),
         hostkey(0),
-        nodemap(),
-        garbagenodes(),
-        database(kattr.GetDatabase())
+        database(kattr.GetDatabase()),
+        listener(this)
     {
         FUNCBEGIN;
         SockAddrList addrlist = SocketAddress::CreateIP(
                 kattr.GetHostName().c_str(),
                 kattr.GetServName().c_str());
-        listener.Connect(addrlist);
+        listener.Listen(addrlist);
 
         if (!database) {
             database = Database::Local();
@@ -97,8 +98,6 @@ namespace CPN {
         assert(status.Get() == DONE);
         assert(nodemap.empty());
         assert(garbagenodes.empty());
-        assert(streammap.empty());
-        assert(unknownstreams.empty());
         FUNCEND;
     }
 
@@ -240,6 +239,8 @@ namespace CPN {
     void Kernel::CreateWriterEndpoint(const SimpleQueueAttr &attr) {
         Sync::AutoReentrantLock arlock(lock);
 
+        shared_ptr<QueueBase> queue;
+
         shared_ptr<NodeBase> writernode = nodemap[attr.GetWriterNodeKey()];
         ASSERT(writernode);
 
@@ -361,7 +362,7 @@ namespace CPN {
                 filehandlers.push_back(itr->second.get());
             }
         }
-        arl.Unlock();
+        arlock.Unlock();
 
         FileHandler::Poll(&filehandlers[0], filehandlers.size(), timeout);
     }

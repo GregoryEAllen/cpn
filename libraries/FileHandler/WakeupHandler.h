@@ -30,6 +30,7 @@
 class WakeupHandler : public FileHandler {
 public:
     WakeupHandler();
+    virtual ~WakeupHandler();
 
     void SendWakeup();
 
