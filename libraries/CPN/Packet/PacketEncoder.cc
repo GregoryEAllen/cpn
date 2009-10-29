@@ -22,83 +22,66 @@
  */
 
 #include "PacketEncoder.h"
+#include "Assert.h"
 
 namespace CPN {
 
-    PacketEncoder::PacketEncoder() {
+    PacketEncoder::PacketEncoder() {}
+
+    PacketEncoder::~PacketEncoder() {}
+
+    void PacketEncoder::SendEnqueue(const Packet &packet, QueueBase *queue) {
+        ASSERT(packet.DataLength() == packet.NumChannels() * packet.Count());
+        ASSERT(packet.Type() == PACKET_ENQUEUE);
+        std::vector<iovec> iovs;
+        iovec header = { &packet.header, sizeof(packet.header) };
+        iovs.push_back(header);
+        for (unsigned i = 0; i < packet.NumChannels(); ++i) {
+            iovec iov;
+            iov.iov_base = queue->GetRawDequeuePtr(packet.Count(), i);
+            ASSERT(iov.iov_base);
+            iov.iov_len = packet.Count();
+            iovs.push_back(iov);
+        }
+        WriteBytes(&iovs[0], iovs.size());
+        queue->Dequeue(packet.Count());
     }
 
-    bool PacketEncoder::BytesReady() const {
+    void PacketEncoder::SendPacket(const Packet &packet) {
+        iovec iov;
+        iov.iov_base = &packet.header;
+        iov.iov_len = sizeof(packet.header);
+        WriteBytes(&iov, 1);
+    }
+
+    void PacketEncoder::SendPacket(const Packet &packet, void *data) {
+        ASSERT(data);
+        iovec iov[2];
+        iov[0].iov_base = &packet.header;
+        iov[0].iov_len = sizeof(packet.header);
+        iov[1].iov_base = data;
+        iov[1].iov_len = packet.DataLength();
+        WriteBytes(&iov, 2);
+    }
+
+    BufferedPacketEncoder::BufferedPacketEncoder() {}
+
+    bool BufferedPacketEncoder::BytesReady() const {
         return cbuff.Size() > 0;
     }
 
-    const void *PacketEncoder::GetEncodedBytes(unsigned &amount) {
+    const void *BufferedPacketEncoder::GetEncodedBytes(unsigned &amount) {
         return cbuff.AllocateGet(cbuff.Size(), amount);
     }
 
-    void PacketEncoder::ReleaseEncodedBytes(unsigned amount) {
+    void BufferedPacketEncoder::ReleaseEncodedBytes(unsigned amount) {
         cbuff.ReleaseGet(amount);
     }
 
-    void PacketEncoder::SendEnqueue(const void **data, unsigned length, unsigned numchannels) {
-        PacketHeader header;
-        InitPacket(&header, length * numchannels, PACKET_ENQUEUE);
-        header.enqueue.amount = length;
-        header.enqueue.numchannels = numchannels;
-        cbuff.Put((char*)&header, sizeof(header));
-        for (unsigned i = 0; i < numchannels; ++i) {
-            cbuff.Put((const char*)data[i], length);
+    void BufferedPacketEncoder::WriteBytes(const iovec *iov, unsigned iovcnt) {
+        for (unsigned i = 0; i < iovcnt; ++i) {
+            cbuff.Put(iov[i].iov_base, iov[i].iov_len);
         }
-    }
-
-    void PacketEncoder::SendDequeue(unsigned length, unsigned numchannels) {
-        PacketHeader header;
-        InitPacket(&header, 0, PACKET_DEQUEUE);
-        header.dequeue.amount = length;
-        header.dequeue.numchannels = numchannels;
-        cbuff.Put((char*)&header, sizeof(header));
-    }
-
-    void PacketEncoder::SendReadBlock(unsigned requested) {
-        PacketHeader header;
-        InitPacket(&header, 0, PACKET_READBLOCK);
-        header.readblock.requested = requested;
-        cbuff.Put((char*)&header, sizeof(header));
-    }
-
-    void PacketEncoder::SendWriteBlock(unsigned requested) {
-        PacketHeader header;
-        InitPacket(&header, 0, PACKET_WRITEBLOCK);
-        header.writeblock.requested = requested;
-        cbuff.Put((char*)&header, sizeof(header));
-    }
-
-    void PacketEncoder::SendEndOfWriteQueue() {
-        PacketHeader header;
-        InitPacket(&header, 0, PACKET_ENDOFWRITEQUEUE);
-        cbuff.Put((char*)&header, sizeof(header));
-    }
-
-    void PacketEncoder::SendEndOfReadQueue() {
-        PacketHeader header;
-        InitPacket(&header, 0, PACKET_ENDOFREADQUEUE);
-        cbuff.Put((char*)&header, sizeof(header));
-    }
-
-    void PacketEncoder::SendReaderID(uint64_t readerkey, uint64_t writerkey) {
-        PacketHeader header;
-        InitPacket(&header, 0, PACKET_ID_READER);
-        header.identify.srckey = readerkey;
-        header.identify.dstkey = writerkey;
-        cbuff.Put((char*)&header, sizeof(header));
-    }
-
-    void PacketEncoder::SendWriterID(uint64_t writerkey, uint64_t readerkey) {
-        PacketHeader header;
-        InitPacket(&header, 0, PACKET_ID_WRITER);
-        header.identify.srckey = writerkey;
-        header.identify.dstkey = readerkey;
-        cbuff.Put((char*)&header, sizeof(header));
     }
 }
 

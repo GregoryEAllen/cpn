@@ -348,7 +348,7 @@ namespace CPN {
 
     void Kernel::Poll() {
         Sync::AutoReentrantLock arlock(lock, false);
-        double timeout = static_cast<unsigned>(-1); // a long time, arbitrary
+        double timeout = -1;
         std::vector<FileHandler*> filehandlers;
         if (!listener.Closed()) { filehandlers.push_back(&listener); }
         if (!wakeuphandler.Closed()) { filehandlers.push_back(&wakeuphandler); }
@@ -357,7 +357,7 @@ namespace CPN {
         for (EndpointMap::iterator itr = endpointmap.begin();
                 itr != endpointmap.end(); ++itr) {
             double time = itr->second->CheckStatus();
-            if (time < timeout) { timeout = time; }
+            if (time > 0 && (time < timeout || timeout < 0)) { timeout = time; }
             if (!itr->second->Closed()) {
                 filehandlers.push_back(itr->second.get());
             }

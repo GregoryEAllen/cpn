@@ -46,6 +46,13 @@ namespace CPN {
         return status;
     }
 
+    void SocketEndpoint::Shutdown() {
+    }
+
+    double SocketEndpoint::CheckStatus() {
+        return -1;
+    }
+
     const void* SocketEndpoint::GetRawDequeuePtr(unsigned thresh, unsigned chan) {
         Sync::AutoReentrantLock arl(lock);
         return queue.GetRawDequeuePtr(thresh, chan);
@@ -188,5 +195,15 @@ namespace CPN {
         // Our file descriptor is invalid
     }
 
+    void SocketEndpoint::WriteBytes(const iovec *iov, unsigned iovcnt) {
+        int numwritten = Writev(iov, iovcnt);
+#ifndef NDEBUG
+        int total = 0;
+        for (unsigned i = 0; i < iovcnt; ++i) {
+            total += iov[i].iov_cnt;
+        }
+        ASSERT(numwritten == total, "Writev did not completely write data.");
+#endif
+    }
 }
 

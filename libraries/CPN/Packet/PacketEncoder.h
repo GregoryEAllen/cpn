@@ -24,9 +24,12 @@
 #define CPN_PAcKETENCODER_H
 #pragma once
 
+#include "CPNCommon.h"
 #include "PacketHeader.h"
 #include "AutoCircleBuffer.h"
 #include <string>
+// For the iovec definition
+#include <sys/uio.h>
 
 namespace CPN {
     // Take the various message types that can be sent over the wire
@@ -34,22 +37,27 @@ namespace CPN {
     class PacketEncoder {
     public:
         PacketEncoder();
-        bool BytesReady() const;
+        virtual ~PacketEncoder();
 
+        void SendEnqueue(const Packet &packet, QueueBase *queue);
+        void SendPacket(const Packet &packet);
+        void SendPacket(const Packet &packet, void *data);
+    protected:
+        virtual void WriteBytes(const iovec *iov, unsigned iovcnt) = 0;
+    private:
+    };
+
+    class BufferedPacketEncoder : public PacketEncoder {
+    public:
+        BufferedPacketEncoder();
+
+        bool BytesReady() const;
         const void *GetEncodedBytes(unsigned &amount);
         void ReleaseEncodedBytes(unsigned amount);
         void Reset() { cbuff.Reset(); }
         unsigned NumBytes() const { return cbuff.Size(); }
-
-        void SendEnqueue(const void **data, unsigned length, unsigned numchannels);
-        void SendDequeue(unsigned length, unsigned numchannels);
-        void SendReadBlock(unsigned requested);
-        void SendWriteBlock(unsigned requested);
-        void SendEndOfWriteQueue();
-        void SendEndOfReadQueue();
-
-        void SendReaderID(uint64_t readerkey, uint64_t writerkey);
-        void SendWriterID(uint64_t writerkey, uint64_t readerkey);
+    protected:
+        virtual void WriteBytes(const iovec *iov, unsigned iovcnt);
     private:
         AutoCircleBuffer cbuff;
     };

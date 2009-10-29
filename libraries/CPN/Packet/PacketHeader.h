@@ -72,6 +72,7 @@ namespace CPN {
         union {
             uint32_t requested;
             uint32_t maxThresh;
+            uint32_t count;
         };
         uint32_t numChans;
         uint8_t mode;
@@ -109,6 +110,7 @@ namespace CPN {
         uint64_t DestinationKey() const { return header.dstkey; }
         uint32_t Requested() const { return header.requested; }
         uint32_t MaxThreshold() const { return header.maxThresh; }
+        uint32_t Count() const { return header.count; }
         uint32_t NumChannels() const { return header.numChans; }
         uint8_t Mode() const { return header.mode; }
         uint8_t Status() const { return header.status; }
@@ -122,6 +124,7 @@ namespace CPN {
         Packet &DestinationKey(uint64_t k) { header.dstkey = k; return *this; }
         Packet &Requested(uint32_t r) { header.requested = r; return *this; }
         Packet &MaxThreshold(uint32_t mt) { header.maxThresh = mt; return *this; }
+        Packet &Count(uint32_t cnt) { header.count = cnt; return *this; }
         Packet &NumChannels(uint32_t nc) { header.numChans = nc; return *this; }
         Packet &Mode(uint8_t m) { header.mode = m; return *this; }
         Packet &Status(uint8_t s) { header.status = s; return *this; }

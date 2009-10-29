@@ -34,7 +34,8 @@
 namespace CPN {
     
     class SocketEndpoint 
-        : public QueueBase, public SockHandler, private PacketHandler
+        : public QueueBase, public SockHandler, private PacketHandler,
+        private PacketEncoder
     {
     public:
 
@@ -71,7 +72,7 @@ namespace CPN {
          */
         double CheckStatus();
 
-        // From queuebase
+        // QueueBase
         virtual const void* GetRawDequeuePtr(unsigned thresh, unsigned chan=0);
         virtual void Dequeue(unsigned count);
         virtual bool RawDequeue(void* data, unsigned count,
@@ -93,16 +94,19 @@ namespace CPN {
 
     protected:
 
+        // ReaderMessageHandler
         virtual void RMHEnqueue(Key_t writerkey, Key_t readerkey);
         virtual void RMHEndOfWriteQueue(Key_t writerkey, Key_t readerkey);
         virtual void RMHWriteBlock(Key_t writerkey, Key_t readerkey, unsigned requested);
         virtual void RMHTagChange(Key_t writerkey, Key_t readerkey);
 
+        // WriterMessageHandler
         virtual void WMHDequeue(Key_t readerkey, Key_t writerkey);
         virtual void WMHEndOfReadQueue(Key_t readerkey, Key_t writerkey);
         virtual void WMHReadBlock(Key_t readerkey, Key_t writerkey, unsigned requested);
         virtual void WMHTagChange(Key_t readerkey, Key_t writerkey);
 
+        // FileHandler
         virtual void OnRead();
         virtual void OnWrite();
         virtual void OnError();
@@ -111,6 +115,7 @@ namespace CPN {
 
     private:
 
+        // PacketHandler
         virtual void EnqueuePacket(const Packet &packet);
         virtual void DequeuePacket(const Packet &packet);
         virtual void ReadBlockPacket(const Packet &packet);
@@ -119,6 +124,9 @@ namespace CPN {
         virtual void EndOfReadPacket(const Packet &packet);
         virtual void IDReaderPacket(const Packet &packet);
         virtual void IDWriterPacket(const Packet &packet);
+
+        // PacketEncoder
+        virtual void WriteBytes(const iovec *iov, unsigned iovcnt);
 
         Logger logger;
         ::CircularQueue queue;
@@ -131,6 +139,11 @@ namespace CPN {
 
         unsigned writecount;
         unsigned readcount;
+
+        bool pendingEnqueue;
+        bool pendingDequeue;
+        bool pendingReadBlock;
+        bool pendingWriteBlock;
     };
 }
 

@@ -21,30 +21,16 @@
  * \author John Bridgman
  */
 
-#ifndef FUTURE_H
-#define FUTURE_H
+#include "BasicTime.h"
+#include "ErrnoException.h"
+#include <sys/time.h>
 
-/** 
- * A Future represents a returned result of a computation that will be
- * completed asynchroniously.
- */
-template<typename Value>
-class Future {
-public:
-    /**
-     * Poll if the result is ready.
-     */
-    virtual bool Done() = 0;
-
-    /**
-     * Cancel the operation.
-     */
-    virtual void Cancel() = 0;
-
-    /**
-     * Get the result, implementation dependent behavior if not ready.
-     */
-    virtual Value Get() = 0;
-};
-
-#endif
+namespace Time {
+    double Now() {
+        timeval t;
+        if (gettimeofday(&t, 0) != 0) {
+            throw ErrnoException();
+        }
+        return static_cast<double>(t.tv_sec) + (1e-6 * static_cast<double>(t.tv_usec));
+    }
+}

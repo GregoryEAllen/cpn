@@ -51,9 +51,9 @@ public:
     virtual void OnInval() = 0;
 
     bool Readable(bool r) { return readable = r; }
-    bool Readable() const { return readable; }
+    virtual bool Readable() const { return readable; }
     bool Writeable(bool w) { return writeable = w; }
-    bool Writeable() const { return writeable; }
+    virtual bool Writeable() const { return writeable; }
 
     int FD() const { return fd; }
     int FD(int filed) { return fd = filed; }

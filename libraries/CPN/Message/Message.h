@@ -26,7 +26,7 @@
 #pragma once
 #include "CPNCommon.h"
 #include "Assert.h"
-#include "AsyncStream.h"
+#include "Future.h"
 #include "Logger.h"
 
 namespace CPN {
@@ -95,7 +95,8 @@ namespace CPN {
         virtual void StreamDead(Key_t streamkey);
         virtual void SetReaderDescriptor(Key_t readerkey, Key_t writerkey, Async::DescriptorPtr desc);
         virtual void SetWriterDescriptor(Key_t writerkey, Key_t readerkey, Async::DescriptorPtr desc);
-        virtual weak_ptr<UnknownStream> CreateNewQueueStream(Key_t readerkey, Key_t writerkey);
+        virtual shared_ptr<Future<int> > GetReaderDescriptor(Key_t readerkey, Key_t writerkey);
+        virtual shared_ptr<Future<int> > GetWriterDescriptor(Key_t readerkey, Key_t writerkey);
         virtual void SendWakeup();
     };
 }

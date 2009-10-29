@@ -21,30 +21,11 @@
  * \author John Bridgman
  */
 
-#ifndef FUTURE_H
-#define FUTURE_H
+#ifndef BASICTIME_H
+#define BASICTIME_H
 
-/** 
- * A Future represents a returned result of a computation that will be
- * completed asynchroniously.
- */
-template<typename Value>
-class Future {
-public:
-    /**
-     * Poll if the result is ready.
-     */
-    virtual bool Done() = 0;
-
-    /**
-     * Cancel the operation.
-     */
-    virtual void Cancel() = 0;
-
-    /**
-     * Get the result, implementation dependent behavior if not ready.
-     */
-    virtual Value Get() = 0;
-};
+namespace Time {
+    double Now();
+}
 
 #endif

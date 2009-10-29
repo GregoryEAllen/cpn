@@ -24,6 +24,7 @@
 #define CPN_PACKETDECODER_H
 #pragma once
 
+#include "CPNCommon.h"
 #include "PacketHeader.h"
 #include "AutoBuffer.h"
 #include <string>
