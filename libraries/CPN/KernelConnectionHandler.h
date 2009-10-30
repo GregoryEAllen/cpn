@@ -21,21 +21,33 @@
  * \author John Bridgman
  */
 
-#ifndef CPN_KERNELLISTENER_H
-#define CPN_KERNELLISTENER_H
+#ifndef CPN_KERNELCONNECTIONHANDLER_H
+#define CPN_KERNELCONNECTIONHANDLER_H
 #pragma once
 
 #include "CPNCommon.h"
 #include "ListenSockHandler.h"
 #include "Message.h"
+#include "Future.h"
+#include "ReentrantLock.h"
+#include "Logger.h"
 
 namespace CPN {
-    class KernelListener : public ListenSockHandler {
+    class KernelConnectionHandler : public ListenSockHandler {
     public:
-        KernelListener(KernelMessageHandler *kmh_);
+        KernelConnectionHandler(KernelMessageHandler *kmh_);
         void OnRead();
         void OnError();
         void OnInval();
+        void Register(std::vector<FileHandler*> &filehandlers);
+        void Shutdown();
+        shared_ptr<Future<int> > GetReaderDescriptor(Key_t readerkey, Key_t writerkey);
+        shared_ptr<Future<int> > GetWriterDescriptor(Key_t readerkey, Key_t writerkey);
+
+    private:
+        Sync::ReentrantLock lock;
+        Logger logger;
+
     };
 }
 

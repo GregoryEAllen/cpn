@@ -30,12 +30,14 @@
 #include "SockHandler.h"
 #include "PacketHeader.h"
 #include "CircularQueue.h"
+#include "PacketDecoder.h"
+#include "PacketEncoder.h"
 
 namespace CPN {
     
     class SocketEndpoint 
-        : public QueueBase, public SockHandler, private PacketHandler,
-        private PacketEncoder
+        : public QueueBase, public SockHandler,
+        private PacketEncoder, private PacketDecoder
     {
     public:
 
@@ -71,6 +73,8 @@ namespace CPN {
          * and/or return the maximum time we want to be checked again.
          */
         double CheckStatus();
+
+        bool Dead();
 
         // QueueBase
         virtual const void* GetRawDequeuePtr(unsigned thresh, unsigned chan=0);
@@ -115,7 +119,7 @@ namespace CPN {
 
     private:
 
-        // PacketHandler
+        // PacketHandler (PacketDecoder)
         virtual void EnqueuePacket(const Packet &packet);
         virtual void DequeuePacket(const Packet &packet);
         virtual void ReadBlockPacket(const Packet &packet);
@@ -128,6 +132,26 @@ namespace CPN {
         // PacketEncoder
         virtual void WriteBytes(const iovec *iov, unsigned iovcnt);
 
+        void SendWakeup();
+        /** 
+         * InternCheckStatus will do things like check the pending variables
+         * and write data out if it thinks it should go out. It will also do things
+         * like if there is a pending readblock then call OnRead and then check if
+         * we received an enqueue.
+         */
+        void InternCheckStatus();
+        bool EnqueueBlocked();
+
+        void SetupPacketDefaults(Packet &packet);
+
+        void SendEnqueue();
+        void SendWriteBlock();
+        void SendEndOfWrite();
+
+        void SendDequeue();
+        void SendReadBlock();
+        void SendEndOfRead();
+
         Logger logger;
         ::CircularQueue queue;
 
@@ -137,13 +161,17 @@ namespace CPN {
         const Key_t readerkey;
         KernelMessageHandler *kmh;
 
+        shared_ptr<Future<int> > connection;
+
         unsigned writecount;
         unsigned readcount;
 
-        bool pendingEnqueue;
         bool pendingDequeue;
-        bool pendingReadBlock;
-        bool pendingWriteBlock;
+        bool pendingBlock;
+        unsigned blockRequest;
+        bool sendEnd;
+        bool readshutdown;
+        bool writeshutdown;
     };
 }
 

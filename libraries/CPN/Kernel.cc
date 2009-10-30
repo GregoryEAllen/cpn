@@ -227,25 +227,43 @@ namespace CPN {
     void Kernel::CreateReaderEndpoint(const SimpleQueueAttr &attr) {
         Sync::AutoReentrantLock arlock(lock);
 
-        shared_ptr<QueueBase> queue;
+        shared_ptr<SocketEndpoint> endp = shared_ptr<SocketEndpoint>(
+                new SocketEndpoint(
+                    attr.GetReaderKey(),
+                    attr.GetWriterKey(),
+                    SocketEndpoint::WRITE,
+                    this,
+                    attr.GetLength(),
+                    attr.GetMaxThreshold(),
+                    attr.GetNumChannels()
+                    ));
 
         shared_ptr<NodeBase> readernode = nodemap[attr.GetReaderNodeKey()];
         ASSERT(readernode);
 
         readernode->GetNodeMessageHandler()->
-            CreateReader(attr.GetReaderKey(), attr.GetWriterKey(), queue);
+            CreateReader(attr.GetReaderKey(), attr.GetWriterKey(), endp);
     }
 
     void Kernel::CreateWriterEndpoint(const SimpleQueueAttr &attr) {
         Sync::AutoReentrantLock arlock(lock);
 
-        shared_ptr<QueueBase> queue;
+        shared_ptr<SocketEndpoint> endp = shared_ptr<SocketEndpoint>(
+                new SocketEndpoint(
+                    attr.GetReaderKey(),
+                    attr.GetWriterKey(),
+                    SocketEndpoint::WRITE,
+                    this,
+                    attr.GetLength(),
+                    attr.GetMaxThreshold(),
+                    attr.GetNumChannels()
+                    ));
 
         shared_ptr<NodeBase> writernode = nodemap[attr.GetWriterNodeKey()];
         ASSERT(writernode);
 
         writernode->GetNodeMessageHandler()->
-            CreateWriter(attr.GetReaderKey(), attr.GetWriterKey(), queue);
+            CreateWriter(attr.GetReaderKey(), attr.GetWriterKey(), endp);
     }
 
     void Kernel::CreateLocalQueue(const SimpleQueueAttr &attr) {
@@ -297,7 +315,7 @@ namespace CPN {
     void Kernel::NodeTerminated(Key_t key) {
         Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
-        ASSERT(status.Get() != DONE);
+        ASSERT(status.Get() != DONE, "Nodes running after shutdown");
         database->DestroyNodeKey(key);
         shared_ptr<NodeBase> node = nodemap[key];
         nodemap.erase(key);
@@ -320,7 +338,7 @@ namespace CPN {
             Poll();
         }
         // Close the listen port
-        listener.Close();
+        connhandler.Shutdown();
         // Tell everybody that is left to die.
         arlock.Lock();
         for (NodeMap::iterator itr = nodemap.begin();
@@ -333,7 +351,7 @@ namespace CPN {
         }
         // Wait for all nodes to end and all endpoints
         // to finish sending data
-        while (!nodemap.empty()) {
+        while (!nodemap.empty() || !endpointmap.empty()) {
             arlock.Unlock();
             ClearGarbage();
             Poll();
@@ -350,7 +368,7 @@ namespace CPN {
         Sync::AutoReentrantLock arlock(lock, false);
         double timeout = -1;
         std::vector<FileHandler*> filehandlers;
-        if (!listener.Closed()) { filehandlers.push_back(&listener); }
+        connhandler.Register(filehandlers);
         if (!wakeuphandler.Closed()) { filehandlers.push_back(&wakeuphandler); }
 
         arlock.Lock();
@@ -360,6 +378,8 @@ namespace CPN {
             if (time > 0 && (time < timeout || timeout < 0)) { timeout = time; }
             if (!itr->second->Closed()) {
                 filehandlers.push_back(itr->second.get());
+            } else if (itr->second->GetStatus() == SocketEndpoint::DEAD) {
+                endpointmap.erase(itr--);
             }
         }
         arlock.Unlock();
@@ -393,22 +413,14 @@ namespace CPN {
         InternalCreateNode(nodeattr);
     }
 
-    void Kernel::StreamDead(Key_t streamkey) {
-        Sync::AutoReentrantLock arlock(lock);
+    shared_ptr<Future<int> > Kernel::GetReaderDescriptor(Key_t readerkey, Key_t writerkey) {
         FUNCBEGIN;
+        return connhandler.GetReaderDescriptor(readerkey, writerkey);
     }
 
-    void Kernel::SetReaderDescriptor(Key_t readerkey, Key_t writerkey, Async::DescriptorPtr desc) {
+    shared_ptr<Future<int> > Kernel::GetWriterDescriptor(Key_t readerkey, Key_t writerkey) {
         FUNCBEGIN;
+        return connhandler.GetWriterDescriptor(readerkey, writerkey);
     }
-
-    void Kernel::SetWriterDescriptor(Key_t writerkey, Key_t readerkey, Async::DescriptorPtr desc) {
-        FUNCBEGIN;
-    }
-
-    weak_ptr<UnknownStream> Kernel::CreateNewQueueStream(Key_t readerkey, Key_t writerkey) {
-        FUNCBEGIN;
-    }
-
 }
 

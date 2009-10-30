@@ -12,7 +12,7 @@
 CPPUNIT_TEST_SUITE_REGISTRATION( PacketEDTest );
 
 using CPN::PacketDecoder;
-using CPN::PacketEncoder;
+using CPN::BufferedPacketEncoder;
 
 class MockDecoder : public CPN::PacketDecoder {
 public:
@@ -165,7 +165,7 @@ void PacketEDTest::tearDown() {
 
 void PacketEDTest::EnqueueTest() {
     MockDecoder decoder;
-    PacketEncoder encoder;
+    BufferedPacketEncoder encoder;
     srand(1);
     unsigned maxlen = 1000;
     unsigned chans = 10;
@@ -198,7 +198,7 @@ void PacketEDTest::EnqueueTest() {
 
 void PacketEDTest::DequeueTest() {
     MockDecoder decoder;
-    PacketEncoder encoder;
+    BufferedPacketEncoder encoder;
     encoder.SendDequeue(100, 10);
     Transfer(&encoder, &decoder);
     CPPUNIT_ASSERT(decoder.NumEvents() == 1);
@@ -208,7 +208,7 @@ void PacketEDTest::DequeueTest() {
 
 void PacketEDTest::ReadBlockTest() {
     MockDecoder decoder;
-    PacketEncoder encoder;
+    BufferedPacketEncoder encoder;
     encoder.SendReadBlock(100);
     Transfer(&encoder, &decoder);
     CPPUNIT_ASSERT(decoder.NumEvents() == 1);
@@ -217,7 +217,7 @@ void PacketEDTest::ReadBlockTest() {
 
 void PacketEDTest::WriteBlockTest() {
     MockDecoder decoder;
-    PacketEncoder encoder;
+    BufferedPacketEncoder encoder;
     encoder.SendWriteBlock(100);
     Transfer(&encoder, &decoder);
     CPPUNIT_ASSERT(decoder.NumEvents() == 1);
@@ -227,7 +227,7 @@ void PacketEDTest::WriteBlockTest() {
 /*
 void PacketEDTest::CreateReaderTest() {
     MockDecoder decoder;
-    PacketEncoder encoder;
+    BufferedPacketEncoder encoder;
     srand(1);
     unsigned hint = rand();
     unsigned len = rand();
@@ -248,7 +248,7 @@ void PacketEDTest::CreateReaderTest() {
 
 void PacketEDTest::CreateWriterTest() {
     MockDecoder decoder;
-    PacketEncoder encoder;
+    BufferedPacketEncoder encoder;
     srand(1);
     unsigned hint = rand();
     unsigned len = rand();
@@ -269,7 +269,7 @@ void PacketEDTest::CreateWriterTest() {
 
 void PacketEDTest::CreateQueueTest() {
     MockDecoder decoder;
-    PacketEncoder encoder;
+    BufferedPacketEncoder encoder;
     srand(1);
     unsigned hint = rand();
     unsigned len = rand();
@@ -290,7 +290,7 @@ void PacketEDTest::CreateQueueTest() {
 
 void PacketEDTest::CreateNodeTest() {
     MockDecoder decoder;
-    PacketEncoder encoder;
+    BufferedPacketEncoder encoder;
     srand(1);
     std::string nodename = ToString("Node %d", rand());
     std::string nodetype = ToString("type %d", rand());
@@ -314,7 +314,7 @@ void PacketEDTest::CreateNodeTest() {
 
 void PacketEDTest::ReaderIDTest() {
     MockDecoder decoder;
-    PacketEncoder encoder;
+    BufferedPacketEncoder encoder;
     srand(1);
     unsigned srcid = rand();
     unsigned dstid = rand();
@@ -327,7 +327,7 @@ void PacketEDTest::ReaderIDTest() {
 
 void PacketEDTest::WriterIDTest() {
     MockDecoder decoder;
-    PacketEncoder encoder;
+    BufferedPacketEncoder encoder;
     srand(1);
     unsigned srcid = rand();
     unsigned dstid = rand();
@@ -340,7 +340,7 @@ void PacketEDTest::WriterIDTest() {
 
 void PacketEDTest::KernelIDTest() {
     MockDecoder decoder;
-    PacketEncoder encoder;
+    BufferedPacketEncoder encoder;
     srand(1);
     unsigned srcid = rand();
     unsigned dstid = rand();
@@ -352,7 +352,7 @@ void PacketEDTest::KernelIDTest() {
 }
 */
 
-void PacketEDTest::Transfer(PacketEncoder *encoder, PacketDecoder *decoder) {
+void PacketEDTest::Transfer(BufferedPacketEncoder *encoder, PacketDecoder *decoder) {
     while (encoder->BytesReady()) {
         unsigned available = 0;
         const void *srcptr = encoder->GetEncodedBytes(available);

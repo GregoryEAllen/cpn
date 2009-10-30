@@ -153,10 +153,8 @@ namespace CPN {
         void CreateQueue(Key_t dst, const SimpleQueueAttr &attr);
         void CreateNode(Key_t dst, const NodeAttr &attr);
 
-        void StreamDead(Key_t streamkey);
-        void SetReaderDescriptor(Key_t readerkey, Key_t writerkey, Async::DescriptorPtr desc);
-        void SetWriterDescriptor(Key_t writerkey, Key_t readerkey, Async::DescriptorPtr desc);
-        weak_ptr<UnknownStream> CreateNewQueueStream(Key_t readerkey, Key_t writerkey);
+        shared_ptr<Future<int> > GetReaderDescriptor(Key_t readerkey, Key_t writerkey);
+        shared_ptr<Future<int> > GetWriterDescriptor(Key_t readerkey, Key_t writerkey);
 
         Sync::ReentrantLock lock;
         Sync::StatusHandler<KernelStatus_t> status;
@@ -166,7 +164,7 @@ namespace CPN {
         shared_ptr<Database> database;
 
         WakeupHandler wakeuphandler;
-        KernelListener listener;
+        KernelConnectionHandler connhandler;
 
         typedef std::map<Key_t, shared_ptr<NodeBase> > NodeMap;
         typedef std::vector< shared_ptr<NodeBase> > NodeList;

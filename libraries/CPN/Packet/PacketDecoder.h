@@ -26,8 +26,6 @@
 
 #include "CPNCommon.h"
 #include "PacketHeader.h"
-#include "AutoBuffer.h"
-#include <string>
 
 namespace CPN {
 
@@ -39,35 +37,20 @@ namespace CPN {
      * delt with in the event function it will be lost.  This class is ment to
      * be enherited by some other class which implements the event functions.
      */
-    class PacketDecoder {
+    class PacketDecoder : public PacketHandler {
     public:
         PacketDecoder();
         virtual ~PacketDecoder() {}
-        bool Enabled() const { return enable; }
         // amount is the amount the decoder wants for the next operation
         void *GetDecoderBytes(unsigned &amount);
         void ReleaseDecoderBytes(unsigned amount);
         void Reset();
-        void Enable(bool en = true) { enable = en; }
         unsigned NumBytes() const { return numbytes; }
 
     protected:
-        // The data will have a chan stride of length
-        virtual void ReceivedEnqueue(void *data, unsigned length, unsigned numchannels);
-        virtual void ReceivedDequeue(unsigned length, unsigned numchannels);
-        virtual void ReceivedReadBlock(unsigned requested);
-        virtual void ReceivedWriteBlock(unsigned requested);
-        virtual void ReceiveEndOfWriteQueue();
-        virtual void ReceiveEndOfReadQueue();
-
-        virtual void ReceivedReaderID(uint64_t readerkey, uint64_t writerkey);
-        virtual void ReceivedWriterID(uint64_t writerkey, uint64_t readerkey);
     private:
-        void Fire();
-        AutoBuffer buffer;
+        Packet header;
         unsigned numbytes;
-        unsigned packetsize;
-        bool enable;
     };
 
 }

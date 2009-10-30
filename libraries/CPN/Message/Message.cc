@@ -77,13 +77,10 @@ namespace CPN {
     void KernelMessageHandler::StreamDead(Key_t streamkey) {
         ASSERT(false, "Unexpected message");
     }
-    void KernelMessageHandler::SetReaderDescriptor(Key_t readerkey, Key_t writerkey, Async::DescriptorPtr desc) {
+    shared_ptr<Future<int> > KernelMessageHandler::GetReaderDescriptor(Key_t readerkey, Key_t writerkey) {
         ASSERT(false, "Unexpected message");
     }
-    void KernelMessageHandler::SetWriterDescriptor(Key_t writerkey, Key_t readerkey, Async::DescriptorPtr desc) {
-        ASSERT(false, "Unexpected message");
-    }
-    shared_ptr<Future<int> > KernelMessageHandler::CreateNewConnection(Key_t readerkey, Key_t writerkey) {
+    shared_ptr<Future<int> > KernelMessageHandler::GetWriterDescriptor(Key_t readerkey, Key_t writerkey) {
         ASSERT(false, "Unexpected message");
     }
     void KernelMessageHandler::SendWakeup() {

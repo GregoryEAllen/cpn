@@ -90,11 +90,9 @@ namespace CPN {
         virtual void CreateNode(Key_t dst, const NodeAttr &attr);
 
         virtual const LoggerOutput *GetLogger() const = 0;
+        virtual shared_ptr<Database> GetDatabase() const = 0;
 
         // Functions the streams need of the kernel
-        virtual void StreamDead(Key_t streamkey);
-        virtual void SetReaderDescriptor(Key_t readerkey, Key_t writerkey, Async::DescriptorPtr desc);
-        virtual void SetWriterDescriptor(Key_t writerkey, Key_t readerkey, Async::DescriptorPtr desc);
         virtual shared_ptr<Future<int> > GetReaderDescriptor(Key_t readerkey, Key_t writerkey);
         virtual shared_ptr<Future<int> > GetWriterDescriptor(Key_t readerkey, Key_t writerkey);
         virtual void SendWakeup();
