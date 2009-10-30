@@ -35,7 +35,7 @@ namespace CPN {
     PacketDecoder::~PacketDecoder() {}
 
     void *PacketDecoder::GetDecoderBytes(unsigned &amount) {
-        char *ptr = static_cast<char*>(&header.header);
+        char *ptr = reinterpret_cast<char*>(&header.header);
         amount = sizeof(header.header) - numbytes;
         return ptr + numbytes;
     }
@@ -51,7 +51,7 @@ namespace CPN {
                 // If it is not valid, what do we do??
                 // Well, we can search for the header word
                 // wont always work...
-                char *ptr = static_cast<char*>(&header.header);
+                char *ptr = reinterpret_cast<char*>(&header.header);
                 numbytes -= 1;
                 memmove(ptr, ptr + 1, numbytes);
             }

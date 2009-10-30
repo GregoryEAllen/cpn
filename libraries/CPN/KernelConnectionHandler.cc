@@ -58,9 +58,11 @@ namespace CPN {
 
     shared_ptr<Future<int> > KernelConnectionHandler::GetReaderDescriptor(Key_t readerkey, Key_t writerkey) {
         Sync::AutoReentrantLock arlock(lock);
+        ASSERT(false);
     }
 
     shared_ptr<Future<int> > KernelConnectionHandler::GetWriterDescriptor(Key_t readerkey, Key_t writerkey) {
         Sync::AutoReentrantLock arlock(lock);
+        ASSERT(false);
     }
 }

@@ -47,7 +47,7 @@ namespace CPN {
     private:
         Sync::ReentrantLock lock;
         Logger logger;
-
+        KernelMessageHandler *kmh;
     };
 }
 

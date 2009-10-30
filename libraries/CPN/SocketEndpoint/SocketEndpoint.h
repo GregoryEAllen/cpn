@@ -42,8 +42,6 @@ namespace CPN {
     public:
 
         enum Status_t {
-            INIT,
-            CONNECTING,
             LIVE,
             DIEING,
             DEAD
@@ -66,6 +64,7 @@ namespace CPN {
         Key_t GetKey() const { return mode == READ ? readerkey : writerkey; }
 
         /** Signal that the kernel is shutting down.
+         * This is a forced shutdown. 
          */
         void Shutdown();
 
@@ -73,8 +72,6 @@ namespace CPN {
          * and/or return the maximum time we want to be checked again.
          */
         double CheckStatus();
-
-        bool Dead();
 
         // QueueBase
         virtual const void* GetRawDequeuePtr(unsigned thresh, unsigned chan=0);
@@ -117,6 +114,7 @@ namespace CPN {
         virtual void OnHup();
         virtual void OnInval();
 
+        virtual bool Readable();
     private:
 
         // PacketHandler (PacketDecoder)
@@ -132,7 +130,6 @@ namespace CPN {
         // PacketEncoder
         virtual void WriteBytes(const iovec *iov, unsigned iovcnt);
 
-        void SendWakeup();
         /** 
          * InternCheckStatus will do things like check the pending variables
          * and write data out if it thinks it should go out. It will also do things
@@ -169,7 +166,7 @@ namespace CPN {
         bool pendingDequeue;
         bool pendingBlock;
         unsigned blockRequest;
-        bool sendEnd;
+        bool sentEnd;
         bool readshutdown;
         bool writeshutdown;
     };

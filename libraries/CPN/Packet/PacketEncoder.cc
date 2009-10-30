@@ -22,7 +22,9 @@
  */
 
 #include "PacketEncoder.h"
+#include "QueueBase.h"
 #include "Assert.h"
+#include <vector>
 
 namespace CPN {
 
@@ -34,11 +36,12 @@ namespace CPN {
         ASSERT(packet.DataLength() == packet.NumChannels() * packet.Count());
         ASSERT(packet.Type() == PACKET_ENQUEUE);
         std::vector<iovec> iovs;
-        iovec header = { &packet.header, sizeof(packet.header) };
+        // Must use const_cast here because iovec isn't const... :(
+        iovec header = { const_cast<PacketHeader*>(&packet.header), sizeof(packet.header) };
         iovs.push_back(header);
         for (unsigned i = 0; i < packet.NumChannels(); ++i) {
             iovec iov;
-            iov.iov_base = queue->GetRawDequeuePtr(packet.Count(), i);
+            iov.iov_base = const_cast<void*>(queue->GetRawDequeuePtr(packet.Count(), i));
             ASSERT(iov.iov_base);
             iov.iov_len = packet.Count();
             iovs.push_back(iov);
@@ -49,7 +52,7 @@ namespace CPN {
 
     void PacketEncoder::SendPacket(const Packet &packet) {
         iovec iov;
-        iov.iov_base = &packet.header;
+        iov.iov_base = const_cast<PacketHeader*>(&packet.header);
         iov.iov_len = sizeof(packet.header);
         WriteBytes(&iov, 1);
     }
@@ -57,11 +60,11 @@ namespace CPN {
     void PacketEncoder::SendPacket(const Packet &packet, void *data) {
         ASSERT(data);
         iovec iov[2];
-        iov[0].iov_base = &packet.header;
+        iov[0].iov_base = const_cast<PacketHeader*>(&packet.header);
         iov[0].iov_len = sizeof(packet.header);
         iov[1].iov_base = data;
         iov[1].iov_len = packet.DataLength();
-        WriteBytes(&iov, 2);
+        WriteBytes(&iov[0], 2);
     }
 
     BufferedPacketEncoder::BufferedPacketEncoder() {}
@@ -80,7 +83,7 @@ namespace CPN {
 
     void BufferedPacketEncoder::WriteBytes(const iovec *iov, unsigned iovcnt) {
         for (unsigned i = 0; i < iovcnt; ++i) {
-            cbuff.Put(iov[i].iov_base, iov[i].iov_len);
+            cbuff.Put(static_cast<char*>(iov[i].iov_base), iov[i].iov_len);
         }
     }
 }

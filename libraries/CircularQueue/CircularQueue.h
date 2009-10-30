@@ -69,6 +69,7 @@ public:
     // Only increases size
     void Grow(unsigned queueLen, unsigned maxThresh);
 
+    void Clear();
 private:
     unsigned queueLength;
     unsigned maxThreshold;

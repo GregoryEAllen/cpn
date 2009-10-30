@@ -74,9 +74,6 @@ namespace CPN {
     void KernelMessageHandler::CreateNode(Key_t dst, const NodeAttr &attr) {
         ASSERT(false, "Unexpected message");
     }
-    void KernelMessageHandler::StreamDead(Key_t streamkey) {
-        ASSERT(false, "Unexpected message");
-    }
     shared_ptr<Future<int> > KernelMessageHandler::GetReaderDescriptor(Key_t readerkey, Key_t writerkey) {
         ASSERT(false, "Unexpected message");
     }

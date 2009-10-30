@@ -64,13 +64,13 @@ namespace CPN {
         kernelname(kattr.GetName()),
         hostkey(0),
         database(kattr.GetDatabase()),
-        listener(this)
+        connhandler(this)
     {
         FUNCBEGIN;
         SockAddrList addrlist = SocketAddress::CreateIP(
                 kattr.GetHostName().c_str(),
                 kattr.GetServName().c_str());
-        listener.Listen(addrlist);
+        connhandler.Listen(addrlist);
 
         if (!database) {
             database = Database::Local();
@@ -80,7 +80,7 @@ namespace CPN {
         logger.Name(kernelname);
 
         SocketAddress addr;
-        addr.SetFromSockName(listener.FD());
+        addr.SetFromSockName(connhandler.FD());
         hostkey = database->SetupHost(kernelname, addr.GetHostName(), addr.GetServName(), this);
 
         logger.Info("New kernel, listening on %s:%s", addr.GetHostName().c_str(), addr.GetServName().c_str());

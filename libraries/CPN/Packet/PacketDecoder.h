@@ -40,7 +40,7 @@ namespace CPN {
     class PacketDecoder : public PacketHandler {
     public:
         PacketDecoder();
-        virtual ~PacketDecoder() {}
+        virtual ~PacketDecoder();
         // amount is the amount the decoder wants for the next operation
         void *GetDecoderBytes(unsigned &amount);
         void ReleaseDecoderBytes(unsigned amount);

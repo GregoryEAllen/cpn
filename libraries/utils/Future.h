@@ -31,6 +31,7 @@
 template<typename Value>
 class Future {
 public:
+    virtual ~Future() {}
     /**
      * Poll if the result is ready.
      */

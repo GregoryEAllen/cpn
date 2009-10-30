@@ -189,3 +189,7 @@ void CircularQueue::Grow(unsigned queueLen, unsigned maxThresh) {
     RawEnqueue(copybuff.GetBuffer(), oldcount, NumChannels(), oldchanstride);
 }
 
+void CircularQueue::Clear() {
+    head = tail = 0;
+}
+

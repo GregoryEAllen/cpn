@@ -24,6 +24,7 @@
 #include "SocketEndpoint.h"
 #include "Assert.h"
 #include "ToString.h"
+#include "ErrnoException.h"
 
 namespace CPN {
 
@@ -31,13 +32,20 @@ namespace CPN {
             KernelMessageHandler *kmh_, unsigned size, unsigned maxThresh, unsigned numChans)
         : logger(kmh_->GetLogger(), Logger::INFO),
         queue(size, maxThresh, numChans),
-        status(INIT),
+        status(LIVE),
         mode(mode_),
         writerkey(writerkey_),
         readerkey(readerkey_),
-        kmh(kmh_)
+        kmh(kmh_),
+        writecount(0),
+        readcount(0),
+        pendingDequeue(false),
+        pendingBlock(false),
+        blockRequest(0),
+        sentEnd(false),
+        readshutdown(false),
+        writeshutdown(false)
     {
-        Readable(true);
         Writeable(false);
         logger.Name(ToString("SocketEndpoint(m:%s, r:%lu, w: %lu)",
                     mode == READ ? "r" : "w", readerkey, writerkey));
@@ -49,9 +57,35 @@ namespace CPN {
     }
 
     void SocketEndpoint::Shutdown() {
+        Sync::AutoReentrantLock arl(lock);
+        // force us into a shutdown state
+        if (connection) {
+            connection->Cancel();
+            connection.reset();
+        }
+        if (mode == READ) {
+            readshutdown = true;
+        } else {
+            writeshutdown = true;
+        }
+        queue.Clear();
+        status = DIEING;
+        InternCheckStatus();
     }
 
     double SocketEndpoint::CheckStatus() {
+        Sync::AutoReentrantLock arl(lock);
+        InternCheckStatus();
+
+        // this is arbitrary
+        if (status == LIVE) {
+            if (Closed()) {
+                // 30s
+                return 30e6;
+            }
+        } else if (status == DIEING) {
+            return 30e6;
+        }
         return -1;
     }
 
@@ -142,7 +176,7 @@ namespace CPN {
     void SocketEndpoint::RMHEnqueue(Key_t writerkey, Key_t readerkey) {
         Sync::AutoReentrantLock arl(lock);
         ASSERT(mode == WRITE);
-        InternCheckState();
+        InternCheckStatus();
     }
 
     void SocketEndpoint::RMHEndOfWriteQueue(Key_t writerkey, Key_t readerkey) {
@@ -199,40 +233,53 @@ namespace CPN {
     void SocketEndpoint::OnRead() {
         Sync::AutoReentrantLock arl(lock);
         if (!Good()) { return; }
-        bool loop = true;
-        while (loop) {
-            unsigned numtoread = 0;
-            void *ptr = PacketDecoder::GetDecoderBytes(numtoread);
-            unsigned numread = Recv(ptr, numtoread, false);
-            if (numread == 0) {
-                if (!Good()) {
-                    // Eof
+        try {
+            bool loop = true;
+            while (loop) {
+                unsigned numtoread = 0;
+                void *ptr = PacketDecoder::GetDecoderBytes(numtoread);
+                unsigned numread = Recv(ptr, numtoread, false);
+                if (numread == 0) {
+                    if (!Good()) {
+                        // Eof
+                    }
+                    loop = false;
+                } else {
+                    PacketDecoder::ReleaseDecoderBytes(numread);
                 }
-                loop = false;
-            } else {
-                PacketDecoder::ReleaseDecoderBytes(numread);
             }
+        } catch (const ErrnoException &e) {
+            logger.Error("Exception on read (%d): %s", e.Error(), e.what());
         }
     }
 
     void SocketEndpoint::OnWrite() {
         Sync::AutoReentrantLock arl(lock);
+        logger.Error("%s", __PRETTY_FUNCTION__);
     }
 
     void SocketEndpoint::OnError() {
         Sync::AutoReentrantLock arl(lock);
         // Error on socket.
+        logger.Error("%s", __PRETTY_FUNCTION__);
     }
 
     void SocketEndpoint::OnHup() {
         Sync::AutoReentrantLock arl(lock);
         // If I understand correctly this will be called if
         // poll detects that if we try to write we would get EPIPE
+        logger.Error("%s", __PRETTY_FUNCTION__);
     }
 
     void SocketEndpoint::OnInval() {
         Sync::AutoReentrantLock arl(lock);
         // Our file descriptor is invalid
+        logger.Error("%s", __PRETTY_FUNCTION__);
+    }
+
+    bool SocketEndpoint::Readable() {
+        Sync::AutoReentrantLock arl(lock);
+        return Good();
     }
 
     void SocketEndpoint::EnqueuePacket(const Packet &packet) {
@@ -242,7 +289,6 @@ namespace CPN {
         );
         ASSERT(mode == READ);
         ASSERT(!writeshutdown);
-        readcount += packet.Count();
         std::vector<iovec> iovs;
         for (unsigned i = 0; i < packet.NumChannels(); ++i) {
             iovec iov;
@@ -254,8 +300,8 @@ namespace CPN {
         // Need to figure out what to do when this fails.
         ASSERT(numread == packet.DataLength());
         queue.Enqueue(packet.Count());
+        readcount += packet.Count();
         ReaderMessageHandler::RMHEnqueue(writerkey, readerkey);
-        InternCheckStatus();
     }
 
     void SocketEndpoint::DequeuePacket(const Packet &packet) {
@@ -266,7 +312,6 @@ namespace CPN {
         ASSERT(mode == WRITE);
         ASSERT(!readshutdown);
         writecount -= packet.Count();
-        WriterMessageHandler::WMHDequeue(readerkey, writerkey);
         InternCheckStatus();
     }
 
@@ -331,19 +376,20 @@ namespace CPN {
 #ifndef NDEBUG
         int total = 0;
         for (unsigned i = 0; i < iovcnt; ++i) {
-            total += iov[i].iov_cnt;
+            total += iov[i].iov_len;
         }
         ASSERT(numwritten == total, "Writev did not completely write data.");
 #endif
     }
 
-    void SocketEndpoint::SendWakeup() {
-        kmh->SendWakeup();
-    }
-
     void SocketEndpoint::InternCheckStatus() {
+        if (status == DEAD) { return; }
         if (Closed()) {
-            if (status != DEAD) {
+            if (status == DIEING) {
+                status = DEAD;
+                return;
+            }
+            if (status == LIVE) {
                 while (true) {
                     if (connection) {
                         if (connection->Done()) {
@@ -361,68 +407,72 @@ namespace CPN {
             }
         }
 
-        if (mode == READ) {
-            // In read mode
- 
-            if (pendingDequeue) {
-                SendDequeue();
-            }
+        try {
+            if (mode == READ) {
+                // In read mode
+     
+                if (pendingDequeue) {
+                    SendDequeue();
+                }
 
-            if (pendingBlock) {
-                SendReadBlock();
-            }
+                if (pendingBlock) {
+                    SendReadBlock();
+                }
 
-            // If we have a read shutdown we need to send the 
-            // end of read queue message and shutdown the write
-            // side of the socket.
-            if (readshutdown) {
-                if (!sendEnd) { SendEndOfRead(); }
-            }
+                // If we have a read shutdown we need to send the 
+                // end of read queue message and shutdown the write
+                // side of the socket.
+                if (readshutdown) {
+                    if (!sentEnd) { SendEndOfRead(); }
+                }
 
-            // if we have a write shutdown we can go ahead and shutdown
-            // the read side of our socket and send a end of reader
-            // down the socket if not already sent and start actually
-            // shutting down
-            if (writeshutdown) {
-                if (!sendEnd) { SendEndOfRead(); }
-                Close();
-                status = DEAD;
-            }
+                // if we have a write shutdown we can go ahead and shutdown
+                // the write side of our socket and send a end of reader
+                // down the socket if not already sent and start actually
+                // shutting down
+                if (writeshutdown) {
+                    if (!sentEnd) { SendEndOfRead(); }
+                    status = DEAD;
+                    Close();
+                }
 
-        } else {
-            ASSERT(mode == WRITE);
+            } else {
+                ASSERT(mode == WRITE);
 
-            // In write mode
-            if (!queue.Empty()) {
-                if (!EnqueueBlocked()) {
-                    SendEnqueue();
+                // In write mode
+                if (!queue.Empty()) {
+                    if (!EnqueueBlocked()) {
+                        SendEnqueue();
+                    }
+                }
+
+                if (pendingBlock) {
+                    OnRead();
+                    if (blockRequest > queue.Count()) {
+                        SendWriteBlock();
+                    }
+                }
+
+                // if we have a read shutdown we ensure we have written
+                // a writer end and die. There will be no more enqueues
+                // and there is no more data to be read.
+                if (readshutdown) {
+                    if (!sentEnd) { SendEndOfWrite(); }
+                    status = DEAD;
+                    Close();
+                }
+
+                // If we have a write shutdown we need to finish sending any data we
+                // have and then send across the writer end and wait for the confirming
+                // reader end
+                if (writeshutdown) {
+                    if ( queue.Empty() && !sentEnd ) {
+                        SendEndOfWrite();
+                    }
                 }
             }
-
-            if (pendingBlock) {
-                OnRead();
-                if (blockRequested > queue.Count()) {
-                    SendWriteBlock();
-                }
-            }
-
-            // if we have a read shutdown we ensure we have written
-            // a writer end and die. There will be no more enqueues
-            // and there is no more data to be read.
-            if (readshutdown) {
-                if (!sentEnd) { SendEndOfWrite(); }
-                Close();
-                status = DEAD;
-            }
-
-            // If we have a write shutdown we need to finish sending any data we
-            // have and then send across the writer end and wait for the confirming
-            // reader end
-            if (writeshutdown) {
-                if ( queue.Empty() && !sentEnd ) {
-                    SendEndOfWrite();
-                }
-            }
+        } catch (const ErrnoException &e) {
+            logger.Error("Exception (%d): $s", e.Error(), e.what());
         }
     }
 
@@ -446,8 +496,11 @@ namespace CPN {
         Packet packet(datalength, PACKET_ENQUEUE);
         SetupPacketDefaults(packet);
         packet.Count(count).BytesQueued(queue.Count());
-        writecount += count;
         PacketEncoder::SendEnqueue(packet, this);
+        // Send the dequeue message here after we have actually dequeued data from
+        // the queue
+        WriterMessageHandler::WMHDequeue(readerkey, writerkey);
+        writecount += count;
     }
 
     void SocketEndpoint::SendWriteBlock() {
