@@ -79,7 +79,7 @@ namespace CPN {
         }
         bool RawDequeue(void* data, unsigned count, unsigned numChans, unsigned chanStride) {
             Sync::AutoReentrantLock l(lock);
-            return RawDequeue(data, count, numChans, chanStride);
+            return queue.RawDequeue(data, count, numChans, chanStride);
         }
 
         unsigned NumChannels() const {

@@ -37,6 +37,7 @@ WakeupHandler::WakeupHandler()
     wfd = filedes[1];
     Readable(true);
     Writeable(false);
+    SetBlocking(false);
 }
 
 WakeupHandler::~WakeupHandler() {

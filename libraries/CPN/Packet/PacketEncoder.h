@@ -27,7 +27,6 @@
 #include "CPNCommon.h"
 #include "PacketHeader.h"
 #include "AutoCircleBuffer.h"
-#include <string>
 // For the iovec definition
 #include <sys/uio.h>
 

@@ -31,6 +31,8 @@
 #include "Future.h"
 #include "ReentrantLock.h"
 #include "Logger.h"
+#include <list>
+#include <map>
 
 namespace CPN {
     class KernelConnectionHandler : public ListenSockHandler {
@@ -48,6 +50,13 @@ namespace CPN {
         Sync::ReentrantLock lock;
         Logger logger;
         KernelMessageHandler *kmh;
+        class Connection;
+        void Transfer(Key_t key, shared_ptr<Connection> conn);
+
+        typedef std::list<shared_ptr<Connection> > ConnList;
+        ConnList connlist;
+        typedef std::map<Key_t, shared_ptr<Connection> > ConnMap;
+        ConnMap connmap;
     };
 }
 

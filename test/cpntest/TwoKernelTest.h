@@ -24,9 +24,9 @@ public:
 	void tearDown();
 
 	CPPUNIT_TEST_SUITE( TwoKernelTest );
-	CPPUNIT_TEST( SimpleTwoNodeTest );
-	CPPUNIT_TEST( TestSync );
-	CPPUNIT_TEST( TestSyncSourceSink );
+	//CPPUNIT_TEST( SimpleTwoNodeTest );
+	//CPPUNIT_TEST( TestSync );
+	//CPPUNIT_TEST( TestSyncSourceSink );
 	CPPUNIT_TEST_SUITE_END();
 
     void SimpleTwoNodeTest();

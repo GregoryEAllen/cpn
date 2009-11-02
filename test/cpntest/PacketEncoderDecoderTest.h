@@ -16,8 +16,9 @@ CPPUNIT_TEST_SUITE_REGISTRATION( PacketEDTest );
 #include <cppunit/extensions/HelperMacros.h>
 
 namespace CPN {
-    class PacketEncoder;
+    class BufferedPacketEncoder;
     class PacketDecoder;
+    class Packet;
 };
 class PacketEDTest : public CppUnit::TestFixture {
 public:
@@ -30,13 +31,10 @@ public:
 	CPPUNIT_TEST( DequeueTest );
 	CPPUNIT_TEST( ReadBlockTest );
 	CPPUNIT_TEST( WriteBlockTest );
-	//CPPUNIT_TEST( CreateReaderTest );
-	//CPPUNIT_TEST( CreateWriterTest );
-	//CPPUNIT_TEST( CreateQueueTest );
-	//CPPUNIT_TEST( CreateNodeTest );
-	//CPPUNIT_TEST( ReaderIDTest );
-	//CPPUNIT_TEST( WriterIDTest );
-	//CPPUNIT_TEST( KernelIDTest );
+    CPPUNIT_TEST( EndOfWriteTest );
+    CPPUNIT_TEST( EndOfReadTest );
+	CPPUNIT_TEST( ReaderIDTest );
+	CPPUNIT_TEST( WriterIDTest );
 	CPPUNIT_TEST_SUITE_END();
 
 	void EnqueueTest();
@@ -45,14 +43,13 @@ public:
     void ReadBlockTest();
     void WriteBlockTest();
 
-    void CreateReaderTest();
-    void CreateWriterTest();
-    void CreateQueueTest();
-    void CreateNodeTest();
+    void EndOfWriteTest();
+    void EndOfReadTest();
+
     void ReaderIDTest();
     void WriterIDTest();
-    void KernelIDTest();
 
-    void Transfer(CPN::PacketEncoder *encoder, CPN::PacketDecoder *decoder);
+    void Transfer(CPN::BufferedPacketEncoder *encoder, CPN::PacketDecoder *decoder);
+    void DoTest(CPN::Packet &header);
 };
 #endif

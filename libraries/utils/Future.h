@@ -44,6 +44,12 @@ public:
 
     /**
      * Get the result, implementation dependent behavior if not ready.
+     * One implementation may throw an exception another may block
+     * and a third may return a default value, etc.
+     *
+     * Subsequent calls to Get are implementation defined. 
+     * one implementation may throw an execption another may block
+     * forever, another may return a default value, etc.
      */
     virtual Value Get() = 0;
 };

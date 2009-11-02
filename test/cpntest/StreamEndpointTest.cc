@@ -4,8 +4,6 @@
 #include <cppunit/TestAssert.h>
 
 #include "CPNSimpleQueue.h"
-#include "AsyncStream.h"
-#include "AsyncSocket.h"
 
 #include <tr1/memory>
 #include <vector>
@@ -15,7 +13,6 @@ CPPUNIT_TEST_SUITE_REGISTRATION( StreamEndpointTest );
 using std::tr1::shared_ptr;
 using std::tr1::dynamic_pointer_cast;
 using namespace CPN;
-using namespace Async;
 
 #if _DEBUG
 #define DEBUG(frmt, ...) printf(frmt, ## __VA_ARGS__)
@@ -32,20 +29,16 @@ void Error(int err) {
 }
 
 void StreamEndpointTest::setUp() {
-    wqueue = shared_ptr<CPN::SimpleQueue>(new CPN::SimpleQueue(2*QUEUESIZE,QUEUESIZE,1));
-    rqueue = shared_ptr<CPN::SimpleQueue>(new CPN::SimpleQueue(QUEUESIZE,QUEUESIZE,1));
 
+    wendp = shared_ptr<SocketEndpoint>(new SocketEndpoint(RKEY, WKEY, SocketEndpoint::WRITE,
+                this, QUEUESIZE*2, QUEUESIZE, 1));
 
-    Async::SockPtr wsock;
-    Async::SockPtr rsock;
-    StreamSocket::CreatePair(wsock, rsock);
-    wendp = shared_ptr<StreamEndpoint>(new StreamEndpoint(this, RKEY, WKEY, StreamEndpoint::WRITE));
-    wendp->SetQueue(wqueue);
-    wendp->SetDescriptor(wsock);
+    wqueue = wendp;
 
-    rendp = shared_ptr<StreamEndpoint>(new StreamEndpoint(this, RKEY, WKEY, StreamEndpoint::READ));
-    rendp->SetDescriptor(rsock);
-    rendp->SetQueue(rqueue);
+    rendp = shared_ptr<SocketEndpoint>(new SocketEndpoint(RKEY, WKEY, SocketEndpoint::READ,
+                this, QUEUESIZE*2, QUEUESIZE, 1));
+
+    rqueue = rendp;
 
     // rmh --> wqueue --> wendp --> sock --> rendp --> rqueue --> tester(rmh)
     // wmh --> rqueue --> rendp --> sock --> wendp --> wqueue --> tester(wmh)
@@ -65,9 +58,9 @@ void StreamEndpointTest::tearDown() {
     messages.clear();
 }
 
-// Test sending some data from the reader
-void StreamEndpointTest::EnqueueTest() {
+void StreamEndpointTest::CommunicationTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    // Test sending some data from the reader
     const char data[] = { 'a', 'b', 'c', 'd', 'e' };
     wqueue->RawEnqueue(data, sizeof(data));
 
@@ -79,131 +72,104 @@ void StreamEndpointTest::EnqueueTest() {
     CPPUNIT_ASSERT(msg.src == WKEY);
     CPPUNIT_ASSERT(msg.dst == RKEY);
 
-    const char *ptr = (const char*)rqueue->GetRawDequeuePtr(5);
-    CPPUNIT_ASSERT(ptr);
-    for (unsigned i = 0; i < sizeof(data); ++i) {
-        CPPUNIT_ASSERT(ptr[i] == data[i]);
-    }
-}
+    const void *dequeueptr = rqueue->GetRawDequeuePtr(sizeof(data));
+    CPPUNIT_ASSERT(dequeueptr);
+    CPPUNIT_ASSERT(memcmp(dequeueptr, data, sizeof(data)));
 
-// Test sending received data reply
-void StreamEndpointTest::DequeueTest() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    // Test sending received data reply
 
+    rqueue->Dequeue(sizeof(data));
     wmh->WMHDequeue(RKEY, WKEY);
 
-    Msg msg = WaitForMessage();
+    msg = WaitForMessage();
     CPPUNIT_ASSERT(messages.empty());
     CPPUNIT_ASSERT(msg.type == WMHDEQUEUE);
     CPPUNIT_ASSERT(msg.src == RKEY);
     CPPUNIT_ASSERT(msg.dst == WKEY);
-}
-
-void StreamEndpointTest::BlockTest() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
 
     DEBUG("ReadBlock\n");
     wmh->WMHReadBlock(RKEY, WKEY, 1);
-    Msg msg = WaitForMessage();
+    msg = WaitForMessage();
     CPPUNIT_ASSERT(messages.empty());
     CPPUNIT_ASSERT(msg.type == WMHREADBLOCK);
     CPPUNIT_ASSERT(msg.src == RKEY);
     CPPUNIT_ASSERT(msg.dst == WKEY);
+    CPPUNIT_ASSERT(msg.requested == 1);
 
-    // Got to have data in the queue for the block to go through
-    // StreamEndpoint first checks to see if it can write some more
-    // to the socket, if it can it does, then it checks if requested
-    // is available, if so it does nothing more. If not then it queues up
-    // a block packet. So we must request here enough to ensure a block
-    // packet will be sent.
-    DEBUG("WriteBlock\n");
-    void *ptr = 0;
-    while ((ptr = wqueue->GetRawEnqueuePtr(QUEUESIZE)) != 0) {
-        memset(ptr, 0, QUEUESIZE);
-        wqueue->Enqueue(QUEUESIZE);
+    DEBUG("WriteBlock and Throttle\n");
+    // Fill up the queue to the brim
+    void *enqueueptr = 0;
+    while ((enqueueptr = wqueue->GetRawEnqueuePtr(sizeof(data))) != 0) {
+        memcpy(enqueueptr, data, sizeof(data));
+        wqueue->Enqueue(sizeof(data));
         rmh->RMHEnqueue(WKEY, RKEY);
+        while (0 < Poll(0));
     }
 
     rmh->RMHWriteBlock(WKEY, RKEY, QUEUESIZE);
     do {
         msg = WaitForMessage();
+        CPPUNIT_ASSERT(msg.type == RMHWRITEBLOCK || msg.type == RMHENQUEUE);
     } while (msg.type != RMHWRITEBLOCK);
     CPPUNIT_ASSERT(messages.empty());
     CPPUNIT_ASSERT(msg.type == RMHWRITEBLOCK);
     CPPUNIT_ASSERT(msg.src == WKEY);
     CPPUNIT_ASSERT(msg.dst == RKEY);
-}
+    CPPUNIT_ASSERT(msg.requested == QUEUESIZE);
 
-void StreamEndpointTest::ThrottleTest() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
-    char data[5] = {0};
-    CPPUNIT_ASSERT(wqueue->RawEnqueue(&data[0], QUEUESIZE));
-    rmh->RMHEnqueue(WKEY, RKEY);
-    CPPUNIT_ASSERT(wqueue->RawEnqueue(&data[0], QUEUESIZE));
-    rmh->RMHEnqueue(WKEY, RKEY);
-    Msg msg = WaitForMessage();
-    CPPUNIT_ASSERT(messages.empty());
-    CPPUNIT_ASSERT(msg.type == RMHENQUEUE);
-    CPPUNIT_ASSERT(msg.src == WKEY);
-    CPPUNIT_ASSERT(msg.dst == RKEY);
-    CPPUNIT_ASSERT(rqueue->Count() == QUEUESIZE);
-    rqueue->Dequeue(QUEUESIZE);
-    wmh->WMHDequeue(RKEY, WKEY);
-    for (int i = 2; i > 0; --i) {
-        msg = WaitForMessage();
-        if (msg.type == RMHENQUEUE) {
-            CPPUNIT_ASSERT(msg.type == RMHENQUEUE);
-            CPPUNIT_ASSERT(msg.src == WKEY);
-            CPPUNIT_ASSERT(msg.dst == RKEY);
-        } else if (msg.type == WMHDEQUEUE) {
-            CPPUNIT_ASSERT(msg.type == WMHDEQUEUE);
-            CPPUNIT_ASSERT(msg.src == RKEY);
-            CPPUNIT_ASSERT(msg.dst == WKEY);
-        } else {
-            CPPUNIT_FAIL("Unknown message type");
-        }
+    // Now empty it out
+    while ((dequeueptr = rqueue->GetRawDequeuePtr(sizeof(data))) != 0) {
+        CPPUNIT_ASSERT(memcmp(dequeueptr, data, sizeof(data)));
+        rqueue->Dequeue(sizeof(data));
+        wmh->WMHDequeue(RKEY, WKEY);
+        while (0 < Poll(0));
     }
-    CPPUNIT_ASSERT(messages.empty());
-    CPPUNIT_ASSERT(rqueue->Count() == QUEUESIZE);
-}
+    // now send the read block again
+    wmh->WMHReadBlock(RKEY, WKEY, sizeof(data));
+    do {
+        msg = WaitForMessage();
+        CPPUNIT_ASSERT(msg.type == WMHREADBLOCK || msg.type == RMHENQUEUE
+                || msg.type == WMHDEQUEUE);
+    } while (msg.type != WMHREADBLOCK);
 
-void StreamEndpointTest::EndOfWriteQueueTest() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    CPPUNIT_ASSERT(messages.empty());
+    CPPUNIT_ASSERT(wqueue->Empty());
+    CPPUNIT_ASSERT(rqueue->Empty());
+
+    // Now send the write shutdown
+
     rmh->RMHEndOfWriteQueue(WKEY, RKEY);
-    Msg msg = WaitForMessage();
-    CPPUNIT_ASSERT(messages.empty());
-    CPPUNIT_ASSERT(msg.type == RMHENDOFWRITEQUEUE);
-    CPPUNIT_ASSERT(msg.src == WKEY);
-    CPPUNIT_ASSERT(msg.dst == RKEY);
-	CPPUNIT_ASSERT_THROW(rmh->RMHEnqueue(WKEY, RKEY), AssertException);
-    CPPUNIT_ASSERT(rendp->Shuttingdown());
-    CPPUNIT_ASSERT(wendp->Shuttingdown());
-}
-void StreamEndpointTest::EndOfReadQueueTest() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
-    wmh->WMHEndOfReadQueue(RKEY, WKEY);
-    Msg msg = WaitForMessage();
-    CPPUNIT_ASSERT(messages.empty());
-    CPPUNIT_ASSERT(msg.type == WMHENDOFREADQUEUE);
-    CPPUNIT_ASSERT(msg.src == RKEY);
-    CPPUNIT_ASSERT(msg.dst == WKEY);
-    CPPUNIT_ASSERT(rendp->Shuttingdown());
-    CPPUNIT_ASSERT(wendp->Shuttingdown());
+    while (0 < Poll(0));
+    while (!messages.empty()) {
+        msg = WaitForMessage();
+        CPPUNIT_ASSERT(msg.type == WMHENDOFREADQUEUE || msg.type == RMHENDOFWRITEQUEUE);
+    }
+    CPPUNIT_ASSERT(wendp->Closed());
+    CPPUNIT_ASSERT(wendp->GetStatus() == SocketEndpoint::DEAD);
+    CPPUNIT_ASSERT(rendp->Closed());
+    CPPUNIT_ASSERT(rendp->GetStatus() == SocketEndpoint::DEAD);
 }
 
 
 
 StreamEndpointTest::Msg StreamEndpointTest::WaitForMessage() {
-    while (messages.empty()) {
-        std::vector<DescriptorPtr> descptrs;
-        wendp->RegisterDescriptor(descptrs);
-        rendp->RegisterDescriptor(descptrs);
-        CPPUNIT_ASSERT(!descptrs.empty());
-        CPPUNIT_ASSERT(0 < Descriptor::Poll(descptrs, -1));
-    }
+    while (messages.empty()) { ASSERT(0 < Poll(-1)); }
     Msg msg = messages.front();
     messages.pop_front();
     return msg;
+}
+
+int StreamEndpointTest::Poll(double timeout) {
+    std::vector<FileHandler*> filehandlers;
+    wendp->CheckStatus();
+    if (!wendp->Closed()) {
+        filehandlers.push_back(wendp.get());
+    }
+    rendp->CheckStatus();
+    if (!rendp->Closed()) {
+        filehandlers.push_back(rendp.get());
+    }
+    return FileHandler::Poll(&filehandlers[0], filehandlers.size(), timeout);
 }
 
 void StreamEndpointTest::RMHEnqueue(Key_t src, Key_t dst) {
@@ -216,6 +182,7 @@ void StreamEndpointTest::RMHEndOfWriteQueue(Key_t src, Key_t dst) {
 
 void StreamEndpointTest::RMHWriteBlock(Key_t src, Key_t dst, unsigned requested) {
     messages.push_back(Msg(RMHWRITEBLOCK, src, dst));
+    messages.back().requested = requested;
 }
 
 void StreamEndpointTest::RMHTagChange(Key_t src, Key_t dst) {
@@ -232,23 +199,26 @@ void StreamEndpointTest::WMHEndOfReadQueue(Key_t src, Key_t dst) {
 
 void StreamEndpointTest::WMHReadBlock(Key_t src, Key_t dst, unsigned requested) {
     messages.push_back(Msg(WMHREADBLOCK, src, dst));
+    messages.back().requested = requested;
 }
 
 void StreamEndpointTest::WMHTagChange(Key_t src, Key_t dst) {
     messages.push_back(Msg(WMHTAGCHANGE, src, dst));
 }
 
-void StreamEndpointTest::StreamDead(Key_t streamkey) {
-}
-
-CPN::weak_ptr<CPN::UnknownStream> StreamEndpointTest::CreateNewQueueStream(CPN::Key_t readerkey, CPN::Key_t writerkey) {
-    return CPN::weak_ptr<CPN::UnknownStream>();
-}
-
 void StreamEndpointTest::SendWakeup() {
+	DEBUG("%s\n",__PRETTY_FUNCTION__);
 }
 
 const LoggerOutput *StreamEndpointTest::GetLogger() const {
     return &logger;
+}
+
+CPN::shared_ptr<Future<int> > StreamEndpointTest::GetReaderDescriptor(CPN::Key_t readerkey, CPN::Key_t writerkey)
+{
+}
+
+CPN::shared_ptr<Future<int> > StreamEndpointTest::GetWriterDescriptor(CPN::Key_t readerkey, CPN::Key_t writerkey)
+{
 }
 

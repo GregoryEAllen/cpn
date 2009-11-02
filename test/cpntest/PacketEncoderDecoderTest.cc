@@ -8,153 +8,84 @@
 #include "ToString.h"
 #include "PacketEncoder.h"
 #include "PacketDecoder.h"
+#include "CPNSimpleQueue.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION( PacketEDTest );
 
+#if _DEBUG
+#define DEBUG(frmt, ...) printf(frmt, __VA_ARGS__)
+#else
+#define DEBUG(frmt, ...)
+#endif
+
+
 using CPN::PacketDecoder;
 using CPN::BufferedPacketEncoder;
+using CPN::Packet;
+using CPN::SimpleQueue;
 
 class MockDecoder : public CPN::PacketDecoder {
 public:
-    MockDecoder()
-    :
-        dataLength(0),
-        numChannels(0),
-        queueLength(0),
-        queueHint(0),
-        maxThreshold(0),
-        numEvents(0),
-        readerKey(0),
-        writerKey(0),
-        srcKernelKey(0),
-        nodeKey(0)
+    MockDecoder(CPN::QueueBase &queue_, BufferedPacketEncoder &encoder_)
+    : numevents(0), queue(queue_), encoder(encoder_)
     {
     }
-    void *Data() { return buff.GetBuffer(); }
-    unsigned DataLength() { return dataLength; }
-    unsigned NumChannels() { return numChannels; }
-    unsigned QueueLength() { return queueLength; }
-    unsigned QueueHint() { return queueHint; }
-    unsigned MaxThreshold() { return maxThreshold; }
-    uint64_t ReaderKey() { return readerKey; }
-    uint64_t WriterKey() { return writerKey; }
-    uint64_t SrcKernelKey() { return srcKernelKey; }
-    uint64_t DstKernelKey() { return dstKernelKey; }
-    uint64_t NodeKey() { return nodeKey; }
-    unsigned NumEvents() { return numEvents; }
-    const std::string &NodeName() { return nodename; }
-    const std::string &NodeType() { return nodetype; }
-    const std::string &Param() { return param; }
+    unsigned NumEvents() { return numevents; }
+    Packet &GetPacket() { return header; }
 protected:
-    virtual void ReceivedEnqueue(void *d, unsigned length, unsigned numchans) {
-        numEvents++;
-        buff.Put(d, length * numchans);
-        dataLength = length;
-        numChannels = numchans;
+    void EnqueuePacket(const Packet &packet) {
+        header = packet;
+        ++numevents;
+        for (unsigned chan = 0; chan < packet.NumChannels(); ++chan) {
+            unsigned count = packet.Count();
+            void *ptr = queue.GetRawEnqueuePtr(count, chan);
+            while (count > 0) {
+                unsigned amount = 0;
+                const void *src = encoder.GetEncodedBytes(amount);
+                unsigned tocopy = 0;
+                if (count < amount) { tocopy = count; }
+                else { tocopy = amount; }
+                memcpy(ptr, src, tocopy);
+                encoder.ReleaseEncodedBytes(tocopy);
+                count -= tocopy;
+                ptr = (char*)ptr + tocopy;
+            }
+        }
+        queue.Enqueue(packet.Count());
     }
-    virtual void ReceivedDequeue(unsigned length, unsigned numchans) {
-        numEvents++;
-        dataLength = length;
-        numChannels = numchans;
+    void DequeuePacket(const Packet &packet) {
+        header = packet;
+        ++numevents;
     }
-    virtual void ReceivedReadBlock(unsigned requested) {
-        numEvents++;
-        dataLength = requested;
+    void ReadBlockPacket(const Packet &packet) {
+        header = packet;
+        ++numevents;
     }
-    virtual void ReceivedWriteBlock(unsigned requested) {
-        numEvents++;
-        dataLength = requested;
+    void WriteBlockPacket(const Packet &packet) {
+        header = packet;
+        ++numevents;
     }
-
-    virtual void ReceivedCreateReader(
-            unsigned qhint, unsigned qlength, unsigned maxthresh,
-            unsigned numchans, uint64_t rkey, uint64_t wkey)
-    {
-        numEvents++;
-        queueHint = qhint;
-        queueLength = qlength;
-        maxThreshold = maxthresh;
-        numChannels = numchans;
-        readerKey = rkey;
-        writerKey = wkey;
+    void EndOfWritePacket(const Packet &packet) {
+        header = packet;
+        ++numevents;
     }
-
-    virtual void ReceivedCreateWriter(
-            unsigned qhint, unsigned qlength, unsigned maxthresh,
-            unsigned numchans, uint64_t rkey, uint64_t wkey)
-    {
-        numEvents++;
-        queueHint = qhint;
-        queueLength = qlength;
-        maxThreshold = maxthresh;
-        numChannels = numchans;
-        readerKey = rkey;
-        writerKey = wkey;
+    void EndOfReadPacket(const Packet &packet) {
+        header = packet;
+        ++numevents;
     }
-
-    virtual void ReceivedCreateQueue(
-            unsigned qhint, unsigned qlength, unsigned maxthresh,
-            unsigned numchans, uint64_t rkey, uint64_t wkey)
-    {
-        numEvents++;
-        queueHint = qhint;
-        queueLength = qlength;
-        maxThreshold = maxthresh;
-        numChannels = numchans;
-        readerKey = rkey;
-        writerKey = wkey;
+    void IDReaderPacket(const Packet &packet) {
+        header = packet;
+        ++numevents;
     }
-
-    virtual void ReceivedCreateNode(
-            const std::string &nname,
-            const std::string &ntype,
-            const std::string &prm,
-            const StaticConstBuffer arg,
-            uint64_t nkey,
-            uint64_t hkey)
-    {
-        numEvents++;
-        nodename = nname;
-        nodetype = ntype;
-        param = prm;
-        buff = arg;
-        srcKernelKey = hkey;
-        nodeKey = nkey;
-    }
-
-    virtual void ReceivedReaderID(uint64_t rkey, uint64_t wkey) {
-        numEvents++;
-        readerKey = rkey;
-        writerKey = wkey;
-    }
-
-    virtual void ReceivedWriterID(uint64_t wkey, uint64_t rkey) {
-        numEvents++;
-        writerKey = wkey;
-        readerKey = rkey;
-    }
-
-    virtual void ReceivedKernelID(uint64_t srckernelkey, uint64_t dstkernelkey) {
-        numEvents++;
-        srcKernelKey = srckernelkey;
-        dstKernelKey = dstkernelkey;
+    void IDWriterPacket(const Packet &packet) {
+        header = packet;
+        ++numevents;
     }
 private:
-    AutoBuffer buff;
-    unsigned dataLength;
-    unsigned numChannels;
-    unsigned queueLength;
-    unsigned queueHint;
-    unsigned maxThreshold;
-    unsigned numEvents;
-    uint64_t readerKey;
-    uint64_t writerKey;
-    uint64_t srcKernelKey;
-    uint64_t dstKernelKey;
-    uint64_t nodeKey;
-    std::string nodename;
-    std::string nodetype;
-    std::string param;
+    Packet header;
+    unsigned numevents;
+    CPN::QueueBase &queue;
+    BufferedPacketEncoder &encoder;
 };
 
 void PacketEDTest::setUp() {
@@ -164,193 +95,106 @@ void PacketEDTest::tearDown() {
 }
 
 void PacketEDTest::EnqueueTest() {
-    MockDecoder decoder;
-    BufferedPacketEncoder encoder;
-    srand(1);
-    unsigned maxlen = 1000;
-    unsigned chans = 10;
-    unsigned step = chans;
-    std::vector<int> data(maxlen,0);
-    std::vector<const void*> ptrs(chans,0);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
+    const unsigned maxlen = 1000;
+    const unsigned chans = 10;
+    const unsigned step = 100;
     unsigned numpkts = 0;
-    for (unsigned i = chans; i <= maxlen; i += step) {
-        unsigned len = (i / chans);
-        for (unsigned j = 0, p = 0; j < i; ++j) {
-            data[j] = rand();
-            if ( (j % len) == 0) {
-                ptrs[p] = &data[j];
-                ++p;
+    SimpleQueue queue(sizeof(int) * maxlen, sizeof(int) * maxlen, chans);
+    BufferedPacketEncoder encoder;
+    MockDecoder decoder(queue, encoder);
+    for (unsigned i = 1; i <= maxlen; i += step) {
+        srand(i);
+        for (unsigned chan = 0; chan < chans; ++chan) {
+            int *ptr = (int*) queue.GetRawEnqueuePtr(sizeof(int)*i, chan);
+            for (unsigned j = 0; j < i; ++j) {
+                ptr[j] = rand();
             }
         }
-        encoder.SendEnqueue(&ptrs[0], len * sizeof(int), chans);
+        queue.Enqueue(sizeof(int)*i);
+        Packet header(sizeof(int)*i*chans, CPN::PACKET_ENQUEUE);
+        header.Count(sizeof(int)*i).NumChannels(chans);
+        header.BytesQueued(rand()).SourceKey(rand()).DestinationKey(rand())
+            .Mode(rand()).Status(rand());
+        encoder.SendEnqueue(header, &queue);
         numpkts++;
         Transfer(&encoder, &decoder);
         CPPUNIT_ASSERT(decoder.NumEvents() == numpkts);
-        CPPUNIT_ASSERT(decoder.NumChannels() == chans);
-        CPPUNIT_ASSERT(decoder.DataLength() == len * sizeof(int));
-        char *ptr = (char*)decoder.Data();
-        for (unsigned p = 0; p < chans; ++p) {
-            CPPUNIT_ASSERT(memcmp(ptr, ptrs[p], len *sizeof(int)) == 0);
-            ptr += len*sizeof(int);
+        Packet rpacket = decoder.GetPacket();
+        CPPUNIT_ASSERT(memcmp(&rpacket, &header, sizeof(Packet)) == 0);
+
+        srand(i);
+        for (unsigned chan = 0; chan < chans; ++chan) {
+            const int *ptr = (const int*) queue.GetRawDequeuePtr(sizeof(int)*i, chan);
+            for (unsigned j = 0; j < i; ++j) {
+                CPPUNIT_ASSERT(rand() == ptr[j]);
+            }
         }
+        queue.Dequeue(sizeof(int)*i);
     }
+}
+
+void PacketEDTest::DoTest(Packet &header) {
+    const unsigned maxlen = 1000;
+    const unsigned chans = 10;
+    SimpleQueue queue(sizeof(int) * maxlen, sizeof(int) * maxlen, chans);
+    BufferedPacketEncoder encoder;
+    MockDecoder decoder(queue, encoder);
+
+    header.Count(rand()).NumChannels(rand());
+    header.BytesQueued(rand()).SourceKey(rand()).DestinationKey(rand())
+        .Mode(rand()).Status(rand());
+
+    encoder.SendPacket(header);
+
+    Transfer(&encoder, &decoder);
+
+    CPPUNIT_ASSERT(decoder.NumEvents() == 1);
+    Packet rpacket = decoder.GetPacket();
+    CPPUNIT_ASSERT(memcmp(&rpacket, &header, sizeof(Packet)) == 0);
 }
 
 void PacketEDTest::DequeueTest() {
-    MockDecoder decoder;
-    BufferedPacketEncoder encoder;
-    encoder.SendDequeue(100, 10);
-    Transfer(&encoder, &decoder);
-    CPPUNIT_ASSERT(decoder.NumEvents() == 1);
-    CPPUNIT_ASSERT(decoder.DataLength() == 100);
-    CPPUNIT_ASSERT(decoder.NumChannels() == 10);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
+    Packet header(CPN::PACKET_DEQUEUE);
+    DoTest(header);
 }
 
 void PacketEDTest::ReadBlockTest() {
-    MockDecoder decoder;
-    BufferedPacketEncoder encoder;
-    encoder.SendReadBlock(100);
-    Transfer(&encoder, &decoder);
-    CPPUNIT_ASSERT(decoder.NumEvents() == 1);
-    CPPUNIT_ASSERT(decoder.DataLength() == 100);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
+    Packet header(CPN::PACKET_READBLOCK);
+    DoTest(header);
 }
 
 void PacketEDTest::WriteBlockTest() {
-    MockDecoder decoder;
-    BufferedPacketEncoder encoder;
-    encoder.SendWriteBlock(100);
-    Transfer(&encoder, &decoder);
-    CPPUNIT_ASSERT(decoder.NumEvents() == 1);
-    CPPUNIT_ASSERT(decoder.DataLength() == 100);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
+    Packet header(CPN::PACKET_WRITEBLOCK);
+    DoTest(header);
 }
 
-/*
-void PacketEDTest::CreateReaderTest() {
-    MockDecoder decoder;
-    BufferedPacketEncoder encoder;
-    srand(1);
-    unsigned hint = rand();
-    unsigned len = rand();
-    unsigned thresh = rand();
-    unsigned chans = rand();
-    unsigned rkey = rand();
-    unsigned wkey = rand();
-    encoder.SendCreateReader(hint, len, thresh, chans, rkey, wkey);
-    Transfer(&encoder, &decoder);
-    CPPUNIT_ASSERT(decoder.NumEvents() == 1);
-    CPPUNIT_ASSERT(decoder.QueueHint() == hint);
-    CPPUNIT_ASSERT(decoder.QueueLength() == len);
-    CPPUNIT_ASSERT(decoder.MaxThreshold() == thresh);
-    CPPUNIT_ASSERT(decoder.NumChannels() == chans);
-    CPPUNIT_ASSERT(decoder.ReaderKey() == rkey);
-    CPPUNIT_ASSERT(decoder.WriterKey() == wkey);
+void PacketEDTest::EndOfWriteTest() {
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
+    Packet header(CPN::PACKET_ENDOFWRITE);
+    DoTest(header);
 }
 
-void PacketEDTest::CreateWriterTest() {
-    MockDecoder decoder;
-    BufferedPacketEncoder encoder;
-    srand(1);
-    unsigned hint = rand();
-    unsigned len = rand();
-    unsigned thresh = rand();
-    unsigned chans = rand();
-    unsigned rkey = rand();
-    unsigned wkey = rand();
-    encoder.SendCreateWriter(hint, len, thresh, chans, rkey, wkey);
-    Transfer(&encoder, &decoder);
-    CPPUNIT_ASSERT(decoder.NumEvents() == 1);
-    CPPUNIT_ASSERT(decoder.QueueHint() == hint);
-    CPPUNIT_ASSERT(decoder.QueueLength() == len);
-    CPPUNIT_ASSERT(decoder.MaxThreshold() == thresh);
-    CPPUNIT_ASSERT(decoder.NumChannels() == chans);
-    CPPUNIT_ASSERT(decoder.ReaderKey() == rkey);
-    CPPUNIT_ASSERT(decoder.WriterKey() == wkey);
-}
-
-void PacketEDTest::CreateQueueTest() {
-    MockDecoder decoder;
-    BufferedPacketEncoder encoder;
-    srand(1);
-    unsigned hint = rand();
-    unsigned len = rand();
-    unsigned thresh = rand();
-    unsigned chans = rand();
-    unsigned rkey = rand();
-    unsigned wkey = rand();
-    encoder.SendCreateQueue(hint, len, thresh, chans, rkey, wkey);
-    Transfer(&encoder, &decoder);
-    CPPUNIT_ASSERT(decoder.NumEvents() == 1);
-    CPPUNIT_ASSERT(decoder.QueueHint() == hint);
-    CPPUNIT_ASSERT(decoder.QueueLength() == len);
-    CPPUNIT_ASSERT(decoder.MaxThreshold() == thresh);
-    CPPUNIT_ASSERT(decoder.NumChannels() == chans);
-    CPPUNIT_ASSERT(decoder.ReaderKey() == rkey);
-    CPPUNIT_ASSERT(decoder.WriterKey() == wkey);
-}
-
-void PacketEDTest::CreateNodeTest() {
-    MockDecoder decoder;
-    BufferedPacketEncoder encoder;
-    srand(1);
-    std::string nodename = ToString("Node %d", rand());
-    std::string nodetype = ToString("type %d", rand());
-    std::string param = ToString ("param: %d", rand());
-    AutoBuffer arg(sizeof(int)*10);
-    for (unsigned i = 0; i < 10; ++i) {
-        *((int*)arg.GetBuffer(sizeof(int)*i)) = rand();
-    }
-    unsigned nodekey = rand();
-    unsigned kernelkey = rand();
-    encoder.SendCreateNode(nodename, nodetype, param, arg, nodekey, kernelkey);
-    Transfer(&encoder, &decoder);
-    CPPUNIT_ASSERT(decoder.NumEvents() == 1);
-    CPPUNIT_ASSERT(decoder.NodeName() == nodename);
-    CPPUNIT_ASSERT(decoder.NodeType() == nodetype);
-    CPPUNIT_ASSERT(decoder.Param() == param);
-    CPPUNIT_ASSERT(memcmp(arg.GetBuffer(), decoder.Data(), arg.GetSize()) == 0);
-    CPPUNIT_ASSERT(decoder.NodeKey() == nodekey);
-    CPPUNIT_ASSERT(decoder.SrcKernelKey() == kernelkey);
+void PacketEDTest::EndOfReadTest() {
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
+    Packet header(CPN::PACKET_ENDOFREAD);
+    DoTest(header);
 }
 
 void PacketEDTest::ReaderIDTest() {
-    MockDecoder decoder;
-    BufferedPacketEncoder encoder;
-    srand(1);
-    unsigned srcid = rand();
-    unsigned dstid = rand();
-    encoder.SendReaderID(srcid, dstid);
-    Transfer(&encoder, &decoder);
-    CPPUNIT_ASSERT(decoder.NumEvents() == 1);
-    CPPUNIT_ASSERT(decoder.ReaderKey() == srcid);
-    CPPUNIT_ASSERT(decoder.WriterKey() == dstid);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
+    Packet header(CPN::PACKET_ID_READER);
+    DoTest(header);
 }
 
 void PacketEDTest::WriterIDTest() {
-    MockDecoder decoder;
-    BufferedPacketEncoder encoder;
-    srand(1);
-    unsigned srcid = rand();
-    unsigned dstid = rand();
-    encoder.SendWriterID(srcid, dstid);
-    Transfer(&encoder, &decoder);
-    CPPUNIT_ASSERT(decoder.NumEvents() == 1);
-    CPPUNIT_ASSERT(decoder.WriterKey() == srcid);
-    CPPUNIT_ASSERT(decoder.ReaderKey() == dstid);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
+    Packet header(CPN::PACKET_ID_WRITER);
+    DoTest(header);
 }
-
-void PacketEDTest::KernelIDTest() {
-    MockDecoder decoder;
-    BufferedPacketEncoder encoder;
-    srand(1);
-    unsigned srcid = rand();
-    unsigned dstid = rand();
-    encoder.SendKernelID(srcid, dstid);
-    Transfer(&encoder, &decoder);
-    CPPUNIT_ASSERT(decoder.NumEvents() == 1);
-    CPPUNIT_ASSERT(decoder.SrcKernelKey() == srcid);
-    CPPUNIT_ASSERT(decoder.DstKernelKey() == dstid);
-}
-*/
 
 void PacketEDTest::Transfer(BufferedPacketEncoder *encoder, PacketDecoder *decoder) {
     while (encoder->BytesReady()) {

@@ -36,7 +36,7 @@ namespace CPN {
         ASSERT(packet.DataLength() == packet.NumChannels() * packet.Count());
         ASSERT(packet.Type() == PACKET_ENQUEUE);
         std::vector<iovec> iovs;
-        // Must use const_cast here because iovec isn't const... :(
+        // Must use const_cast here because iovec.iov_base isn't const... :(
         iovec header = { const_cast<PacketHeader*>(&packet.header), sizeof(packet.header) };
         iovs.push_back(header);
         for (unsigned i = 0; i < packet.NumChannels(); ++i) {

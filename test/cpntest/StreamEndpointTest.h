@@ -14,7 +14,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION( StreamEndpointTest );
 #pragma once
 
 #include <cppunit/extensions/HelperMacros.h>
-#include "StreamEndpoint.h"
+#include "SocketEndpoint.h"
 #include "Message.h"
 #include "QueueBase.h"
 #include <deque>
@@ -32,18 +32,10 @@ public:
 	void tearDown();
 
 	CPPUNIT_TEST_SUITE( StreamEndpointTest );
-	CPPUNIT_TEST( EnqueueTest );
-    CPPUNIT_TEST( DequeueTest );
-    CPPUNIT_TEST( BlockTest );
-    CPPUNIT_TEST( ThrottleTest );
-    CPPUNIT_TEST( EndOfWriteQueueTest );
-    CPPUNIT_TEST( EndOfReadQueueTest );
+    //CPPUNIT_TEST( CommunicationTest );
 	CPPUNIT_TEST_SUITE_END();
 
-	void EnqueueTest();
-    void DequeueTest();
-    void BlockTest();
-    void ThrottleTest();
+    void CommunicationTest();
     void EndOfWriteQueueTest();
     void EndOfReadQueueTest();
 
@@ -61,13 +53,15 @@ private:
     };
     struct Msg {
         Msg(MsgType t, CPN::Key_t s, CPN::Key_t d)
-            : type(t), src(s), dst(d) {}
+            : type(t), src(s), dst(d), requested(0) {}
         MsgType type;
         CPN::Key_t src;
         CPN::Key_t dst;
+        unsigned requested;
     };
 
     Msg WaitForMessage();
+    int Poll(double timeout);
 
     void RMHEnqueue(CPN::Key_t src, CPN::Key_t dst);
     void RMHEndOfWriteQueue(CPN::Key_t src, CPN::Key_t dst);
@@ -79,17 +73,18 @@ private:
     void WMHReadBlock(CPN::Key_t src, CPN::Key_t dst, unsigned requested);
     void WMHTagChange(CPN::Key_t src, CPN::Key_t dst);
 
-    void StreamDead(CPN::Key_t streamkey);
-    CPN::weak_ptr<CPN::UnknownStream> CreateNewQueueStream(CPN::Key_t readerkey, CPN::Key_t writerkey);
+    CPN::shared_ptr<Future<int> > GetReaderDescriptor(CPN::Key_t readerkey, CPN::Key_t writerkey);
+    CPN::shared_ptr<Future<int> > GetWriterDescriptor(CPN::Key_t readerkey, CPN::Key_t writerkey);
     void SendWakeup();
     const LoggerOutput *GetLogger() const;
+    CPN::shared_ptr<CPN::Database> GetDatabase() const { return CPN::shared_ptr<CPN::Database>(); }
 
     LoggerStdOutput logger;
 
     CPN::shared_ptr<CPN::QueueBase> wqueue;
     CPN::shared_ptr<CPN::QueueBase> rqueue;
-    CPN::shared_ptr<CPN::StreamEndpoint> wendp;
-    CPN::shared_ptr<CPN::StreamEndpoint> rendp;
+    CPN::shared_ptr<CPN::SocketEndpoint> wendp;
+    CPN::shared_ptr<CPN::SocketEndpoint> rendp;
     ReaderMessageHandler *rmh;
     WriterMessageHandler *wmh;
     std::deque<Msg> messages;

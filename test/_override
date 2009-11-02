@@ -1,10 +1,10 @@
 
 #OS_LIBS += `pkg-config --libs sigc++-2.0 cppunit libxml++-2.6`
-OS_LIBS += `pkg-config --libs sigc++-2.0 cppunit` -ldl
+OS_LIBS += `pkg-config --libs cppunit` -ldl
 #OS_LIBS += `cppunit-config --libs`
 #OS_INCDIR += `cppunit-config --cflags`
 #OS_INCDIR += `pkg-config --cflags sigc++-2.0 cppunit libxml++-2.6`
-OS_INCDIR += `pkg-config --cflags sigc++-2.0 cppunit`
+OS_INCDIR += `pkg-config --cflags cppunit`
 
 CC_OTHER += -Wall
 #CXX_OTHER += -Wall
