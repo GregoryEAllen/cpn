@@ -32,14 +32,41 @@ public:
 	void tearDown();
 
 	CPPUNIT_TEST_SUITE( StreamEndpointTest );
-    //CPPUNIT_TEST( CommunicationTest );
+    CPPUNIT_TEST( CommunicationTest );
+    CPPUNIT_TEST( EndOfWriteQueueTest );
+    CPPUNIT_TEST( EndOfReadQueueTest );
+    CPPUNIT_TEST( EndOfReadQueueTest2 );
+    CPPUNIT_TEST( WriteBlockWithNoFDTest );
+    CPPUNIT_TEST( WriteEndWithNoFDTest );
 	CPPUNIT_TEST_SUITE_END();
 
     void CommunicationTest();
     void EndOfWriteQueueTest();
     void EndOfReadQueueTest();
+    void EndOfReadQueueTest2();
+    void WriteBlockWithNoFDTest();
+    void WriteEndWithNoFDTest();
 
 private:
+
+    class FileFuture : public Future<int> {
+    public:
+        FileFuture() : fd(-1), done(false), canceled(false) {}
+        bool Done() { return done; }
+        void SetDone() { done = true; }
+        void Cancel() { canceled = true;}
+        bool IsCanceled() { return canceled; }
+        int Get() { 
+            int ret = fd;
+            fd = -1;
+            return ret;
+        }
+        void Set(int fd_) { fd = fd_; }
+    private:
+        int fd;
+        bool done;
+        bool canceled;
+    };
 
     enum MsgType {
         RMHENQUEUE,
@@ -51,7 +78,9 @@ private:
         WMHREADBLOCK,
         WMHTAGCHANGE
     };
+
     struct Msg {
+        Msg() {}
         Msg(MsgType t, CPN::Key_t s, CPN::Key_t d)
             : type(t), src(s), dst(d), requested(0) {}
         MsgType type;
@@ -60,8 +89,11 @@ private:
         unsigned requested;
     };
 
-    Msg WaitForMessage();
+    Msg WaitForReadMsg();
+    Msg WaitForWriteMsg();
     int Poll(double timeout);
+    void SetupDescriptors();
+    char* MsgName(MsgType type);
 
     void RMHEnqueue(CPN::Key_t src, CPN::Key_t dst);
     void RMHEndOfWriteQueue(CPN::Key_t src, CPN::Key_t dst);
@@ -85,8 +117,11 @@ private:
     CPN::shared_ptr<CPN::QueueBase> rqueue;
     CPN::shared_ptr<CPN::SocketEndpoint> wendp;
     CPN::shared_ptr<CPN::SocketEndpoint> rendp;
+    CPN::shared_ptr<FileFuture> rfd;
+    CPN::shared_ptr<FileFuture> wfd;
     ReaderMessageHandler *rmh;
     WriterMessageHandler *wmh;
-    std::deque<Msg> messages;
+    std::deque<Msg> readmsg;
+    std::deque<Msg> writemsg;
 };
 #endif

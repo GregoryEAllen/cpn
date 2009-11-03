@@ -114,7 +114,7 @@ namespace CPN {
         virtual void OnHup();
         virtual void OnInval();
 
-        virtual bool Readable();
+        virtual bool Readable() const;
     private:
 
         // PacketHandler (PacketDecoder)
@@ -148,6 +148,9 @@ namespace CPN {
         void SendDequeue();
         void SendReadBlock();
         void SendEndOfRead();
+
+        // convenience function to print out state to the logger
+        void LogState();
 
         Logger logger;
         ::CircularQueue queue;

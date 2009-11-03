@@ -31,7 +31,6 @@ RandomInstructionNode::RandomInstructionNode(CPN::Kernel& ker,
     myID = initialState.nodeID;
     iterations = initialState.iterations;
     die = false;
-    barrier = initialState.barrier;
 }
 
 void RandomInstructionNode::Process(void) {
@@ -47,9 +46,8 @@ void RandomInstructionNode::Process(void) {
 
 void RandomInstructionNode::CreateRIN(CPN::Kernel& kernel, unsigned iterations,
         unsigned numNodes, unsigned debugLevel, LFSR::LFSR_t seed) {
-    CPN::shared_ptr<Sync::Barrier> b(new Sync::Barrier(numNodes));
     for (unsigned i = 0; i < numNodes; ++i) {
-        RINState state = RINState(i, iterations, debugLevel, numNodes, b);
+        RINState state = RINState(i, iterations, debugLevel, numNodes);
         state.state.seed = seed;
         CPN::NodeAttr attr(GetNodeNameFromID(state.nodeID),
                 RANDOMINSTRUCTIONNODE_TYPENAME);
@@ -66,11 +64,9 @@ void RandomInstructionNode::CreateRIN(CPN::Kernel& kernel, unsigned iterations,
  * state before it dies.
  */
 void RandomInstructionNode::DoCreateNode(unsigned newNodeID, unsigned creatorNodeID) {
-    barrier->Wait();
     if (creatorNodeID == myID) {
-        barrier->IncrCount();
         RandomInstructionGenerator::DoCreateNode(newNodeID, creatorNodeID);
-        RINState state = RINState(newNodeID, iterations, barrier, GetState());
+        RINState state = RINState(newNodeID, iterations, GetState());
         CPN::NodeAttr attr(GetNodeNameFromID(state.nodeID),
                 RANDOMINSTRUCTIONNODE_TYPENAME);
         attr.SetParam(StaticConstBuffer(&state, sizeof(state)));
@@ -83,12 +79,10 @@ void RandomInstructionNode::DoCreateNode(unsigned newNodeID, unsigned creatorNod
 }
 
 void RandomInstructionNode::DoDeleteNode(unsigned nodeID) {
-    barrier->Wait();
     if (myID == nodeID) {
         ASSERT(!die);
         RandomInstructionGenerator::DoDeleteNode(nodeID);
         die = true;
-        barrier->DecrCount();
     } else {
         kernel.WaitNodeTerminate(GetNodeNameFromID(nodeID));
     }

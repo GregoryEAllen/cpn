@@ -226,6 +226,7 @@ namespace CPN {
                 NodeMap::iterator entry = nodemap.find(nameentry->second);
                 if (entry != nodemap.end()) {
                     if (entry->second->started) {
+                        ASSERT(!entry->second->dead, "Waiting for node start but node is already dead");
                         return entry->first;
                     }
                 }
@@ -242,6 +243,7 @@ namespace CPN {
                 NodeMap::iterator entry = nodemap.find(nameentry->second);
                 if (entry != nodemap.end()) {
                     if (entry->second->dead) {
+                        ASSERT(entry->second->started, "Node died before it started!?");
                         return;
                     }
                 }

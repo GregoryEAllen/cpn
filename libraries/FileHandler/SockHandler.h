@@ -30,6 +30,7 @@ class SockHandler : public FileHandler {
 public:
 
     static void CreatePair(SockHandler &sock1, SockHandler &sock2);
+    static void CreatePair(int fd[2]);
 
     void Connect(const SocketAddress &addr);
 

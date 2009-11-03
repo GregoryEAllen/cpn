@@ -232,18 +232,18 @@ namespace CPN {
 
     void SocketEndpoint::OnRead() {
         Sync::AutoReentrantLock arl(lock);
-        if (!Good()) { return; }
+        logger.Trace("%s", __PRETTY_FUNCTION__);
         try {
-            bool loop = true;
-            while (loop) {
+            while (Good()) {
                 unsigned numtoread = 0;
                 void *ptr = PacketDecoder::GetDecoderBytes(numtoread);
                 unsigned numread = Recv(ptr, numtoread, false);
                 if (numread == 0) {
                     if (!Good()) {
                         // Eof
+                        logger.Debug("Read EOF");
                     }
-                    loop = false;
+                    break;
                 } else {
                     PacketDecoder::ReleaseDecoderBytes(numread);
                 }
@@ -268,7 +268,7 @@ namespace CPN {
         Sync::AutoReentrantLock arl(lock);
         // If I understand correctly this will be called if
         // poll detects that if we try to write we would get EPIPE
-        logger.Error("%s", __PRETTY_FUNCTION__);
+        logger.Debug("Hangup received");
     }
 
     void SocketEndpoint::OnInval() {
@@ -277,7 +277,7 @@ namespace CPN {
         logger.Error("%s", __PRETTY_FUNCTION__);
     }
 
-    bool SocketEndpoint::Readable() {
+    bool SocketEndpoint::Readable() const {
         Sync::AutoReentrantLock arl(lock);
         return Good();
     }
@@ -295,6 +295,7 @@ namespace CPN {
             iov.iov_base = queue.GetRawEnqueuePtr(packet.Count(), i);
             ASSERT(iov.iov_base, "Internal throttle failed!");
             iov.iov_len = packet.Count();
+            iovs.push_back(iov);
         }
         unsigned numread = Readv(&iovs[0], iovs.size());
         // Need to figure out what to do when this fails.
@@ -393,6 +394,7 @@ namespace CPN {
                 while (true) {
                     if (connection) {
                         if (connection->Done()) {
+                            FileHandler::Reset();
                             FileHandler::FD(connection->Get());
                             connection.reset();
                         } else { return; }
@@ -433,6 +435,7 @@ namespace CPN {
                 if (writeshutdown) {
                     if (!sentEnd) { SendEndOfRead(); }
                     status = DEAD;
+                    logger.Debug("Closing connection");
                     Close();
                 }
 
@@ -448,8 +451,10 @@ namespace CPN {
 
                 if (pendingBlock) {
                     OnRead();
-                    if (blockRequest > queue.Count()) {
+                    if (blockRequest > queue.Freespace()) {
                         SendWriteBlock();
+                    } else {
+                        pendingBlock = false;
                     }
                 }
 
@@ -459,6 +464,7 @@ namespace CPN {
                 if (readshutdown) {
                     if (!sentEnd) { SendEndOfWrite(); }
                     status = DEAD;
+                    logger.Debug("Closing connection");
                     Close();
                 }
 
@@ -498,8 +504,10 @@ namespace CPN {
         packet.Count(count).BytesQueued(queue.Count());
         PacketEncoder::SendEnqueue(packet, this);
         // Send the dequeue message here after we have actually dequeued data from
-        // the queue
-        WriterMessageHandler::WMHDequeue(readerkey, writerkey);
+        // the queue, don't want to send the message if the writer has shutdown
+        if (!writeshutdown) {
+            WriterMessageHandler::WMHDequeue(readerkey, writerkey);
+        }
         writecount += count;
     }
 
@@ -543,6 +551,58 @@ namespace CPN {
         PacketEncoder::SendPacket(packet);
         sentEnd = true;
         SockHandler::ShutdownWrite();
+    }
+
+    void SocketEndpoint::LogState() {
+        logger.Debug("Printing state");
+        switch (status) {
+            case LIVE:
+                logger.Debug("State live");
+                break;
+            case DEAD:
+                logger.Debug("State dead");
+                break;
+            case DIEING:
+                logger.Debug("State dieing");
+                break;
+            default:
+                ASSERT(false);
+        }
+        if (Closed()) {
+            logger.Debug("Connection closed");
+            if (connection) {
+                logger.Debug("Pending connection");
+            }
+        }
+        if (mode == READ) {
+            logger.Debug("Readcount %u", readcount);
+            if (pendingDequeue) {
+                logger.Debug("Dequeue pending");
+            }
+            if (sentEnd) {
+                logger.Debug("End of read sent.");
+            }
+        } else {
+            logger.Debug("Writecount %u", writecount);
+            if (!queue.Empty()) {
+                logger.Debug("Enqueue pending");
+                if (EnqueueBlocked()) {
+                    logger.Debug("Enqueue blocked");
+                }
+            }
+            if (sentEnd) {
+                logger.Debug("End of write sent.");
+            }
+        }
+        if (pendingBlock) {
+            logger.Debug("Pending block request %u", blockRequest);
+        }
+        if (readshutdown) {
+            logger.Debug("Reader shutdown");
+        }
+        if (writeshutdown) {
+            logger.Debug("Writer shutdown");
+        }
     }
 }
 

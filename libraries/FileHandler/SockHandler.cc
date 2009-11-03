@@ -32,11 +32,15 @@ void SockHandler::CreatePair(SockHandler &sock1, SockHandler &sock2) {
     ASSERT(sock1.FD() == -1, "sock1 already connected");
     ASSERT(sock2.FD() == -1, "sock2 already connected");
     int pair[2];
-    if (socketpair(AF_UNIX, SOCK_STREAM, 0, pair) < 0) {
-        throw ErrnoException(errno);
-    }
+    CreatePair(pair);
     sock1.FD(pair[0]);
     sock2.FD(pair[1]);
+}
+
+void SockHandler::CreatePair(int fd[2]) {
+    if (socketpair(AF_UNIX, SOCK_STREAM, 0, fd) < 0) {
+        throw ErrnoException(errno);
+    }
 }
 
 void SockHandler::Connect(const SocketAddress &addr) {

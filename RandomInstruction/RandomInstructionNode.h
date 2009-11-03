@@ -8,20 +8,18 @@
 #include "RandomInstructionGenerator.h"
 #include "QueueWriter.h"
 #include "QueueReader.h"
-#include "Barrier.h"
 
 #define RANDOMINSTRUCTIONNODE_TYPENAME "RandomInstructionNodeType"
 
 struct RINState {
-    RINState(unsigned id, unsigned iter, CPN::shared_ptr<Sync::Barrier> b, RandomInstructionGenerator::State s)
-        : nodeID(id), iterations(iter), state(s), barrier(b) {}
-    RINState(unsigned id, unsigned iter, int dbglvl, unsigned nnode, CPN::shared_ptr<Sync::Barrier> b)
+    RINState(unsigned id, unsigned iter, RandomInstructionGenerator::State s)
+        : nodeID(id), iterations(iter), state(s) {}
+    RINState(unsigned id, unsigned iter, int dbglvl, unsigned nnode)
         : nodeID(id), iterations(iter),
-        state(nnode, dbglvl), barrier(b) {}
+        state(nnode, dbglvl) {}
     unsigned nodeID;
     unsigned iterations;
     RandomInstructionGenerator::State state;
-    CPN::shared_ptr<Sync::Barrier> barrier;
 };
 
 class RandomInstructionNode : public CPN::NodeBase, private RandomInstructionGenerator {
@@ -41,7 +39,6 @@ private:
     unsigned myID;
     unsigned iterations;
     bool die;
-    CPN::shared_ptr<Sync::Barrier> barrier;
     void DoCreateNode(unsigned newNodeID, unsigned creatorNodeID);
     void DoDeleteNode(unsigned nodeID);
     void DoProducerNode(unsigned nodeID, unsigned dstNodeID);

@@ -272,12 +272,12 @@ namespace CPN {
         shared_ptr<QueueBase> queue = MakeQueue(attr);
 
         shared_ptr<NodeBase> readernode = nodemap[attr.GetReaderNodeKey()];
-        ASSERT(readernode);
+        ASSERT(readernode, "Tried to connect a queue to a node that doesn't exist.");
         readernode->GetNodeMessageHandler()->
             CreateReader(attr.GetReaderKey(), attr.GetWriterKey(), queue);
 
         shared_ptr<NodeBase> writernode = nodemap[attr.GetWriterNodeKey()];
-        ASSERT(writernode);
+        ASSERT(writernode, "Tried to connect a queue to a node that doesn't exist.");
         writernode->GetNodeMessageHandler()->
             CreateWriter(attr.GetReaderKey(), attr.GetWriterKey(), queue);
     }

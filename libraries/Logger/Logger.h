@@ -112,6 +112,6 @@ struct ScopeTrace {
 // Will create a tracer on the stack which outputs a trace message of
 // Enterying function and exiting function and it will use the symbol
 // scoperace[linenumber]
-#define SCOPE_TRACE(logger) ScopeTrace scopetracer ## __LINE__ (logger, __PRETTY_FUNCTION__, __LINE__)
+#define SCOPE_TRACE(logger) ScopeTrace scopetracer__LINE__ (logger, __PRETTY_FUNCTION__, __LINE__)
 
 #endif
