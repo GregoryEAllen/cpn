@@ -76,9 +76,11 @@ namespace CPN {
     }
     shared_ptr<Future<int> > KernelMessageHandler::GetReaderDescriptor(Key_t readerkey, Key_t writerkey) {
         ASSERT(false, "Unexpected message");
+        return shared_ptr<Future<int> >();
     }
     shared_ptr<Future<int> > KernelMessageHandler::GetWriterDescriptor(Key_t readerkey, Key_t writerkey) {
         ASSERT(false, "Unexpected message");
+        return shared_ptr<Future<int> >();
     }
     void KernelMessageHandler::SendWakeup() {
         ASSERT(false, "Unexpected message");

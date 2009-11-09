@@ -49,6 +49,7 @@ void TwoKernelTest::tearDown() {
 
 
 void TwoKernelTest::SimpleTwoNodeTest() {
+    ASSERT(false);
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
     NodeAttr attr("source", "MockNode");
     attr.SetParam(MockNode::GetModeName(MockNode::MODE_SOURCE));

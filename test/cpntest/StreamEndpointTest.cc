@@ -434,7 +434,8 @@ char* StreamEndpointTest::MsgName(MsgType type) {
     case WMHTAGCHANGE:
         return "WMHTagChange";
     }
-    ASSERT(false);
+    CPPUNIT_FAIL("Not reachable");
+    return 0;
 }
 
 void StreamEndpointTest::RMHEnqueue(Key_t src, Key_t dst) {
