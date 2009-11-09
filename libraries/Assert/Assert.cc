@@ -25,29 +25,97 @@
 #include "Assert.h"
 #include "StackTrace.h"
 #include <sstream>
+#include <vector>
+#include <signal.h>
+#include <stdio.h>
+#include <stdarg.h>
 
-AssertException::AssertException(const char *exp, const char *file,
-        int line, const char *func, const char *msg) throw() {
+static enum State {
+    USE_THROW,
+    USE_SIGINT,
+    USE_ABORT
+} state = USE_THROW;
+
+std::string CreateMessage(const char *exp, const char *file,
+        int line, const char *func, const char *msg) {
     std::ostringstream oss;
     oss << "Assert failed in " << file << ":" << line;
     oss << " in " << func;
     oss << " : " << exp << '\n' << msg << '\n';
-    oss << "\nBacktrace:\n" << GetStack(2);
-    message = oss.str();
+    oss << "\nBacktrace:\n" << GetStack(3);
+    return oss.str();
 }
 
-AssertException::AssertException(const char *exp, const char *file,
-        int line, const char *func) throw (){
-    std::ostringstream oss;
-    oss << "Assert failed in " << file << ":" << line;
-    oss << " in " << func;
-    oss << " : " << exp << '\n';
-    oss << "\nBacktrace:\n" << GetStack(2);
-    message = oss.str();
+AssertException::AssertException(const std::string &msg) throw()
+    : message(msg)
+{
 }
+
 
 AssertException::~AssertException() throw() {}
 
 const char *AssertException::what() const throw() {
     return message.c_str();
 }
+
+void AssertUseThrow() {
+    state = USE_THROW;
+}
+
+void AssertUseSigint() {
+    state = USE_SIGINT;
+}
+
+void AssertUseAbort() {
+    state = USE_ABORT;
+}
+
+void DoAssert(const std::string message) {
+    switch (state) {
+    case USE_THROW:
+        throw AssertException(message);
+    case USE_ABORT:
+        fprintf(stderr, message.c_str());
+        abort();
+    case USE_SIGINT:
+        fprintf(stderr, message.c_str());
+        raise(SIGINT);
+        break;
+    }
+}
+
+bool __ASSERT(const char *exp, const char *file, int line, const char *func) {
+    DoAssert(CreateMessage(exp, file, line, func, ""));
+    return false;
+}
+
+bool __ASSERT(const char *exp, const char *file, int line, const char *func, const std::string &msg) {
+    DoAssert(CreateMessage(exp, file, line, func, msg.c_str()));
+    return false;
+}
+
+bool __ASSERT(const char *exp, const char *file, int line, const char *func, const char *fmt, ...) {
+    std::vector<char> buff(128, '\0');
+    while (1) {
+        /* Try to print in the allocated space. */
+        va_list ap;
+        va_start(ap, fmt);
+        int n = vsnprintf(&buff[0], buff.size(), fmt, ap);
+        va_end(ap);
+        /* If that worked, return the string. */
+        if (n > -1 && unsigned(n) < buff.size()) {
+            break;
+        }
+        /* Else try again with more space. */
+        if (n > -1) { /* glibc 2.1 */ /* precisely what is needed */
+            buff.resize(n+1, '\0');
+        }
+        else { /* glibc 2.0 */ /* twice the old size */
+            buff.resize(buff.size()*2, '\0');
+        }
+    }
+    DoAssert(CreateMessage(exp, file, line, func, &buff[0]));
+    return false;
+}
+
+
