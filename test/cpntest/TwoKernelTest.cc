@@ -30,7 +30,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION( TwoKernelTest );
 void TwoKernelTest::setUp() {
     CPNRegisterNodeFactory(shared_ptr<MockNodeFactory>(new MockNodeFactory("MockNode")));
     shared_ptr<Database> database = Database::Local();
-    database->LogLevel(0);
+    database->LogLevel(Logger::TRACE);
     KernelAttr kattrone("one");
     kattrone.SetDatabase(database);
     KernelAttr kattrtwo("two");
@@ -81,26 +81,33 @@ void TwoKernelTest::TestSync() {
 
 
 void TwoKernelTest::DoSyncTest(void (SyncSource::*fun1)(CPN::NodeBase*),
-        void (SyncSink::*fun2)(CPN::NodeBase*), unsigned run) {
+        void (SyncSink::*fun2)(CPN::NodeBase*), unsigned run, bool swap) {
 
+    //DEBUG(">>DoSyncTest run %u\n", run);
     std::string sourcename = ToString("source %u", run);
     std::string sinkname = ToString("sink %u", run);
     FunctionNode<MemberFunction<SyncSource> >::RegisterType(sourcename);
     FunctionNode<MemberFunction<SyncSink> >::RegisterType(sinkname);
 
     // Create local to kone
-    NodeAttr attr(sourcename, sourcename);
+    NodeAttr attrsource(sourcename, sourcename);
     SyncSource syncsource = SyncSource(sinkname);
     MemberFunction<SyncSource> memfun1(&syncsource, fun1);
-    attr.SetParam(StaticConstBuffer(&memfun1, sizeof(memfun1)));
-    kone->CreateNode(attr);
+    attrsource.SetParam(StaticConstBuffer(&memfun1, sizeof(memfun1)));
 
     // Create local to ktwo
-    attr.SetName(sinkname).SetTypeName(sinkname);
+    NodeAttr attrsink(sinkname, sinkname);
     SyncSink syncsink = SyncSink(sourcename);
     MemberFunction<SyncSink> memfun2(&syncsink, fun2);
-    attr.SetParam(StaticConstBuffer(&memfun2, sizeof(memfun2)));
-    ktwo->CreateNode(attr);
+    attrsink.SetParam(StaticConstBuffer(&memfun2, sizeof(memfun2)));
+
+    if (!swap) {
+        kone->CreateNode(attrsource);
+        ktwo->CreateNode(attrsink);
+    } else {
+        ktwo->CreateNode(attrsink);
+        kone->CreateNode(attrsource);
+    }
 
     kone->WaitNodeTerminate(sinkname);
     kone->WaitNodeTerminate(sourcename);
@@ -109,16 +116,21 @@ void TwoKernelTest::DoSyncTest(void (SyncSource::*fun1)(CPN::NodeBase*),
 void TwoKernelTest::TestSyncSourceSink() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
     unsigned run = 0;
-    DoSyncTest(&SyncSource::Run1, &SyncSink::Run1, run++);
-    DoSyncTest(&SyncSource::Run2, &SyncSink::Run1, run++);
-    DoSyncTest(&SyncSource::Run3, &SyncSink::Run1, run++);
-    DoSyncTest(&SyncSource::Run4, &SyncSink::Run1, run++);
+    bool swap = false;
+    for (unsigned i = 0; i < 2; ++i) {
+        DoSyncTest(&SyncSource::Run1, &SyncSink::Run1, run++, swap);
+        DoSyncTest(&SyncSource::Run2, &SyncSink::Run1, run++, swap);
+        DoSyncTest(&SyncSource::Run3, &SyncSink::Run1, run++, swap);
+        DoSyncTest(&SyncSource::Run4, &SyncSink::Run1, run++, swap);
 
-    DoSyncTest(&SyncSource::Run1, &SyncSink::Run2, run++);
-    DoSyncTest(&SyncSource::Run2, &SyncSink::Run2, run++);
-    DoSyncTest(&SyncSource::Run3, &SyncSink::Run2, run++);
-    DoSyncTest(&SyncSource::Run4, &SyncSink::Run2, run++);
+        DoSyncTest(&SyncSource::Run1, &SyncSink::Run2, run++, swap);
+        DoSyncTest(&SyncSource::Run2, &SyncSink::Run2, run++, swap);
+        DoSyncTest(&SyncSource::Run3, &SyncSink::Run2, run++, swap);
+        DoSyncTest(&SyncSource::Run4, &SyncSink::Run2, run++, swap);
 
-    DoSyncTest(&SyncSource::Run5, &SyncSink::Run3, run++);
+        DoSyncTest(&SyncSource::Run5, &SyncSink::Run3, run++, swap);
+
+        swap = true;
+    }
 }
 

@@ -125,7 +125,7 @@ unsigned SockHandler::Recv(void *ptr, unsigned len, bool block) {
     int num = recv(fd, ptr, len, flags);
     if (num > 0) {
         bytesread = num;
-    } else if (num == 0) {
+    } else if (num == 0 && len != 0) {
         eof = true;
     } else if (num < 0) {
         int error = errno;

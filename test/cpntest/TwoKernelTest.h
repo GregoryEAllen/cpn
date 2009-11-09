@@ -24,9 +24,9 @@ public:
 	void tearDown();
 
 	CPPUNIT_TEST_SUITE( TwoKernelTest );
-	//CPPUNIT_TEST( SimpleTwoNodeTest );
-	//CPPUNIT_TEST( TestSync );
-	//CPPUNIT_TEST( TestSyncSourceSink );
+	CPPUNIT_TEST( SimpleTwoNodeTest );
+	CPPUNIT_TEST( TestSync );
+	CPPUNIT_TEST( TestSyncSourceSink );
 	CPPUNIT_TEST_SUITE_END();
 
     void SimpleTwoNodeTest();
@@ -35,7 +35,8 @@ public:
 
 private:
     void DoSyncTest(void (SyncSource::*fun1)(CPN::NodeBase*),
-        void (SyncSink::*fun2)(CPN::NodeBase*), unsigned run);
+        void (SyncSink::*fun2)(CPN::NodeBase*), unsigned run,
+        bool swap);
     CPN::Kernel *kone;
     CPN::Kernel *ktwo;
     CPN::shared_ptr<CPN::Database> database;

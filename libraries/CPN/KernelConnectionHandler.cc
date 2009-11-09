@@ -300,6 +300,8 @@ namespace CPN {
                     ConnMap::iterator toerase = entry;
                     ++entry;
                     connmap.erase(toerase);
+                } else {
+                    ++entry;
                 }
             } else {
                 filehandlers.push_back(conn.get());

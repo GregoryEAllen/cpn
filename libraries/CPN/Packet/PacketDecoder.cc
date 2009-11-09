@@ -37,6 +37,7 @@ namespace CPN {
     void *PacketDecoder::GetDecoderBytes(unsigned &amount) {
         char *ptr = reinterpret_cast<char*>(&header.header);
         amount = sizeof(header.header) - numbytes;
+        ASSERT(amount != 0, "Zero decoder bytes");
         return ptr + numbytes;
     }
 

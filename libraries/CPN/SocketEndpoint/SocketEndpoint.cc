@@ -50,7 +50,8 @@ namespace CPN {
         blockRequest(0),
         sentEnd(false),
         readshutdown(false),
-        writeshutdown(false)
+        writeshutdown(false),
+        inread(false)
     {
         Writeable(false);
         logger.Name(ToString("SocketEndpoint(m:%s, r:%lu, w: %lu)",
@@ -239,6 +240,16 @@ namespace CPN {
 
     void SocketEndpoint::OnRead() {
         Sync::AutoReentrantLock arl(lock);
+        // Don't allow recursive calls to OnRead
+        // Can happen because *Packet functions call
+        // InternCheckStatus
+        if (inread) { return; }
+        struct Guard {
+            Guard(bool &v) : val(v) { val = true; }
+            ~Guard() { val = false; }
+            bool &val;
+        } guard(inread);
+
         try {
             while (Good()) {
                 unsigned numtoread = 0;

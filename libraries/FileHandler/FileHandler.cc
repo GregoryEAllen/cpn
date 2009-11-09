@@ -126,7 +126,7 @@ unsigned FileHandler::Read(void *ptr, unsigned len) {
         default:
             throw ErrnoException(error);
         }
-    } else if (num == 0) {
+    } else if (num == 0 && len != 0) {
         eof = true;
     } else {
         bytesread = num;
@@ -149,7 +149,16 @@ unsigned FileHandler::Readv(const iovec *iov, int iovcnt) {
             throw ErrnoException(error);
         }
     } else if (num == 0) {
-        eof = true;
+        bool zero = true;
+        for (int i = 0; i < iovcnt; ++i) {
+            if (iov[i].iov_len > 0) {
+                zero = false;
+                break;
+            }
+        }
+        if (zero) {
+            eof = true;
+        }
     } else {
         bytesread = num;
     }
