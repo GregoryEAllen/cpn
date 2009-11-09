@@ -22,12 +22,19 @@
  */
 
 #include "KernelConnectionHandler.h"
-#include "SockHandler.h"
 #include "PacketDecoder.h"
 #include "PacketEncoder.h"
+#include "Database.h"
+
+#include "SockHandler.h"
 #include "Assert.h"
 #include "ErrnoException.h"
 
+#if 1
+#define FUNC_TRACE(logger) SCOPE_TRACE(logger)
+#else
+#define FUNC_TRACE(logger)
+#endif
 namespace CPN {
 
     class KernelConnectionHandler::Connection 
@@ -40,7 +47,8 @@ namespace CPN {
             WAITING,
             UNKNOWN,
             ID_READER,
-            ID_WRITER
+            ID_WRITER,
+            DEAD
         };
 
         Connection(KernelConnectionHandler &kch_, Sync::ReentrantLock &lock_, Mode_t mode_)
@@ -50,21 +58,30 @@ namespace CPN {
             kch.logger.Info("New Connection(%d)", mode);
         }
 
+        ~Connection() {
+            kch.logger.Info("Connection destroyed r:%lu w:%lu s:%u %s",
+                    readerkey, writerkey, mode, Closed() ? "closed" : "open");
+        }
+
+        bool Dead() { return mode == DEAD; }
         // Future<int>
         virtual bool Done() {
             Sync::AutoReentrantLock arlock(lock);
-            return mode == WAITING;
+            return mode == WAITING || mode == DEAD;
         }
 
         virtual void Cancel() {
             Sync::AutoReentrantLock arlock(lock);
+            mode = DEAD;
             Close();
         }
 
         virtual int Get() {
             Sync::AutoReentrantLock arlock(lock);
+            FUNC_TRACE(kch.logger);
             int ret = FD();
             FileHandler::Reset();
+            mode = DEAD;
             return ret;
         }
 
@@ -73,6 +90,7 @@ namespace CPN {
             Sync::AutoReentrantLock arlock(lock);
             if (!Good()) { return; }
             ASSERT(!Done());
+            FUNC_TRACE(kch.logger);
             try {
                 bool loop = true;
                 while (loop && Readable()) {
@@ -91,7 +109,7 @@ namespace CPN {
                     }
                 }
             } catch (const ErrnoException &e) {
-                mode = WAITING;
+                mode = DEAD;
                 Close();
             }
         }
@@ -99,18 +117,18 @@ namespace CPN {
         virtual void OnWrite() {}
         virtual void OnError() {
             Sync::AutoReentrantLock arlock(lock);
-            mode = WAITING;
+            mode = DEAD;
             Close();
         }
         virtual void OnHup() {
             Sync::AutoReentrantLock arlock(lock);
-            mode = WAITING;
+            mode = DEAD;
             Close();
         }
         virtual void OnInval() {
             Sync::AutoReentrantLock arlock(lock);
-            mode = WAITING;
-            FileHandler::Reset();
+            mode = DEAD;
+            Close();
         }
         virtual bool Readable() const {
             Sync::AutoReentrantLock arlock(lock);
@@ -125,19 +143,24 @@ namespace CPN {
         virtual void EndOfWritePacket(const Packet &packet) { ASSERT(false); }
         virtual void EndOfReadPacket(const Packet &packet) { ASSERT(false); }
         virtual void IDReaderPacket(const Packet &packet) {
+            Sync::AutoReentrantLock arlock(lock);
+            FUNC_TRACE(kch.logger);
             readerkey = packet.SourceKey();
             writerkey = packet.DestinationKey();
             mode = WAITING;
             kch.Transfer(writerkey, shared_from_this());
         }
         virtual void IDWriterPacket(const Packet &packet) {
-            readerkey = packet.SourceKey();
-            writerkey = packet.DestinationKey();
+            Sync::AutoReentrantLock arlock(lock);
+            FUNC_TRACE(kch.logger);
+            readerkey = packet.DestinationKey();
+            writerkey = packet.SourceKey();
             mode = WAITING;
             kch.Transfer(readerkey, shared_from_this());
         }
         // PacketEncoder
         virtual void WriteBytes(const iovec *iov, unsigned iovcnt) {
+            Sync::AutoReentrantLock arlock(lock);
             int numwritten = Writev(iov, iovcnt);
             ASSERT(numwritten > 0);
         }
@@ -150,11 +173,75 @@ namespace CPN {
         void Mode(Mode_t m) { mode = m; }
 
         void Transfer(shared_ptr<Connection> conn) {
+            Sync::AutoReentrantLock arlock(lock);
+            FUNC_TRACE(kch.logger);
             ASSERT(Closed());
             mode = conn->Mode();
             ASSERT(readerkey == conn->ReaderKey());
             ASSERT(writerkey == conn->WriterKey());
             FD(conn->Get());
+        }
+
+        void SendIDReader() {
+            Sync::AutoReentrantLock arlock(lock);
+            Packet header(PACKET_ID_READER);
+            header.SourceKey(readerkey).DestinationKey(writerkey);
+            SendPacket(header);
+        }
+
+        void SendIDWriter() {
+            Sync::AutoReentrantLock arlock(lock);
+            Packet header(PACKET_ID_WRITER);
+            header.SourceKey(writerkey).DestinationKey(readerkey);
+            SendPacket(header);
+        }
+
+        void InitiateConnection() {
+            Sync::AutoReentrantLock arlock(lock);
+            FUNC_TRACE(kch.logger);
+            shared_ptr<Database> database = kch.kmh->GetDatabase();
+            Key_t hostkey;
+            if (mode == ID_READER) {
+                hostkey = database->GetWriterHost(writerkey);
+            } else if (mode == ID_WRITER) {
+                hostkey = database->GetReaderHost(readerkey);
+            } else {
+                ASSERT(false, "Can't initiate a connection from current state.");
+            }
+
+            std::string hostname, servname;
+            database->GetHostConnectionInfo(hostkey, hostname, servname);
+            SockAddrList addrlist = SocketAddress::CreateIP(hostname, servname);
+            SockHandler::Connect(addrlist);
+            if (mode == ID_READER) {
+                SendIDReader();
+            } else if (mode == ID_WRITER) {
+                SendIDWriter();
+            }
+            mode = WAITING;
+        }
+
+        void LogState() {
+            switch (mode) {
+            case ID_READER:
+                kch.logger.Debug("Connection in mode ID_READER w:%lu r:%lu", writerkey, readerkey);
+                break;
+            case ID_WRITER:
+                kch.logger.Debug("Connection in mode ID_WRITER w:%lu r:%lu", writerkey, readerkey);
+                break;
+            case WAITING:
+                kch.logger.Debug("Connection in mode WAITING w:%lu r:%lu", writerkey, readerkey);
+                break;
+            case UNKNOWN:
+                kch.logger.Debug("Connection in mode UNKNOWN");
+                break;
+            case DEAD:
+                kch.logger.Debug("Connection dead");
+                break;
+            }
+            if (Closed()) {
+                kch.logger.Debug("With no FD");
+            }
         }
     private:
         KernelConnectionHandler &kch;
@@ -167,12 +254,12 @@ namespace CPN {
     KernelConnectionHandler::KernelConnectionHandler(KernelMessageHandler *kmh_)
         : kmh(kmh_)
     {
-        logger.Output(kmh->GetLogger());
-        logger.Name("ConnHan");
+        Readable(true);
     }
 
     void KernelConnectionHandler::OnRead() {
         Sync::AutoReentrantLock arlock(lock);
+        FUNC_TRACE(logger);
         SocketAddress addr;
         int newfd = Accept(addr);
         if (newfd >= 0) {
@@ -188,7 +275,7 @@ namespace CPN {
 
     void KernelConnectionHandler::OnInval() {
         Sync::AutoReentrantLock arlock(lock);
-        logger.Error("The kernel listen socke is invalid!?!?");
+        logger.Error("The kernel listen socket is invalid!?!?");
     }
 
     void KernelConnectionHandler::Register(std::vector<FileHandler*> &filehandlers) {
@@ -198,7 +285,7 @@ namespace CPN {
         }
         ConnList::iterator itr = connlist.begin();
         while (itr != connlist.end()) {
-            if (itr->get()->Closed() || itr->get()->Done()) {
+            if (itr->get()->Closed() || itr->get()->Dead()) {
                 itr = connlist.erase(itr);
             } else {
                 filehandlers.push_back(itr->get());
@@ -207,12 +294,15 @@ namespace CPN {
         }
         ConnMap::iterator entry = connmap.begin();
         while (entry != connmap.end()) {
-            if (entry->second->Closed()) {
-                ConnMap::iterator toerase = entry;
-                ++entry;
-                connmap.erase(toerase);
+            shared_ptr<Connection> conn = entry->second;
+            if (conn->Closed()) {
+                if (conn->Dead()) {
+                    ConnMap::iterator toerase = entry;
+                    ++entry;
+                    connmap.erase(toerase);
+                }
             } else {
-                filehandlers.push_back(entry->second.get());
+                filehandlers.push_back(conn.get());
                 ++entry;
             }
         }
@@ -220,6 +310,7 @@ namespace CPN {
 
     void KernelConnectionHandler::Shutdown() {
         Sync::AutoReentrantLock arlock(lock);
+        FUNC_TRACE(logger);
         Close();
         connlist.clear();
         connmap.clear();
@@ -227,6 +318,7 @@ namespace CPN {
 
     shared_ptr<Future<int> > KernelConnectionHandler::GetReaderDescriptor(Key_t readerkey, Key_t writerkey) {
         Sync::AutoReentrantLock arlock(lock);
+        FUNC_TRACE(logger);
         shared_ptr<Connection> conn;
         ConnMap::iterator entry = connmap.find(readerkey);
         if (entry == connmap.end()) {
@@ -234,30 +326,71 @@ namespace CPN {
             conn->WriterKey(writerkey);
             conn->ReaderKey(readerkey);
             connmap.insert(std::make_pair(readerkey, conn));
+        } else {
+            conn = entry->second;
+            if (conn->Dead()) {
+                conn->Mode(Connection::ID_READER);
+            }
         }
         return conn;
     }
 
     shared_ptr<Future<int> > KernelConnectionHandler::GetWriterDescriptor(Key_t readerkey, Key_t writerkey) {
         Sync::AutoReentrantLock arlock(lock);
+        FUNC_TRACE(logger);
         shared_ptr<Connection> conn;
         ConnMap::iterator entry = connmap.find(writerkey);
         if (entry == connmap.end()) {
             conn = shared_ptr<Connection>(new Connection(*this, lock, Connection::ID_WRITER));
             conn->WriterKey(writerkey);
             conn->ReaderKey(readerkey);
+            conn->InitiateConnection();
             connmap.insert(std::make_pair(writerkey, conn));
+        } else {
+            conn = entry->second;
+            if (conn->Dead()) {
+                conn->Mode(Connection::ID_WRITER);
+                conn->InitiateConnection();
+            }
         }
         return conn;
     }
 
     void KernelConnectionHandler::Transfer(Key_t key, shared_ptr<Connection> conn) {
-        connlist.erase(std::find(connlist.begin(), connlist.end(), conn));
+        Sync::AutoReentrantLock arlock(lock);
+        FUNC_TRACE(logger);
         ConnMap::iterator entry = connmap.find(key);
         if (entry == connmap.end()) {
             connmap.insert(std::make_pair(key, conn));
         } else {
             entry->second->Transfer(conn);
+        }
+    }
+
+    void KernelConnectionHandler::SetupLogger() {
+        Sync::AutoReentrantLock arlock(lock);
+        logger.Name("ConnHan");
+        logger.Output(kmh->GetLogger());
+        logger.LogLevel(kmh->GetLogger()->LogLevel());
+    }
+
+    void KernelConnectionHandler::LogState() {
+        if (Closed()) {
+            logger.Debug("Listener closed!");
+        }
+        logger.Debug("Printing list:");
+        ConnList::iterator itr = connlist.begin();
+        while (itr != connlist.end()) {
+            logger.Debug("Conn %p:", itr->get());
+            itr->get()->LogState();
+            ++itr;
+        }
+        logger.Debug("Printing map:");
+        ConnMap::iterator entry = connmap.begin();
+        while (entry != connmap.end()) {
+            logger.Debug("Conn %p:", entry->second.get());
+            entry->second->LogState();
+            ++entry;
         }
     }
 

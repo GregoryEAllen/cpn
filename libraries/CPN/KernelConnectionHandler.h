@@ -26,8 +26,9 @@
 #pragma once
 
 #include "CPNCommon.h"
-#include "ListenSockHandler.h"
 #include "Message.h"
+
+#include "ListenSockHandler.h"
 #include "Future.h"
 #include "ReentrantLock.h"
 #include "Logger.h"
@@ -45,8 +46,11 @@ namespace CPN {
         void Shutdown();
         shared_ptr<Future<int> > GetReaderDescriptor(Key_t readerkey, Key_t writerkey);
         shared_ptr<Future<int> > GetWriterDescriptor(Key_t readerkey, Key_t writerkey);
+        void SetupLogger();
 
     private:
+        void LogState();
+
         Sync::ReentrantLock lock;
         Logger logger;
         KernelMessageHandler *kmh;

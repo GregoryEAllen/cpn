@@ -26,6 +26,12 @@
 #include "ToString.h"
 #include "ErrnoException.h"
 
+#if 1
+#define FUNC_TRACE logger.Trace("%s", __PRETTY_FUNCTION__)
+#else
+#define FUNC_TRACE
+#endif
+
 namespace CPN {
 
     SocketEndpoint::SocketEndpoint(Key_t readerkey_, Key_t writerkey_, Mode_t mode_,
@@ -58,6 +64,7 @@ namespace CPN {
 
     void SocketEndpoint::Shutdown() {
         Sync::AutoReentrantLock arl(lock);
+        FUNC_TRACE;
         // force us into a shutdown state
         if (connection) {
             connection->Cancel();
@@ -232,16 +239,22 @@ namespace CPN {
 
     void SocketEndpoint::OnRead() {
         Sync::AutoReentrantLock arl(lock);
-        logger.Trace("%s", __PRETTY_FUNCTION__);
         try {
             while (Good()) {
                 unsigned numtoread = 0;
                 void *ptr = PacketDecoder::GetDecoderBytes(numtoread);
                 unsigned numread = Recv(ptr, numtoread, false);
                 if (numread == 0) {
-                    if (!Good()) {
+                    if (Eof()) {
                         // Eof
                         logger.Debug("Read EOF");
+                        if (!(readshutdown || writeshutdown)) {
+                            logger.Error("Orderly shutdown without an end of queue message");
+                            // W. T. F. !?
+                            // By all accounts we should NOT get an orderly shutdown
+                            // without the end of queue!!
+                        }
+                        //ASSERT(readshutdown || writeshutdown, "Read EOF before shutdown");
                     }
                     break;
                 } else {
@@ -283,6 +296,7 @@ namespace CPN {
     }
 
     void SocketEndpoint::EnqueuePacket(const Packet &packet) {
+        FUNC_TRACE;
         ASSERT( (packet.Mode() == WRITE) &&
         (packet.SourceKey() == writerkey) &&
         (packet.DestinationKey() == readerkey)
@@ -306,6 +320,7 @@ namespace CPN {
     }
 
     void SocketEndpoint::DequeuePacket(const Packet &packet) {
+        FUNC_TRACE;
         ASSERT( (packet.Mode() == READ) &&
         (packet.SourceKey() == readerkey) &&
         (packet.DestinationKey() == writerkey)
@@ -317,6 +332,7 @@ namespace CPN {
     }
 
     void SocketEndpoint::ReadBlockPacket(const Packet &packet) {
+        FUNC_TRACE;
         ASSERT( (packet.Mode() == READ) &&
         (packet.SourceKey() == readerkey) &&
         (packet.DestinationKey() == writerkey)
@@ -328,6 +344,7 @@ namespace CPN {
     }
 
     void SocketEndpoint::WriteBlockPacket(const Packet &packet) {
+        FUNC_TRACE;
         ASSERT( (packet.Mode() == WRITE) &&
         (packet.SourceKey() == writerkey) &&
         (packet.DestinationKey() == readerkey)
@@ -339,6 +356,7 @@ namespace CPN {
     }
 
     void SocketEndpoint::EndOfWritePacket(const Packet &packet) {
+        FUNC_TRACE;
         ASSERT( (packet.Mode() == WRITE) &&
         (packet.SourceKey() == writerkey) &&
         (packet.DestinationKey() == readerkey)
@@ -353,6 +371,7 @@ namespace CPN {
     }
 
     void SocketEndpoint::EndOfReadPacket(const Packet &packet) {
+        FUNC_TRACE;
         ASSERT( (packet.Mode() == READ) &&
         (packet.SourceKey() == readerkey) &&
         (packet.DestinationKey() == writerkey)
@@ -365,10 +384,12 @@ namespace CPN {
     }
 
     void SocketEndpoint::IDReaderPacket(const Packet &packet) {
+        FUNC_TRACE;
         ASSERT(false, "Shouldn't receive an ID packet once the connection is successful");
     }
 
     void SocketEndpoint::IDWriterPacket(const Packet &packet) {
+        FUNC_TRACE;
         ASSERT(false, "Shouldn't receive an ID packet once the connection is successful");
     }
 
@@ -418,7 +439,12 @@ namespace CPN {
                 }
 
                 if (pendingBlock) {
-                    SendReadBlock();
+                    OnRead();
+                    if (blockRequest > queue.Count()) {
+                        SendReadBlock();
+                    } else {
+                        pendingBlock = false;
+                    }
                 }
 
                 // If we have a read shutdown we need to send the 
@@ -493,6 +519,7 @@ namespace CPN {
     }
 
     void SocketEndpoint::SendEnqueue() {
+        FUNC_TRACE;
         unsigned count = queue.Count();
         const unsigned maxthresh = queue.MaxThreshold();
         const unsigned expectedfree = queue.QueueLength() - writecount;
@@ -512,6 +539,7 @@ namespace CPN {
     }
 
     void SocketEndpoint::SendWriteBlock() {
+        FUNC_TRACE;
         Packet packet(PACKET_WRITEBLOCK);
         SetupPacketDefaults(packet);
         packet.Requested(blockRequest);
@@ -520,6 +548,7 @@ namespace CPN {
     }
 
     void SocketEndpoint::SendEndOfWrite() {
+        FUNC_TRACE;
         Packet packet(PACKET_ENDOFWRITE);
         SetupPacketDefaults(packet);
         PacketEncoder::SendPacket(packet);
@@ -528,6 +557,7 @@ namespace CPN {
     }
 
     void SocketEndpoint::SendDequeue() {
+        FUNC_TRACE;
         Packet packet(PACKET_DEQUEUE);
         SetupPacketDefaults(packet);
         unsigned count = readcount - queue.Count();
@@ -538,6 +568,7 @@ namespace CPN {
     }
 
     void SocketEndpoint::SendReadBlock() {
+        FUNC_TRACE;
         Packet packet(PACKET_READBLOCK);
         SetupPacketDefaults(packet);
         packet.Requested(blockRequest);
@@ -546,6 +577,7 @@ namespace CPN {
     }
 
     void SocketEndpoint::SendEndOfRead() {
+        FUNC_TRACE;
         Packet packet(PACKET_ENDOFREAD);
         SetupPacketDefaults(packet);
         PacketEncoder::SendPacket(packet);
@@ -569,13 +601,21 @@ namespace CPN {
                 ASSERT(false);
         }
         if (Closed()) {
-            logger.Debug("Connection closed");
+            logger.Debug("Not Connected");
             if (connection) {
-                logger.Debug("Pending connection");
+                logger.Debug("Pending connection (%p)", connection.get());
+                if (connection->Done()) {
+                    logger.Debug("Pending done");
+                }
+            }
+        } else {
+            logger.Debug("Connected");
+            if (Eof()) {
+                logger.Debug("Read eof");
             }
         }
         if (mode == READ) {
-            logger.Debug("Readcount %u", readcount);
+            logger.Debug("Readcount %u (in queue %u)", readcount, queue.Count());
             if (pendingDequeue) {
                 logger.Debug("Dequeue pending");
             }
@@ -585,7 +625,7 @@ namespace CPN {
         } else {
             logger.Debug("Writecount %u", writecount);
             if (!queue.Empty()) {
-                logger.Debug("Enqueue pending");
+                logger.Debug("Enqueue pending (count %u)", queue.Count());
                 if (EnqueueBlocked()) {
                     logger.Debug("Enqueue blocked");
                 }

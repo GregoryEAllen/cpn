@@ -51,7 +51,9 @@ public:
      * \return a list of SocketAddresses
      */
     static SockAddrList CreateIPFromServ(const char* servname);
+    static SockAddrList CreateIPFromServ(const std::string &servname);
     static SockAddrList CreateIPFromHost(const char* hostname);
+    static SockAddrList CreateIPFromHost(const std::string &hostname);
     /// \brief Return a list of valid socket address for the given service number
     /// or port number
     static SockAddrList CreateIP(unsigned serv);
@@ -61,12 +63,14 @@ public:
      * \return a list of valid addresses to connect to the given host/port
      */
     static SockAddrList CreateIP(const char* hostname, const char* servname);
+    static SockAddrList CreateIP(const std::string &hostname, const std::string &servname);
     /**
      * \param hostname the hostname to lookup
      * \param serv the port number
      * \return a list of valid address to connect to the given host/port
      */
     static SockAddrList CreateIP(const char* hostname, unsigned serv);
+    static SockAddrList CreateIP(const std::string &hostname, unsigned serv);
 
     SocketAddress();
     SocketAddress(addrinfo *info);

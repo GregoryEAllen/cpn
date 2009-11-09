@@ -203,12 +203,14 @@ namespace CPN {
         void ClearWriterMessageHandler();
 
         const Sync::ReentrantLock &GetLock() const { return lock; }
+
 	protected:
 		QueueBase();
         Sync::ReentrantLock lock;
         Sync::ReentrantCondition cond;
         bool CheckRMH();
         bool CheckWMH();
+        virtual void LogState() {}
 	private:
         bool shutdown;
 	};

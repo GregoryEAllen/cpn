@@ -67,17 +67,17 @@ namespace CPN {
         connhandler(this)
     {
         FUNCBEGIN;
-        SockAddrList addrlist = SocketAddress::CreateIP(
-                kattr.GetHostName().c_str(),
-                kattr.GetServName().c_str());
-        connhandler.Listen(addrlist);
-
         if (!database) {
             database = Database::Local();
         }
         logger.Output(database.get());
         logger.LogLevel(database->LogLevel());
         logger.Name(kernelname);
+        connhandler.SetupLogger();
+
+        SockAddrList addrlist = SocketAddress::CreateIP(kattr.GetHostName(),
+                kattr.GetServName());
+        connhandler.Listen(addrlist);
 
         SocketAddress addr;
         addr.SetFromSockName(connhandler.FD());
@@ -231,18 +231,22 @@ namespace CPN {
                 new SocketEndpoint(
                     attr.GetReaderKey(),
                     attr.GetWriterKey(),
-                    SocketEndpoint::WRITE,
+                    SocketEndpoint::READ,
                     this,
                     attr.GetLength(),
                     attr.GetMaxThreshold(),
                     attr.GetNumChannels()
                     ));
 
+        endpoints.push_back(endp);
+
         shared_ptr<NodeBase> readernode = nodemap[attr.GetReaderNodeKey()];
         ASSERT(readernode);
 
         readernode->GetNodeMessageHandler()->
             CreateReader(attr.GetReaderKey(), attr.GetWriterKey(), endp);
+
+        SendWakeup();
     }
 
     void Kernel::CreateWriterEndpoint(const SimpleQueueAttr &attr) {
@@ -259,11 +263,15 @@ namespace CPN {
                     attr.GetNumChannels()
                     ));
 
+        endpoints.push_back(endp);
+
         shared_ptr<NodeBase> writernode = nodemap[attr.GetWriterNodeKey()];
         ASSERT(writernode);
 
         writernode->GetNodeMessageHandler()->
             CreateWriter(attr.GetReaderKey(), attr.GetWriterKey(), endp);
+
+        SendWakeup();
     }
 
     void Kernel::CreateLocalQueue(const SimpleQueueAttr &attr) {
@@ -345,13 +353,13 @@ namespace CPN {
                 itr != nodemap.end(); ++itr) {
             itr->second->Shutdown();
         }
-        for (EndpointMap::iterator itr = endpointmap.begin();
-                itr != endpointmap.end(); ++itr) {
-            itr->second->Shutdown();
+        for (EndpointList::iterator itr = endpoints.begin();
+                itr != endpoints.end(); ++itr) {
+            itr->get()->Shutdown();
         }
         // Wait for all nodes to end and all endpoints
         // to finish sending data
-        while (!nodemap.empty() || !endpointmap.empty()) {
+        while (!nodemap.empty() || !endpoints.empty()) {
             arlock.Unlock();
             ClearGarbage();
             Poll();
@@ -372,14 +380,18 @@ namespace CPN {
         if (!wakeuphandler.Closed()) { filehandlers.push_back(&wakeuphandler); }
 
         arlock.Lock();
-        for (EndpointMap::iterator itr = endpointmap.begin();
-                itr != endpointmap.end(); ++itr) {
-            double time = itr->second->CheckStatus();
+        EndpointList::iterator endpitr = endpoints.begin();
+        while (endpitr != endpoints.end()) {
+            shared_ptr<SocketEndpoint> endp = *endpitr;
+            double time = endp->CheckStatus();
             if (time > 0 && (time < timeout || timeout < 0)) { timeout = time; }
-            if (!itr->second->Closed()) {
-                filehandlers.push_back(itr->second.get());
-            } else if (itr->second->GetStatus() == SocketEndpoint::DEAD) {
-                endpointmap.erase(itr--);
+            if (!endp->Closed()) {
+                filehandlers.push_back(endp.get());
+                endpitr++;
+            } else if (endp->GetStatus() == SocketEndpoint::DEAD) {
+                endpitr = endpoints.erase(endpitr);
+            } else {
+                endpitr++;
             }
         }
         arlock.Unlock();
@@ -421,6 +433,15 @@ namespace CPN {
     shared_ptr<Future<int> > Kernel::GetWriterDescriptor(Key_t readerkey, Key_t writerkey) {
         FUNCBEGIN;
         return connhandler.GetWriterDescriptor(readerkey, writerkey);
+    }
+
+    void Kernel::LogEndpoints() {
+        EndpointList::iterator endpitr = endpoints.begin();
+        while (endpitr != endpoints.end()) {
+            shared_ptr<SocketEndpoint> endp = *endpitr;
+            endp->LogState();
+            ++endpitr;
+        }
     }
 }
 

@@ -88,8 +88,16 @@ SockAddrList SocketAddress::CreateIPFromServ(const char* servname) {
     return Lookup(0, servname, AF_UNSPEC, 0);
 }
 
+SockAddrList SocketAddress::CreateIPFromServ(const std::string &servname) {
+    return Lookup(0, servname.c_str(), AF_UNSPEC, 0);
+}
+
 SockAddrList SocketAddress::CreateIPFromHost(const char* hostname) {
     return Lookup(hostname, 0, AF_UNSPEC, 0);
+}
+
+SockAddrList SocketAddress::CreateIPFromHost(const std::string &hostname) {
+    return Lookup(hostname.c_str(), 0, AF_UNSPEC, 0);
 }
 
 SockAddrList SocketAddress::CreateIP(unsigned serv) {
@@ -100,8 +108,16 @@ SockAddrList SocketAddress::CreateIP(const char* hostname, const char* servname)
     return Lookup(hostname, servname, AF_UNSPEC, 0);
 }
 
+SockAddrList SocketAddress::CreateIP(const std::string &hostname, const std::string &servname) {
+    return Lookup(hostname.c_str(), servname.c_str(), AF_UNSPEC, 0);
+}
+
 SockAddrList SocketAddress::CreateIP(const char *hostname, unsigned serv) {
     return Lookup(hostname, 0, AF_UNSPEC, serv);
+}
+
+SockAddrList SocketAddress::CreateIP(const std::string &hostname, unsigned serv) {
+    return Lookup(hostname.c_str(), 0, AF_UNSPEC, serv);
 }
 
 SocketAddress::SocketAddress(addrinfo *info) {

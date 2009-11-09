@@ -156,6 +156,8 @@ namespace CPN {
         shared_ptr<Future<int> > GetReaderDescriptor(Key_t readerkey, Key_t writerkey);
         shared_ptr<Future<int> > GetWriterDescriptor(Key_t readerkey, Key_t writerkey);
 
+        void LogEndpoints();
+
         Sync::ReentrantLock lock;
         Sync::StatusHandler<KernelStatus_t> status;
         const std::string kernelname;
@@ -171,8 +173,8 @@ namespace CPN {
         NodeMap nodemap;
         NodeList garbagenodes;
 
-        typedef std::map<Key_t, shared_ptr<SocketEndpoint> > EndpointMap;
-        EndpointMap endpointmap;
+        typedef std::vector<shared_ptr<SocketEndpoint> > EndpointList;
+        EndpointList endpoints;
     };
 }
 #endif

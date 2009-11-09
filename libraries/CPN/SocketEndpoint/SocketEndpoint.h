@@ -93,6 +93,8 @@ namespace CPN {
         virtual unsigned QueueLength() const;
         virtual void Grow(unsigned queueLen, unsigned maxThresh);
 
+        // convenience function to print out state to the logger
+        void LogState();
     protected:
 
         // ReaderMessageHandler
@@ -149,8 +151,6 @@ namespace CPN {
         void SendReadBlock();
         void SendEndOfRead();
 
-        // convenience function to print out state to the logger
-        void LogState();
 
         Logger logger;
         ::CircularQueue queue;

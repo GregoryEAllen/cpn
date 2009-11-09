@@ -30,7 +30,7 @@ void Error(int err) {
 
 void StreamEndpointTest::setUp() {
 
-    logger.LogLevel(Logger::INFO);
+    logger.LogLevel(Logger::TRACE);
 
     rfd = shared_ptr<FileFuture>(new FileFuture);
     wfd = shared_ptr<FileFuture>(new FileFuture);
