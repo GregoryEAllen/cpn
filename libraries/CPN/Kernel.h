@@ -145,7 +145,7 @@ namespace CPN {
 
         void *EntryPoint();
 
-        void Poll();
+        void Poll(double timeout);
         void SendWakeup() { wakeuphandler.SendWakeup(); }
 
         void CreateWriter(Key_t dst, const SimpleQueueAttr &attr);

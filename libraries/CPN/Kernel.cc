@@ -343,7 +343,7 @@ namespace CPN {
         status.CompareAndPost(INITIALIZED, RUNNING);
         while (status.Get() == RUNNING) {
             ClearGarbage();
-            Poll();
+            Poll(-1);
         }
         // Close the listen port
         connhandler.Shutdown();
@@ -362,7 +362,7 @@ namespace CPN {
         while (!nodemap.empty() || !endpoints.empty()) {
             arlock.Unlock();
             ClearGarbage();
-            Poll();
+            Poll(1);
             arlock.Lock();
         }
         arlock.Unlock();
@@ -372,9 +372,8 @@ namespace CPN {
         return 0;
     }
 
-    void Kernel::Poll() {
+    void Kernel::Poll(double timeout) {
         Sync::AutoReentrantLock arlock(lock, false);
-        double timeout = -1;
         std::vector<FileHandler*> filehandlers;
         connhandler.Register(filehandlers);
         if (!wakeuphandler.Closed()) { filehandlers.push_back(&wakeuphandler); }

@@ -27,11 +27,13 @@ public:
 	CPPUNIT_TEST( SimpleTwoNodeTest );
 	CPPUNIT_TEST( TestSync );
 	CPPUNIT_TEST( TestSyncSourceSink );
+    CPPUNIT_TEST( QueueShutdownTest );
 	CPPUNIT_TEST_SUITE_END();
 
     void SimpleTwoNodeTest();
     void TestSync();
     void TestSyncSourceSink();
+    void QueueShutdownTest();
 
 private:
     void DoSyncTest(void (SyncSource::*fun1)(CPN::NodeBase*),

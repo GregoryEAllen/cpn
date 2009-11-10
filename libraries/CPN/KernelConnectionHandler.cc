@@ -30,7 +30,7 @@
 #include "Assert.h"
 #include "ErrnoException.h"
 
-#if 1
+#if 0
 #define FUNC_TRACE(logger) SCOPE_TRACE(logger)
 #else
 #define FUNC_TRACE(logger)

@@ -49,7 +49,6 @@ void TwoKernelTest::tearDown() {
 
 
 void TwoKernelTest::SimpleTwoNodeTest() {
-    ASSERT(false);
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
     NodeAttr attr("source", "MockNode");
     attr.SetParam(MockNode::GetModeName(MockNode::MODE_SOURCE));
@@ -84,7 +83,7 @@ void TwoKernelTest::TestSync() {
 void TwoKernelTest::DoSyncTest(void (SyncSource::*fun1)(CPN::NodeBase*),
         void (SyncSink::*fun2)(CPN::NodeBase*), unsigned run, bool swap) {
 
-    //DEBUG(">>DoSyncTest run %u\n", run);
+    DEBUG(">>DoSyncTest run %u\n", run);
     std::string sourcename = ToString("source %u", run);
     std::string sinkname = ToString("sink %u", run);
     FunctionNode<MemberFunction<SyncSource> >::RegisterType(sourcename);
@@ -133,5 +132,23 @@ void TwoKernelTest::TestSyncSourceSink() {
 
         swap = true;
     }
+}
+
+void TwoKernelTest::QueueShutdownTest() {
+	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    NodeAttr attr("source", "MockNode");
+    attr.SetParam(MockNode::GetModeName(MockNode::MODE_SOURCE));
+    kone->CreateNode(attr);
+    attr.SetName("sink").SetParam(MockNode::GetModeName(MockNode::MODE_SINK));
+    ktwo->CreateNode(attr);
+    QueueAttr qattr(2*sizeof(unsigned long), 2*sizeof(unsigned long));
+    qattr.SetReader("sink", "unused").SetWriter("source", "unused");
+    kone->CreateQueue(qattr);
+    qattr.SetReader("sink", "x").SetWriter("source", "y");
+    kone->CreateQueue(qattr);
+    kone->Terminate();
+    kone->Wait();
+    ktwo->Terminate();
+    ktwo->Wait();
 }
 
