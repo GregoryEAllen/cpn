@@ -26,7 +26,7 @@
 #include "ToString.h"
 #include "ErrnoException.h"
 
-#if 1
+#if 0
 #define FUNC_TRACE logger.Trace("%s", __PRETTY_FUNCTION__)
 #else
 #define FUNC_TRACE

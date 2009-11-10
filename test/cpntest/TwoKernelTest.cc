@@ -30,7 +30,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION( TwoKernelTest );
 void TwoKernelTest::setUp() {
     CPNRegisterNodeFactory(shared_ptr<MockNodeFactory>(new MockNodeFactory("MockNode")));
     shared_ptr<Database> database = Database::Local();
-    database->LogLevel(Logger::TRACE);
+    database->LogLevel(Logger::WARNING);
     KernelAttr kattrone("one");
     kattrone.SetDatabase(database);
     KernelAttr kattrtwo("two");
@@ -83,7 +83,7 @@ void TwoKernelTest::TestSync() {
 void TwoKernelTest::DoSyncTest(void (SyncSource::*fun1)(CPN::NodeBase*),
         void (SyncSink::*fun2)(CPN::NodeBase*), unsigned run, bool swap) {
 
-    DEBUG(">>DoSyncTest run %u\n", run);
+    //DEBUG(">>DoSyncTest run %u\n", run);
     std::string sourcename = ToString("source %u", run);
     std::string sinkname = ToString("sink %u", run);
     FunctionNode<MemberFunction<SyncSource> >::RegisterType(sourcename);
