@@ -1,9 +1,19 @@
 
 
 #include "RandomInstructionNode.h"
+
 #include "Kernel.h"
 #include "Database.h"
+
+#include "ToString.h"
+
 #include <unistd.h>
+#include <vector>
+
+using CPN::shared_ptr;
+using CPN::Database;
+using CPN::Kernel;
+using CPN::KernelAttr;
 
 // one interesting seed is 37733
 
@@ -16,6 +26,7 @@ const char* const HELP_OPTS = "Usage: %s \n"
 "\t-s n\tStart with n as the seed\n"
 "\t-d n\tUse debug level n (default 0)\n"
 "\t-l n\tUse log level n (default 75)\n"
+"\t-k n\tCreate n kernels (default 1)\n"
 ;
 
 int main(int argc, char **argv) {
@@ -25,6 +36,7 @@ int main(int argc, char **argv) {
     unsigned numNodes = 10;
     int debugLevel = 0;
     int loglevel = 75;
+    unsigned numKernels = 1;
     LFSR::LFSR_t seed = RandomInstructionGenerator::DEFAULT_SEED;
 
     bool procOpts = true;
@@ -43,7 +55,7 @@ int main(int argc, char **argv) {
             loglevel = atoi(optarg);
             break;
         case 'h':
-            printf(HELP_OPTS);
+            puts(HELP_OPTS);
             return 0;
         case 's':
             {
@@ -60,7 +72,7 @@ int main(int argc, char **argv) {
             break;
         default:
             printf("Invald option %s\n", optarg);
-            printf(HELP_OPTS);
+            puts(HELP_OPTS);
             return 0;
         }
     }
@@ -68,12 +80,18 @@ int main(int argc, char **argv) {
     printf("Starting with %u nodes going for %u iterations with debug level %d and seed %lu\n",
             numNodes, iterations, debugLevel, seed);
 
-    shared_ptr<CPN::Database> database = CPN::Database::LocalDatabase();
+    shared_ptr<Database> database = Database::Local();
     database->LogLevel(loglevel);
 
-    CPN::Kernel kernel(CPN::KernelAttr("test kernel").SetDatabase(database));
+    std::vector<Kernel> kernels;
+
+    for (unsigned i = 0; i < numKernels; ++i) {
+        kernels.push_back(Kernel(KernelAttr(ToString("K #%u", i)).SetDatabase(database)));
+    }
     RandomInstructionNode::CreateRIN(kernel, iterations, numNodes, debugLevel, seed);
-    kernel.GetDatabase()->WaitForAllNodeEnd();
+
+    database->WaitForAllNodeEnd();
+
     return 0;
 }
 

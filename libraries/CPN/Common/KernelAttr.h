@@ -41,6 +41,11 @@ namespace CPN {
             servname("")
         {}
 
+        KernelAttr &SetName(const std::string &n) {
+            name = n;
+            return *this;
+        }
+
         KernelAttr &SetHostName(const std::string &hn) {
             hostname = hn;
             return *this;
