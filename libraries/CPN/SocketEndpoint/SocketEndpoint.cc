@@ -25,12 +25,21 @@
 #include "Assert.h"
 #include "ToString.h"
 #include "ErrnoException.h"
+#include <signal.h>
 
 #if 0
 #define FUNC_TRACE logger.Trace("%s", __PRETTY_FUNCTION__)
 #else
 #define FUNC_TRACE
 #endif
+
+struct BoolGuard {
+public:
+    BoolGuard(bool &v) : val(v) { val = true; }
+    ~BoolGuard() { val = false; }
+private:
+    bool &val;
+};
 
 namespace CPN {
 
@@ -51,7 +60,8 @@ namespace CPN {
         sentEnd(false),
         readshutdown(false),
         writeshutdown(false),
-        inread(false)
+        inread(false),
+        incheckstatus(false)
     {
         Writeable(false);
         logger.Name(ToString("SocketEndpoint(m:%s, r:%lu, w: %lu)",
@@ -244,11 +254,7 @@ namespace CPN {
         // Can happen because *Packet functions call
         // InternCheckStatus
         if (inread) { return; }
-        struct Guard {
-            Guard(bool &v) : val(v) { val = true; }
-            ~Guard() { val = false; }
-            bool &val;
-        } guard(inread);
+        BoolGuard guard(inread);
 
         try {
             while (Good()) {
@@ -416,6 +422,10 @@ namespace CPN {
     }
 
     void SocketEndpoint::InternCheckStatus() {
+        // return if recursive call
+        if (incheckstatus) { return; }
+        BoolGuard guard(incheckstatus);
+
         if (status == DEAD) { return; }
         if (Closed()) {
             if (status == DIEING) {
@@ -515,7 +525,8 @@ namespace CPN {
                 }
             }
         } catch (const ErrnoException &e) {
-            logger.Error("Exception (%d): $s", e.Error(), e.what());
+            raise(SIGINT);
+            logger.Error("Exception (%d): %s", e.Error(), e.what());
         }
     }
 
@@ -531,6 +542,7 @@ namespace CPN {
 
     void SocketEndpoint::SendEnqueue() {
         FUNC_TRACE;
+        ASSERT(!Closed());
         unsigned count = queue.Count();
         const unsigned maxthresh = queue.MaxThreshold();
         const unsigned expectedfree = queue.QueueLength() - writecount;
@@ -551,6 +563,7 @@ namespace CPN {
 
     void SocketEndpoint::SendWriteBlock() {
         FUNC_TRACE;
+        ASSERT(!Closed());
         Packet packet(PACKET_WRITEBLOCK);
         SetupPacketDefaults(packet);
         packet.Requested(blockRequest);
@@ -560,6 +573,7 @@ namespace CPN {
 
     void SocketEndpoint::SendEndOfWrite() {
         FUNC_TRACE;
+        ASSERT(!Closed());
         Packet packet(PACKET_ENDOFWRITE);
         SetupPacketDefaults(packet);
         PacketEncoder::SendPacket(packet);
@@ -569,6 +583,7 @@ namespace CPN {
 
     void SocketEndpoint::SendDequeue() {
         FUNC_TRACE;
+        ASSERT(!Closed());
         Packet packet(PACKET_DEQUEUE);
         SetupPacketDefaults(packet);
         unsigned count = readcount - queue.Count();
@@ -580,6 +595,7 @@ namespace CPN {
 
     void SocketEndpoint::SendReadBlock() {
         FUNC_TRACE;
+        ASSERT(!Closed());
         Packet packet(PACKET_READBLOCK);
         SetupPacketDefaults(packet);
         packet.Requested(blockRequest);
@@ -589,6 +605,7 @@ namespace CPN {
 
     void SocketEndpoint::SendEndOfRead() {
         FUNC_TRACE;
+        ASSERT(!Closed());
         Packet packet(PACKET_ENDOFREAD);
         SetupPacketDefaults(packet);
         PacketEncoder::SendPacket(packet);

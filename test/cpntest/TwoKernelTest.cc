@@ -83,7 +83,7 @@ void TwoKernelTest::TestSync() {
 void TwoKernelTest::DoSyncTest(void (SyncSource::*fun1)(CPN::NodeBase*),
         void (SyncSink::*fun2)(CPN::NodeBase*), unsigned run, bool swap) {
 
-    //DEBUG(">>DoSyncTest run %u\n", run);
+    DEBUG(">>DoSyncTest run %u\n", run);
     std::string sourcename = ToString("source %u", run);
     std::string sinkname = ToString("sink %u", run);
     FunctionNode<MemberFunction<SyncSource> >::RegisterType(sourcename);

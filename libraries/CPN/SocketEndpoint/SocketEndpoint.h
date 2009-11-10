@@ -174,6 +174,7 @@ namespace CPN {
         bool writeshutdown;
 
         bool inread;
+        bool incheckstatus;
     };
 }
 
