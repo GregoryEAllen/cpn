@@ -284,7 +284,7 @@ void SieveTest::RunTwoKernelTest() {
     AutoBuffer buffer(NUMPRIMES*sizeof(SieveNumber));
     CPPUNIT_ASSERT(buffer.GetBuffer());
     CPN::shared_ptr<CPN::Database> database = CPN::Database::Local();
-    database->LogLevel(Logger::DEBUG);
+    database->LogLevel(Logger::WARNING);
     CPN::Kernel kone(CPN::KernelAttr("one").SetDatabase(database));
     CPN::Kernel ktwo(CPN::KernelAttr("two").SetDatabase(database));
     std::vector<std::string> hosts;
