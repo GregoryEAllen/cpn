@@ -51,10 +51,16 @@ public:
 
     int LogLevel() const;
     int LogLevel(int level);
+
     int DefaultLevel() const;
     int DefaultLevel(int level);
+
+    int Adjust() const;
+    int Adjust(int a);
+
     const std::string &Name() const;
     const std::string &Name(const std::string &nm);
+
     const LoggerOutput *Output() const;
     const LoggerOutput *Output(const LoggerOutput *output);
 
@@ -82,6 +88,7 @@ private:
     const LoggerOutput *logout;
     int loglevel;
     int defaultlevel;
+    int adjust;
     std::string name;
 };
 

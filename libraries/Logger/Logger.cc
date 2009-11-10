@@ -31,15 +31,15 @@ LoggerOutput::~LoggerOutput() {
 }
 
 Logger::Logger()
-    : logout(0), loglevel(WARNING), defaultlevel(INFO)
+    : logout(0), loglevel(WARNING), defaultlevel(INFO), adjust(0)
 {}
 
 Logger::Logger(int dfltlvl)
-    : logout(0), loglevel(WARNING), defaultlevel(dfltlvl)
+    : logout(0), loglevel(WARNING), defaultlevel(dfltlvl), adjust(0)
 {}
 
 Logger::Logger(const LoggerOutput *lo, int dfltlvl)
-    : logout(lo), loglevel(WARNING), defaultlevel(dfltlvl)
+    : logout(lo), loglevel(WARNING), defaultlevel(dfltlvl), adjust(0)
 {
     ASSERT(logout);
     loglevel = logout->LogLevel();
@@ -72,6 +72,16 @@ int Logger::DefaultLevel(int level) {
     return defaultlevel = level;
 }
 
+int Logger::Adjust() const {
+    Sync::AutoReentrantLock arl(lock);
+    return adjust;
+}
+
+int Logger::Adjust(int a) {
+    Sync::AutoReentrantLock arl(lock);
+    return adjust = a;
+}
+
 const std::string &Logger::Name() const {
     Sync::AutoReentrantLock arl(lock);
     return name;
@@ -95,7 +105,7 @@ const LoggerOutput *Logger::Output(const LoggerOutput *output) {
 void Logger::Log(int level, const std::string &msg) const {
     Sync::AutoReentrantLock arl(lock);
     if (level < loglevel) { return; }
-    if (logout) { logout->Log(level, name + ":" + msg); }
+    if (logout) { logout->Log(level + adjust, name + ":" + msg); }
 }
 
 void Logger::Logf(int level, const char *fmt, ...) const {
