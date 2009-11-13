@@ -26,15 +26,10 @@
 #include "StackTrace.h"
 #include <sstream>
 #include <vector>
-#include <signal.h>
 #include <stdio.h>
 #include <stdarg.h>
 
-static enum State {
-    USE_THROW,
-    USE_SIGINT,
-    USE_ABORT
-} state = USE_THROW;
+
 
 std::string CreateMessage(const char *exp, const char *file,
         int line, const char *func, const char *msg) {
@@ -58,40 +53,13 @@ const char *AssertException::what() const throw() {
     return message.c_str();
 }
 
-void AssertUseThrow() {
-    state = USE_THROW;
-}
-
-void AssertUseSigint() {
-    state = USE_SIGINT;
-}
-
-void AssertUseAbort() {
-    state = USE_ABORT;
-}
-
-void DoAssert(const std::string message) {
-    switch (state) {
-    case USE_THROW:
-        throw AssertException(message);
-    case USE_ABORT:
-        fprintf(stderr, message.c_str());
-        abort();
-    case USE_SIGINT:
-        fprintf(stderr, message.c_str());
-        raise(SIGINT);
-        break;
-    }
-}
 
 bool __ASSERT(const char *exp, const char *file, int line, const char *func) {
-    DoAssert(CreateMessage(exp, file, line, func, ""));
-    return false;
+    throw AssertException(CreateMessage(exp, file, line, func, ""));
 }
 
 bool __ASSERT(const char *exp, const char *file, int line, const char *func, const std::string &msg) {
-    DoAssert(CreateMessage(exp, file, line, func, msg.c_str()));
-    return false;
+    throw AssertException(CreateMessage(exp, file, line, func, msg.c_str()));
 }
 
 bool __ASSERT(const char *exp, const char *file, int line, const char *func, const char *fmt, ...) {
@@ -114,8 +82,7 @@ bool __ASSERT(const char *exp, const char *file, int line, const char *func, con
             buff.resize(buff.size()*2, '\0');
         }
     }
-    DoAssert(CreateMessage(exp, file, line, func, &buff[0]));
-    return false;
+    throw AssertException(CreateMessage(exp, file, line, func, &buff[0]));
 }
 
 

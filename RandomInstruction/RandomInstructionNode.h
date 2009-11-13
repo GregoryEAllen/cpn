@@ -9,29 +9,42 @@
 #include "QueueWriter.h"
 #include "QueueReader.h"
 
+class Variant;
+
 #define RANDOMINSTRUCTIONNODE_TYPENAME "RandomInstructionNodeType"
 
-struct RINState {
-    RINState(unsigned id, unsigned iter, RandomInstructionGenerator::State s)
-        : nodeID(id), iterations(iter), state(s) {}
-    RINState(unsigned id, unsigned iter, int dbglvl, unsigned nnode)
-        : nodeID(id), iterations(iter),
-        state(nnode, dbglvl) {}
-    unsigned nodeID;
-    unsigned iterations;
-    RandomInstructionGenerator::State state;
-};
 
 class RandomInstructionNode : public CPN::NodeBase, private RandomInstructionGenerator {
 public:
+
+    struct RINState {
+
+        RINState(const Variant &args);
+
+        RINState(unsigned id, unsigned iter, RandomInstructionGenerator::State s)
+            : nodeID(id), iterations(iter), state(s) {}
+
+        RINState(unsigned id, unsigned iter, int dbglvl, unsigned nnode)
+            : nodeID(id), iterations(iter),
+            state(nnode, dbglvl) {}
+
+        std::string ToJSON();
+
+        unsigned nodeID;
+        unsigned iterations;
+        RandomInstructionGenerator::State state;
+    };
+
     RandomInstructionNode(CPN::Kernel& ker, const CPN::NodeAttr& attr,
-            RINState initialState);
+            const RINState &initialState);
     ~RandomInstructionNode() {}
 
     void Process();
 
     static void RegisterNodeType();
+
     static std::string GetNodeNameFromID(unsigned id);
+
     static void CreateRIN(CPN::Kernel& kernel, unsigned iterations,
         unsigned numNodes, unsigned debugLevel, LFSR::LFSR_t seed);
 private:

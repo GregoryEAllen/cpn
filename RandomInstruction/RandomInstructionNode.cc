@@ -6,6 +6,7 @@
 #include "QueueWriterAdapter.h"
 #include "QueueReaderAdapter.h"
 #include "Kernel.h"
+#include "Variant.h"
 #include "ToString.h"
 #include <stdexcept>
 #include <stdarg.h>
@@ -20,13 +21,76 @@ public:
     RINFactory() : CPN::NodeFactory(RANDOMINSTRUCTIONNODE_TYPENAME) {}
     ~RINFactory() {}
     CPN::shared_ptr<CPN::NodeBase> Create(CPN::Kernel& ker, const CPN::NodeAttr& attr) {
-        RINState* rins = (RINState*)(attr.GetArg().GetBuffer());
-        return CPN::shared_ptr<CPN::NodeBase>(new RandomInstructionNode(ker, attr, *rins));
+        Variant args = Variant::FromJSON(attr.GetParam());
+        return CPN::shared_ptr<CPN::NodeBase>(
+                new RandomInstructionNode(ker, attr, RandomInstructionNode::RINState(args))
+                );
     }
 };
 
+RandomInstructionNode::RINState::RINState(const Variant &args) {
+    nodeID = args["nodeID"].AsUnsigned();
+    iterations = args["iterations"].AsUnsigned();
+    if (args["state"].IsObject()) {
+        // We have state for the RIG
+        Variant s = args["state"];
+        state.feed = s["feed"].AsNumber<LFSR::LFSR_t>();
+        state.seed = s["seed"].AsNumber<LFSR::LFSR_t>();
+        state.maxID = s["maxID"].AsUnsigned();
+        state.debugLevel = s["debugLevel"].AsInt();
+        Variant::List liveNodes = s["liveNodes"].AsArray();
+        Variant::List::iterator i = liveNodes.begin();
+        while (i != liveNodes.end()) {
+            state.liveNodes.push_back(i.AsUnsigned());
+            ++i;
+        }
+    } else {
+        if (args["feed"].IsNumber()) {
+            state.feed = args["feed"].AsNumber<LFSR::LFSR_t>();
+        } else {
+            state.feed = RandomInstructionGenerator::DEFAULT_FEED;
+        }
+        if (args["seed"].IsNumber()) {
+            state.seed = args["seed"].AsNumber<LFSR::LFSR_t>();
+        } else {
+            state.seed = RandomInstructionGenerator::DEFAULT_SEED;
+        }
+
+        if (args["debugLevel"].IsNumber()) {
+            state.debugLevel = args["debugLevel"].AsInt();
+        } else {
+            state.debugLevel = 0;
+        }
+        unsigned numNodes = args["numNodes"].AsUnsigned();
+        state.maxID = numNodes;
+        for (unsigned i = 0; i < numNodes; ++i) {
+            state.liveNodes.push_back(i);
+        }
+    }
+}
+
+std::string RandomInstructionNode::RINState::ToJSON() {
+    Variant rinstate(Variant::ObjectType);
+    rinstate["nodeID"] = nodeID;
+    rinstate["iterations"] = iterations;
+    Variant rigstate(Variant::ObjectType);
+    rigstate["feed"] = state.feed;
+    rigstate["seed"] = state.seed;
+    rigstate["debugLevel"] = state.debugLevel;
+    rigstate["maxID"] = state.maxID;
+    Variant liveNodes(Variant::ArrayType);
+    std::deque<unsigned>::iterator i = state.liveNodes.begin();
+    while (i != state.liveNodes.end()) {
+        liveNodes.Append(Variant(*i));
+        ++i;
+    }
+    rigstate["liveNodes"] = liveNodes;
+    rinstate["state"] = rigstate;
+    return rinstate.ToJSON();
+}
+
 RandomInstructionNode::RandomInstructionNode(CPN::Kernel& ker,
-    const CPN::NodeAttr& attr, RINState initialState)
+    const CPN::NodeAttr& attr, const RINState &initialState)
 :   CPN::NodeBase(ker, attr), RandomInstructionGenerator(initialState.state) {
     myID = initialState.nodeID;
     iterations = initialState.iterations;
@@ -46,12 +110,13 @@ void RandomInstructionNode::Process(void) {
 
 void RandomInstructionNode::CreateRIN(CPN::Kernel& kernel, unsigned iterations,
         unsigned numNodes, unsigned debugLevel, LFSR::LFSR_t seed) {
+
     for (unsigned i = 0; i < numNodes; ++i) {
         RINState state = RINState(i, iterations, debugLevel, numNodes);
         state.state.seed = seed;
         CPN::NodeAttr attr(GetNodeNameFromID(state.nodeID),
                 RANDOMINSTRUCTIONNODE_TYPENAME);
-        attr.SetParam(StaticConstBuffer(&state, sizeof(state)));
+        attr.SetParam(state.ToJSON());
         kernel.CreateNode(attr);
     }
 }
@@ -69,7 +134,7 @@ void RandomInstructionNode::DoCreateNode(unsigned newNodeID, unsigned creatorNod
         RINState state = RINState(newNodeID, iterations, GetState());
         CPN::NodeAttr attr(GetNodeNameFromID(state.nodeID),
                 RANDOMINSTRUCTIONNODE_TYPENAME);
-        attr.SetParam(StaticConstBuffer(&state, sizeof(state)));
+        attr.SetParam(state.ToJSON());
         kernel.CreateNode(attr);
     }
     if (newNodeID == myID) {

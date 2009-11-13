@@ -36,24 +36,26 @@ class RandomInstructionGenerator
     typedef LFSR::LFSR_t LFSR_t;
     static const LFSR_t DEFAULT_SEED;
     static const LFSR_t DEFAULT_FEED;
+
     struct State {
-        State(unsigned mid, int dbglvl)
-                : feed(DEFAULT_FEED), seed(DEFAULT_SEED), maxID(mid),
-        debugLevel(dbglvl) {
-            for (unsigned i = 0; i < maxID; ++i) {
-                liveNodes.push_back(i);
-            }
-        }
+        State() {}
+
+        // constructor for copying state for new nodes
+        State(unsigned mid, int dbglvl, std::deque<unsigned> ln)
+            : feed(DEFAULT_FEED), seed(DEFAULT_SEED), maxID(mid),
+            debugLevel(dbglvl), liveNodes(ln) {}
+
         LFSR_t feed, seed;
         unsigned maxID;
         int debugLevel;
         std::deque<unsigned> liveNodes;
     };
 
-    RandomInstructionGenerator();
+    RandomInstructionGenerator(unsigned numNodes);
     RandomInstructionGenerator(const State& state);
     virtual ~RandomInstructionGenerator() {}
     State GetState(void);
+    void SetState(const State &state);
     int Run(unsigned sequenceLength = 10);
     void RunOnce(void);
 

@@ -37,14 +37,14 @@ const RandomInstructionGenerator::LFSR_t RandomInstructionGenerator::DEFAULT_SEE
 const RandomInstructionGenerator::LFSR_t RandomInstructionGenerator::DEFAULT_FEED = 0xF82F;
 
 //-----------------------------------------------------------------------------
-RandomInstructionGenerator::RandomInstructionGenerator()
+RandomInstructionGenerator::RandomInstructionGenerator(unsigned numNodes)
 //-----------------------------------------------------------------------------
 :   lfsr(DEFAULT_FEED,DEFAULT_SEED)
 {
-    for (unsigned i = 0; i < 100; ++i) {
+    for (unsigned i = 0; i < numNodes; ++i) {
         liveNodes.push_back(i);
     }
-    Initialize(2, 0.01, 0.01, 100);
+    Initialize(2, 0.01, 0.01, numNodes);
 }
 
 //-----------------------------------------------------------------------------
@@ -289,13 +289,20 @@ void RandomInstructionGenerator::RunOnce(void)
 RandomInstructionGenerator::State RandomInstructionGenerator::GetState(void)
 //-----------------------------------------------------------------------------
 {
-    State state = State(0, debugLevel);
-    state.maxID = maxID;
+    State state = State(maxID, debugLevel, liveNodes);
     state.feed = lfsr.Feed();
     state.seed = lfsr.Seed();
-    state.liveNodes = liveNodes;
     return state;
 }
+//-----------------------------------------------------------------------------
+void RandomInstructionGenerator::SetState(const State &state)
+//-----------------------------------------------------------------------------
+{
+    lfsr = LFSR(state.feed, state.seed);
+    liveNodes = state.liveNodes;
+    Initialize(state.debugLevel, 0.01, 0.01, state.maxID);
+}
+
 /*
 //-----------------------------------------------------------------------------
 int main()

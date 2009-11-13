@@ -31,9 +31,6 @@
  * and use ENSURE when you want the expression to remain when NDEBUG is
  * defined.
  *
- * Note that both ASSERT and ENSURE return true if exp evaluated true and false
- * if it evaluates false and returns.
- *
  * Also these macros evaluate there arguments only ONCE.
  *
  * \author John Bridgman
@@ -54,15 +51,11 @@ private:
     std::string message;
 };
 
-void AssertUseThrow();
-void AssertUseSigint();
-void AssertUseAbort();
+bool __ASSERT(const char *exp, const char *file, int line, const char *func) __attribute__((noreturn));
 
-bool __ASSERT(const char *exp, const char *file, int line, const char *func);
+bool __ASSERT(const char *exp, const char *file, int line, const char *func, const std::string &msg) __attribute__((noreturn));
 
-bool __ASSERT(const char *exp, const char *file, int line, const char *func, const std::string &msg);
-
-bool __ASSERT(const char *exp, const char *file, int line, const char *func, const char *fmt, ...);
+bool __ASSERT(const char *exp, const char *file, int line, const char *func, const char *fmt, ...) __attribute__((noreturn));
 
 #ifndef NDEBUG
 #define ASSERT(exp, ...) (exp ? true : __ASSERT(#exp, __FILE__, __LINE__, __PRETTY_FUNCTION__, ## __VA_ARGS__))
