@@ -44,17 +44,41 @@ namespace CPN {
     public:
         NodeAttr(const std::string &name_,
                 const std::string &nodetype_)
-            : name(name_), nodetype(nodetype_), param(""), arg(0) {}
+            : host(),
+            hostkey(0),
+            name(name_),
+            nodetype(nodetype_),
+            param(""),
+            arg(0),
+            key(0),
+            database()
+        {}
 
         NodeAttr(const std::string &name_,
                 const std::string &nodetype_,
                 const std::string &param_)
-            : name(name_), nodetype(nodetype_), param(param_), arg(0) {}
+            : host(),
+            hostkey(0),
+            name(name_),
+            nodetype(nodetype_),
+            param(param_),
+            arg(0),
+            key(0),
+            database()
+        {}
 
         NodeAttr(const std::string &name_,
                 const std::string &nodetype_,
                 const StaticConstBuffer &arg_)
-            : name(name_), nodetype(nodetype_),param(""), arg(arg_) {}
+            : host(),
+            hostkey(0),
+            name(name_),
+            nodetype(nodetype_),
+            param(),
+            arg(arg_),
+            key(0),
+            database()
+        {}
 
         NodeAttr &SetName(const std::string &name_) {
             name = name_;

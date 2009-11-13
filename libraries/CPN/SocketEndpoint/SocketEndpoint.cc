@@ -304,7 +304,8 @@ namespace CPN {
     void SocketEndpoint::OnInval() {
         Sync::AutoReentrantLock arl(lock);
         // Our file descriptor is invalid
-        logger.Error("%s", __PRETTY_FUNCTION__);
+        logger.Debug("%s", __PRETTY_FUNCTION__);
+        ASSERT(Closed());
     }
 
     bool SocketEndpoint::Readable() const {

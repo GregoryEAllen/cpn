@@ -119,23 +119,32 @@ namespace CPN {
 
     Key_t Kernel::CreateNode(const NodeAttr &attr) {
         FUNCBEGIN;
-        Sync::AutoReentrantLock arlock(lock, false);
+        Sync::AutoReentrantLock arlock(lock);
+        Key_t ourkey = hostkey;
+        arlock.Unlock();
+
         ASSERT(status.Get() == RUNNING);
+
         Key_t nodekey = database->CreateNodeKey(attr.GetName());
+
         NodeAttr nodeattr = attr;
         nodeattr.SetKey(nodekey);
+
+        if (nodeattr.GetHostKey() == 0) {
+            Key_t key = 0;
+            if (nodeattr.GetHost().empty()) {
+                key = ourkey;
+            } else {
+                key = database->WaitForHostSetup(nodeattr.GetHost());
+            }
+            nodeattr.SetHostKey(key);
+        }
         // check the host the node should go on and send
         // to that particular host
-        arlock.Lock();
-        if (nodeattr.GetHost().empty() ||
-                nodeattr.GetHost() == kernelname) {
-            nodeattr.SetHostKey(hostkey);
+        if (nodeattr.GetHostKey() == ourkey) {
             InternalCreateNode(nodeattr);
         } else {
-            arlock.Unlock();
-            Key_t key = database->WaitForHostSetup(nodeattr.GetHost());
-            nodeattr.SetHostKey(key);
-            database->SendCreateNode(key, nodeattr);
+            database->SendCreateNode(nodeattr.GetHostKey(), nodeattr);
         }
         return nodekey;
     }

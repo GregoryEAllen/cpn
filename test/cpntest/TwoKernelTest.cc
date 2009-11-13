@@ -146,9 +146,8 @@ void TwoKernelTest::QueueShutdownTest() {
     kone->CreateQueue(qattr);
     qattr.SetReader("sink", "x").SetWriter("source", "y");
     kone->CreateQueue(qattr);
-    // Note that terminating the reader before the writer may result in a
-    // BrokenQueueException being thrown from the sink. This should probably
-    // be explicitly included in the test rather than terminating the sink first.
+    kone->WaitNodeTerminate("source");
+
     ktwo->Terminate();
     ktwo->Wait();
     kone->Terminate();
