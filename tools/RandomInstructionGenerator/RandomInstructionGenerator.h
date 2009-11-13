@@ -55,7 +55,6 @@ class RandomInstructionGenerator
     RandomInstructionGenerator(const State& state);
     virtual ~RandomInstructionGenerator() {}
     State GetState(void);
-    void SetState(const State &state);
     int Run(unsigned sequenceLength = 10);
     void RunOnce(void);
 

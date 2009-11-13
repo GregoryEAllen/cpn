@@ -294,14 +294,6 @@ RandomInstructionGenerator::State RandomInstructionGenerator::GetState(void)
     state.seed = lfsr.Seed();
     return state;
 }
-//-----------------------------------------------------------------------------
-void RandomInstructionGenerator::SetState(const State &state)
-//-----------------------------------------------------------------------------
-{
-    lfsr = LFSR(state.feed, state.seed);
-    liveNodes = state.liveNodes;
-    Initialize(state.debugLevel, 0.01, 0.01, state.maxID);
-}
 
 /*
 //-----------------------------------------------------------------------------

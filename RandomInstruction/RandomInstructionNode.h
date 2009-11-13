@@ -13,6 +13,7 @@ class Variant;
 
 #define RANDOMINSTRUCTIONNODE_TYPENAME "RandomInstructionNodeType"
 
+#define KERNEL_NAME_FORMAT "K #%u"
 
 class RandomInstructionNode : public CPN::NodeBase, private RandomInstructionGenerator {
 public:
@@ -21,17 +22,14 @@ public:
 
         RINState(const Variant &args);
 
-        RINState(unsigned id, unsigned iter, RandomInstructionGenerator::State s)
-            : nodeID(id), iterations(iter), state(s) {}
-
-        RINState(unsigned id, unsigned iter, int dbglvl, unsigned nnode)
-            : nodeID(id), iterations(iter),
-            state(nnode, dbglvl) {}
+        RINState(unsigned id, unsigned iter, unsigned nk, RandomInstructionGenerator::State s)
+            : nodeID(id), iterations(iter), numKernels(nk), state(s) {}
 
         std::string ToJSON();
 
         unsigned nodeID;
         unsigned iterations;
+        unsigned numKernels;
         RandomInstructionGenerator::State state;
     };
 
@@ -46,12 +44,13 @@ public:
     static std::string GetNodeNameFromID(unsigned id);
 
     static void CreateRIN(CPN::Kernel& kernel, unsigned iterations,
-        unsigned numNodes, unsigned debugLevel, LFSR::LFSR_t seed);
+        unsigned numNodes, unsigned debugLevel, LFSR::LFSR_t seed, unsigned numKernels);
 private:
     /// Random Instruction Node IDentifier
     unsigned myID;
     unsigned iterations;
     bool die;
+    unsigned numKernels;
     void DoCreateNode(unsigned newNodeID, unsigned creatorNodeID);
     void DoDeleteNode(unsigned nodeID);
     void DoProducerNode(unsigned nodeID, unsigned dstNodeID);

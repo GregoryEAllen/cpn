@@ -73,7 +73,10 @@ public:
     Variant(bool v);
     Variant(int v);
     Variant(unsigned v);
+    Variant(long v);
+    Variant(unsigned long v);
     Variant(double v);
+    Variant(long double v);
     Variant(const std::string &v);
     Variant(const char *v);
     Variant(const Variant &v);

@@ -17,7 +17,7 @@ using CPN::KernelAttr;
 
 // one interesting seed is 37733
 
-const char* const VALID_OPTS = "hi:d:n:s:l:";
+const char* const VALID_OPTS = "hi:d:n:s:l:k:";
 
 const char* const HELP_OPTS = "Usage: %s \n"
 "\t-h\tPrint out this message\n"
@@ -54,6 +54,9 @@ int main(int argc, char **argv) {
         case 'l':
             loglevel = atoi(optarg);
             break;
+        case 'k':
+            numKernels = atoi(optarg);
+            break;
         case 'h':
             puts(HELP_OPTS);
             return 0;
@@ -71,7 +74,6 @@ int main(int argc, char **argv) {
             procOpts = false;
             break;
         default:
-            printf("Invald option %s\n", optarg);
             puts(HELP_OPTS);
             return 0;
         }
@@ -83,12 +85,12 @@ int main(int argc, char **argv) {
     shared_ptr<Database> database = Database::Local();
     database->LogLevel(loglevel);
 
-    std::vector<Kernel> kernels;
+    std::vector< shared_ptr<Kernel> > kernels;
 
     for (unsigned i = 0; i < numKernels; ++i) {
-        kernels.push_back(Kernel(KernelAttr(ToString("K #%u", i)).SetDatabase(database)));
+        kernels.push_back(shared_ptr<Kernel>(new Kernel(KernelAttr(ToString("K #%u", i)).SetDatabase(database))));
     }
-    RandomInstructionNode::CreateRIN(kernel, iterations, numNodes, debugLevel, seed);
+    RandomInstructionNode::CreateRIN(*kernels.front(), iterations, numNodes, debugLevel, seed, numKernels);
 
     database->WaitForAllNodeEnd();
 

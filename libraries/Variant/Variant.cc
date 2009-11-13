@@ -159,9 +159,22 @@ Variant::Variant(unsigned v) : type(NumberType) {
     numvalue = v;
 }
 
+Variant::Variant(long v) : type(NumberType) {
+    numvalue = v;
+}
+
+Variant::Variant(unsigned long v) : type(NumberType) {
+    numvalue = v;
+}
+
 Variant::Variant(double v) : type(NumberType) {
     numvalue = v;
 }
+
+Variant::Variant(long double v) : type(NumberType) {
+    numvalue = v;
+}
+
 
 Variant::Variant(const std::string &v) : type(StringType), stringval(v) {}
 
@@ -508,6 +521,15 @@ Variant Variant::Copy() const {
         break;
     }
     return ret;
+}
+
+void Variant::Append(const Variant &value) {
+    if (NullType == type) {
+        type = ArrayType;
+        InitArray();
+    }
+    ASSERT(ArrayType == type);
+    array->push_back(value);
 }
 
 Variant &Variant::At(unsigned i) {
