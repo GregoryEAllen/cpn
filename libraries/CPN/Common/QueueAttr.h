@@ -85,6 +85,12 @@ namespace CPN {
             return *this;
         }
 
+        template<typename type>
+        QueueAttr &SetDatatype() {
+            datatype = TypeName<type>();
+            return *this;
+        }
+
         QueueAttr &SetLength(unsigned length) {
             queueLength = length;
             return *this;
@@ -166,6 +172,12 @@ namespace CPN {
 
         SimpleQueueAttr &SetDatatype(const std::string &type) {
             datatype = type;
+            return *this;
+        }
+
+        template<typename type>
+        SimpleQueueAttr &SetDatatype() {
+            datatype = TypeName<type>();
             return *this;
         }
 

@@ -190,6 +190,10 @@ namespace CPN {
          */
         virtual void Grow(unsigned queueLen, unsigned maxThresh) = 0;
 
+        void SetDatatype(const std::string &type) { datatype = type; }
+
+        const std::string &GetDatatype() const { return datatype; }
+
         void SetReaderMessageHandler(ReaderMessageHandler *rmhan);
 
         ReaderMessageHandler *GetReaderMessageHandler();
@@ -213,6 +217,7 @@ namespace CPN {
         virtual void LogState() {}
 	private:
         bool shutdown;
+        std::string datatype;
 	};
 
 }

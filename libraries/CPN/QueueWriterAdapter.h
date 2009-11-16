@@ -30,6 +30,7 @@
 #include "CPNCommon.h"
 #include "QueueWriter.h"
 #include "QueueDatatypes.h"
+#include "Exceptions.h"
 
 namespace CPN {
     /**
@@ -41,6 +42,9 @@ namespace CPN {
     public:
         QueueWriterAdapter() {}
         QueueWriterAdapter(shared_ptr<QueueWriter> q) : queue(q) {
+            if (TypeName<T>() != queue->GetDatatype()) {
+                throw TypeMismatchException();
+            }
         }
 
         /**
@@ -85,9 +89,9 @@ namespace CPN {
         /// \return the number of channels
         unsigned NumChannels() const { return queue->NumChannels(); }
         /// \return the maximum threshold in bytes
-        unsigned MaxThreshold() const { return queue->MaxThreshold()/sizeof(T); }
+        unsigned MaxThreshold() const { return queue->MaxThreshold()/GetTypeSize<T>(); }
         /// \return the amount of freespace in bytes
-        unsigned Freespace() const { return queue->Freespace()/sizeof(T); }
+        unsigned Freespace() const { return queue->Freespace()/GetTypeSize<T>(); }
         /// \return true if full
         bool Full() const { return queue->Full(); }
         /// \return the endpoint key

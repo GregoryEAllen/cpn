@@ -111,6 +111,7 @@ void SieveResultNode::CreateNextFilter(SieveNumber filternum) {
     kernel.CreateNode(nattr);
     // A queue between us and next
     CPN::QueueAttr qattr(100, 100);
+    qattr.SetDatatype<SieveNumber>();
     qattr.SetReader(nodename, PORT_IN);
     qattr.SetWriter(ToString(FILTER_FORMAT, filternum - 1), PORT_OUT);
     kernel.CreateQueue(qattr);
@@ -263,6 +264,7 @@ void SieveTest::RunTest(void) {
     kernel.CreateNode(nattr);
 
     CPN::QueueAttr qattr(100, 100);
+    qattr.SetDatatype<SieveNumber>();
     qattr.SetReader(filtername, PORT_IN);
     qattr.SetWriter("TheProducer", PORT_OUT);
     kernel.CreateQueue(qattr);
@@ -308,6 +310,7 @@ void SieveTest::RunTwoKernelTest() {
     kone.CreateNode(nattr);
 
     CPN::QueueAttr qattr(100, 100);
+    qattr.SetDatatype<SieveNumber>();
     qattr.SetReader(filtername, PORT_IN);
     qattr.SetWriter("TheProducer", PORT_OUT);
     ktwo.CreateQueue(qattr);

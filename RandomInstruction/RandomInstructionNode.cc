@@ -242,6 +242,7 @@ int RandomInstructionNode::dbprintf(int dbLevel, const char *fmt, ...) {
 
 void RandomInstructionNode::CreateQueue(unsigned srcID, unsigned dstID) {
     CPN::QueueAttr qattr(1024, 1024);
+    qattr.SetDatatype<unsigned>();
     qattr.SetWriter(GetNodeNameFromID(srcID), CurrentOutPort());
     qattr.SetReader(GetNodeNameFromID(dstID), CurrentInPort());
     kernel.CreateQueue(qattr);

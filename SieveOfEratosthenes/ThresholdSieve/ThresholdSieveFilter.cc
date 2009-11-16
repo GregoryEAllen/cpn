@@ -106,7 +106,7 @@ void ThresholdSieveFilter::CreateNewFilter() {
     CPN::Key_t nodekey = kernel.CreateNode(attr);
 
     CPN::QueueAttr qattr(opts.queuesize * sizeof(NumberT), opts.threshold * sizeof(NumberT));
-    qattr.SetHint(opts.queuehint);
+    qattr.SetHint(opts.queuehint).SetDatatype<NumberT>();
     qattr.SetWriter(GetKey(), OUT_PORT);
     qattr.SetReader(nodekey, IN_PORT);
     kernel.CreateQueue(qattr);

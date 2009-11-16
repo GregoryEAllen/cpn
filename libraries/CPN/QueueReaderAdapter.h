@@ -29,6 +29,7 @@
 #include "CPNCommon.h"
 #include "QueueReader.h"
 #include "QueueDatatypes.h"
+#include "Exceptions.h"
 
 namespace CPN {
     /** 
@@ -38,7 +39,11 @@ namespace CPN {
     class CPN_API QueueReaderAdapter {
     public:
         QueueReaderAdapter() {}
-        QueueReaderAdapter(shared_ptr<QueueReader> q) : queue(q) {}
+        QueueReaderAdapter(shared_ptr<QueueReader> q) : queue(q) {
+            if (TypeName<T>() != queue->GetDatatype()) {
+                throw TypeMismatchException();
+            }
+        }
 
         /**
          * Get an array of the given type of the given length from the given channel
@@ -85,9 +90,9 @@ namespace CPN {
         /// \return the number of channels
         unsigned NumChannels() const { return queue->NumChannels(); }
         /// \return the maximum threshold in bytes
-        unsigned MaxThreshold() const { return queue->MaxThreshold()/sizeof(T); }
+        unsigned MaxThreshold() const { return queue->MaxThreshold()/GetTypeSize<T>(); }
         /// \return the number of bytes in the channel
-        unsigned Count() const { return queue->Count()/sizeof(T); }
+        unsigned Count() const { return queue->Count()/GetTypeSize<T>(); }
         /// \return true if empty, false otherwise
         bool Empty() const { return queue->Empty(); }
         /// \return the endpoint key

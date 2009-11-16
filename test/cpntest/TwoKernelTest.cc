@@ -56,6 +56,7 @@ void TwoKernelTest::SimpleTwoNodeTest() {
     attr.SetName("sink").SetParam(MockNode::GetModeName(MockNode::MODE_SINK));
     ktwo->CreateNode(attr);
     QueueAttr qattr(2*sizeof(unsigned long), 2*sizeof(unsigned long));
+    qattr.SetDatatype<unsigned long>();
     qattr.SetReader("sink", "x").SetWriter("source", "y");
     kone->CreateQueue(qattr);
     kone->WaitNodeTerminate("sink");
@@ -142,6 +143,7 @@ void TwoKernelTest::QueueShutdownTest() {
     attr.SetName("sink").SetParam(MockNode::GetModeName(MockNode::MODE_SINK));
     ktwo->CreateNode(attr);
     QueueAttr qattr(2*sizeof(unsigned long), 2*sizeof(unsigned long));
+    qattr.SetDatatype<unsigned long>();
     qattr.SetReader("sink", "unused").SetWriter("source", "unused");
     kone->CreateQueue(qattr);
     qattr.SetReader("sink", "x").SetWriter("source", "y");

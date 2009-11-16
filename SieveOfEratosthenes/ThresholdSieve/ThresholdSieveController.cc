@@ -88,7 +88,7 @@ void ThresholdSieveController::Initialize(void) {
     kernel.CreateNode(attr);
 
     CPN::QueueAttr qattr(opts.queuesize * sizeof(NumberT), opts.threshold * sizeof(NumberT));
-    qattr.SetHint(opts.queuehint);
+    qattr.SetHint(opts.queuehint).SetDatatype<NumberT>();
 
     qattr.SetWriter(nodename, CONTROL_PORT);
     qattr.SetReader(GetName(), ToString(FILTER_FORMAT, 1));

@@ -99,7 +99,6 @@ namespace CPN {
     // Global enums
     enum QueueHint_t { QUEUEHINT_DEFAULT, QUEUEHINT_THRESHOLD };
     enum Error_t { E_NONE, E_EXISTS, E_NOTEXISTS };
-    enum ObjectType { T_NONE, T_NODE, T_PORT };
 
     // Types
     typedef uint64_t Key_t;

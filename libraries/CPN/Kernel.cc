@@ -247,6 +247,8 @@ namespace CPN {
                     attr.GetNumChannels()
                     ));
 
+        endp->SetDatatype(attr.GetDatatype());
+
         endpoints.push_back(endp);
 
         shared_ptr<NodeBase> readernode = nodemap[attr.GetReaderNodeKey()];
@@ -271,6 +273,8 @@ namespace CPN {
                     attr.GetMaxThreshold(),
                     attr.GetNumChannels()
                     ));
+
+        endp->SetDatatype(attr.GetDatatype());
 
         endpoints.push_back(endp);
 
@@ -311,6 +315,8 @@ namespace CPN {
                 attr.GetMaxThreshold(), attr.GetNumChannels()));
             break;
         }
+        queue->SetDatatype(attr.GetDatatype());
+
         return queue;
     }
 

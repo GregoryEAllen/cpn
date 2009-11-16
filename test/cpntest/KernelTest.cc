@@ -65,6 +65,7 @@ void KernelTest::SimpleTwoNodeTest() {
     attr.SetName("sink").SetParam(MockNode::GetModeName(MockNode::MODE_SINK));
     kernel.CreateNode(attr);
     QueueAttr qattr(16, 16);
+    qattr.SetDatatype<unsigned long>();
     qattr.SetReader("sink", "x").SetWriter("source", "y");
     kernel.CreateQueue(qattr);
     kernel.WaitNodeTerminate("sink");

@@ -38,11 +38,7 @@ namespace CPN {
         return typeid(type).name();
     }
 
-    template<class type>
-    bool CompareTypeName(const char* othername) {
-        return 0 == strcmp(typeid(type).name(), othername);
-    }
-
+    // this function is so that void has a size of 1
     template<class type>
     unsigned GetTypeSize() {
         return sizeof(type);
@@ -52,11 +48,9 @@ namespace CPN {
     template<>
     inline unsigned GetTypeSize<void>() { return 1; }
 
+
 #define REGISTER_TYPE_NAME(type) \
-    template<> inline const char* TypeName<type>() { return #type; } \
-    template<> inline bool CompareTypeName<type>(const char* othername) { \
-        return 0 == strcmp(#type, othername); \
-    }
+    template<> inline const char* TypeName<type>() { return #type; }
 
     REGISTER_TYPE_NAME(void);
     REGISTER_TYPE_NAME(char);

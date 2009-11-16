@@ -20,6 +20,7 @@ void MockSyncNode::Process() {
             kernel.WaitNodeStart(param.othernode);
             CPN::QueueAttr qattr(sizeof(unsigned long), sizeof(unsigned long));
             qattr.SetReader(param.othernode, "x").SetWriter(GetName(), "y");
+            qattr.SetDatatype<unsigned long>();
             kernel.CreateQueue(qattr);
             CPN::QueueWriterAdapter<unsigned long> out = GetWriter("y");
             unsigned long val = 1;
@@ -62,6 +63,7 @@ void SyncSource::Run1(CPN::NodeBase *nb) {
     nb->GetKernel()->WaitNodeStart(othernode);
     CPN::QueueAttr qattr(sizeof(unsigned long), sizeof(unsigned long));
     qattr.SetReader(othernode, "x").SetWriter(nb->GetName(), "y");
+    qattr.SetDatatype<unsigned long>();
     nb->GetKernel()->CreateQueue(qattr);
     CPN::QueueWriterAdapter<unsigned long> out = nb->GetWriter("y");
     unsigned long val = 1;
@@ -70,6 +72,7 @@ void SyncSource::Run1(CPN::NodeBase *nb) {
 void SyncSource::Run2(CPN::NodeBase *nb) {
     CPN::QueueAttr qattr(sizeof(unsigned long), sizeof(unsigned long));
     qattr.SetReader(othernode, "x").SetWriter(nb->GetName(), "y");
+    qattr.SetDatatype<unsigned long>();
     nb->GetKernel()->CreateQueue(qattr);
     CPN::QueueWriterAdapter<unsigned long> out = nb->GetWriter("y");
     unsigned long val = 1;
@@ -78,6 +81,7 @@ void SyncSource::Run2(CPN::NodeBase *nb) {
 void SyncSource::Run3(CPN::NodeBase *nb) {
     CPN::QueueAttr qattr(sizeof(unsigned long), sizeof(unsigned long));
     qattr.SetReader(othernode, "x").SetWriter(nb->GetName(), "y");
+    qattr.SetDatatype<unsigned long>();
     nb->GetKernel()->CreateQueue(qattr);
     CPN::QueueWriterAdapter<unsigned long> out = nb->GetWriter("y");
     unsigned long val = 1;
@@ -87,6 +91,7 @@ void SyncSource::Run3(CPN::NodeBase *nb) {
 void SyncSource::Run4(CPN::NodeBase *nb) {
     nb->GetKernel()->WaitNodeStart(othernode);
     CPN::QueueAttr qattr(sizeof(unsigned long), sizeof(unsigned long));
+    qattr.SetDatatype<unsigned long>();
     qattr.SetReader(othernode, "x").SetWriter(nb->GetName(), "y");
     nb->GetKernel()->CreateQueue(qattr);
     CPN::QueueWriterAdapter<unsigned long> out = nb->GetWriter("y");
@@ -120,6 +125,7 @@ void SyncSink::Run2(CPN::NodeBase *nb) {
 // goes only with SyncSource::Run5
 void SyncSink::Run3(CPN::NodeBase *nb) {
     CPN::QueueAttr qattr(sizeof(unsigned long), sizeof(unsigned long));
+    qattr.SetDatatype<unsigned long>();
     qattr.SetWriter(othernode, "y").SetReader(nb->GetName(), "x");
     nb->GetKernel()->CreateQueue(qattr);
     CPN::QueueReaderAdapter<unsigned long> in = nb->GetReader("x");

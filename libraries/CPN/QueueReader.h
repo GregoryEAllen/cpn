@@ -125,7 +125,7 @@ namespace CPN {
         /**
          * \return the typename for this queue
          */
-        const std::string &GetTypeName() const { return datatype; }
+        const std::string &GetDatatype() const { return queue->GetDatatype(); }
 
         /**
          * \return the key associated with this endpoint
@@ -151,7 +151,6 @@ namespace CPN {
         Key_t rkey;
         Key_t wkey;
         shared_ptr<QueueBase> queue;
-        std::string datatype;
         bool shutdown;
     };
 }

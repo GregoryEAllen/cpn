@@ -133,7 +133,7 @@ void SieveControllerNode::CreateFilter(const unsigned long prime) {
 QueueAttr SieveControllerNode::GetQueueAttr() {
     QueueAttr qattr(param.queueSize * sizeof(unsigned long),
             param.threshold * sizeof(unsigned long));
-    qattr.SetHint(param.queuehint);
+    qattr.SetHint(param.queuehint).SetDatatype<unsigned long>();
     return qattr;
 }
 

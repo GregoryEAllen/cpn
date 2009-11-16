@@ -22,9 +22,10 @@
  * \author John Bridgman
  */
 #include "QueueBase.h"
+#include "QueueDatatypes.h"
 
 namespace CPN {
-    QueueBase::QueueBase() : shutdown(false) {
+    QueueBase::QueueBase() : shutdown(false), datatype(TypeName<void>()) {
     }
 
     QueueBase::~QueueBase() {}
