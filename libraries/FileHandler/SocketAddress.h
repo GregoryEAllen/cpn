@@ -78,7 +78,7 @@ public:
     /**
      * Create a SocketAddress from the underlying sockaddr and length
      * \param addr pointer tot he address structure
-     * \param length the length of the address structure
+     * \param len the length of the address structure
      */
     SocketAddress(sockaddr *addr, socklen_t len);
     ~SocketAddress() {}

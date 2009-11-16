@@ -78,8 +78,8 @@ namespace CPN {
          * Enqueue the count elements in the 2D array into the channel.
          * \param data the array
          * \param count the number in each channel
-         * \param the number of channels
-         * \param the number of elements between channels
+         * \param numChans the number of channels
+         * \param chanStride the number of elements between channels
          */
         void Enqueue(T* data, unsigned count, unsigned numChans, unsigned chanStride) {
             queue->RawEnqueue((void*)data, GetTypeSize<T>() * count,

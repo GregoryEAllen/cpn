@@ -52,7 +52,7 @@ public:
      * Try to return a pointer into the buffer with desired
      * number of bytes available to write. Actual is the amount
      * actually available.
-     * \param desire the desired number of bytes
+     * \param desired the desired number of bytes
      * \param actual (return) the number of bytes available
      * \return a pointer into the buffer to write to
      */

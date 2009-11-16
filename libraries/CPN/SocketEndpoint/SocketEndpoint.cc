@@ -265,13 +265,7 @@ namespace CPN {
                     if (Eof()) {
                         // Eof
                         logger.Debug("Read EOF");
-                        if (!(readshutdown || writeshutdown)) {
-                            logger.Error("Orderly shutdown without an end of queue message");
-                            // W. T. F. !?
-                            // By all accounts we should NOT get an orderly shutdown
-                            // without the end of queue!!
-                        }
-                        //ASSERT(readshutdown || writeshutdown, "Read EOF before shutdown");
+                        ASSERT(readshutdown || writeshutdown, "Read EOF before shutdown");
                     }
                     break;
                 } else {
