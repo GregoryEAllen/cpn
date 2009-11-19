@@ -167,7 +167,8 @@ private:
     int CompareNumber(const Variant &other) const;
 
     Type_t type;
-    // A long double can represent all int types exactly
+    // long double is 128 bits on most systems which can represent most other
+    // number types exactly
     long double numvalue;
     mutable std::string stringval;
     std::tr1::shared_ptr<List> array;

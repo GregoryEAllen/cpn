@@ -157,7 +157,7 @@ namespace CPN {
         kmh->CreateNode(hostkey, attr);
     }
 
-    Key_t LocalDatabase::CreateNodeKey(const std::string &nodename) {
+    Key_t LocalDatabase::CreateNodeKey(Key_t hostkey, const std::string &nodename) {
         PthreadMutexProtected pl(lock);
         NameMap::iterator nameentry = nodenames.find(nodename);
         Key_t key;
@@ -166,6 +166,7 @@ namespace CPN {
             ninfo->name = nodename;
             ninfo->started = false;
             ninfo->dead = false;
+            ninfo->hostkey = hostkey;
             key = NewKey();
             nodenames.insert(std::make_pair(nodename, key));
             nodemap.insert(std::make_pair(key, ninfo));
@@ -206,7 +207,7 @@ namespace CPN {
         }
     }
 
-    void LocalDatabase::DestroyNodeKey(Key_t nodekey) {
+    void LocalDatabase::SignalNodeEnd(Key_t nodekey) {
         PthreadMutexProtected pl(lock);
         NodeMap::iterator entry = nodemap.find(nodekey);
         if (entry == nodemap.end()) {
@@ -256,15 +257,6 @@ namespace CPN {
         while (numlivenodes > 0) {
             nodelivedead.Wait(lock);
         }
-    }
-
-    void LocalDatabase::AffiliateNodeWithHost(Key_t hostkey, Key_t nodekey) {
-        PthreadMutexProtected pl(lock);
-        NodeMap::iterator entry = nodemap.find(nodekey);
-        if (entry == nodemap.end()) {
-            throw std::invalid_argument("No such node");
-        }
-        entry->second->hostkey = hostkey;
     }
 
     Key_t LocalDatabase::GetNodeHost(Key_t nodekey) {

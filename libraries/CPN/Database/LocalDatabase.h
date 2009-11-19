@@ -87,17 +87,15 @@ namespace CPN {
         virtual void SendCreateQueue(Key_t hostkey, const SimpleQueueAttr &attr);
         virtual void SendCreateNode(Key_t hostkey, const NodeAttr &attr);
 
-        virtual Key_t CreateNodeKey(const std::string &nodename);
+        virtual Key_t CreateNodeKey(Key_t hostkey, const std::string &nodename);
         virtual Key_t GetNodeKey(const std::string &nodename);
         virtual const std::string &GetNodeName(Key_t nodekey);
+        virtual Key_t GetNodeHost(Key_t nodekey);
         virtual void SignalNodeStart(Key_t nodekey);
-        virtual void DestroyNodeKey(Key_t nodekey);
+        virtual void SignalNodeEnd(Key_t nodekey);
         virtual Key_t WaitForNodeStart(const std::string &nodename);
         virtual void WaitForNodeEnd(const std::string &nodename);
         virtual void WaitForAllNodeEnd();
-
-        virtual void AffiliateNodeWithHost(Key_t hostkey, Key_t nodekey);
-        virtual Key_t GetNodeHost(Key_t nodekey);
 
         virtual Key_t GetCreateReaderKey(Key_t nodekey, const std::string &portname);
         virtual Key_t GetReaderNode(Key_t portkey);

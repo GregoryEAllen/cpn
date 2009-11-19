@@ -125,10 +125,8 @@ namespace CPN {
 
         ASSERT(status.Get() == RUNNING);
 
-        Key_t nodekey = database->CreateNodeKey(attr.GetName());
 
         NodeAttr nodeattr = attr;
-        nodeattr.SetKey(nodekey);
 
         if (nodeattr.GetHostKey() == 0) {
             Key_t key = 0;
@@ -139,6 +137,9 @@ namespace CPN {
             }
             nodeattr.SetHostKey(key);
         }
+        Key_t nodekey = database->CreateNodeKey(nodeattr.GetHostKey(), attr.GetName());
+        nodeattr.SetKey(nodekey);
+
         // check the host the node should go on and send
         // to that particular host
         if (nodeattr.GetHostKey() == ourkey) {
@@ -325,7 +326,6 @@ namespace CPN {
         FUNCBEGIN;
         ASSERT(status.Get() == RUNNING);
         nodeattr.SetDatabase(database);
-        database->AffiliateNodeWithHost(hostkey, nodeattr.GetKey());
         shared_ptr<NodeFactory> factory = CPNGetNodeFactory(nodeattr.GetTypeName());
         if (!factory) {
             throw std::invalid_argument("No such node type " + nodeattr.GetTypeName());
@@ -339,7 +339,7 @@ namespace CPN {
         Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
         ASSERT(status.Get() != DONE, "Nodes running after shutdown");
-        database->DestroyNodeKey(key);
+        database->SignalNodeEnd(key);
         shared_ptr<NodeBase> node = nodemap[key];
         nodemap.erase(key);
         garbagenodes.push_back(node);
