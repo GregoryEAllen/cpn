@@ -167,6 +167,14 @@ Variant::Variant(unsigned long v) : type(NumberType) {
     numvalue = v;
 }
 
+Variant::Variant(long long v) : type(NumberType) {
+    numvalue = v;
+}
+
+Variant::Variant(unsigned long long v) : type(NumberType) {
+    numvalue = v;
+}
+
 Variant::Variant(double v) : type(NumberType) {
     numvalue = v;
 }

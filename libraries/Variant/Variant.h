@@ -71,12 +71,16 @@ public:
     Variant();
     Variant(Type_t type_);
     Variant(bool v);
+
     Variant(int v);
     Variant(unsigned v);
     Variant(long v);
     Variant(unsigned long v);
+    Variant(long long v);
+    Variant(unsigned long long v);
     Variant(double v);
     Variant(long double v);
+
     Variant(const std::string &v);
     Variant(const char *v);
     Variant(const Variant &v);
