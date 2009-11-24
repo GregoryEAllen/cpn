@@ -40,9 +40,13 @@ class Base64Decoder {
 public:
     Base64Decoder();
 
+    void DecodeBlock(const std::string &code) {
+        DecodeBlock(code.data(), code.size());
+    }
     void DecodeBlock(const char *codein, unsigned codelen);
     std::vector<char> GetPartial();
     std::vector<char> BlockEnd();
+    void Reset();
 private:
     char DecodeValue(char value_in);
     enum decodestep {

@@ -176,21 +176,16 @@ std::vector<char> Base64Decoder::GetPartial() {
 }
 
 std::vector<char> Base64Decoder::BlockEnd() {
-    switch (step) {
-    case step_a:
-        break;
-    case step_b:
-        output.push_back(currchar);
-        break;
-    case step_c:
-        break;
-    case step_d:
-        break;
-    }
     std::vector<char> ret;
     ret.swap(output);
     currchar = 0;
     step = step_a;
     return ret;
+}
+
+void Base64Decoder::Reset() {
+    currchar = 0;
+    output.clear();
+    step = step_a;
 }
 

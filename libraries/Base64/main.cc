@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <math.h>
 
-const char VALID_OPS[] = "hedi:o:sgf";
+const char VALID_OPS[] = "hedi:o:sgft:";
 
 const char HELP_TEXT[] = "%s <-e|-d> [-i filename] [-o filename]\n"
 "\t-e\t Encode (default)\n"
@@ -24,6 +24,7 @@ void Decode();
 void SelfTest();
 void GenTestFiles();
 void TestFiles();
+void TestLength(unsigned len);
 
 int main(int argc, char **argv) {
     bool procOpts = true;
@@ -53,6 +54,9 @@ int main(int argc, char **argv) {
             return 0;
         case 'f':
             TestFiles();
+            return 0;
+        case 't':
+            TestLength(atoi(optarg));
             return 0;
         case 'h':
             printf(HELP_TEXT, argv[0]);
@@ -138,18 +142,21 @@ void Encode() {
 
 void SelfTest() {
     srand(1);
-    for (int count = 0; count < NUM_TESTS; ++count) {
+    for (int count = 0; count < 200; ++count) {
         std::vector<int> buffer;
         int num = rand();
         if (num <= 0) { num = -num + 1; }
         if (num > (1<<16)) { num %= 1<<16; }
-        printf("Test %d with %d bytes\n", count, num*sizeof(int));
+        printf("Test %d with %d bytes... ", count, num*sizeof(int));
+        fflush(0);
         for (int i = 0; i < num; ++i) {
             buffer.push_back(rand());
         }
+        printf("encode ... ");
         Base64Encoder encoder;
         encoder.EncodeBlock(&buffer[0], buffer.size()*sizeof(int));
         std::string val = encoder.BlockEnd();
+        printf("decode... ");
         Base64Decoder decoder;
         decoder.DecodeBlock(val.data(), val.length());
         std::vector<char> result = decoder.BlockEnd();
@@ -160,10 +167,40 @@ void SelfTest() {
             }
         }
         if (equal) {
-            printf("Test pass\n");
+            printf("pass\n");
         } else {
-            printf("Test fail\n");
+            printf("FAIL\n");
         }
+    }
+}
+
+void TestLength(unsigned len) {
+    //srand(1);
+    std::vector<char> buffer(len, 0);
+    for (unsigned i = 0; i < len; ++i) {
+        buffer[i] = (char)rand();
+    }
+    printf("Testing with buffer size %u... ", len);
+    fflush(0);
+    printf("encode ... ");
+    Base64Encoder encoder;
+    encoder.EncodeBlock(&buffer[0], buffer.size());
+    std::string val = encoder.BlockEnd();
+    //printf("\n%s\n", val.c_str());
+    printf("decode... ");
+    Base64Decoder decoder;
+    decoder.DecodeBlock(val);
+    std::vector<char> result = decoder.BlockEnd();
+    bool equal = (result.size() == buffer.size());
+    if (equal) {
+        if (memcmp(&result[0], &buffer[0], result.size()) != 0) {
+            equal = false;
+        }
+    }
+    if (equal) {
+        printf("pass\n");
+    } else {
+        printf("FAIL\n");
     }
 }
 
