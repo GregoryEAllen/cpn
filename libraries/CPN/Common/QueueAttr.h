@@ -153,6 +153,7 @@ namespace CPN {
 
     class SimpleQueueAttr {
     public:
+        SimpleQueueAttr() {}
         SimpleQueueAttr(const QueueAttr &attr)
             : queuehint(attr.GetHint()),
             datatype(attr.GetDatatype()),
@@ -188,6 +189,11 @@ namespace CPN {
 
         SimpleQueueAttr &SetMaxThreshold(unsigned maxthresh) {
             maxThreshold = maxthresh;
+            return *this;
+        }
+
+        SimpleQueueAttr &SetNumChannels(unsigned numchans) {
+            numChannels = numchans;
             return *this;
         }
 
