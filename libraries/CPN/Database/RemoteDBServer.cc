@@ -72,9 +72,17 @@ namespace CPN {
     }
 
     void RemoteDBServer::SetupHost(const std::string &sender, const Variant &msg) {
+        std::string name = msg["name"].AsString();
+        if (hostmap.find(name) != hostmap.end()) {
+            Variant reply(Variant::ObjectType);
+            reply["msgid"] = msg["msgid"];
+            reply["msgtype"] = "reply";
+            reply["success"] = false;
+            SendMessage(sender, reply);
+            return;
+        }
         Variant hostinfo(Variant::ObjectType);
         Key_t hostkey = NewKey();
-        std::string name = msg["name"].AsString();
         hostinfo["key"] = hostkey;
         hostinfo["name"] = name;
         hostinfo["hostname"] = msg["hostname"];
@@ -86,6 +94,7 @@ namespace CPN {
         Variant reply = hostinfo.Copy();
         reply["msgid"] = msg["msgid"];
         reply["msgtype"] = "reply";
+        reply["success"] = true;
         SendMessage(sender, reply);
         Variant notice = hostinfo.Copy();
         notice["msgtype"] = "broadcast";
@@ -105,19 +114,43 @@ namespace CPN {
         Key_t hostkey;
         if (msg["name"].IsString()) {
             NameKeyMap::iterator entry = hostmap.find(msg["name"].AsString());
-            ASSERT(entry != hostmap.end());
+            if (entry == hostmap.end()) {
+                Variant reply(Variant::ObjectType);
+                reply["msgtype"] = "reply";
+                reply["msgid"] = msg["msgid"];
+                reply["success"] = false;
+                SendMessage(sender, reply);
+                return;
+            }
             hostkey = entry->second;
         } else {
             hostkey = msg["key"].AsNumber<Key_t>();
         }
-        Variant reply = datamap[hostkey].Copy();
+        DataMap::iterator entry = datamap.find(hostkey);
+        if (entry == datamap.end()) {
+            Variant reply(Variant::ObjectType);
+            reply["msgtype"] = "reply";
+            reply["msgid"] = msg["msgid"];
+            reply["success"] = false;
+            SendMessage(sender, reply);
+        }
+        Variant reply = entry->second.Copy();
         reply["msgid"] = msg["msgid"];
         reply["msgtype"] = "reply";
+        reply["success"] = true;
         SendMessage(sender, reply);
     }
 
     void RemoteDBServer::CreateNodeKey(const std::string &sender, const Variant &msg) {
         std::string nodename = msg["name"].AsString();
+        if (nodemap.find(nodename) != nodemap.end()) {
+            Variant reply(Variant::ObjectType);
+            reply["msgid"] = msg["msgid"];
+            reply["msgtype"] = "reply";
+            reply["success"] = false;
+            SendMessage(sender, reply);
+            return;
+        }
         Key_t nodekey = NewKey();
         Variant nodeinfo(Variant::ObjectType);
         nodeinfo["name"] = nodename;
@@ -131,6 +164,7 @@ namespace CPN {
         Variant reply = nodeinfo.Copy();
         reply["msgid"] = msg["msgid"];
         reply["msgtype"] = "reply";
+        reply["success"] = true;
         SendMessage(sender, reply);
     }
 
@@ -157,13 +191,32 @@ namespace CPN {
     void RemoteDBServer::GetNodeInfo(const std::string &sender, const Variant &msg) {
         Key_t nodekey;
         if (msg["name"].IsString()) {
-            nodekey = nodemap[msg["name"].AsString()];
+            NameKeyMap::iterator entry = nodemap.find(msg["name"].AsString());
+            if (entry == nodemap.end()) {
+                Variant reply(Variant::ObjectType);
+                reply["msgtype"] = "reply";
+                reply["msgid"] = msg["msgid"];
+                reply["success"] = false;
+                SendMessage(sender, reply);
+                return;
+            }
+            nodekey = entry->second;
         } else {
             nodekey = msg["key"].AsNumber<Key_t>();
         }
-        Variant reply = datamap[nodekey].Copy();
+        DataMap::iterator entry = datamap.find(nodekey);
+        if (entry == datamap.end()) {
+            Variant reply(Variant::ObjectType);
+            reply["msgtype"] = "reply";
+            reply["msgid"] = msg["msgid"];
+            reply["success"] = false;
+            SendMessage(sender, reply);
+            return;
+        }
+        Variant reply = entry->second.Copy();
         reply["msgid"] = msg["msgid"];
         reply["msgtype"] = "reply";
+        reply["success"] = true;
         SendMessage(sender, reply);
     }
 
@@ -172,6 +225,7 @@ namespace CPN {
         reply["msgid"] = msg["msgid"];
         reply["msgtype"] = "reply";
         reply["numlivenodes"] = numlivenodes;
+        reply["success"] = true;
         SendMessage(sender, reply);
     }
 
@@ -197,6 +251,7 @@ namespace CPN {
         Variant reply = epinfo.Copy();
         reply["msgid"] = msg["msgid"];
         reply["msgtype"] = "reply";
+        reply["success"] = true;
         SendMessage(sender, reply);
     }
 
@@ -210,6 +265,7 @@ namespace CPN {
         Variant reply = datamap[epkey].Copy();
         reply["msgid"] = msg["msgid"];
         reply["msgtype"] = "reply";
+        reply["success"] = true;
         SendMessage(sender, reply);
 
     }

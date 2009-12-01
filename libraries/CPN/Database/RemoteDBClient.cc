@@ -31,6 +31,7 @@ namespace CPN {
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
         }
+        ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
         Key_t key = winfo.msg["key"].AsNumber<Key_t>();
         kmhandlers.insert(std::make_pair(key, kmh));
         return key;
@@ -50,6 +51,7 @@ namespace CPN {
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
         }
+        ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
         return winfo.msg["key"].AsNumber<Key_t>();
     }
 
@@ -67,6 +69,7 @@ namespace CPN {
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
         }
+        ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
         return winfo.msg["name"].AsString();
     }
 
@@ -84,6 +87,7 @@ namespace CPN {
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
         }
+        ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
         hostname = winfo.msg["hostname"].AsString();
         servname = winfo.msg["servname"].AsString();
     }
@@ -115,7 +119,7 @@ namespace CPN {
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
         }
-        if (winfo.msg["key"].IsNumber()) {
+        if (winfo.msg["success"].IsTrue()) {
             return winfo.msg["key"].AsNumber<Key_t>();
         }
         while (true) {
@@ -220,6 +224,7 @@ namespace CPN {
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
         }
+        ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
         return winfo.msg["key"].AsNumber<Key_t>();
     }
 
@@ -237,6 +242,7 @@ namespace CPN {
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
         }
+        ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
         return winfo.msg["key"].AsNumber<Key_t>();
     }
 
@@ -254,6 +260,7 @@ namespace CPN {
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
         }
+        ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
         return winfo.msg["name"].AsString();
     }
 
@@ -288,7 +295,7 @@ namespace CPN {
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
         }
-        if (winfo.msg["started"].IsTrue() && winfo.msg["key"].IsNumber()) {
+        if (winfo.msg["success"].IsTrue() && winfo.msg["started"].IsTrue()) {
             return winfo.msg["key"].AsNumber<Key_t>();
         }
         while (true) {
@@ -319,7 +326,7 @@ namespace CPN {
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
         }
-        if (winfo.msg["dead"].IsTrue()) {
+        if (winfo.msg["success"].IsTrue() && winfo.msg["dead"].IsTrue()) {
             return;
         }
         while (true) {
@@ -337,6 +344,26 @@ namespace CPN {
 
     void RemoteDBClient::WaitForAllNodeEnd() {
         PthreadMutexProtected plock(lock);
+        GenericWaiterPtr genwait = NewGenericWaiter();
+        while (true) {
+            WaiterInfo winfo(NewTranID());
+            AddWaiter(&winfo);
+            Variant msg(Variant::ObjectType);
+            msg["msgid"] = winfo.waiterid;
+            msg["type"] = RDBMT_GET_NUM_NODE_LIVE;
+            SendMessage(msg);
+            while (!winfo.signaled) {
+                winfo.cond.Wait(lock);
+            }
+            ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
+            if (winfo.msg["numlivenodes"].AsUnsigned() == 0) {
+                return;
+            }
+            while (genwait->messages.empty()) {
+                genwait->cond.Wait(lock);
+            }
+            genwait->messages.clear();
+        }
     }
 
     Key_t RemoteDBClient::GetNodeHost(Key_t nodekey) {
@@ -353,6 +380,7 @@ namespace CPN {
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
         }
+        ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
         return winfo.msg["hostkey"].AsNumber<Key_t>();
     }
 
@@ -527,6 +555,7 @@ namespace CPN {
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
         }
+        ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
         return winfo.msg["nodekey"].AsNumber<Key_t>();
     }
 
@@ -543,6 +572,7 @@ namespace CPN {
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
         }
+        ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
         return winfo.msg;
     }
 }

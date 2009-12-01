@@ -18,6 +18,7 @@ namespace CPN {
     class RemoteDBClient : public Database {
     public:
         virtual ~RemoteDBClient();
+
         virtual CPN::Key_t SetupHost(const std::string &name, const std::string &hostname,
                 const std::string &servname, CPN::KernelMessageHandler *kmh);
         virtual CPN::Key_t GetHostKey(const std::string &host);
@@ -62,9 +63,9 @@ namespace CPN {
         virtual CPN::Key_t GetReadersWriter(CPN::Key_t readerkey);
         virtual CPN::Key_t GetWritersReader(CPN::Key_t writerkey);
 
+        void DispatchMessage(const Variant &msg);
     protected:
         RemoteDBClient();
-        void DispatchMessage(const Variant &msg);
         virtual void SendMessage(const Variant &msg) = 0;
         PthreadMutex lock;
     private:
