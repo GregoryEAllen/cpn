@@ -60,6 +60,7 @@ namespace CPN {
             break;
         case RDBMT_DESTROY_WRITER_KEY:
             DestroyEndpointKey(msg);
+            break;
         case RDBMT_GET_WRITER_INFO:
             GetEndpointInfo(sender, msg);
             break;
@@ -240,6 +241,7 @@ namespace CPN {
             epinfo = datamap[epkey];
         } else {
             epkey = NewKey();
+            nodeinfo["endpoints"][name] = epkey;
             epinfo = Variant(Variant::ObjectType);
             epinfo["key"] = epkey;
             epinfo["name"] = name;

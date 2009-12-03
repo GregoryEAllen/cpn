@@ -32,6 +32,9 @@ public:
 	CPPUNIT_TEST( WaitForHostTest );
 	CPPUNIT_TEST( CreateNodeTest );
 	CPPUNIT_TEST( WaitForNodeTest );
+	CPPUNIT_TEST( ReaderTest );
+	CPPUNIT_TEST( WriterTest );
+	CPPUNIT_TEST( ConnectTest );
 	CPPUNIT_TEST_SUITE_END();
 
 	void HostSetupTest();
@@ -46,6 +49,11 @@ public:
     CPN::Key_t m_nodekey;
     void WaitForNodeTest();
     void *WaitForNode();
+
+    void ReaderTest();
+    void WriterTest();
+
+    void ConnectTest();
 
     LocalRDBServ *serv;
 

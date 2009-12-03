@@ -556,7 +556,7 @@ namespace CPN {
             winfo.cond.Wait(lock);
         }
         ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
-        return winfo.msg["nodekey"].AsNumber<Key_t>();
+        return winfo.msg["key"].AsNumber<Key_t>();
     }
 
     Variant RemoteDBClient::GetEndpointInfo(RDBMT_t msgtype, Key_t portkey) {

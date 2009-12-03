@@ -554,7 +554,7 @@ Variant &Variant::At(unsigned i) {
     if (ObjectType == type) {
         std::ostringstream oss;
         oss << i;
-        return object->insert(std::make_pair(oss.str(), Variant())).first->second;
+        return object->insert(std::make_pair(oss.str(), null)).first->second;
     }
     ASSERT(false, "Not an indexible type");
 }
@@ -580,7 +580,7 @@ Variant &Variant::At(const char *s) {
         InitObject();
     }
     if (ObjectType == type) {
-        return object->insert(std::make_pair(std::string(s), Variant())).first->second;
+        return object->insert(std::make_pair(std::string(s), null)).first->second;
     }
     if (ArrayType == type) {
         std::istringstream iss(s);
@@ -597,7 +597,12 @@ const Variant &Variant::At(const char *s) const {
         return At(unsigned(0));
     }
     if (ObjectType == type) {
-        return object->find(s)->second;
+        Map::iterator entry = object->find(s);
+        if (entry != object->end()) {
+            return entry->second;
+        } else {
+            return null;
+        }
     }
     if (ArrayType == type) {
         std::istringstream iss(s);
@@ -616,7 +621,7 @@ Variant &Variant::At(const std::string &s) {
         InitObject();
     }
     if (ObjectType == type) {
-        return object->insert(std::make_pair(s, Variant())).first->second;
+        return object->insert(std::make_pair(s, null)).first->second;
     }
     if (ArrayType == type) {
         std::istringstream iss(s);
@@ -630,7 +635,7 @@ Variant &Variant::At(const std::string &s) {
 
 const Variant &Variant::At(const std::string &s) const {
     if (ObjectType == type) {
-        std::map<std::string, Variant>::iterator val = object->find(s);
+        Map::iterator val = object->find(s);
         if (object->end() == val) {
             return null;
         }

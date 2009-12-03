@@ -231,6 +231,50 @@ void *RemoteDBTest::WaitForNode() {
     return 0;
 }
 
+void RemoteDBTest::ReaderTest() {
+	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    LocalRDBClient lrdbc(serv, __PRETTY_FUNCTION__);
+
+    m_nodename = "bogus node";
+    m_nodekey = lrdbc.CreateNodeKey(4321, m_nodename);
+
+    Key_t rkey = lrdbc.GetCreateReaderKey(m_nodekey, "bogus key");
+    CPPUNIT_ASSERT(rkey > 0);
+    CPPUNIT_ASSERT_EQUAL(m_nodekey, lrdbc.GetReaderNode(rkey));
+    CPPUNIT_ASSERT_EQUAL((Key_t)4321, lrdbc.GetReaderHost(rkey));
+    CPPUNIT_ASSERT_EQUAL(std::string("bogus key"), lrdbc.GetReaderName(rkey));
+    lrdbc.DestroyReaderKey(rkey);
+}
+
+void RemoteDBTest::WriterTest() {
+	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    LocalRDBClient lrdbc(serv, __PRETTY_FUNCTION__);
+
+    m_nodename = "bogus node";
+    m_nodekey = lrdbc.CreateNodeKey(4321, m_nodename);
+
+    Key_t wkey = lrdbc.GetCreateWriterKey(m_nodekey, "bogus key");
+    CPPUNIT_ASSERT(wkey > 0);
+    CPPUNIT_ASSERT_EQUAL(m_nodekey, lrdbc.GetWriterNode(wkey));
+    CPPUNIT_ASSERT_EQUAL((Key_t)4321, lrdbc.GetWriterHost(wkey));
+    CPPUNIT_ASSERT_EQUAL(std::string("bogus key"), lrdbc.GetWriterName(wkey));
+    lrdbc.DestroyWriterKey(wkey);
+}
+
+void RemoteDBTest::ConnectTest() {
+	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    LocalRDBClient lrdbc(serv, __PRETTY_FUNCTION__);
+    m_nodename = "bogus node";
+    m_nodekey = lrdbc.CreateNodeKey(4321, m_nodename);
+
+    Key_t wkey = lrdbc.GetCreateWriterKey(m_nodekey, "bogus writer");
+    Key_t rkey = lrdbc.GetCreateReaderKey(m_nodekey, "bogus reader");
+    lrdbc.ConnectEndpoints(wkey, rkey);
+
+    CPPUNIT_ASSERT_EQUAL(wkey, lrdbc.GetReadersWriter(rkey));
+    CPPUNIT_ASSERT_EQUAL(rkey, lrdbc.GetWritersReader(wkey));
+}
+
 void RemoteDBTest::CreateWriter(CPN::Key_t dst, const CPN::SimpleQueueAttr &attr) {
 }
 
