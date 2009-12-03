@@ -67,6 +67,7 @@ public:
 
     static Variant FromJSON(const std::string &jsonstring);
     static Variant FromJSON(const char *jsonstring, unsigned len);
+    static Variant FromJSON(const std::vector<char> &jsonstring);
 
     Variant();
     Variant(Type_t type_);
@@ -111,6 +112,7 @@ public:
 
     std::string AsJSON() const;
     int AsJSON(char *target, unsigned maxlen) const;
+    void AsJSON(std::vector<char> &target) const;
 
     Type_t GetType() const { return type; }
 

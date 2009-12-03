@@ -15,17 +15,25 @@ SpreadClient::SpreadClient(
 }
 
 SpreadClient::~SpreadClient() {
-    int ret = SP_disconnect(mbox);
-    ASSERT(ret == 0);
+    Close();
 }
 
-void SpreadClient::Join(const std::string &group_name) {
+void SpreadClient::Close() {
+    if (mbox >= 0) {
+        SP_disconnect(mbox);
+        mbox = -1;
+    }
 }
 
-void SpreadClient::Leave(const std::string &group_name) {
+int SpreadClient::Join(const std::string &group_name) {
+    return SP_join(mbox, group_name.c_str());
 }
 
-void SpreadClient::Send(const SpreadMessage &msg) {
+int SpreadClient::Leave(const std::string &group_name) {
+    return SP_leave(mbox, group_name.c_str());
+}
+
+int SpreadClient::Send(const SpreadMessage &msg) {
     service service_type;
     switch (msg.ServiceType()) {
     case SpreadMessage::UNRELIABLE:
@@ -55,12 +63,11 @@ void SpreadClient::Send(const SpreadMessage &msg) {
         strncpy(groups[i], msg.GroupAt(i).c_str(), MAX_GROUP_NAME);
     }
 
-    int ret = SP_multigroup_multicast(mbox, service_type, num_groups,
+    return SP_multigroup_multicast(mbox, service_type, num_groups,
             groups, msg.Type(), msg.Data().size(), &msg.Data().at(0));
-    ASSERT(ret > 0);
 }
 
-SpreadMessage SpreadClient::Recv() {
+int SpreadClient::Recv(SpreadMessage &msg) {
     service service_type = 0;
     char sender[MAX_GROUP_NAME];
     short mess_type = 0;
@@ -89,7 +96,7 @@ SpreadMessage SpreadClient::Recv() {
                 case ILLEGAL_MESSAGE:
                 case ILLEGAL_SESSION:
                 default:
-                    ASSERT(false);
+                    return ret;
             }
         } else {
             loop = false;
@@ -99,8 +106,9 @@ SpreadMessage SpreadClient::Recv() {
             }
             msg.Sender(sender);
             msg.Type(mess_type);
+            msg.Data().resize(ret);
         }
     }
-    return msg;
+    return ret;
 }
 

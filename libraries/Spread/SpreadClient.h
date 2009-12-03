@@ -17,14 +17,15 @@ public:
 
     int Mailbox() const { return mbox; }
 
-    void Join(const std::string &group_name);
+    int Join(const std::string &group_name);
 
-    void Leave(const std::string &group_name);
+    int Leave(const std::string &group_name);
 
-    void Send(const SpreadMessage &msg);
+    int Send(const SpreadMessage &msg);
 
-    SpreadMessage Recv();
+    int Recv(SpreadMessage &msg);
 
+    void Close();
 private:
     int mbox;
     std::string private_group;

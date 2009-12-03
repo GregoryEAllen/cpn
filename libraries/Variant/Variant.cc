@@ -59,6 +59,10 @@ Variant Variant::FromJSON(const char *jsonstring, unsigned len) {
     }
 }
 
+Variant Variant::FromJSON(const std::vector<char> &jsonstring) {
+    return FromJSON(&jsonstring[0], jsonstring.size());
+}
+
 Variant::Variant(const json_t *root) {
     ASSERT(root, "Null argument");
     switch (root->type) {
@@ -460,6 +464,29 @@ int Variant::AsJSON(char *target, unsigned maxlen) const {
         }
         throw;
     }
+}
+
+void Variant::AsJSON(std::vector<char> &target) const {
+    char *text = 0;
+    json_t *root = 0;
+    try {
+        root = BuildJSONTree();
+        json_error err = json_tree_to_string(root, &text);
+        ASSERT(err == JSON_OK, "json_tree_to_string returned %d", err);
+        ASSERT(text);
+        unsigned len = strlen(text);
+        target.assign(text, text + len);
+        free(text);
+        text = 0;
+        json_free_value(&root);
+    } catch (...) {
+        free(text);
+        if (root != 0) {
+            json_free_value(&root);
+        }
+        throw;
+    }
+}
 }
 
 unsigned Variant::Size() const {
