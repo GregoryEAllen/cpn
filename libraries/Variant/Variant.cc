@@ -41,7 +41,7 @@ Variant Variant::FromJSON(const std::string &jsonstring) {
 Variant Variant::FromJSON(const char *jsonstring, unsigned len) {
     json_t *root = 0;
     try {
-        // ehhh.... copy ick...
+        // ehhh.... copy ick... needed to ensure the \0 at the end...
         AutoBuffer buffer(len+1);
         char *text = (char*)buffer.GetBuffer();
         memcpy(text, jsonstring, len);
@@ -65,62 +65,73 @@ Variant Variant::FromJSON(const std::vector<char> &jsonstring) {
 
 Variant::Variant(const json_t *root) {
     ASSERT(root, "Null argument");
-    switch (root->type) {
-    case JSON_STRING:
-        type = StringType;
-        stringval = root->text;
-        break;
-    case JSON_NUMBER:
-        type = NumberType;
-        {
-            std::istringstream iss(root->text);
-            iss >> numvalue;
-            ASSERT(!iss.fail(), "Number conversion failed");
-        }
-        break;
-    case JSON_OBJECT:
-        type = ObjectType;
-        InitObject();
-        {
-            const json_t *i = root->child; 
-            while (true) {
-                ASSERT(i, "Null child");
-                // mjson stores the pair as a string value for the key then it has
-                // a single child which contains the value
-                object->insert(std::make_pair(std::string(i->text), Variant(i->child)));
-                if (i == root->child_end) {
-                    break;
-                }
-                i = i->next;
+    char *str = 0;
+    try {
+        switch (root->type) {
+        case JSON_STRING:
+            type = StringType;
+            str = json_unescape(root->text);
+            stringval = str;
+            free(str);
+            str = 0;
+            break;
+        case JSON_NUMBER:
+            type = NumberType;
+            {
+                std::istringstream iss(root->text);
+                iss >> numvalue;
+                ASSERT(!iss.fail(), "Number conversion failed");
             }
-        }
-        break;
-    case JSON_ARRAY:
-        type = ArrayType;
-        InitArray();
-        {
-            const json_t *i = root->child; 
-            while (true) {
-                ASSERT(i, "Null child");
-                array->push_back(Variant(i));
-                if (i == root->child_end) {
-                    break;
+            break;
+        case JSON_OBJECT:
+            type = ObjectType;
+            InitObject();
+            {
+                const json_t *i = root->child; 
+                while (i) {
+                    // mjson stores the pair as a string value for the key then it has
+                    // a single child which contains the value
+                    str = json_unescape(i->text);
+                    object->insert(std::make_pair(std::string(str), Variant(i->child)));
+                    free(str);
+                    str = 0;
+                    if (i == root->child_end) {
+                        break;
+                    }
+                    i = i->next;
                 }
-                i = i->next;
             }
+            break;
+        case JSON_ARRAY:
+            type = ArrayType;
+            InitArray();
+            {
+                const json_t *i = root->child; 
+                while (i) {
+                    array->push_back(Variant(i));
+                    if (i == root->child_end) {
+                        break;
+                    }
+                    i = i->next;
+                }
+            }
+            break;
+        case JSON_TRUE:
+            type = TrueType;
+            break;
+        case JSON_FALSE:
+            type = FalseType;
+            break;
+        case JSON_NULL:
+            type = NullType;
+            break;
+        default:
+            ASSERT(false, "Unexpected type %d", root->type);
         }
-        break;
-    case JSON_TRUE:
-        type = TrueType;
-        break;
-    case JSON_FALSE:
-        type = FalseType;
-        break;
-    case JSON_NULL:
-        type = NullType;
-        break;
-    default:
-        ASSERT(false, "Unexpected type %d", root->type);
+    } catch (...) {
+        free(str);
+        str = 0;
+        throw;
     }
 }
 
@@ -372,13 +383,17 @@ const Variant::Map &Variant::AsObject() const {
 json_t *Variant::BuildJSONTree() const {
     json_t *ret = 0;
     json_t *value = 0;
+    char *str = 0;
     try {
         switch (type) {
         case ObjectType:
             ret = json_new_object();
             for (Map::iterator i = object->begin(); i != object->end(); ++i) {
                 value = i->second.BuildJSONTree();
-                json_error err = json_insert_pair_into_object(ret, i->first.c_str(), value);
+                str = json_escape(i->first.c_str());
+                json_error err = json_insert_pair_into_object(ret, str, value);
+                free(str);
+                str = 0;
                 value = 0;
                 ASSERT(err == JSON_OK, "json_insert_pair_into_object returned %d", err);
             }
@@ -393,7 +408,12 @@ json_t *Variant::BuildJSONTree() const {
             }
             break;
         case StringType:
-            ret = json_new_string(AsString().c_str());
+            {
+                str = json_escape(AsString().c_str());
+                ret = json_new_string(str);
+                free(str);
+                str = 0;
+            }
             break;
         case NumberType:
             ret = json_new_number(AsString().c_str());
@@ -418,6 +438,8 @@ json_t *Variant::BuildJSONTree() const {
         if (value != 0) {
             json_free_value(&value);
         }
+        free(str);
+        str = 0;
         throw;
     }
 }
@@ -486,7 +508,6 @@ void Variant::AsJSON(std::vector<char> &target) const {
         }
         throw;
     }
-}
 }
 
 unsigned Variant::Size() const {
