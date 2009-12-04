@@ -1,4 +1,8 @@
-
+/** \file
+ * This program has several tests and will 
+ * act like a command line processor for base64 encoding and decoding.
+ * You can do things like base64 < infile > outfile etc.
+ */
 #include "Base64.h"
 #include "ToString.h"
 #include <unistd.h>

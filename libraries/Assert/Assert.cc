@@ -64,6 +64,7 @@ bool __ASSERT(const char *exp, const char *file, int line, const char *func, con
 
 bool __ASSERT(const char *exp, const char *file, int line, const char *func, const char *fmt, ...) {
     std::vector<char> buff(128, '\0');
+    // Note this is based on the exmaple in the man page for vsnprintf.
     while (1) {
         /* Try to print in the allocated space. */
         va_list ap;

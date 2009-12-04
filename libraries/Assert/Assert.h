@@ -19,10 +19,9 @@
 //=============================================================================
 /** \file
  *
- * An implementation of an assert like micro that throws an exception, raises a
- * signal, or terminate the application.  This is usefull when using a unit
- * test as the test will then fail and the application will continue.  Also the
- * signal version is nice as it essentially forces a breakpoint in gdb.
+ * An implementation of an assert like micro that throws an exception.  This is
+ * usefull when using a unit test as the test will then fail and the
+ * application will continue.
  *
  * Note that this file uses some GCC only features like exp ?: see
  * http://gcc.gnu.org/onlinedocs/gcc-4.4.1/gcc/Conditionals.html
