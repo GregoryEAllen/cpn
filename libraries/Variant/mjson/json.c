@@ -1134,7 +1134,7 @@ json_format_string (const char *text)
 
 
 char *
-json_escape (char *text)
+json_escape (const char *text)
 {
 	rcstring *output;
 	size_t i, length;

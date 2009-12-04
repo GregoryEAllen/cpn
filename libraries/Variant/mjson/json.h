@@ -269,7 +269,7 @@ Outputs a new UTF8 c-string which replaces all characters that must be escaped w
 @param text an UTF8 char text string
 @return an UTF-8 c-string holding the same text string but with escaped characters
 **/
-	char *json_escape (char *text);
+	char *json_escape (const char *text);
 
 /**
  * Outputs a new UTF-8 c-string which has all escaped characters replaced by
