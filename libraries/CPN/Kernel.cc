@@ -66,6 +66,7 @@ namespace CPN {
         database(kattr.GetDatabase()),
         connhandler(this)
     {
+        Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
         if (!database) {
             database = Database::Local();
