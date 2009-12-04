@@ -60,10 +60,10 @@ namespace CPN {
         hinfo->servname = servname;
         hinfo->kmh = kmh;
         hinfo->dead = false;
+        hinfo->live = false;
         Key_t key = NewKey();
         hostmap.insert(std::make_pair(key, hinfo));
         hostnames.insert(std::make_pair(name, key));
-        hostlivedead.Broadcast();
         return key;
     }
 
@@ -101,16 +101,29 @@ namespace CPN {
         hostlivedead.Broadcast();
     }
 
-    Key_t LocalDatabase::WaitForHostSetup(const std::string &host) {
+    Key_t LocalDatabase::WaitForHostStart(const std::string &host) {
         PthreadMutexProtected pl(lock);
         while (true) {
             NameMap::iterator entry = hostnames.find(host);
             if (entry == hostnames.end()) {
                 hostlivedead.Wait(lock);
             } else {
-                return entry->second;
+                HostMap::iterator hentry = hostmap.find(entry->second);
+                if (hentry->second->live) {
+                    return entry->second;
+                }
             }
         }
+    }
+
+    void LocalDatabase::SignalHostStart(Key_t hostkey) {
+        PthreadMutexProtected pl(lock);
+        HostMap::iterator entry = hostmap.find(hostkey);
+        if (entry == hostmap.end()) {
+            throw std::invalid_argument("No such host");
+        }
+        entry->second->live = true;
+        hostlivedead.Broadcast();
     }
 
     void LocalDatabase::SendCreateWriter(Key_t hostkey, const SimpleQueueAttr &attr) {

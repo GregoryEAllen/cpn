@@ -102,10 +102,8 @@ namespace CPN {
         kmhandlers.erase(hostkey);
     }
 
-    Key_t RemoteDBClient::WaitForHostSetup(const std::string &host) {
+    Key_t RemoteDBClient::WaitForHostStart(const std::string &host) {
         PthreadMutexProtected plock(lock);
-        // TODO: Actually wait perform the necessary actions to wait for the
-        // host setup message
         WaiterInfo winfo(NewTranID());
         AddWaiter(&winfo);
         GenericWaiterPtr genwait = NewGenericWaiter();
@@ -119,7 +117,7 @@ namespace CPN {
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
         }
-        if (winfo.msg["success"].IsTrue()) {
+        if (winfo.msg["success"].IsTrue() && winfo.msg["live"].IsTrue()) {
             return winfo.msg["key"].AsNumber<Key_t>();
         }
         while (true) {
@@ -128,11 +126,19 @@ namespace CPN {
             } else {
                 Variant msg = genwait->messages.front();
                 genwait->messages.pop_front();
-                if (msg["name"].AsString() == host) {
+                if (msg["name"].AsString() == host && msg["live"].IsTrue()) {
                     return msg["key"].AsNumber<Key_t>();
                 }
             }
         }
+    }
+
+    void RemoteDBClient::SignalHostStart(Key_t hostkey) {
+        PthreadMutexProtected plock(lock);
+        Variant msg(Variant::ObjectType);
+        msg["key"] = hostkey;
+        msg["type"] = RDBMT_SIGNAL_HOST_START;
+        SendMessage(msg);
     }
 
     void RemoteDBClient::SendCreateWriter(Key_t hostkey, const SimpleQueueAttr &attr) {
@@ -535,6 +541,8 @@ namespace CPN {
                 default:
                     ASSERT(false);
                 }
+            } else {
+                printf("No kernel for message\n");
             }
         } else {
             ASSERT(false);

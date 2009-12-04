@@ -48,6 +48,9 @@ void SpreadDBClient::SendMessage(const Variant &msg) {
     message[0] = "command";
     message[1] = msg;
     message.AsJSON(smsg.Data());
+    printf(">>> ");
+    fwrite(&smsg.Data()[0], 1, smsg.Data().size(), stdout);
+    printf("\n");
     sclient.Send(smsg);
 }
 
@@ -57,10 +60,14 @@ void *SpreadDBClient::EntryPoint() {
         int ret = sclient.Recv(smsg);
         if (ret < 0) {
             SP_error(ret);
-            return;
+            return 0;
         }
+        printf("<<< ");
+        fwrite(&smsg.Data()[0], 1, smsg.Data().size(), stdout);
+        printf("\n");
         Variant message = Variant::FromJSON(smsg.Data());
         DispatchMessage(message);
     }
+    return 0;
 }
 

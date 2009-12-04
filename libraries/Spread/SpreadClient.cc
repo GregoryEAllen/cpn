@@ -74,12 +74,14 @@ int SpreadClient::Recv(SpreadMessage &msg) {
     int endian_mismatch = 0;
     int max_groups = 10;
     int num_groups = 0;
-    SpreadMessage msg;
-    msg.Data().resize(256, 0);
+    if (msg.Data().size() < 256) {
+        msg.Data().resize(256, 0);
+    }
     bool loop = true;
+    int ret = 0;
     while (loop) {
         char groups[max_groups][MAX_GROUP_NAME];
-        int ret = SP_receive(mbox, &service_type, sender, max_groups,
+        ret = SP_receive(mbox, &service_type, sender, max_groups,
                 &num_groups, groups, &mess_type, &endian_mismatch,
                 msg.Data().size(), &msg.Data().at(0));
         if (ret < 0) {

@@ -44,7 +44,8 @@ namespace CPN {
         virtual const std::string &GetHostName(Key_t hostkey) = 0;
         virtual void GetHostConnectionInfo(Key_t hostkey, std::string &hostname, std::string &servname) = 0;
         virtual void DestroyHostKey(Key_t hostkey) = 0;
-        virtual Key_t WaitForHostSetup(const std::string &host) = 0;
+        virtual Key_t WaitForHostStart(const std::string &host) = 0;
+        virtual void SignalHostStart(Key_t hostkey) = 0;
 
         virtual void SendCreateWriter(Key_t hostkey, const SimpleQueueAttr &attr) = 0;
         virtual void SendCreateReader(Key_t hostkey, const SimpleQueueAttr &attr) = 0;

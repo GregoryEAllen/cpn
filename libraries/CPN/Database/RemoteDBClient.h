@@ -25,7 +25,8 @@ namespace CPN {
         virtual const std::string &GetHostName(CPN::Key_t hostkey);
         virtual void GetHostConnectionInfo(CPN::Key_t hostkey, std::string &hostname, std::string &servname);
         virtual void DestroyHostKey(CPN::Key_t hostkey);
-        virtual CPN::Key_t WaitForHostSetup(const std::string &host);
+        virtual CPN::Key_t WaitForHostStart(const std::string &host);
+        virtual void SignalHostStart(CPN::Key_t hostkey);
 
         virtual void SendCreateWriter(CPN::Key_t hostkey, const CPN::SimpleQueueAttr &attr);
         virtual void SendCreateReader(CPN::Key_t hostkey, const CPN::SimpleQueueAttr &attr);
@@ -67,7 +68,7 @@ namespace CPN {
     protected:
         RemoteDBClient();
         virtual void SendMessage(const Variant &msg) = 0;
-        PthreadMutex lock;
+        mutable PthreadMutex lock;
     private:
 
         struct WaiterInfo {

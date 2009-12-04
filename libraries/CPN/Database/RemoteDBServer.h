@@ -11,7 +11,8 @@
         "name"      : name of the host,
         "hostname"  : name to use for other kernels to connect to this one,
         "servname"  : service name to use to connecto to this kernel,
-        "live"      : true or false
+        "live"      : true or false,
+        "type"      : "endpointinfo"
     }
 
     nodeinfo = {
@@ -23,7 +24,8 @@
         "endpoints" : {
             "endpointname" : key of endpoint,
             ...
-        }
+        },
+        "type"      : "endpointinfo"
     }
 
     endpointinfo = {
@@ -33,7 +35,8 @@
         "hostkey"   : the key of the host this node endpoint is on,
         "live"      : true or false
         "writerkey" : the key of the writer this endpoint is connected to if a reader,
-        "readerkey" : the key of the reader this endpoint is connected to if a writer
+        "readerkey" : the key of the reader this endpoint is connected to if a writer,
+        "type"      : "endpointinfo"
     }
 */
 namespace CPN {
@@ -48,6 +51,7 @@ namespace CPN {
     private:
 
         void SetupHost(const std::string &sender, const Variant &msg);
+        void SignalHostStart(const Variant &msg);
         void DestroyHostKey(const Variant &msg);
         void GetHostInfo(const std::string &sender, const Variant &msg);
         void CreateNodeKey(const std::string &sender, const Variant &msg);

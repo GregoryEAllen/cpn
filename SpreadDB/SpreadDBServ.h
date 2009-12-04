@@ -1,9 +1,9 @@
 
 #pragma once
-#include "RemoteDBServ.h"
+#include "RemoteDBServer.h"
 #include "SpreadClient.h"
 
-class SpreadDBServ : public CPN::RemoteDBServ {
+class SpreadDBServ : public CPN::RemoteDBServer {
 public:
     SpreadDBServ(const std::string &spread_name, const std::string &self,
             const std::string &cgroup);

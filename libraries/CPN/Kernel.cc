@@ -134,7 +134,7 @@ namespace CPN {
             if (nodeattr.GetHost().empty()) {
                 key = ourkey;
             } else {
-                key = database->WaitForHostSetup(nodeattr.GetHost());
+                key = database->WaitForHostStart(nodeattr.GetHost());
             }
             nodeattr.SetHostKey(key);
         }
@@ -357,6 +357,7 @@ namespace CPN {
         FUNCBEGIN;
         Sync::AutoReentrantLock arlock(lock, false);
         status.CompareAndPost(INITIALIZED, RUNNING);
+        database->SignalHostStart(hostkey);
         while (status.Get() == RUNNING) {
             ClearGarbage();
             Poll(-1);

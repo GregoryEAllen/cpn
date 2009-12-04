@@ -7,6 +7,7 @@ SpreadDBServ::SpreadDBServ(const std::string &spread_name, const std::string &se
         const std::string &cgroup)
 : sclient(spread_name, self), clientgroup(cgroup)
 {
+    sclient.Join(self);
 }
 
 void SpreadDBServ::Run() {
@@ -17,10 +18,12 @@ void SpreadDBServ::Run() {
             SP_error(ret);
             return;
         }
+        printf("<<< %s: ", msg.Sender().c_str());
+        fwrite(&msg.Data()[0], 1, msg.Data().size(), stdout);
+        printf("\n");
         Variant message = Variant::FromJSON(msg.Data());
         if (message.IsArray()) {
             if (message[0].AsString() == "command") {
-                printf("<<< %s: %s\n", msg.Sender().c_str(), message[1].AsJSON().c_str());
                 DispatchMessage(msg.Sender(), message[1]);
             }
         }

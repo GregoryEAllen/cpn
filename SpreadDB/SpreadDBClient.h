@@ -20,7 +20,7 @@ class SpreadDBClient : public CPN::RemoteDBClient, public Pthread {
         void SendMessage(const Variant &msg);
         void *EntryPoint();
 
-        SpreadClient sclient;
+        mutable SpreadClient sclient;
         const std::string group;
         const std::string clientgroup;
         int loglevel;

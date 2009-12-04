@@ -138,10 +138,11 @@ void RemoteDBTest::HostSetupTest() {
     std::string name = "bogus3";
 
     Key_t hostkey = lrdbc.SetupHost(name, hostname, servname, this);
+    lrdbc.SignalHostStart(hostkey);
     CPPUNIT_ASSERT(hostkey > 0);
     CPPUNIT_ASSERT(lrdbc.GetHostKey(name) == hostkey);
     CPPUNIT_ASSERT(lrdbc.GetHostName(hostkey) == name);
-    CPPUNIT_ASSERT(lrdbc.WaitForHostSetup(name) == hostkey);
+    CPPUNIT_ASSERT(lrdbc.WaitForHostStart(name) == hostkey);
     std::string hname, sname;
     lrdbc.GetHostConnectionInfo(hostkey, hname, sname);
     CPPUNIT_ASSERT(hname == hostname);
@@ -166,6 +167,7 @@ void RemoteDBTest::WaitForHostTest() {
     lock.Unlock();
     Key_t hostkey = lrdbc.SetupHost(name, hostname, servname, this);
     CPPUNIT_ASSERT(hostkey > 0);
+    lrdbc.SignalHostStart(hostkey);
     waiter->Join();
     delete waiter;
     CPPUNIT_ASSERT_EQUAL(m_hostkey, hostkey);
@@ -177,7 +179,7 @@ void *RemoteDBTest::WaitForHostSetup() {
     signaled = true;
     cond.Signal();
     lock.Unlock();
-    m_hostkey = lrdbc.WaitForHostSetup(m_hostname);
+    m_hostkey = lrdbc.WaitForHostStart(m_hostname);
     ASSERT(m_hostkey > 0);
     return 0;
 }

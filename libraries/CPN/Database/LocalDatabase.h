@@ -44,6 +44,7 @@ namespace CPN {
             std::string hostname;
             std::string servname;
             KernelMessageHandler *kmh;
+            bool live;
             bool dead;
         };
 
@@ -80,7 +81,8 @@ namespace CPN {
         virtual const std::string &GetHostName(Key_t hostkey);
         virtual void GetHostConnectionInfo(Key_t hostkey, std::string &hostname, std::string &servname);
         virtual void DestroyHostKey(Key_t hostkey);
-        virtual Key_t WaitForHostSetup(const std::string &host);
+        virtual Key_t WaitForHostStart(const std::string &host);
+        virtual void SignalHostStart(Key_t hostkey);
 
         virtual void SendCreateWriter(Key_t hostkey, const SimpleQueueAttr &attr);
         virtual void SendCreateReader(Key_t hostkey, const SimpleQueueAttr &attr);

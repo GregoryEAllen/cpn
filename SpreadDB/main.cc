@@ -5,6 +5,9 @@
 const char* const VALID_OPTS = "hdn:s:c:";
 
 const char* const HELP_OPTS = "Usage: %s \n"
+"\t-n name\t connection name\n"
+"\t-s name\t Self name\n"
+"\t-c client group\n"
 "\t-h\t This message.\n"
 "\t-d\t Go into background\n"
 ;
@@ -41,12 +44,14 @@ int main(int argc, char **argv) {
         }
     }
     if (background) {
-        if (0 > deamon(1, 0)) {
+        if (0 > daemon(1, 0)) {
             perror("Failed to go into background");
             return 1;
         }
     }
 
+    printf("Connecting to %s as %s broadcasting to %s\n",
+            spread_name.c_str(), self.c_str(), clientgroup.c_str());
     SpreadDBServ server(spread_name, self, clientgroup);
     server.Run();
     return 0;
