@@ -140,6 +140,8 @@ int main(int argc, char **argv) {
         RandomInstructionNode::CreateRIN(*kernels.front(), iterations, numNodes, debugLevel, seed, numKernels);
     }
 
+    // Wait for one of the nodes to start before we wait for all nodes to be gone
+    database->WaitForNodeStart("RIN $0");
     database->WaitForAllNodeEnd();
 
     return 0;
