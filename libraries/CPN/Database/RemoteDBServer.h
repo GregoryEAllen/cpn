@@ -28,14 +28,55 @@
 #include "PthreadMutex.h"
 
 /*
- 
+    All requests have a field named 'type' which contains a number from RDBMT_t.
+    The basic form is:
+
+    request = {
+        "type"      : message type number,
+        "msgid"     : (optional) an id that should be passed back with any reply,
+        ... data members of the request ...
+        dependent on type common ones are "key" and "name"
+    }
+
+    Replies will be of the form:
+
+    reply = {
+        "msgid"     : message id from request,
+        "msgtype"   : "reply",
+        "success"   : true or false,
+        then the data under the name of the type of reply data
+        "hostinfo" or "nodeinfo" or "endpointinfo" etc.
+    }
+
+    There is another type of message called broadcast that is sent out by
+    the server on certain events.
+
+    broadcast = {
+        "msgtype"   : "broadcast",
+        then "hostinfo" or "nodeinfo" etc.
+        then some status variables like "numlivenodes"
+    }
+
+    The final type of message is the one that is for inter kernel communication
+    these messages are simply routed to the kernel that should recieve it.
+
+    kernel = {
+        "msgtype"   : "kernel",
+        "hostkey"   : the destination kernel key,
+        "type"      : numberic message type,
+        then "queueattr" or "nodeattr" or other data
+    }
+
+    the basic storage elements use these formats
+
     hostinfo = {
         "key"       : key for the host,
         "name"      : name of the host,
         "hostname"  : name to use for other kernels to connect to this one,
         "servname"  : service name to use to connecto to this kernel,
         "live"      : true or false,
-        "type"      : "endpointinfo"
+        "type"      : "endpointinfo",
+        "client"    : the name of the RemoteDBClient that we are to send kernel message to
     }
 
     nodeinfo = {
@@ -61,7 +102,9 @@
         "readerkey" : the key of the reader this endpoint is connected to if a writer,
         "type"      : "endpointinfo"
     }
+
 */
+
 namespace CPN {
     class RemoteDBServer {
     public:
@@ -88,6 +131,9 @@ namespace CPN {
         void ConnectEndpoints(const Variant &msg);
 
         Key_t NewKey();
+
+        void RouteKernelMessage(const Variant &msg);
+        Variant NewBroadcastMessage();
 
         typedef std::map<Key_t, Variant> DataMap;
         DataMap datamap;

@@ -54,7 +54,7 @@ namespace CPN {
             winfo.cond.Wait(lock);
         }
         ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
-        Key_t key = winfo.msg["key"].AsNumber<Key_t>();
+        Key_t key = winfo.msg["hostinfo"]["key"].AsNumber<Key_t>();
         kmhandlers.insert(std::make_pair(key, kmh));
         return key;
     }
@@ -74,7 +74,7 @@ namespace CPN {
             winfo.cond.Wait(lock);
         }
         ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
-        return winfo.msg["key"].AsNumber<Key_t>();
+        return winfo.msg["hostinfo"]["key"].AsNumber<Key_t>();
     }
 
     const std::string &RemoteDBClient::GetHostName(Key_t hostkey) {
@@ -92,7 +92,7 @@ namespace CPN {
             winfo.cond.Wait(lock);
         }
         ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
-        return winfo.msg["name"].AsString();
+        return winfo.msg["hostinfo"]["name"].AsString();
     }
 
     void RemoteDBClient::GetHostConnectionInfo(Key_t hostkey, std::string &hostname, std::string &servname) {
@@ -110,8 +110,9 @@ namespace CPN {
             winfo.cond.Wait(lock);
         }
         ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
-        hostname = winfo.msg["hostname"].AsString();
-        servname = winfo.msg["servname"].AsString();
+        Variant hostinfo = winfo.msg["hostinfo"];
+        hostname = hostinfo["hostname"].AsString();
+        servname = hostinfo["servname"].AsString();
     }
 
     void RemoteDBClient::DestroyHostKey(Key_t hostkey) {
@@ -139,8 +140,11 @@ namespace CPN {
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
         }
-        if (winfo.msg["success"].IsTrue() && winfo.msg["live"].IsTrue()) {
-            return winfo.msg["key"].AsNumber<Key_t>();
+        if (winfo.msg["success"].IsTrue()) {
+            Variant hostinfo = winfo.msg["hostinfo"];
+            if (hostinfo["live"].IsTrue()) {
+                return hostinfo["key"].AsNumber<Key_t>();
+            }
         }
         while (true) {
             if (genwait->messages.empty()) {
@@ -148,8 +152,11 @@ namespace CPN {
             } else {
                 Variant msg = genwait->messages.front();
                 genwait->messages.pop_front();
-                if (msg["name"].AsString() == host && msg["live"].IsTrue()) {
-                    return msg["key"].AsNumber<Key_t>();
+                if (msg["hostinfo"].IsObject()) {
+                    Variant hostinfo = msg["hostinfo"];
+                    if (hostinfo["name"].AsString() == host && hostinfo["live"].IsTrue()) {
+                        return hostinfo["key"].AsNumber<Key_t>();
+                    }
                 }
             }
         }
@@ -184,14 +191,17 @@ namespace CPN {
         msg["msgtype"] = "kernel";
         msg["type"] = RDBMT_CREATE_NODE;
         msg["hostkey"] = hostkey;
-        msg["host"] = attr.GetHost();
-        msg["name"] = attr.GetName();
-        msg["nodetype"] = attr.GetTypeName();
-        msg["param"] = attr.GetParam();
+        Variant nodeattr;
+        nodeattr["hostkey"] = hostkey;
+        nodeattr["host"] = attr.GetHost();
+        nodeattr["name"] = attr.GetName();
+        nodeattr["nodetype"] = attr.GetTypeName();
+        nodeattr["param"] = attr.GetParam();
         Base64Encoder encode;
         encode.EncodeBlock(attr.GetArg().GetBuffer(), attr.GetArg().GetSize());
-        msg["arg"] = encode.BlockEnd();
-        msg["key"] = attr.GetKey();
+        nodeattr["arg"] = encode.BlockEnd();
+        nodeattr["key"] = attr.GetKey();
+        msg["nodeattr"] = nodeattr;
         SendMessage(msg);
     }
 
@@ -211,15 +221,17 @@ namespace CPN {
         msg["msgtype"] = "kernel";
         msg["type"] = msgtype;
         msg["hostkey"] = hostkey;
-        msg["queuehint"] = attr.GetHint();
-        msg["datatype"] = attr.GetDatatype();
-        msg["queueLength"] = attr.GetLength();
-        msg["maxThreshold"] = attr.GetMaxThreshold();
-        msg["numChannels"] = attr.GetNumChannels();
-        msg["readerkey"] = attr.GetReaderKey();
-        msg["writerkey"] = attr.GetWriterKey();
-        msg["readernodekey"] = attr.GetReaderNodeKey();
-        msg["writernodekey"] = attr.GetWriterNodeKey();
+        Variant queueattr;
+        queueattr["queuehint"] = attr.GetHint();
+        queueattr["datatype"] = attr.GetDatatype();
+        queueattr["queueLength"] = attr.GetLength();
+        queueattr["maxThreshold"] = attr.GetMaxThreshold();
+        queueattr["numChannels"] = attr.GetNumChannels();
+        queueattr["readerkey"] = attr.GetReaderKey();
+        queueattr["writerkey"] = attr.GetWriterKey();
+        queueattr["readernodekey"] = attr.GetReaderNodeKey();
+        queueattr["writernodekey"] = attr.GetWriterNodeKey();
+        msg["queueattr"] = queueattr;
         SendMessage(msg);
     }
 
@@ -253,7 +265,7 @@ namespace CPN {
             winfo.cond.Wait(lock);
         }
         ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
-        return winfo.msg["key"].AsNumber<Key_t>();
+        return winfo.msg["nodeinfo"]["key"].AsNumber<Key_t>();
     }
 
     Key_t RemoteDBClient::GetNodeKey(const std::string &nodename) {
@@ -271,7 +283,7 @@ namespace CPN {
             winfo.cond.Wait(lock);
         }
         ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
-        return winfo.msg["key"].AsNumber<Key_t>();
+        return winfo.msg["nodeinfo"]["key"].AsNumber<Key_t>();
     }
 
     const std::string &RemoteDBClient::GetNodeName(Key_t nodekey) {
@@ -289,7 +301,7 @@ namespace CPN {
             winfo.cond.Wait(lock);
         }
         ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
-        return winfo.msg["name"].AsString();
+        return winfo.msg["nodeinfo"]["name"].AsString();
     }
 
     void RemoteDBClient::SignalNodeStart(Key_t nodekey) {
@@ -323,8 +335,11 @@ namespace CPN {
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
         }
-        if (winfo.msg["success"].IsTrue() && winfo.msg["started"].IsTrue()) {
-            return winfo.msg["key"].AsNumber<Key_t>();
+        if (winfo.msg["success"].IsTrue()) {
+            Variant nodeinfo = winfo.msg["nodeinfo"];
+            if (nodeinfo["started"].IsTrue()) {
+                return nodeinfo["key"].AsNumber<Key_t>();
+            }
         }
         while (true) {
             if (genwait->messages.empty()) {
@@ -332,8 +347,11 @@ namespace CPN {
             } else {
                 Variant msg = genwait->messages.front();
                 genwait->messages.pop_front();
-                if (msg["started"].IsTrue() && msg["name"].AsString() == nodename) {
-                    return msg["key"].AsNumber<Key_t>();
+                if (msg["nodeinfo"].IsObject()) {
+                    Variant nodeinfo = msg["nodeinfo"];
+                    if (nodeinfo["started"].IsTrue() && nodeinfo["name"].AsString() == nodename) {
+                        return nodeinfo["key"].AsNumber<Key_t>();
+                    }
                 }
             }
         }
@@ -354,8 +372,10 @@ namespace CPN {
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
         }
-        if (winfo.msg["success"].IsTrue() && winfo.msg["dead"].IsTrue()) {
-            return;
+        if (winfo.msg["success"].IsTrue()) {
+            if (winfo.msg["nodeinfo"]["dead"].IsTrue()) {
+                return;
+            }
         }
         while (true) {
             if (genwait->messages.empty()) {
@@ -363,8 +383,11 @@ namespace CPN {
             } else {
                 Variant msg = genwait->messages.front();
                 genwait->messages.pop_front();
-                if (msg["dead"].IsTrue() && msg["name"].AsString() == nodename) {
-                    return;
+                if (msg["nodeinfo"].IsObject()) {
+                    Variant nodeinfo = msg["nodeinfo"];
+                    if (nodeinfo["dead"].IsTrue() && nodeinfo["name"].AsString() == nodename) {
+                        return;
+                    }
                 }
             }
         }
@@ -373,24 +396,31 @@ namespace CPN {
     void RemoteDBClient::WaitForAllNodeEnd() {
         PthreadMutexProtected plock(lock);
         GenericWaiterPtr genwait = NewGenericWaiter();
+        WaiterInfo winfo(NewTranID());
+        AddWaiter(&winfo);
+        Variant msg(Variant::ObjectType);
+        msg["msgid"] = winfo.waiterid;
+        msg["type"] = RDBMT_GET_NUM_NODE_LIVE;
+        SendMessage(msg);
+        while (!winfo.signaled) {
+            winfo.cond.Wait(lock);
+        }
+        ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
+        if (winfo.msg["numlivenodes"].AsUnsigned() == 0) {
+            return;
+        }
         while (true) {
-            WaiterInfo winfo(NewTranID());
-            AddWaiter(&winfo);
-            Variant msg(Variant::ObjectType);
-            msg["msgid"] = winfo.waiterid;
-            msg["type"] = RDBMT_GET_NUM_NODE_LIVE;
-            SendMessage(msg);
-            while (!winfo.signaled) {
-                winfo.cond.Wait(lock);
-            }
-            ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
-            if (winfo.msg["numlivenodes"].AsUnsigned() == 0) {
-                return;
-            }
-            while (genwait->messages.empty()) {
+            if (genwait->messages.empty()) {
                 genwait->cond.Wait(lock);
+            } else {
+                Variant msg = genwait->messages.front();
+                genwait->messages.pop_front();
+                if (msg["numlivenodes"].IsNumber()) {
+                    if (msg["numlivenodes"].AsUnsigned() == 0) {
+                        return;
+                    }
+                }
             }
-            genwait->messages.clear();
         }
     }
 
@@ -409,7 +439,7 @@ namespace CPN {
             winfo.cond.Wait(lock);
         }
         ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
-        return winfo.msg["hostkey"].AsNumber<Key_t>();
+        return winfo.msg["nodeinfo"]["hostkey"].AsNumber<Key_t>();
     }
 
 
@@ -549,19 +579,19 @@ namespace CPN {
                 ASSERT(kmh);
                 switch (msg["type"].AsNumber<RDBMT_t>()) {
                 case RDBMT_CREATE_NODE:
-                    kmh->CreateNode(hostkey, MsgToNodeAttr(msg));
+                    kmh->CreateNode(hostkey, MsgToNodeAttr(msg["nodeattr"]));
                     break;
                 case RDBMT_CREATE_QUEUE:
-                    kmh->CreateQueue(hostkey, MsgToQueueAttr(msg));
+                    kmh->CreateQueue(hostkey, MsgToQueueAttr(msg["queueattr"]));
                     break;
                 case RDBMT_CREATE_WRITER:
-                    kmh->CreateWriter(hostkey, MsgToQueueAttr(msg));
+                    kmh->CreateWriter(hostkey, MsgToQueueAttr(msg["queueattr"]));
                     break;
                 case RDBMT_CREATE_READER:
-                    kmh->CreateReader(hostkey, MsgToQueueAttr(msg));
+                    kmh->CreateReader(hostkey, MsgToQueueAttr(msg["queueattr"]));
                     break;
                 default:
-                    ASSERT(false);
+                    ASSERT(false, "Unknown kernel message type");
                 }
             } else {
                 printf("No kernel for message\n");
@@ -586,7 +616,7 @@ namespace CPN {
             winfo.cond.Wait(lock);
         }
         ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
-        return winfo.msg["key"].AsNumber<Key_t>();
+        return winfo.msg["endpointinfo"]["key"].AsNumber<Key_t>();
     }
 
     Variant RemoteDBClient::GetEndpointInfo(RDBMT_t msgtype, Key_t portkey) {
@@ -603,6 +633,6 @@ namespace CPN {
             winfo.cond.Wait(lock);
         }
         ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
-        return winfo.msg;
+        return winfo.msg["endpointinfo"];
     }
 }
