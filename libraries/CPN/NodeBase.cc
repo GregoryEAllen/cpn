@@ -141,6 +141,7 @@ namespace CPN {
             arl.Lock();
         }
         arl.Unlock();
+        database->SignalNodeEnd(nodekey);
         kernel.NodeTerminated(nodekey);
         return 0;
     }

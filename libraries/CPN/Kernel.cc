@@ -66,7 +66,6 @@ namespace CPN {
         database(kattr.GetDatabase()),
         connhandler(this)
     {
-        Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
         if (!database) {
             database = Database::Local();
@@ -91,11 +90,11 @@ namespace CPN {
     }
 
     Kernel::~Kernel() {
-        Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
         Terminate();
         Wait();
         database->DestroyHostKey(hostkey);
+        Sync::AutoReentrantLock arlock(lock);
         assert(status.Get() == DONE);
         assert(nodemap.empty());
         assert(garbagenodes.empty());
@@ -340,7 +339,6 @@ namespace CPN {
         Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
         ASSERT(status.Get() != DONE, "Nodes running after shutdown");
-        database->SignalNodeEnd(key);
         shared_ptr<NodeBase> node = nodemap[key];
         nodemap.erase(key);
         garbagenodes.push_back(node);
