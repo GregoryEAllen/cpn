@@ -25,8 +25,8 @@
  *
  * \author John Bridgman
  *
- * Arrays and Objects are reference counted. If one wants to copy use the
- * Copy member function.
+ * Arrays and Objects are reference counted using std::tr1::shared_ptr.  If one
+ * wants to copy use the Copy member function.
  *
  * Numbers are all internally represented as a long double which should be
  * able to represent all integer types exactly (i.e. +-2^100 something)
@@ -38,8 +38,14 @@
  *
  * This uses the mjson library (see NOTES in mjson folder) to provide
  * json serialization and deserialization.
+ *
+ * This class currently uses the ASSERT macro for all error checking.
+ * It might make more sense to throw different exceptions on some errors
+ * like a bad_cast or something.
  */
 
+#ifndef VARIANT_H
+#define VARIANT_H
 #pragma once
 #include <string>
 #include <tr1/memory>
@@ -189,4 +195,4 @@ inline bool operator>(const Variant &lhs, const Variant &rhs) { return lhs.Compa
 inline bool operator<=(const Variant &lhs, const Variant &rhs) { return lhs.Compare(rhs) <= 0; }
 inline bool operator>=(const Variant &lhs, const Variant &rhs) { return lhs.Compare(rhs) >= 0; }
 
-
+#endif

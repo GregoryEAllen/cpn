@@ -503,6 +503,7 @@ void Variant::AsJSON(std::vector<char> &target) const {
         json_free_value(&root);
     } catch (...) {
         free(text);
+        text = 0;
         if (root != 0) {
             json_free_value(&root);
         }
