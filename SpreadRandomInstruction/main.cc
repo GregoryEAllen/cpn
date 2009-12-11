@@ -141,7 +141,7 @@ int main(int argc, char **argv) {
     }
 
     // Wait for one of the nodes to start before we wait for all nodes to be gone
-    database->WaitForNodeStart("RIN $0");
+    database->WaitForNodeStart(RandomInstructionNode::GetNodeNameFromID(0));
     database->WaitForAllNodeEnd();
 
     return 0;
