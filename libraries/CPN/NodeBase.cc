@@ -103,14 +103,12 @@ namespace CPN {
     }
 
     shared_ptr<QueueReader> NodeBase::GetReader(const std::string &portname) {
-        Sync::AutoReentrantLock arl(lock);
         CheckTerminate();
         Key_t ekey = database->GetCreateReaderKey(nodekey, portname);
         return GetReader(ekey, true);
     }
 
     shared_ptr<QueueWriter> NodeBase::GetWriter(const std::string &portname) {
-        Sync::AutoReentrantLock arl(lock);
         CheckTerminate();
         Key_t ekey = database->GetCreateWriterKey(nodekey, portname);
         return GetWriter(ekey, true);
@@ -147,6 +145,7 @@ namespace CPN {
     }
 
     shared_ptr<QueueReader> NodeBase::GetReader(Key_t ekey, bool block) {
+        Sync::AutoReentrantLock arl(lock);
         shared_ptr<QueueReader> reader;
         while (!reader) {
             ReaderMap::iterator entry = readermap.find(ekey);
@@ -164,6 +163,7 @@ namespace CPN {
     }
 
     shared_ptr<QueueWriter> NodeBase::GetWriter(Key_t ekey, bool block) {
+        Sync::AutoReentrantLock arl(lock);
         shared_ptr<QueueWriter> writer;
         while (!writer) {
             WriterMap::iterator entry = writermap.find(ekey);

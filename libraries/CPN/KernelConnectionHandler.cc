@@ -301,6 +301,10 @@ namespace CPN {
                     ++entry;
                     connmap.erase(toerase);
                 } else {
+                    if (conn->Mode() == Connection::ID_WRITER) {
+                        conn->InitiateConnection();
+                        filehandlers.push_back(conn.get());
+                    }
                     ++entry;
                 }
             } else {
@@ -346,15 +350,14 @@ namespace CPN {
             conn = shared_ptr<Connection>(new Connection(*this, lock, Connection::ID_WRITER));
             conn->WriterKey(writerkey);
             conn->ReaderKey(readerkey);
-            conn->InitiateConnection();
             connmap.insert(std::make_pair(writerkey, conn));
         } else {
             conn = entry->second;
             if (conn->Dead()) {
                 conn->Mode(Connection::ID_WRITER);
-                conn->InitiateConnection();
             }
         }
+        kmh->SendWakeup();
         return conn;
     }
 
