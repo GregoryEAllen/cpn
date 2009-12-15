@@ -39,6 +39,13 @@ namespace CPN {
      */
     class CPN_API QueueAttr {
     public:
+        QueueAttr()
+            : queuehint(QUEUEHINT_DEFAULT), datatype(TypeName<void>()),
+            queueLength(0), maxThreshold(0),
+            numChannels(1),
+            readerkey(0), writerkey(0), readernodekey(0), writernodekey(0)
+        {}
+
         QueueAttr(const unsigned queueLength_,
                 const unsigned maxThreshold_)
             : queuehint(QUEUEHINT_DEFAULT), datatype(TypeName<void>()),
@@ -98,6 +105,11 @@ namespace CPN {
 
         QueueAttr &SetMaxThreshold(unsigned maxthresh) {
             maxThreshold = maxthresh;
+            return *this;
+        }
+
+        QueueAttr &SetNumChannels(unsigned channels) {
+            numChannels = channels;
             return *this;
         }
 

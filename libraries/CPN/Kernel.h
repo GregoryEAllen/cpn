@@ -109,6 +109,7 @@ namespace CPN {
          * \throws ShutdownException if the kernel has shutdown
          */
         void WaitNodeTerminate(const std::string &nodename);
+        void WaitForAllNodeEnd();
         void WaitNodeStart(const std::string &nodename);
 
         // Attempt to connect the given endpoints together using the given attributes

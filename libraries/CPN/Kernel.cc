@@ -155,6 +155,10 @@ namespace CPN {
         database->WaitForNodeEnd(nodename);
     }
 
+    void Kernel::WaitForAllNodeEnd() {
+        database->WaitForAllNodeEnd();
+    }
+
     void Kernel::WaitNodeStart(const std::string &nodename) {
         FUNCBEGIN;
         database->WaitForNodeStart(nodename);

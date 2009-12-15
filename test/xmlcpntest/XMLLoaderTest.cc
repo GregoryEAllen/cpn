@@ -13,7 +13,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION( XMLLoaderTest );
 #endif
 
 void XMLLoaderTest::setUp(void) {
-	CPNRegisterNodeFactory(MockNodeFactory::GetInstance());
+	CPNRegisterNodeFactory(CPN::shared_ptr<CPN::NodeFactory>(new MockNodeFactory("MockNode")));
 }
 
 void XMLLoaderTest::tearDown(void) {
@@ -25,7 +25,6 @@ void XMLLoaderTest::test1(void) {
 	CPN::Kernel kernel(loader.GetKernelAttr());
 	loader.SetupNodes(kernel);
 	loader.SetupQueues(kernel);
-	kernel.Start();
-	kernel.Wait();
+    kernel.WaitForAllNodeEnd();
 }
 
