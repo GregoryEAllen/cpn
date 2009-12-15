@@ -25,7 +25,6 @@
 #include "Assert.h"
 #include "ToString.h"
 #include "ErrnoException.h"
-#include <signal.h>
 
 #if 0
 #define FUNC_TRACE logger.Trace("%s", __PRETTY_FUNCTION__)
@@ -265,7 +264,7 @@ namespace CPN {
                     if (Eof()) {
                         // Eof
                         logger.Debug("Read EOF");
-                        ASSERT(readshutdown || writeshutdown, "Read EOF before shutdown");
+                        //ASSERT(readshutdown || writeshutdown, "Read EOF before shutdown");
                     }
                     break;
                 } else {
@@ -420,33 +419,42 @@ namespace CPN {
         // return if recursive call
         if (incheckstatus) { return; }
         BoolGuard guard(incheckstatus);
-
         if (status == DEAD) { return; }
-        if (Closed()) {
-            if (status == DIEING) {
-                status = DEAD;
-                return;
-            }
-            if (status == LIVE) {
-                while (true) {
-                    if (connection) {
-                        if (connection->Done()) {
-                            FileHandler::Reset();
-                            FileHandler::FD(connection->Get());
-                            connection.reset();
-                        } else { return; }
-                    } else if (Closed()) {
-                        if (mode == READ) {
-                            connection = kmh->GetReaderDescriptor(readerkey, writerkey);
-                        } else {
-                            connection = kmh->GetWriterDescriptor(readerkey, writerkey);
-                        }
-                    } else { break; }
-                }
-            }
-        }
 
         try {
+
+            // this is experimental
+            // If we have recieved EOF and we don't think we are going
+            // to shut down close the connection because there was an error
+            // and reestablish.
+            if (Eof() && !(readshutdown || writeshutdown)) {
+                Close();
+            }
+
+            if (Closed()) {
+                if (status == DIEING) {
+                    status = DEAD;
+                    return;
+                }
+                if (status == LIVE) {
+                    while (true) {
+                        if (connection) {
+                            if (connection->Done()) {
+                                FileHandler::Reset();
+                                FileHandler::FD(connection->Get());
+                                connection.reset();
+                            } else { return; }
+                        } else if (Closed()) {
+                            if (mode == READ) {
+                                connection = kmh->GetReaderDescriptor(readerkey, writerkey);
+                            } else {
+                                connection = kmh->GetWriterDescriptor(readerkey, writerkey);
+                            }
+                        } else { break; }
+                    }
+                }
+            }
+
             if (mode == READ) {
                 // In read mode
      
@@ -520,7 +528,6 @@ namespace CPN {
                 }
             }
         } catch (const ErrnoException &e) {
-            raise(SIGINT);
             logger.Error("Exception (%d): %s", e.Error(), e.what());
         }
     }

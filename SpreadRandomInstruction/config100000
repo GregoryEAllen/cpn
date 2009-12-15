@@ -1,6 +1,6 @@
 {
-    "iterations":100,
-    "numnodes":100,
+    "iterations":100000,
+    "numnodes":1000,
     "seed":null,
     "debuglevel":1,
     "loglevel":75,

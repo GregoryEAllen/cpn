@@ -105,14 +105,13 @@ namespace CPN {
         PthreadMutexProtected pl(lock);
         while (true) {
             NameMap::iterator entry = hostnames.find(host);
-            if (entry == hostnames.end()) {
-                hostlivedead.Wait(lock);
-            } else {
+            if (entry != hostnames.end()) {
                 HostMap::iterator hentry = hostmap.find(entry->second);
                 if (hentry->second->live) {
                     return entry->second;
                 }
             }
+            hostlivedead.Wait(lock);
         }
     }
 

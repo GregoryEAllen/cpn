@@ -55,11 +55,11 @@ namespace CPN {
             : kch(kch_), lock(lock_), mode(mode_), readerkey(0), writerkey(0)
         {
             Writeable(false);
-            kch.logger.Info("New Connection(%d)", mode);
+            kch.logger.Trace("New Connection(%d)", mode);
         }
 
         ~Connection() {
-            kch.logger.Info("Connection destroyed r:%lu w:%lu s:%u %s",
+            kch.logger.Trace("Connection destroyed r:%lu w:%lu s:%u %s",
                     readerkey, writerkey, mode, Closed() ? "closed" : "open");
         }
 
@@ -260,11 +260,15 @@ namespace CPN {
     void KernelConnectionHandler::OnRead() {
         Sync::AutoReentrantLock arlock(lock);
         FUNC_TRACE(logger);
-        SocketAddress addr;
-        int newfd = Accept(addr);
-        if (newfd >= 0) {
-            connlist.push_back(shared_ptr<Connection>(new Connection(*this, lock, Connection::UNKNOWN)));
-            connlist.back()->FD(newfd);
+        try {
+            SocketAddress addr;
+            int newfd = Accept(addr);
+            if (newfd >= 0) {
+                connlist.push_back(shared_ptr<Connection>(new Connection(*this, lock, Connection::UNKNOWN)));
+                connlist.back()->FD(newfd);
+            }
+        } catch (const ErrnoException &e) {
+            logger.Error("Error accepting connection(%d): %s", e.Error(), e.what());
         }
     }
 
@@ -302,8 +306,12 @@ namespace CPN {
                     connmap.erase(toerase);
                 } else {
                     if (conn->Mode() == Connection::ID_WRITER) {
-                        conn->InitiateConnection();
-                        filehandlers.push_back(conn.get());
+                        try {
+                            conn->InitiateConnection();
+                            filehandlers.push_back(conn.get());
+                        } catch (const ErrnoException &e) {
+                            logger.Error("Error initiating connection (%d): %s", e.Error(), e.what());
+                        }
                     }
                     ++entry;
                 }

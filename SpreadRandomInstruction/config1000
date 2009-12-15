@@ -1,5 +1,5 @@
 {
-    "iterations":100,
+    "iterations":1000,
     "numnodes":100,
     "seed":null,
     "debuglevel":1,
@@ -12,5 +12,5 @@
     },
     "server":"server",
     "group":"clients",
-    "spread_name":null
+    "spread_name":"4803@zeus"
 }
