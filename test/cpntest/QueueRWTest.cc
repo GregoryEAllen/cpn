@@ -4,7 +4,7 @@
 #include "QueueReader.h"
 #include "Message.h"
 #include "QueueBase.h"
-#include "CPNSimpleQueue.h"
+#include "SimpleQueue.h"
 #include <cppunit/TestAssert.h>
 
 CPPUNIT_TEST_SUITE_REGISTRATION( QueueRWTest );

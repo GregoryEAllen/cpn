@@ -21,7 +21,7 @@
  * \author John Bridgman
  */
 
-#include "CPNSimpleQueue.h"
+#include "SimpleQueue.h"
 
 namespace CPN {
 

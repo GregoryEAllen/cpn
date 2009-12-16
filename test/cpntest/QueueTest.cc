@@ -2,7 +2,7 @@
 #include "QueueTest.h"
 #include "QueueBase.h"
 #include "ThresholdQueue.h"
-#include "CPNSimpleQueue.h"
+#include "SimpleQueue.h"
 #include <stdlib.h>
 #include <cppunit/TestAssert.h>
 #include <vector>

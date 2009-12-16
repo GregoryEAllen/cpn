@@ -3,8 +3,6 @@
 #include "StreamEndpointTest.h"
 #include <cppunit/TestAssert.h>
 
-#include "CPNSimpleQueue.h"
-
 #include <tr1/memory>
 #include <vector>
 

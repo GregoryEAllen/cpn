@@ -27,7 +27,7 @@
 #include "NodeFactory.h"
 #include "NodeBase.h"
 
-#include "CPNSimpleQueue.h"
+#include "SimpleQueue.h"
 #include "ThresholdQueue.h"
 
 #include "Database.h"

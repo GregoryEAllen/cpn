@@ -8,7 +8,7 @@
 #include "ToString.h"
 #include "PacketEncoder.h"
 #include "PacketDecoder.h"
-#include "CPNSimpleQueue.h"
+#include "SimpleQueue.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION( PacketEDTest );
 
