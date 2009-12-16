@@ -23,7 +23,6 @@
  */
 
 #include "QueueReader.h"
-#include "NodeBase.h"
 #include "Exceptions.h"
 
 namespace CPN {
