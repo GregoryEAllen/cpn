@@ -39,9 +39,10 @@ int main(int argc, char **argv) {
     fds.push_back(&outside);
     fds.push_back(&inside);
     try {
-        while (sock.Good()) {
+        while (sock.Good() && inside.Good()) {
             FileHandler::Poll(&fds[0], fds.size(), -1);
         }
+        sock.Close();
     } catch (std::exception &e) {
         printf("Error: %s\n", e.what());
     }

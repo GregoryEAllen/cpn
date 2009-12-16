@@ -17,6 +17,7 @@ void StreamForwarder::OnRead() {
     if (numread == 0) {
         if (Eof()) {
             printf("Read EOF\n");
+            Readable(false);
         } else {
             printf("Read 0 bytes from input!\n");
         }
