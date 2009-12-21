@@ -23,13 +23,16 @@
 #include "DDDRNode.h"
 #include "AutoLock.h"
 #include "AutoUnlock.h"
+#include "Assert.h"
 #include <algorithm>
 #include <functional>
 
 namespace DDDR {
 
-    Node::Node()
-        : numblockees(0)
+    Node::Node(unsigned long long key)
+        : publicTag(key),
+        privateTag(key),
+        numblockees(0)
     {
     }
 
@@ -116,7 +119,8 @@ namespace DDDR {
     void Node::Unlock() const {}
 
     Queue::Queue()
-        : blocked(false),
+        : readblocked(false),
+        writeblocked(false),
         writer(0),
         reader(0)
     {
@@ -124,17 +128,32 @@ namespace DDDR {
 
     Queue::~Queue() {}
 
+    void Queue::SetReaderNode(Node *n) {
+        reader = n;
+    }
+
+    void Queue::SetWriterNode(Node *n) {
+        writer = n;
+    }
+
     void Queue::TagChanged(const Tag t) {
         Sync::AutoLock<Queue> al(*this);
+        bool blocked = false;
+        Node *blockee, *blocker;
+        if (readblocked && writeblocked) {
+            al.Unlock();
+            // self loop
+            Detect();
+        } else if (readblocked) {
+            blocked = true;
+            blockee = reader;
+            blocker = writer;
+        } else if (writeblocked) {
+            blocked = true;
+            blockee = writer;
+            blocker = reader;
+        }
         if (blocked) {
-            Node *blockee, *blocker;
-            if (readnotwrite) {
-                blockee = reader;
-                blocker = writer;
-            } else {
-                blockee = writer;
-                blocker = reader;
-            }
             al.Unlock();
             if (blockee->Transmit(t)) {
                 Detect();
@@ -145,8 +164,7 @@ namespace DDDR {
     }
 
     void Queue::ReadBlock() {
-        blocked = true;
-        readnotwrite = true;
+        readblocked = true;
         Node *blockee = reader;
         Node *blocker = writer;
         blocker->AddBlockee();
@@ -159,8 +177,7 @@ namespace DDDR {
     }
 
     void Queue::WriteBlock(unsigned qsize) {
-        blocked = true;
-        readnotwrite = false;
+        writeblocked = true;
         Node *blockee = writer;
         Node *blocker = reader;
         blocker->AddBlockee();
@@ -172,18 +189,18 @@ namespace DDDR {
         }
     }
 
-    void Queue::Unblock() {
-        blocked = false;
-        Node *blockee, *blocker;
-        if (readnotwrite) {
-            blockee = reader;
-            blocker = writer;
-        } else {
-            blockee = writer;
-            blocker = reader;
-        }
-        blocker->RemBlockee();
-        blockee->Activate();
+    void Queue::ReadUnblock() {
+        ASSERT(readblocked);
+        readblocked = false;
+        writer->RemBlockee();
+        reader->Activate();
+    }
+
+    void Queue::WriteUnblock() {
+        ASSERT(writeblocked);
+        writeblocked = false;
+        reader->RemBlockee();
+        writer->Activate();
     }
 
     void Queue::Lock() const {}

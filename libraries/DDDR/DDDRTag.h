@@ -31,6 +31,7 @@ namespace DDDR {
 
     class Tag {
     public:
+        Tag(unsigned long long k) : count(0), key(k), qsize(-1) {}
         /**
          * Perform comparison as specified in "A Distributed Deadlock Detection And
          * Resolution Algorithm For Process Networks" by Allen, Zucknick and Evans
@@ -44,14 +45,14 @@ namespace DDDR {
 
         void Reset();
 
-        unsigned Count() const { return count; }
-        unsigned Count(unsigned c) { return count = c; }
+        unsigned long long Count() const { return count; }
+        unsigned long long Count(unsigned long long c) { return count = c; }
         unsigned long long Key() const { return key; }
         unsigned long long Key(unsigned long long k) { return key = k; }
         unsigned QueueSize() const { return qsize; }
         unsigned QueueSize(unsigned qs) { return qsize = qs; }
     private:
-        unsigned count;
+        unsigned long long count;
         unsigned long long key;
         unsigned qsize;
     };

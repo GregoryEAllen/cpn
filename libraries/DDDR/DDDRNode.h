@@ -76,7 +76,7 @@ namespace DDDR {
     class Node {
     public:
 
-        Node();
+        Node(unsigned long long key);
 
         virtual ~Node();
 
@@ -120,15 +120,16 @@ namespace DDDR {
         virtual void Unlock() const;
     protected:
         // ReadBlock, WriteBlock, and Unblock assume you already have the lock (and release and reaquire it)
-        void ReadBlock();
-        void WriteBlock(unsigned qsize);
-        void Unblock();
+        virtual void ReadBlock();
+        virtual void WriteBlock(unsigned qsize);
+        virtual void ReadUnblock();
+        virtual void WriteUnblock();
 
         virtual void Detect() = 0;
 
-        bool blocked;
+        bool readblocked;
+        bool writeblocked;
     private:
-        bool readnotwrite;
         Node *writer;
         Node *reader;
     };
