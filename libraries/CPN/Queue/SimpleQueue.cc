@@ -25,7 +25,91 @@
 
 namespace CPN {
 
+    SimpleQueue::SimpleQueue(unsigned size, unsigned maxThresh, unsigned numChans)
+        : queue(size, maxThresh, numChans) {}
+
     SimpleQueue::~SimpleQueue() {
+    }
+
+    void* SimpleQueue::GetRawEnqueuePtr(unsigned thresh, unsigned chan) {
+        Sync::AutoReentrantLock l(lock);
+        return queue.GetRawEnqueuePtr(thresh, chan);
+    }
+
+    void SimpleQueue::Enqueue(unsigned count) {
+        Sync::AutoReentrantLock l(lock);
+        queue.Enqueue(count);
+    }
+
+    bool SimpleQueue::RawEnqueue(const void* data, unsigned count) {
+        Sync::AutoReentrantLock l(lock);
+        return queue.RawEnqueue(data, count);
+    }
+
+    bool SimpleQueue::RawEnqueue(const void* data, unsigned count, unsigned numChans, unsigned chanStride) {
+        Sync::AutoReentrantLock l(lock);
+        return queue.RawEnqueue(data, count, numChans, chanStride);
+    }
+    const void* SimpleQueue::GetRawDequeuePtr(unsigned thresh, unsigned chan) {
+        Sync::AutoReentrantLock l(lock);
+        return queue.GetRawDequeuePtr(thresh, chan);
+    }
+    void SimpleQueue::Dequeue(unsigned count) {
+        Sync::AutoReentrantLock l(lock);
+        queue.Dequeue(count);
+    }
+    bool SimpleQueue::RawDequeue(void* data, unsigned count) {
+        Sync::AutoReentrantLock l(lock);
+        return queue.RawDequeue(data, count);
+    }
+    bool SimpleQueue::RawDequeue(void* data, unsigned count, unsigned numChans, unsigned chanStride) {
+        Sync::AutoReentrantLock l(lock);
+        return queue.RawDequeue(data, count, numChans, chanStride);
+    }
+
+    unsigned SimpleQueue::NumChannels() const {
+        Sync::AutoReentrantLock l(lock);
+        return queue.NumChannels();
+    }
+
+    unsigned SimpleQueue::MaxThreshold() const {
+        Sync::AutoReentrantLock l(lock);
+        return queue.MaxThreshold();
+    }
+
+    unsigned SimpleQueue::QueueLength() const {
+        Sync::AutoReentrantLock l(lock);
+        return queue.QueueLength();
+    }
+
+    unsigned SimpleQueue::Freespace() const {
+        Sync::AutoReentrantLock l(lock);
+        return queue.Freespace();
+    }
+
+    bool SimpleQueue::Full() const {
+        Sync::AutoReentrantLock l(lock);
+        return queue.Full();
+    }
+
+    unsigned SimpleQueue::Count() const {
+        Sync::AutoReentrantLock l(lock);
+        return queue.Count();
+    }
+
+    bool SimpleQueue::Empty() const {
+        Sync::AutoReentrantLock l(lock);
+        return queue.Empty();
+    }
+
+    unsigned SimpleQueue::ChannelStride() const {
+        Sync::AutoReentrantLock l(lock);
+        return queue.ChannelStride();
+    }
+
+    void SimpleQueue::Grow(unsigned queueLen, unsigned maxThresh) {
+        Sync::AutoReentrantLock l(lock);
+        queue.Grow(queueLen, maxThresh);
     }
 
 }

@@ -28,7 +28,6 @@
 
 #include "CPNCommon.h"
 #include "QueueBase.h"
-#include "ReentrantLock.h"
 #include "CircularQueue.h"
 
 namespace CPN {
@@ -43,84 +42,26 @@ namespace CPN {
     class CPN_LOCAL SimpleQueue : public QueueBase {
     public:
 
-        SimpleQueue(unsigned size, unsigned maxThresh, unsigned numChans)
-            : queue(size, maxThresh, numChans) {}
+        SimpleQueue(unsigned size, unsigned maxThresh, unsigned numChans);
         ~SimpleQueue();
 
-        void* GetRawEnqueuePtr(unsigned thresh, unsigned chan=0) {
-            Sync::AutoReentrantLock l(lock);
-            return queue.GetRawEnqueuePtr(thresh, chan);
-        }
-
-        void Enqueue(unsigned count) {
-            Sync::AutoReentrantLock l(lock);
-            queue.Enqueue(count);
-        }
-
-        bool RawEnqueue(const void* data, unsigned count) {
-            Sync::AutoReentrantLock l(lock);
-            return queue.RawEnqueue(data, count);
-        }
-        bool RawEnqueue(const void* data, unsigned count, unsigned numChans, unsigned chanStride) {
-            Sync::AutoReentrantLock l(lock);
-            return queue.RawEnqueue(data, count, numChans, chanStride);
-        }
-        const void* GetRawDequeuePtr(unsigned thresh, unsigned chan=0) {
-            Sync::AutoReentrantLock l(lock);
-            return queue.GetRawDequeuePtr(thresh, chan);
-        }
-        void Dequeue(unsigned count) {
-            Sync::AutoReentrantLock l(lock);
-            queue.Dequeue(count);
-        }
-        bool RawDequeue(void* data, unsigned count) {
-            Sync::AutoReentrantLock l(lock);
-            return queue.RawDequeue(data, count);
-        }
-        bool RawDequeue(void* data, unsigned count, unsigned numChans, unsigned chanStride) {
-            Sync::AutoReentrantLock l(lock);
-            return queue.RawDequeue(data, count, numChans, chanStride);
-        }
-
-        unsigned NumChannels() const {
-            Sync::AutoReentrantLock l(lock);
-            return queue.NumChannels();
-        }
-        unsigned MaxThreshold() const {
-            Sync::AutoReentrantLock l(lock);
-            return queue.MaxThreshold();
-        }
-        unsigned QueueLength() const {
-            Sync::AutoReentrantLock l(lock);
-            return queue.QueueLength();
-        }
-        unsigned Freespace() const {
-            Sync::AutoReentrantLock l(lock);
-            return queue.Freespace();
-        }
-        bool Full() const {
-            Sync::AutoReentrantLock l(lock);
-            return queue.Full();
-        }
-        unsigned Count() const {
-            Sync::AutoReentrantLock l(lock);
-            return queue.Count();
-        }
-        bool Empty() const {
-            Sync::AutoReentrantLock l(lock);
-            return queue.Empty();
-        }
-
-        unsigned ChannelStride() const {
-            Sync::AutoReentrantLock l(lock);
-            return queue.ChannelStride();
-        }
-
-        void Grow(unsigned queueLen, unsigned maxThresh) {
-            Sync::AutoReentrantLock l(lock);
-            queue.Grow(queueLen, maxThresh);
-        }
-
+        void* GetRawEnqueuePtr(unsigned thresh, unsigned chan=0);
+        void Enqueue(unsigned count);
+        bool RawEnqueue(const void* data, unsigned count);
+        bool RawEnqueue(const void* data, unsigned count, unsigned numChans, unsigned chanStride);
+        const void* GetRawDequeuePtr(unsigned thresh, unsigned chan=0);
+        void Dequeue(unsigned count);
+        bool RawDequeue(void* data, unsigned count);
+        bool RawDequeue(void* data, unsigned count, unsigned numChans, unsigned chanStride);
+        unsigned NumChannels() const;
+        unsigned MaxThreshold() const;
+        unsigned QueueLength() const;
+        unsigned Freespace() const;
+        bool Full() const;
+        unsigned Count() const;
+        bool Empty() const;
+        unsigned ChannelStride() const;
+        void Grow(unsigned queueLen, unsigned maxThresh);
     private:
         ::CircularQueue queue;
     };
