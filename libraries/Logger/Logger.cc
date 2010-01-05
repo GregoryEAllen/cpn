@@ -25,6 +25,7 @@
 #include "AutoBuffer.h"
 #include "Assert.h"
 #include <iostream>
+#include <stdio.h>
 #include <stdarg.h>
 
 LoggerOutput::~LoggerOutput() {

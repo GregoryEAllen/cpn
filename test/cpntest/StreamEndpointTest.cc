@@ -413,7 +413,7 @@ void StreamEndpointTest::SetupDescriptors() {
     wfd->SetDone();
 }
 
-char* StreamEndpointTest::MsgName(MsgType type) {
+const char* StreamEndpointTest::MsgName(MsgType type) {
     switch(type) {
     case RMHENQUEUE:
         return "Enqueue";

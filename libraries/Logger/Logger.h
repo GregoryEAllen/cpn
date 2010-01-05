@@ -27,6 +27,7 @@
 #pragma once
 #include "ReentrantLock.h"
 #include <string>
+#include <cstdarg>
 class LoggerOutput {
 public:
     virtual ~LoggerOutput();

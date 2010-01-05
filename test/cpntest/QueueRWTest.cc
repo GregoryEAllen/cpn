@@ -6,6 +6,7 @@
 #include "QueueBase.h"
 #include "SimpleQueue.h"
 #include <cppunit/TestAssert.h>
+#include <cstdlib>
 
 CPPUNIT_TEST_SUITE_REGISTRATION( QueueRWTest );
 

@@ -93,7 +93,7 @@ private:
     Msg WaitForWriteMsg();
     int Poll(double timeout);
     void SetupDescriptors();
-    char* MsgName(MsgType type);
+    const char* MsgName(MsgType type);
 
     void RMHEnqueue(CPN::Key_t src, CPN::Key_t dst);
     void RMHEndOfWriteQueue(CPN::Key_t src, CPN::Key_t dst);

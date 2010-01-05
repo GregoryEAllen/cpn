@@ -594,7 +594,7 @@ namespace CPN {
                     ASSERT(false, "Unknown kernel message type");
                 }
             } else {
-                printf("No kernel for message\n");
+                ASSERT(false, "Message for kernel %lu but said kernel doesn't exist!", hostkey);
             }
         } else {
             ASSERT(false);
