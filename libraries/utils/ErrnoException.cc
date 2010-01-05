@@ -55,6 +55,21 @@ const char* ErrnoException::what() const throw() {
 void ErrnoException::Fill() throw() {
     std::vector<char> errstr(256, '\0');
     do {
+#if defined(OS_DARWIN)
+        // if OS_DARWIN strerror_r is declared to return an int
+        int err = strerror_r(error, &errstr[0], errstr.size());
+        if (err == 0) {
+            errorstring = &errstr[0];
+            break;
+        } else {
+            if (errno == ERANGE) {
+                errstr.resize(2*errstr.size(), '\0');
+            } else {
+                errorstring = UNKNOWN_ERROR;
+                break;
+            }
+        }
+#else
         char *str = strerror_r(error, &errstr[0], errstr.size());
 
         // Wierdness with different versions of strerror... From the man page:
@@ -83,6 +98,7 @@ void ErrnoException::Fill() throw() {
             errorstring = str;
             break;
         }
+#endif
     } while (true);
 }
 

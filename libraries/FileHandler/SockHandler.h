@@ -51,9 +51,11 @@ public:
     struct SendOpts {
         SendOpts() : flags(0) {}
         SendOpts(int f) : flags(f) {}
+#ifndef OS_DARWIN
         SendOpts &Block(bool block);
         SendOpts &NoSignal(bool sig);
         SendOpts &More(bool more);
+#endif
         int flags;
     };
 

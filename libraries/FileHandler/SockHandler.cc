@@ -142,6 +142,7 @@ unsigned SockHandler::Recv(void *ptr, unsigned len, bool block) {
     return bytesread;
 }
 
+#ifndef OS_DARWIN
 SockHandler::SendOpts &SockHandler::SendOpts::Block(bool block) {
     if (block) { flags &= ~MSG_DONTWAIT; }
     else { flags |= MSG_DONTWAIT; }
@@ -159,6 +160,7 @@ SockHandler::SendOpts &SockHandler::SendOpts::More(bool more) {
     else { flags &= ~MSG_MORE; }
     return *this;
 }
+#endif
 
 unsigned SockHandler::Send(const void *ptr, unsigned len, const SendOpts &opts) {
     unsigned written = 0;

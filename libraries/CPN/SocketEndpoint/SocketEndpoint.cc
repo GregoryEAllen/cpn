@@ -98,10 +98,10 @@ namespace CPN {
         if (status == LIVE) {
             if (Closed()) {
                 // 30s
-                return 30e6;
+                return 30;
             }
         } else if (status == DIEING) {
-            return 30e6;
+            return 30;
         }
         return -1;
     }
