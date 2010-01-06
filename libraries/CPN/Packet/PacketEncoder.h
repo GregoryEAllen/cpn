@@ -27,6 +27,8 @@
 #include "CPNCommon.h"
 #include "PacketHeader.h"
 #include "AutoCircleBuffer.h"
+#include "Assert.h"
+#include <vector>
 // For the iovec definition
 #include <sys/uio.h>
 
@@ -38,7 +40,25 @@ namespace CPN {
         PacketEncoder();
         virtual ~PacketEncoder();
 
-        void SendEnqueue(const Packet &packet, QueueBase *queue);
+        template<typename Queue_t>
+        void SendEnqueue(const Packet &packet, Queue_t &queue) {
+            ASSERT(packet.DataLength() == packet.NumChannels() * packet.Count());
+            ASSERT(packet.Type() == PACKET_ENQUEUE);
+            std::vector<iovec> iovs;
+            // Must use const_cast here because iovec.iov_base isn't const... :(
+            iovec header = { const_cast<PacketHeader*>(&packet.header), sizeof(packet.header) };
+            iovs.push_back(header);
+            for (unsigned i = 0; i < packet.NumChannels(); ++i) {
+                iovec iov;
+                iov.iov_base = const_cast<void*>(queue.GetRawDequeuePtr(packet.Count(), i));
+                ASSERT(iov.iov_base);
+                iov.iov_len = packet.Count();
+                iovs.push_back(iov);
+            }
+            WriteBytes(&iovs[0], iovs.size());
+            queue.Dequeue(packet.Count());
+        }
+
         void SendPacket(const Packet &packet);
         void SendPacket(const Packet &packet, void *data);
     protected:

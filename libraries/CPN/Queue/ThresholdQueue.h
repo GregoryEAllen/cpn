@@ -45,20 +45,18 @@ namespace CPN {
      */
     class CPN_LOCAL ThresholdQueue : public QueueBase {
     public:
-        ThresholdQueue(unsigned size, unsigned maxThresh, unsigned numChans);
+        ThresholdQueue(shared_ptr<Database> db, const SimpleQueueAttr &attr);
         ~ThresholdQueue();
 
-        void* GetRawEnqueuePtr(unsigned thresh, unsigned chan=0);
-        void Enqueue(unsigned count);
-        bool RawEnqueue(const void* data, unsigned count);
-        bool RawEnqueue(const void* data, unsigned count, unsigned numChans, unsigned chanStride);
+    protected:
+        void *InternalGetRawEnqueuePtr(unsigned thresh, unsigned chan);
+        void InternalEnqueue(unsigned count);
 
 
-        const void* GetRawDequeuePtr(unsigned thresh, unsigned chan=0);
-        void Dequeue(unsigned count);
-        bool RawDequeue(void* data, unsigned count);
-        bool RawDequeue(void* data, unsigned count, unsigned numChans, unsigned chanStride);
+        const void *InternalGetRawDequeuePtr(unsigned thresh, unsigned chan);
+        void InternalDequeue(unsigned count);
 
+    public:
         unsigned NumChannels() const;
         unsigned MaxThreshold() const;
         unsigned QueueLength() const;

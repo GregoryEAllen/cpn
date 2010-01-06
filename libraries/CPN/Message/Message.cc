@@ -24,42 +24,6 @@
 #include "Message.h"
 
 namespace CPN {
-
-    ReaderMessageHandler::ReaderMessageHandler() : subhandler(0) {}
-    ReaderMessageHandler::ReaderMessageHandler(ReaderMessageHandler *shan) : subhandler(shan) {}
-    ReaderMessageHandler::~ReaderMessageHandler() { subhandler = 0; }
-    void ReaderMessageHandler::RMHEnqueue(Key_t src, Key_t dst) {
-        if (CheckRMH()) subhandler->RMHEnqueue(src, dst);
-    }
-    void ReaderMessageHandler::RMHEndOfWriteQueue(Key_t src, Key_t dst) {
-        if (CheckRMH()) subhandler->RMHEndOfWriteQueue(src, dst);
-    }
-    void ReaderMessageHandler::RMHWriteBlock(Key_t src, Key_t dst, unsigned requested) {
-        if (CheckRMH()) subhandler->RMHWriteBlock(src, dst, requested);
-    }
-    void ReaderMessageHandler::RMHTagChange(Key_t src, Key_t dst) {
-        if (CheckRMH()) subhandler->RMHTagChange(src, dst);
-    }
-
-
-    WriterMessageHandler::WriterMessageHandler() : subhandler(0) {}
-    WriterMessageHandler::WriterMessageHandler(WriterMessageHandler *shan) : subhandler(shan) {}
-    WriterMessageHandler::~WriterMessageHandler() { subhandler = 0; }
-    void WriterMessageHandler::WMHDequeue(Key_t src, Key_t dst) {
-        if (CheckWMH()) subhandler->WMHDequeue(src, dst);
-    }
-    void WriterMessageHandler::WMHEndOfReadQueue(Key_t src, Key_t dst) {
-        if (CheckWMH()) subhandler->WMHEndOfReadQueue(src, dst);
-    }
-    void WriterMessageHandler::WMHReadBlock(Key_t src, Key_t dst, unsigned requested) {
-        if (CheckWMH()) subhandler->WMHReadBlock(src, dst, requested);
-    }
-    void WriterMessageHandler::WMHTagChange(Key_t src, Key_t dst) {
-        if (CheckWMH()) subhandler->WMHTagChange(src, dst);
-    }
-
-    NodeMessageHandler::~NodeMessageHandler() {}
-
     KernelMessageHandler::~KernelMessageHandler() {}
 
     void KernelMessageHandler::CreateWriter(Key_t dst, const SimpleQueueAttr &attr) {

@@ -22,33 +22,12 @@
  */
 
 #include "PacketEncoder.h"
-#include "QueueBase.h"
-#include "Assert.h"
-#include <vector>
 
 namespace CPN {
 
     PacketEncoder::PacketEncoder() {}
 
     PacketEncoder::~PacketEncoder() {}
-
-    void PacketEncoder::SendEnqueue(const Packet &packet, QueueBase *queue) {
-        ASSERT(packet.DataLength() == packet.NumChannels() * packet.Count());
-        ASSERT(packet.Type() == PACKET_ENQUEUE);
-        std::vector<iovec> iovs;
-        // Must use const_cast here because iovec.iov_base isn't const... :(
-        iovec header = { const_cast<PacketHeader*>(&packet.header), sizeof(packet.header) };
-        iovs.push_back(header);
-        for (unsigned i = 0; i < packet.NumChannels(); ++i) {
-            iovec iov;
-            iov.iov_base = const_cast<void*>(queue->GetRawDequeuePtr(packet.Count(), i));
-            ASSERT(iov.iov_base);
-            iov.iov_len = packet.Count();
-            iovs.push_back(iov);
-        }
-        WriteBytes(&iovs[0], iovs.size());
-        queue->Dequeue(packet.Count());
-    }
 
     void PacketEncoder::SendPacket(const Packet &packet) {
         iovec iov;

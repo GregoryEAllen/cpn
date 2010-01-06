@@ -28,14 +28,13 @@
 
 #include "CPNCommon.h"
 #include "NodeAttr.h"
-#include "Message.h"
+#include "QueueBase.h"
 
 #include "ReentrantLock.h"
 
 #include "Pthread.h"
 
 #include <map>
-#include <set>
 
 namespace CPN {
 
@@ -46,32 +45,64 @@ namespace CPN {
 	 * lifetime of the node object.
 	 *
 	 */
-	class CPN_API NodeBase
-        : private Pthread,
-        private NodeMessageHandler,
-        private ReaderMessageHandler,
-        private WriterMessageHandler
-    {
-        typedef std::map<Key_t, shared_ptr<QueueReader> > ReaderMap;
-        typedef std::map<Key_t, shared_ptr<QueueWriter> > WriterMap;
-        friend class Kernel;
+	class CPN_API NodeBase : private Pthread, private QueueReleaser {
 	public:
 		NodeBase(Kernel &ker, const NodeAttr &attr);
 
 		virtual ~NodeBase();
 
+        /**
+         * \return the unique name of this node
+         */
 		const std::string &GetName() const { return name; }
 
+        /**
+         * \return the type id of this node
+         */
         const std::string &GetTypeName() const { return type; }
 
+        /**
+         * \return the process network wide unique id for this node
+         */
         Key_t GetKey() const { return nodekey; }
 
+        /**
+         * \brief This method is for use by the user to aquire a reader endpoint.
+         * This function blocks until the CPN::Kernel hands this node the queue
+         * associated with the endpoint.
+         * \param portname the port name of the reader to get.
+         * \return a shared pointer to a reader for he given endpoint name
+         */
         shared_ptr<QueueReader> GetReader(const std::string &portname);
+
+        /**
+         * \brief This method is for use by the user to aquire a writer endpoint.
+         * This function blocks until the CPN::Kernel hands this node the queue
+         * associated with the endpoint.
+         * \param portname the port name fo the writer to get.
+         * \return a shared pointer to a writer for the given endpoint name.
+         */
         shared_ptr<QueueWriter> GetWriter(const std::string &portname);
 
         Kernel *GetKernel() { return &kernel; }
 
-        NodeMessageHandler *GetNodeMessageHandler() { return this; }
+        /**
+         * \brief for use by the CPN::Kernel to create a new read endpoint.
+         */
+        void CreateReader(shared_ptr<QueueBase> q);
+
+        /**
+         * \brief for use by the CPN::Kernel to create a new writer endpoint.
+         */
+        void CreateWriter(shared_ptr<QueueBase> q);
+
+        /**
+         * \breif For use by the CPN::Kernel to start the node.
+         */
+        using Pthread::Start;
+
+        void Lock() const { lock.Lock(); }
+        void Unlock() const { lock.Unlock(); }
 	protected:
 
 		virtual void Process() = 0;
@@ -81,29 +112,13 @@ namespace CPN {
 		void* EntryPoint();
 
 
-        shared_ptr<QueueReader> GetReader(Key_t ekey, bool block);
-        shared_ptr<QueueWriter> GetWriter(Key_t ekey, bool block);
-        void Block(Key_t ekey);
-        void Unblock(Key_t ekey);
+        shared_ptr<QueueReader> GetReader(Key_t ekey);
+        shared_ptr<QueueWriter> GetWriter(Key_t ekey);
 
-        void Shutdown();
-        void CreateReader(Key_t readerkey, Key_t writerkey, shared_ptr<QueueBase> q);
-        void CreateWriter(Key_t readerkey, Key_t writerkey, shared_ptr<QueueBase> q);
-        void ReadBlock(Key_t readerkey, Key_t writerkey);
-        void WriteBlock(Key_t writerkey, Key_t readerkey);
         void ReleaseReader(Key_t ekey);
         void ReleaseWriter(Key_t ekey);
+
         void CheckTerminate();
-
-        void RMHEnqueue(Key_t writerkey, Key_t readerkey);
-        void RMHEndOfWriteQueue(Key_t writerkey, Key_t readerkey);
-        void RMHWriteBlock(Key_t writerkey, Key_t readerkey, unsigned requested);
-        void RMHTagChange(Key_t writerkey, Key_t readerkey);
-
-        void WMHDequeue(Key_t readerkey, Key_t writerkey);
-        void WMHEndOfReadQueue(Key_t readerkey, Key_t writerkey);
-        void WMHReadBlock(Key_t readerkey, Key_t writerkey, unsigned requested);
-        void WMHTagChange(Key_t readerkey, Key_t writerkey);
 
         // Private data
         Sync::ReentrantLock lock;
@@ -112,17 +127,12 @@ namespace CPN {
         const std::string type;
         const Key_t nodekey;
 
+        typedef std::map<Key_t, shared_ptr<QueueReader> > ReaderMap;
+        typedef std::map<Key_t, shared_ptr<QueueWriter> > WriterMap;
         ReaderMap readermap;
         WriterMap writermap;
 
-        typedef std::set<Key_t> BlockSet;
-        BlockSet blockset;
-
         shared_ptr<Database> database;
-
-        bool terminated;
-
-        Key_t blockkey;
 	};
 
 }

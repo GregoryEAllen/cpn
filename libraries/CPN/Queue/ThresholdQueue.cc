@@ -23,135 +23,90 @@
  */
 
 #include "ThresholdQueue.h"
+#include "QueueAttr.h"
 #include <cstring>
 
 namespace CPN {
 
-    ThresholdQueue::ThresholdQueue(unsigned size, unsigned maxThresh,
-            unsigned numChans) : QueueBase(),
+    ThresholdQueue::ThresholdQueue(shared_ptr<Database> db, const SimpleQueueAttr &attr)
+        : QueueBase(db, attr),
     // ThresholdQueueBase(ulong elemSize, ulong queueLen, ulong maxThresh, ulong numChans=1);
-        queue(1, size, maxThresh, numChans)
+        queue(1, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels())
     { }
 
     ThresholdQueue::~ThresholdQueue() {
-        Sync::AutoReentrantLock l(lock);
-        queue.Reset();
     }
 
-    void* ThresholdQueue::GetRawEnqueuePtr(unsigned thresh, unsigned chan) {
-        Sync::AutoReentrantLock l(lock);
+    void *ThresholdQueue::InternalGetRawEnqueuePtr(unsigned thresh, unsigned chan) {
         return queue.GetRawEnqueuePtr(thresh, chan);
     }
 
-    void ThresholdQueue::Enqueue(unsigned count) {
-        Sync::AutoReentrantLock l(lock);
+    void ThresholdQueue::InternalEnqueue(unsigned count) {
         queue.Enqueue(count);
-    }
-
-    bool ThresholdQueue::RawEnqueue(const void* data, unsigned count) {
-        return RawEnqueue(data, count, 1, 0);
-    }
-
-    bool ThresholdQueue::RawEnqueue(const void* data, unsigned count,
-            unsigned numChans, unsigned chanStride) {
-        Sync::AutoReentrantLock l(lock);
-        void* dest = queue.GetRawEnqueuePtr(count, 0);
-        const void* src = data;
-        if (!dest) return false;
-        memcpy(dest, src, count);
-        for (unsigned i = 1; i < numChans; ++i) {
-            dest = queue.GetRawEnqueuePtr(count, i);
-            src = ((char*)data) + (chanStride*i);
-            memcpy(dest, src, count);
-        }
-        queue.Enqueue(count);
-        return true;
     }
 
     unsigned ThresholdQueue::NumChannels() const {
-        Sync::AutoReentrantLock l(lock);
+        Sync::AutoLock<QueueBase> al(*this);
         return queue.NumChannels();
     }
 
     unsigned ThresholdQueue::ChannelStride() const {
-        Sync::AutoReentrantLock l(lock);
+        Sync::AutoLock<QueueBase> al(*this);
         return queue.ChannelStride();
     }
 
     unsigned ThresholdQueue::Freespace() const {
-        Sync::AutoReentrantLock l(lock);
+        Sync::AutoLock<QueueBase> al(*this);
         return queue.Freespace();
     }
 
     bool ThresholdQueue::Full() const {
-        Sync::AutoReentrantLock l(lock);
+        Sync::AutoLock<QueueBase> al(*this);
         return queue.Full();
     }
 
 
     // From QueueReader
-    const void* ThresholdQueue::GetRawDequeuePtr(unsigned thresh, unsigned chan) {
-        Sync::AutoReentrantLock l(lock);
+    const void *ThresholdQueue::InternalGetRawDequeuePtr(unsigned thresh, unsigned chan) {
         return queue.GetRawDequeuePtr(thresh, chan);
     }
 
-    void ThresholdQueue::Dequeue(unsigned count) {
-        Sync::AutoReentrantLock l(lock);
+    void ThresholdQueue::InternalDequeue(unsigned count) {
         queue.Dequeue(count);
-    }
-
-    bool ThresholdQueue::RawDequeue(void* data, unsigned count) {
-        return RawDequeue(data, count, 1, 0);
-    }
-
-    bool ThresholdQueue::RawDequeue(void* data, unsigned count,
-            unsigned numChans, unsigned chanStride) {
-        Sync::AutoReentrantLock l(lock);
-        const void* src = queue.GetRawDequeuePtr(count, 0);
-        void* dest = data;
-        if (!src) return false;
-        memcpy(dest, src, count);
-        for (unsigned i = 1; i < numChans; ++i) {
-            src = queue.GetRawDequeuePtr(count, i);
-            dest = ((char*)data) + (chanStride*i);
-            memcpy(dest, src, count);
-        }
-        queue.Dequeue(count);
-        return true;
     }
 
     unsigned ThresholdQueue::Count() const {
-        Sync::AutoReentrantLock l(lock);
+        Sync::AutoLock<QueueBase> al(*this);
         return queue.Count();
     }
 
     bool ThresholdQueue::Empty() const {
-        Sync::AutoReentrantLock l(lock);
+        Sync::AutoLock<QueueBase> al(*this);
         return queue.Empty();
     }
 
     unsigned ThresholdQueue::MaxThreshold() const {
-        Sync::AutoReentrantLock l(lock);
+        Sync::AutoLock<QueueBase> al(*this);
         return queue.MaxThreshold();
     }
 
     unsigned ThresholdQueue::QueueLength() const {
-        Sync::AutoReentrantLock l(lock);
+        Sync::AutoLock<QueueBase> al(*this);
         return queue.QueueLength();
     }
 
     unsigned ThresholdQueue::ElementsEnqueued() const {
-        Sync::AutoReentrantLock l(lock);
+        Sync::AutoLock<QueueBase> al(*this);
         return queue.ElementsEnqueued();
     }
 
     unsigned ThresholdQueue::ElementsDequeued() const {
-        Sync::AutoReentrantLock l(lock);
+        Sync::AutoLock<QueueBase> al(*this);
         return queue.ElementsDequeued();
     }
 
     void ThresholdQueue::Grow(unsigned queueLen, unsigned maxThresh) {
-        Sync::AutoReentrantLock l(lock);
+        Sync::AutoLock<QueueBase> al(*this);
         queue.Grow(queueLen, maxThresh);
     }
 

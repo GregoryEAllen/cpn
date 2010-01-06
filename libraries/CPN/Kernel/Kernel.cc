@@ -243,24 +243,18 @@ namespace CPN {
 
         shared_ptr<SocketEndpoint> endp = shared_ptr<SocketEndpoint>(
                 new SocketEndpoint(
-                    attr.GetReaderKey(),
-                    attr.GetWriterKey(),
+                    database,
                     SocketEndpoint::READ,
                     this,
-                    attr.GetLength(),
-                    attr.GetMaxThreshold(),
-                    attr.GetNumChannels()
+                    attr
                     ));
-
-        endp->SetDatatype(attr.GetDatatype());
 
         endpoints.push_back(endp);
 
         shared_ptr<NodeBase> readernode = nodemap[attr.GetReaderNodeKey()];
         ASSERT(readernode);
 
-        readernode->GetNodeMessageHandler()->
-            CreateReader(attr.GetReaderKey(), attr.GetWriterKey(), endp);
+        readernode->CreateReader(endp);
 
         SendWakeup();
     }
@@ -270,24 +264,18 @@ namespace CPN {
 
         shared_ptr<SocketEndpoint> endp = shared_ptr<SocketEndpoint>(
                 new SocketEndpoint(
-                    attr.GetReaderKey(),
-                    attr.GetWriterKey(),
+                    database,
                     SocketEndpoint::WRITE,
                     this,
-                    attr.GetLength(),
-                    attr.GetMaxThreshold(),
-                    attr.GetNumChannels()
+                    attr
                     ));
-
-        endp->SetDatatype(attr.GetDatatype());
 
         endpoints.push_back(endp);
 
         shared_ptr<NodeBase> writernode = nodemap[attr.GetWriterNodeKey()];
         ASSERT(writernode);
 
-        writernode->GetNodeMessageHandler()->
-            CreateWriter(attr.GetReaderKey(), attr.GetWriterKey(), endp);
+        writernode->CreateWriter(endp);
 
         SendWakeup();
     }
@@ -299,28 +287,23 @@ namespace CPN {
 
         shared_ptr<NodeBase> readernode = nodemap[attr.GetReaderNodeKey()];
         ASSERT(readernode, "Tried to connect a queue to a node that doesn't exist.");
-        readernode->GetNodeMessageHandler()->
-            CreateReader(attr.GetReaderKey(), attr.GetWriterKey(), queue);
+        readernode->CreateReader(queue);
 
         shared_ptr<NodeBase> writernode = nodemap[attr.GetWriterNodeKey()];
         ASSERT(writernode, "Tried to connect a queue to a node that doesn't exist.");
-        writernode->GetNodeMessageHandler()->
-            CreateWriter(attr.GetReaderKey(), attr.GetWriterKey(), queue);
+        writernode->CreateWriter(queue);
     }
 
     shared_ptr<QueueBase> Kernel::MakeQueue(const SimpleQueueAttr &attr) {
         shared_ptr<QueueBase> queue;
         switch (attr.GetHint()) {
         case QUEUEHINT_THRESHOLD:
-            queue = shared_ptr<QueueBase>(new ThresholdQueue(attr.GetLength(),
-                attr.GetMaxThreshold(), attr.GetNumChannels()));
+            queue = shared_ptr<QueueBase>(new ThresholdQueue(database, attr));
             break;
         default:
-            queue = shared_ptr<QueueBase>(new SimpleQueue(attr.GetLength(),
-                attr.GetMaxThreshold(), attr.GetNumChannels()));
+            queue = shared_ptr<QueueBase>(new SimpleQueue(database, attr));
             break;
         }
-        queue->SetDatatype(attr.GetDatatype());
 
         return queue;
     }
@@ -366,6 +349,7 @@ namespace CPN {
         }
         // Close the listen port
         connhandler.Shutdown();
+        /*
         // Tell everybody that is left to die.
         arlock.Lock();
         for (NodeMap::iterator itr = nodemap.begin();
@@ -376,9 +360,10 @@ namespace CPN {
                 itr != endpoints.end(); ++itr) {
             itr->get()->Shutdown();
         }
+        */
         // Wait for all nodes to end and all endpoints
         // to finish sending data
-        while (!nodemap.empty() || !endpoints.empty()) {
+        while (!nodemap.empty()) {
             arlock.Unlock();
             ClearGarbage();
             Poll(0);

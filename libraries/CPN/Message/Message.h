@@ -31,56 +31,6 @@
 
 namespace CPN {
 
-    /**
-     * Handler of messages to the reader
-     */
-    class ReaderMessageHandler {
-    public:
-        ReaderMessageHandler();
-        ReaderMessageHandler(ReaderMessageHandler *shan);
-        virtual ~ReaderMessageHandler();
-        virtual void RMHEnqueue(Key_t writerkey, Key_t readerkey);
-        virtual void RMHEndOfWriteQueue(Key_t writerkey, Key_t readerkey);
-        virtual void RMHWriteBlock(Key_t writerkey, Key_t readerkey, unsigned requested);
-        virtual void RMHTagChange(Key_t writerkey, Key_t readerkey);
-    protected:
-        ReaderMessageHandler *GetSubReaderHandler() const { return subhandler; }
-        void SetSubReaderHandler(ReaderMessageHandler *shan) { subhandler = shan; }
-        virtual bool CheckRMH() { return subhandler; }
-    private:
-        ReaderMessageHandler *subhandler;
-    };
-
-    class WriterMessageHandler {
-    public:
-        WriterMessageHandler();
-        WriterMessageHandler(WriterMessageHandler *shan);
-        virtual ~WriterMessageHandler();
-        virtual void WMHDequeue(Key_t readerkey, Key_t writerkey);
-        virtual void WMHEndOfReadQueue(Key_t readerkey, Key_t writerkey);
-        virtual void WMHReadBlock(Key_t readerkey, Key_t writerkey, unsigned requested);
-        virtual void WMHTagChange(Key_t readerkey, Key_t writerkey);
-    protected:
-        WriterMessageHandler *GetSubWriterHandler() const { return subhandler; }
-        void SetSubWriterHandler(WriterMessageHandler *shan) { subhandler = shan; }
-        virtual bool CheckWMH() { return subhandler; }
-    private:
-        WriterMessageHandler *subhandler;
-    };
-
-    class NodeMessageHandler {
-    public:
-        virtual ~NodeMessageHandler();
-        virtual void Shutdown() = 0;
-        virtual void CreateReader(Key_t readerkey, Key_t writerkey, shared_ptr<QueueBase> q) = 0;
-        virtual void CreateWriter(Key_t readerkey, Key_t writerkey, shared_ptr<QueueBase> q) = 0;
-        virtual void ReadBlock(Key_t readerkey, Key_t writerkey) = 0;
-        virtual void WriteBlock(Key_t writerkey, Key_t readerkey) = 0;
-        virtual void ReleaseWriter(Key_t key) = 0;
-        virtual void ReleaseReader(Key_t key) = 0;
-        virtual void CheckTerminate() = 0;
-    };
-
     class KernelMessageHandler {
     public:
         virtual ~KernelMessageHandler();

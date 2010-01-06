@@ -3,6 +3,8 @@
 #include "QueueBase.h"
 #include "ThresholdQueue.h"
 #include "SimpleQueue.h"
+#include "MockDatabase.h"
+#include "QueueAttr.h"
 #include <stdlib.h>
 #include <cppunit/TestAssert.h>
 #include <vector>
@@ -19,6 +21,8 @@ CPPUNIT_TEST_SUITE_REGISTRATION( QueueTest );
 using CPN::shared_ptr;
 using CPN::QueueBase;
 using CPN::ThresholdQueue;
+using CPN::Database;
+using CPN::SimpleQueueAttr;
 
 void QueueTest::setUp() {
 }
@@ -28,18 +32,18 @@ void QueueTest::tearDown() {
 
 void QueueTest::SimpleQueueTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
-    unsigned size = 309;
-    unsigned maxthresh = 10;
-    unsigned chans = 1;
+    shared_ptr<Database> database = shared_ptr<Database>(new MockDatabase);
+    SimpleQueueAttr attr;
+    attr.SetLength(309).SetMaxThreshold(10).SetNumChannels(1);
 	//DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, size, maxthresh, chans);
-    shared_ptr<QueueBase> queue = shared_ptr<QueueBase>(new CPN::SimpleQueue(size, maxthresh, chans));
+    shared_ptr<QueueBase> queue = shared_ptr<QueueBase>(new CPN::SimpleQueue(database, attr));
     TestBulk(queue.get());
     TestDirect(queue.get());
     TestBulk(queue.get());
     TestDirect(queue.get());
-    chans = 10;
+    attr.SetNumChannels(10);
 	//DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, size, maxthresh, chans);
-    queue = shared_ptr<QueueBase>(new CPN::SimpleQueue(size, maxthresh, chans));
+    queue = shared_ptr<QueueBase>(new CPN::SimpleQueue(database, attr));
     TestBulk(queue.get());
     TestDirect(queue.get());
     TestBulk(queue.get());
@@ -48,16 +52,16 @@ void QueueTest::SimpleQueueTest() {
 
 void QueueTest::ThresholdQueueTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
-    unsigned size = 30;
-    unsigned maxthresh = 10;
-    unsigned chans = 1;
+    shared_ptr<Database> database = shared_ptr<Database>(new MockDatabase);
+    SimpleQueueAttr attr;
+    attr.SetLength(30).SetMaxThreshold(10).SetNumChannels(1);
 	//DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, size, maxthresh, chans);
-    shared_ptr<QueueBase> queue = shared_ptr<QueueBase>(new ThresholdQueue(size, maxthresh, chans));
+    shared_ptr<QueueBase> queue = shared_ptr<QueueBase>(new ThresholdQueue(database, attr));
     TestBulk(queue.get());
     TestDirect(queue.get());
-    chans = 2;
+    attr.SetNumChannels(10);
 	//DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, size, maxthresh, chans);
-    queue = shared_ptr<QueueBase>(new ThresholdQueue(size, maxthresh, chans));
+    queue = shared_ptr<QueueBase>(new ThresholdQueue(database, attr));
     TestBulk(queue.get());
     TestDirect(queue.get());
 
@@ -68,7 +72,6 @@ void QueueTest::TestBulk(QueueBase *queue) {
     unsigned channels = queue->NumChannels();
     //printf("Size %u, Thresh %u, Chans %u\n", queue->QueueLength(), maxthresh, channels);
     std::vector< std::deque<char> > data(channels);
-    CPPUNIT_ASSERT(0 == queue->GetRawEnqueuePtr(maxthresh + 1));
     CPPUNIT_ASSERT(queue->Empty());
     // fill it up with deterministic garbage
     srand(1);
@@ -91,8 +94,8 @@ void QueueTest::TestBulk(QueueBase *queue) {
         queue->Enqueue(amount);
         indexbase += amount;
     }
+    queue->ShutdownWriter();
     CPPUNIT_ASSERT(queue->Full());
-    CPPUNIT_ASSERT(0 == queue->GetRawEnqueuePtr(1));
     srand(1);
     indexbase = 0;
     while (true) {
@@ -123,7 +126,6 @@ void QueueTest::TestDirect(QueueBase *queue) {
     unsigned qsize = queue->QueueLength();
     std::vector< char > data(channels * qsize);
     std::vector< std::deque<char> > dataqueued(channels);
-    CPPUNIT_ASSERT(0 == queue->GetRawEnqueuePtr(maxthresh + 1));
     CPPUNIT_ASSERT(queue->Empty());
     // fill it up with deterministic garbage
     srand(1);
@@ -137,9 +139,9 @@ void QueueTest::TestDirect(QueueBase *queue) {
                 }
             }
             if (channels == 1) {
-                CPPUNIT_ASSERT(queue->RawEnqueue(&data[0], amount));
+                queue->RawEnqueue(&data[0], amount);
             } else {
-                CPPUNIT_ASSERT(queue->RawEnqueue(&data[0], amount, channels, qsize));
+                queue->RawEnqueue(&data[0], amount, channels, qsize);
             }
             if (channels == 1) {
                 CPPUNIT_ASSERT(queue->RawDequeue(&data[0], amount));

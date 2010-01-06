@@ -22,62 +22,134 @@
  * \author John Bridgman
  */
 #include "QueueBase.h"
-#include "QueueDatatypes.h"
+#include "Exceptions.h"
+#include "QueueAttr.h"
 
 namespace CPN {
-    QueueBase::QueueBase() : shutdown(false), datatype(TypeName<void>()) {
+    QueueBase::QueueBase(shared_ptr<Database> db, const SimpleQueueAttr &attr)
+        : readerkey(attr.GetReaderKey()),
+        writerkey(attr.GetWriterKey()),
+        readshutdown(false),
+        writeshutdown(false),
+        readrequest(0),
+        writerequest(0),
+        database(db),
+        datatype(attr.GetDatatype())
+    {
     }
 
     QueueBase::~QueueBase() {}
 
-    void QueueBase::SetReaderMessageHandler(ReaderMessageHandler *rmhan) {
-        Sync::AutoReentrantLock arl(lock);
-        SetSubReaderHandler(rmhan);
-        cond.Signal();
+    const void *QueueBase::GetRawDequeuePtr(unsigned thresh, unsigned chan) {
+        Sync::AutoLock<QueueBase> al(*this);
+        while (true) {
+            const void *ptr = InternalGetRawDequeuePtr(thresh, chan);
+            if (ptr || writeshutdown) { return ptr; }
+            if (readshutdown) { throw BrokenQueueException(readerkey); }
+            WaitForData(thresh);
+        }
     }
 
-    ReaderMessageHandler *QueueBase::GetReaderMessageHandler() {
-        return this;
+    void QueueBase::Dequeue(unsigned count) {
+        Sync::AutoLock<QueueBase> al(*this);
+        if (readshutdown) { throw BrokenQueueException(readerkey); }
+        InternalDequeue(count);
+        NotifyFreespace();
     }
 
-    void QueueBase::ClearReaderMessageHandler() {
-        Sync::AutoReentrantLock arl(lock);
-        SetSubReaderHandler(0);
-        shutdown = true;
-        cond.Signal();
+    bool QueueBase::RawDequeue(void* data, unsigned count, unsigned numChans, unsigned chanStride) {
+        const void *src = GetRawDequeuePtr(count, 0);
+        char *dest = (char*)data;
+        if (!src) { return false; }
+        memcpy(dest, src, count);
+        for (unsigned chan = 1; chan < numChans; ++chan) {
+            src = GetRawDequeuePtr(count, chan);
+            ASSERT(src);
+            dest += chanStride;
+            memcpy(dest, src, count);
+        }
+        Dequeue(count);
+        return true;
     }
 
-    void QueueBase::SetWriterMessageHandler(WriterMessageHandler *wmhan) {
-        Sync::AutoReentrantLock arl(lock);
-        SetSubWriterHandler(wmhan);
-        cond.Signal();
+    bool QueueBase::RawDequeue(void *data, unsigned count) {
+        return RawDequeue(data, count, 1, 0);
     }
 
-    WriterMessageHandler *QueueBase::GetWriterMessageHandler() {
-        return this;
+    void *QueueBase::GetRawEnqueuePtr(unsigned thresh, unsigned chan) {
+        Sync::AutoLock<QueueBase> al(*this);
+        while (true) {
+            void *ptr = InternalGetRawEnqueuePtr(thresh, chan);
+            if (ptr) { return ptr; }
+            if (readshutdown || writeshutdown) { throw BrokenQueueException(writerkey); }
+            WaitForFreespace(thresh);
+        }
     }
 
-    void QueueBase::ClearWriterMessageHandler() {
-        Sync::AutoReentrantLock arl(lock);
-        SetSubReaderHandler(0);
-        shutdown = true;
-        cond.Signal();
+    void QueueBase::Enqueue(unsigned count) {
+        Sync::AutoLock<QueueBase> al(*this);
+        if (writeshutdown) { throw BrokenQueueException(writerkey); }
+        InternalEnqueue(count);
+        NotifyData();
     }
 
-    bool QueueBase::CheckRMH() {
-        Sync::AutoReentrantLock arl(lock);
-        while (GetSubReaderHandler() == 0 && !shutdown) {
+    void QueueBase::RawEnqueue(const void *data, unsigned count, unsigned numChans, unsigned chanStride) {
+        void *dest = GetRawEnqueuePtr(count, 0);
+        const char *src = (char*)data;
+        memcpy(dest, src, count);
+        for (unsigned chan = 1; chan < numChans; ++chan) {
+            dest = GetRawEnqueuePtr(count, chan);
+            src += chanStride;
+            memcpy(dest, src, count);
+        }
+        Enqueue(count);
+    }
+
+
+    void QueueBase::RawEnqueue(const void* data, unsigned count) {
+        return RawEnqueue(data, count, 1, 0);
+    }
+
+    void QueueBase::ShutdownReader() {
+        Sync::AutoLock<QueueBase> al(*this);
+        readshutdown = true;
+        cond.Broadcast();
+    }
+
+    void QueueBase::ShutdownWriter() {
+        Sync::AutoLock<QueueBase> al(*this);
+        writeshutdown = true;
+        cond.Broadcast();
+    }
+
+    void QueueBase::WaitForData(unsigned requested) {
+        readrequest = requested;
+        while (Count() < readrequest && !(readshutdown || writeshutdown)) {
             cond.Wait(lock);
         }
-        return !shutdown;
+        readrequest = 0;
     }
 
-    bool QueueBase::CheckWMH() {
-        Sync::AutoReentrantLock arl(lock);
-        while (GetSubWriterHandler() == 0 && !shutdown) {
+    void QueueBase::NotifyData() {
+        if (Count() >= readrequest) {
+            cond.Broadcast();
+        }
+    }
+
+    void QueueBase::WaitForFreespace(unsigned requested) {
+        writerequest = requested;
+        while (Freespace() < writerequest && !(readshutdown || writeshutdown)) {
             cond.Wait(lock);
         }
-        return !shutdown;
+        writerequest = 0;
     }
+
+    void QueueBase::NotifyFreespace() {
+        if (Freespace() >= writerequest) {
+            cond.Broadcast();
+        }
+    }
+
+    QueueReleaser::~QueueReleaser() {}
 }
 

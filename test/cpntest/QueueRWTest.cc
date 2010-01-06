@@ -15,6 +15,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION( QueueRWTest );
 #else
 #define DEBUG(frmt, ...)
 #endif
+/*
 
 using CPN::shared_ptr;
 using CPN::QueueReader;
@@ -130,12 +131,14 @@ public:
     bool readreleased;
 };
 
+*/
 void QueueRWTest::setUp() {
 }
 
 void QueueRWTest::tearDown() {
 }
 
+/*
 void QueueRWTest::WriteTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
     MockBlocker blocker;
@@ -147,4 +150,4 @@ void QueueRWTest::ReadTest() {
     MockBlocker blocker;
     blocker.DoReadTest();
 }
-
+*/

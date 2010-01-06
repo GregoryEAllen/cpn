@@ -25,8 +25,6 @@
 #define CPN_QUEUEBASE_H
 
 #include "CPNCommon.h"
-#include "Message.h"
-
 #include "ReentrantLock.h"
 
 namespace CPN {
@@ -34,9 +32,7 @@ namespace CPN {
 	/**
 	 * \brief The base class for all queues in the CPN library.
 	 */
-	class CPN_LOCAL QueueBase 
-    : protected ReaderMessageHandler, protected WriterMessageHandler
-    {
+	class CPN_LOCAL QueueBase {
 	public:
 
 		virtual ~QueueBase();
@@ -52,8 +48,7 @@ namespace CPN {
          * \return A void* to a block of memory containing thresh bytes
          * or 0 if there are not thresh bytes available.
          */
-        virtual const void* GetRawDequeuePtr(unsigned thresh, unsigned
-                chan=0) = 0;
+        const void *GetRawDequeuePtr(unsigned thresh, unsigned chan);
 
         /**
          * This function is used to remove elements from the queue.
@@ -61,7 +56,7 @@ namespace CPN {
          * called.
          * \param count the number of bytes to remove from the queue
          */
-        virtual void Dequeue(unsigned count) = 0;
+        void Dequeue(unsigned count);
 
         /**
          * Dequeue data from the queue directly into the memory pointed to by
@@ -75,16 +70,16 @@ namespace CPN {
          * the channels in data.
          * \return true on success false on failure
          */
-        virtual bool RawDequeue(void* data, unsigned count,
-                unsigned numChans, unsigned chanStride) = 0;
+        bool RawDequeue(void *data, unsigned count,
+                unsigned numChans, unsigned chanStride);
 
         /**
          * A version of RawDequeue to use when there is only 1 channel.
          * \param data the data to enqueue
          * \param count the number of bytes to enqueue
-         * \return true on success false if there is not enough space
+         * \return true on success false if we have reached the end of the queue
          */
-        virtual bool RawDequeue(void* data, unsigned count) = 0;
+        bool RawDequeue(void *data, unsigned count);
 
         /**
 		 * Return a pointer to a buffer of memory that contains
@@ -99,7 +94,7 @@ namespace CPN {
 		 * \param chan the channel to use
 		 * \return void* to the memory buffer, 0 if not enough space available
 		 */
-		virtual void* GetRawEnqueuePtr(unsigned thresh, unsigned chan=0) = 0;
+		void *GetRawEnqueuePtr(unsigned thresh, unsigned chan);
 
 		/**
 		 * This function is used to release the buffer obtained with
@@ -112,7 +107,7 @@ namespace CPN {
 		 * \param count the number of bytes to be placed in the buffer
 		 * \invariant count <= thresh from GetRawEnqueuePtr
 		 */
-		virtual void Enqueue(unsigned count) = 0;
+		void Enqueue(unsigned count);
 
 		/**
 		 * This function shall be equivalent to
@@ -128,18 +123,16 @@ namespace CPN {
          * \param numChans the number of channels to write to
          * \param chanStride the distance in bytes between the beginning of
          * the channels in data.
-		 * \return true on success false if not enough space available
 		 */
-		virtual bool RawEnqueue(const void* data, unsigned count,
-                unsigned numChans, unsigned chanStride) = 0;
+		void RawEnqueue(const void *data, unsigned count,
+                unsigned numChans, unsigned chanStride);
 
         /**
          * A version of RawEnqueue to use when there is only 1 channel.
          * \param data pointer to the memory to enqueue
          * \param count the number of bytes to enqueue
-         * \return true on success false if not enough space available
          */
-		virtual bool RawEnqueue(const void* data, unsigned count) = 0;
+		void RawEnqueue(const void *data, unsigned count);
 
 
         /**
@@ -182,7 +175,7 @@ namespace CPN {
 
         /**
          * Ensure that this queue has at least queueLen bytes
-         * of space and can suport at least maxThresh as the maxThreshold
+         * of space and can support at least maxThresh as the maxThreshold
          * the new queue length will be max(queueLen, QueueLength())
          * and the new max threshold will be max(maxThresh, MaxThreshold())
          * \param queueLen the next queue length
@@ -190,35 +183,49 @@ namespace CPN {
          */
         virtual void Grow(unsigned queueLen, unsigned maxThresh) = 0;
 
-        void SetDatatype(const std::string &type) { datatype = type; }
+        Key_t GetWriterKey() const { return writerkey; }
+        Key_t GetReaderKey() const { return readerkey; }
 
         const std::string &GetDatatype() const { return datatype; }
 
-        void SetReaderMessageHandler(ReaderMessageHandler *rmhan);
+        virtual void ShutdownReader();
+        virtual void ShutdownWriter();
 
-        ReaderMessageHandler *GetReaderMessageHandler();
-
-        void ClearReaderMessageHandler();
-
-        void SetWriterMessageHandler(WriterMessageHandler *wmhan);
-
-        WriterMessageHandler *GetWriterMessageHandler();
-
-        void ClearWriterMessageHandler();
-
-        const Sync::ReentrantLock &GetLock() const { return lock; }
-
+        void Lock() const { lock.Lock(); }
+        void Unlock() const { lock.Unlock(); }
 	protected:
-		QueueBase();
+		QueueBase(shared_ptr<Database> db, const SimpleQueueAttr &attr);
+
+        virtual void WaitForData(unsigned requested);
+        void NotifyData();
+        virtual void WaitForFreespace(unsigned requested);
+        void NotifyFreespace();
+
+        virtual void LogState() {}
+        virtual const void *InternalGetRawDequeuePtr(unsigned thresh, unsigned chan) = 0;
+        virtual void InternalDequeue(unsigned count) = 0;
+        virtual void *InternalGetRawEnqueuePtr(unsigned thresh, unsigned chan) = 0;
+        virtual void InternalEnqueue(unsigned count) = 0;
+
+        const Key_t readerkey;
+        const Key_t writerkey;
+        bool readshutdown;
+        bool writeshutdown;
+        unsigned readrequest;
+        unsigned writerequest;
+        shared_ptr<Database> database;
+	private:
         Sync::ReentrantLock lock;
         Sync::ReentrantCondition cond;
-        bool CheckRMH();
-        bool CheckWMH();
-        virtual void LogState() {}
-	private:
-        bool shutdown;
         std::string datatype;
 	};
+
+    class CPN_LOCAL QueueReleaser {
+    public:
+        virtual ~QueueReleaser();
+        virtual void ReleaseReader(Key_t rkey) = 0;
+        virtual void ReleaseWriter(Key_t wkey) = 0;
+    };
 
 }
 

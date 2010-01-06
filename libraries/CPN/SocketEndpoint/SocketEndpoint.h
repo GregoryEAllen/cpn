@@ -26,6 +26,7 @@
 #pragma once
 
 #include "CPNCommon.h"
+#include "Message.h"
 #include "QueueBase.h"
 #include "SockHandler.h"
 #include "PacketHeader.h"
@@ -52,9 +53,8 @@ namespace CPN {
             WRITE
         };
 
-        SocketEndpoint(Key_t readerkey, Key_t writerkey, Mode_t mode,
-                KernelMessageHandler *kmh_, unsigned size, unsigned maxThresh,
-                unsigned numChans);
+        SocketEndpoint(shared_ptr<Database> db, Mode_t mode,
+                KernelMessageHandler *kmh_, const SimpleQueueAttr &attr);
 
         Status_t GetStatus() const;
 
@@ -74,16 +74,12 @@ namespace CPN {
         double CheckStatus();
 
         // QueueBase
-        virtual const void* GetRawDequeuePtr(unsigned thresh, unsigned chan=0);
-        virtual void Dequeue(unsigned count);
-        virtual bool RawDequeue(void* data, unsigned count,
-                unsigned numChans, unsigned chanStride);
-        virtual bool RawDequeue(void* data, unsigned count);
-		virtual void* GetRawEnqueuePtr(unsigned thresh, unsigned chan=0);
-		virtual void Enqueue(unsigned count);
-		virtual bool RawEnqueue(const void* data, unsigned count,
-                unsigned numChans, unsigned chanStride);
-		virtual bool RawEnqueue(const void* data, unsigned count);
+    protected:
+        virtual const void *InternalGetRawDequeuePtr(unsigned thresh, unsigned chan);
+        virtual void InternalDequeue(unsigned count);
+		virtual void *InternalGetRawEnqueuePtr(unsigned thresh, unsigned chan);
+		virtual void InternalEnqueue(unsigned count);
+    public:
         virtual unsigned NumChannels() const;
         virtual unsigned Count() const;
         virtual bool Empty() const;
@@ -97,17 +93,10 @@ namespace CPN {
         void LogState();
     protected:
 
-        // ReaderMessageHandler
-        virtual void RMHEnqueue(Key_t writerkey, Key_t readerkey);
-        virtual void RMHEndOfWriteQueue(Key_t writerkey, Key_t readerkey);
-        virtual void RMHWriteBlock(Key_t writerkey, Key_t readerkey, unsigned requested);
-        virtual void RMHTagChange(Key_t writerkey, Key_t readerkey);
-
-        // WriterMessageHandler
-        virtual void WMHDequeue(Key_t readerkey, Key_t writerkey);
-        virtual void WMHEndOfReadQueue(Key_t readerkey, Key_t writerkey);
-        virtual void WMHReadBlock(Key_t readerkey, Key_t writerkey, unsigned requested);
-        virtual void WMHTagChange(Key_t readerkey, Key_t writerkey);
+        virtual void ShutdownReader();
+        virtual void ShutdownWriter();
+        virtual void WaitForData(unsigned request);
+        virtual void WaitForFreespace(unsigned request);
 
         // FileHandler
         virtual void OnRead();
@@ -157,8 +146,6 @@ namespace CPN {
 
         Status_t status;
         const Mode_t mode;
-        const Key_t writerkey;
-        const Key_t readerkey;
         KernelMessageHandler *kmh;
 
         shared_ptr<Future<int> > connection;
@@ -168,10 +155,7 @@ namespace CPN {
 
         bool pendingDequeue;
         bool pendingBlock;
-        unsigned blockRequest;
         bool sentEnd;
-        bool readshutdown;
-        bool writeshutdown;
 
         bool inread;
         bool incheckstatus;

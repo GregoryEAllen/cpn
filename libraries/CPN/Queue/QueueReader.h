@@ -28,7 +28,6 @@
 
 #include "CPNCommon.h"
 #include "QueueBase.h"
-#include "Message.h"
 #include <string>
 
 namespace CPN {
@@ -36,13 +35,10 @@ namespace CPN {
     /**
      * \brief Definition of the reader portion of the CPN queue class.
      */
-    class CPN_API QueueReader
-        : private ReaderMessageHandler
-    {
+    class CPN_API QueueReader {
     public:
 
-        QueueReader(NodeMessageHandler *n, ReaderMessageHandler *rmh,
-                Key_t readerkey, Key_t writerkey, shared_ptr<QueueBase> q);
+        QueueReader(QueueReleaser *n, shared_ptr<QueueBase> q);
 
         ~QueueReader();
 
@@ -59,8 +55,9 @@ namespace CPN {
          * 0 if the writer has disconnected and there is not enough
          * data to fill the request.
          */
-        const void* GetRawDequeuePtr(unsigned thresh, unsigned
-                chan=0);
+        const void* GetRawDequeuePtr(unsigned thresh, unsigned chan=0) {
+            return queue->GetRawDequeuePtr(thresh, chan);
+        }
 
         /**
          * This function is used to remove elements from the queue.
@@ -69,7 +66,7 @@ namespace CPN {
          * \param count the number of bytes to remove from the queue
          * \invariant count <= thresh from GetRawDequeuePtr
          */
-        void Dequeue(unsigned count);
+        void Dequeue(unsigned count) { queue->Dequeue(count); }
 
         /**
          * Dequeue data from the queue directly into the memory pointed to by
@@ -85,7 +82,9 @@ namespace CPN {
          * there is not enough data to fill the request.
          */
         bool RawDequeue(void *data, unsigned count,
-                unsigned numChans, unsigned chanStride);
+                unsigned numChans, unsigned chanStride) {
+            return queue->RawDequeue(data, count, numChans, chanStride);
+        }
 
         /**
          * A version of RawDequeue to use when there is only 1 channel.
@@ -94,7 +93,7 @@ namespace CPN {
          * \return true on success or false if the writer has disconnected and
          * there is not enough data to fill the request.
          */
-        bool RawDequeue(void *data, unsigned count);
+        bool RawDequeue(void *data, unsigned count) { return queue->RawDequeue(data, count); }
 
         /**
          * \return the number of channels supported by this queue.
@@ -130,28 +129,17 @@ namespace CPN {
         /**
          * \return the key associated with this endpoint
          */
-        Key_t GetKey() const { return rkey; }
+        Key_t GetKey() const { return queue->GetReaderKey(); }
 
-        /**
-         * Shutdown this endpoint. Sends a shutdown message
-         * to the other side. One may finish reading
-         * data from the reader.
-         */
-        void Shutdown();
         /**
          * Release the reader and reclame 
          * resources, all futher operations are invalid.
          */
         void Release();
-    private:
-        void RMHEndOfWriteQueue(Key_t src, Key_t dst);
 
-        NodeMessageHandler *nodeMsgHan;
-        WriterMessageHandler *writerMsgHan;
-        Key_t rkey;
-        Key_t wkey;
+    private:
+        QueueReleaser *releaser;
         shared_ptr<QueueBase> queue;
-        bool shutdown;
     };
 }
 #endif

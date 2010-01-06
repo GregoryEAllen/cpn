@@ -23,95 +23,21 @@
  */
 
 #include "QueueReader.h"
-#include "Exceptions.h"
 
 namespace CPN {
 
-    QueueReader::QueueReader(NodeMessageHandler *n,
-            ReaderMessageHandler *rmh,
-            Key_t readerkey,
-            Key_t writerkey,
-            shared_ptr<QueueBase> q)
-        : ReaderMessageHandler(rmh), nodeMsgHan(n), rkey(readerkey), wkey(writerkey),
-        queue(q), shutdown(false)
+    QueueReader::QueueReader(QueueReleaser *qr, shared_ptr<QueueBase> q)
+        : releaser(qr), queue(q)
     {
-        writerMsgHan = queue->GetWriterMessageHandler();
-        queue->SetReaderMessageHandler(this);
     }
 
     QueueReader::~QueueReader() {
-        Shutdown();
-        queue->ClearReaderMessageHandler();
-        SetSubReaderHandler(0);
-    }
-
-    const void* QueueReader::GetRawDequeuePtr(unsigned thresh, unsigned chan) {
-        nodeMsgHan->CheckTerminate();
-        Sync::AutoReentrantLock arl(queue->GetLock());
-        const void *ptr = queue->GetRawDequeuePtr(thresh, chan);
-        while (0 == ptr) {
-            if (shutdown) { return 0; }
-            writerMsgHan->WMHReadBlock(rkey, wkey, thresh);
-            arl.Unlock();
-            nodeMsgHan->ReadBlock(rkey, wkey);
-            arl.Lock();
-            ptr = queue->GetRawDequeuePtr(thresh, chan);
-        }
-        return ptr;
-    }
-
-    void QueueReader::Dequeue(unsigned count) {
-        Sync::AutoReentrantLock arl(queue->GetLock());
-        queue->Dequeue(count);
-        writerMsgHan->WMHDequeue(rkey, wkey);
-    }
-
-    bool QueueReader::RawDequeue(void *data, unsigned count,
-            unsigned numChans, unsigned chanStride) {
-        nodeMsgHan->CheckTerminate();
-        Sync::AutoReentrantLock arl(queue->GetLock());
-        while (!queue->RawDequeue(data, count, numChans, chanStride)) {
-            if (shutdown) { return false; }
-            writerMsgHan->WMHReadBlock(rkey, wkey, count);
-            arl.Unlock();
-            nodeMsgHan->ReadBlock(rkey, wkey);
-            arl.Lock();
-        }
-        writerMsgHan->WMHDequeue(rkey, wkey);
-        return true;
-    }
-
-    bool QueueReader::RawDequeue(void *data, unsigned count) {
-        nodeMsgHan->CheckTerminate();
-        Sync::AutoReentrantLock arl(queue->GetLock());
-        while (!queue->RawDequeue(data, count)) {
-            if (shutdown) { return false; }
-            writerMsgHan->WMHReadBlock(rkey, wkey, count);
-            arl.Unlock();
-            nodeMsgHan->ReadBlock(rkey, wkey);
-            arl.Lock();
-        }
-        writerMsgHan->WMHDequeue(rkey, wkey);
-        return true;
-    }
-
-    void QueueReader::Shutdown() {
-        Sync::AutoReentrantLock arl(queue->GetLock());
-        if (!shutdown) {
-            writerMsgHan->WMHEndOfReadQueue(rkey, wkey);
-            shutdown = true;
-        }
+        queue->ShutdownReader();
     }
 
     void QueueReader::Release() {
-        Shutdown();
-        nodeMsgHan->ReleaseReader(rkey);
-    }
-
-    void QueueReader::RMHEndOfWriteQueue(Key_t src, Key_t dst) {
-        Sync::AutoReentrantLock arl(queue->GetLock());
-        shutdown = true;
-        ReaderMessageHandler::RMHEndOfWriteQueue(src, dst);
+        queue->ShutdownReader();
+        releaser->ReleaseReader(GetKey());
     }
 }
 

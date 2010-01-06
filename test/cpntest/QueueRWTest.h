@@ -21,8 +21,8 @@ public:
 	void tearDown();
 
 	CPPUNIT_TEST_SUITE( QueueRWTest );
-	CPPUNIT_TEST( WriteTest );
-	CPPUNIT_TEST( ReadTest );
+	//CPPUNIT_TEST( WriteTest );
+	//CPPUNIT_TEST( ReadTest );
 	CPPUNIT_TEST_SUITE_END();
 
     void WriteTest();

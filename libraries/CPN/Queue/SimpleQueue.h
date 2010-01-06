@@ -35,24 +35,20 @@ namespace CPN {
     /**
      * /brief A very simple implementatin of QueueBase.
      * 
-     * Based on the ::SimpleQueue queue.
-     *
      * \see QueueBase
      */
     class CPN_LOCAL SimpleQueue : public QueueBase {
     public:
 
-        SimpleQueue(unsigned size, unsigned maxThresh, unsigned numChans);
+        SimpleQueue(shared_ptr<Database> db, const SimpleQueueAttr &attr);
         ~SimpleQueue();
 
-        void* GetRawEnqueuePtr(unsigned thresh, unsigned chan=0);
-        void Enqueue(unsigned count);
-        bool RawEnqueue(const void* data, unsigned count);
-        bool RawEnqueue(const void* data, unsigned count, unsigned numChans, unsigned chanStride);
-        const void* GetRawDequeuePtr(unsigned thresh, unsigned chan=0);
-        void Dequeue(unsigned count);
-        bool RawDequeue(void* data, unsigned count);
-        bool RawDequeue(void* data, unsigned count, unsigned numChans, unsigned chanStride);
+    protected:
+        void *InternalGetRawEnqueuePtr(unsigned thresh, unsigned chan);
+        void InternalEnqueue(unsigned count);
+        const void *InternalGetRawDequeuePtr(unsigned thresh, unsigned chan);
+        void InternalDequeue(unsigned count);
+    public:
         unsigned NumChannels() const;
         unsigned MaxThreshold() const;
         unsigned QueueLength() const;

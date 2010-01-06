@@ -28,7 +28,6 @@
 
 #include "CPNCommon.h"
 #include "QueueBase.h"
-#include "Message.h"
 #include <string>
 
 namespace CPN {
@@ -36,13 +35,10 @@ namespace CPN {
 	/**
 	 * \brief Definition of the writer portion of the CPN queue class.
 	 */
-	class CPN_API QueueWriter
-        : private WriterMessageHandler
-    {
+	class CPN_API QueueWriter {
 	public:
 
-        QueueWriter(NodeMessageHandler *n, WriterMessageHandler *wmh,
-                Key_t writerkey, Key_t readerkey, shared_ptr<QueueBase>);
+        QueueWriter(QueueReleaser *qr, shared_ptr<QueueBase>);
 
 		~QueueWriter();
 
@@ -61,7 +57,9 @@ namespace CPN {
          * blocks until thresh bytes available
          * \throws BrokenQueueException if the reader is released
 		 */
-		void* GetRawEnqueuePtr(unsigned thresh, unsigned chan=0);
+		void* GetRawEnqueuePtr(unsigned thresh, unsigned chan=0) {
+            return queue->GetRawEnqueuePtr(thresh, chan);
+        }
 
 		/**
 		 * This function is used to release the buffer obtained with
@@ -74,7 +72,7 @@ namespace CPN {
 		 * \param count the number of bytes to be placed in the buffer
 		 * \invariant count <= thresh from GetRawEnqueuePtr
 		 */
-		void Enqueue(unsigned count);
+		void Enqueue(unsigned count) { queue->Enqueue(count); }
 
 		/**
 		 * This function shall be equivalent to
@@ -93,7 +91,9 @@ namespace CPN {
          * \throws BrokenQueueException if the reader is released
 		 */
 		void RawEnqueue(void *data, unsigned count,
-                unsigned numChans, unsigned chanStride);
+                unsigned numChans, unsigned chanStride) {
+            queue->RawEnqueue(data, count, numChans, chanStride);
+        }
 
         /**
          * A version of RawEnqueue to use when there is only 1 channel.
@@ -101,7 +101,7 @@ namespace CPN {
          * \param count the number of bytes to enqueue
          * \throws BrokenQueueException if the reader is released
          */
-		void RawEnqueue(void *data, unsigned count);
+		void RawEnqueue(void *data, unsigned count) { queue->RawEnqueue(data, count); }
 
 		/**
 		 * \return the number of channels supported by this queue.
@@ -136,26 +136,16 @@ namespace CPN {
         /**
          * \return the key associated with this endpoint
          */
-        Key_t GetKey() const { return wkey; }
+        Key_t GetKey() const { return queue->GetWriterKey(); }
 
-        /**
-         * Shutdown the queue. Further operations are
-         * invalid.
-         */
-        void Shutdown();
         /**
          * Release this queue, will start releasing the resources
          * used.
          */
         void Release();
     private:
-        void WMHEndOfReadQueue(Key_t src, Key_t dst);
-        NodeMessageHandler *nodeMsgHan;
-        ReaderMessageHandler *readerMsgHan;
-        Key_t wkey;
-        Key_t rkey;
+        QueueReleaser *releaser;
         shared_ptr<QueueBase> queue;
-        bool shutdown;
 	};
 
 }

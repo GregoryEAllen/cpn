@@ -33,24 +33,17 @@ void StreamEndpointTest::setUp() {
     rfd = shared_ptr<FileFuture>(new FileFuture);
     wfd = shared_ptr<FileFuture>(new FileFuture);
 
+    /*
     wendp = shared_ptr<SocketEndpoint>(new SocketEndpoint(RKEY, WKEY, SocketEndpoint::WRITE,
                 this, QUEUESIZE*2, QUEUESIZE, 1));
-
+*/
     wqueue = wendp;
 
+    /*
     rendp = shared_ptr<SocketEndpoint>(new SocketEndpoint(RKEY, WKEY, SocketEndpoint::READ,
                 this, QUEUESIZE*2, QUEUESIZE, 1));
-
+    */
     rqueue = rendp;
-
-    // rmh --> wqueue --> wendp --> sock --> rendp --> rqueue --> tester(rmh)
-    // wmh --> rqueue --> rendp --> sock --> wendp --> wqueue --> tester(wmh)
-    wmh = rqueue->GetWriterMessageHandler();
-    rmh = wqueue->GetReaderMessageHandler();
-
-    wqueue->SetWriterMessageHandler(this);
-
-    rqueue->SetReaderMessageHandler(this);
 }
 
 void StreamEndpointTest::tearDown() {
@@ -62,6 +55,7 @@ void StreamEndpointTest::tearDown() {
     writemsg.clear();
 }
 
+/*
 void StreamEndpointTest::CommunicationTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
     Msg msg;
@@ -470,6 +464,7 @@ void StreamEndpointTest::WMHTagChange(Key_t src, Key_t dst) {
     writemsg.push_back(Msg(WMHTAGCHANGE, src, dst));
 }
 
+*/
 void StreamEndpointTest::SendWakeup() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
 }
@@ -487,4 +482,3 @@ CPN::shared_ptr<Future<int> > StreamEndpointTest::GetWriterDescriptor(CPN::Key_t
 {
     return wfd;
 }
-

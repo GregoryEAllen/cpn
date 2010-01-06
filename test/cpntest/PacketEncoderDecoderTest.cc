@@ -8,7 +8,7 @@
 #include "ToString.h"
 #include "PacketEncoder.h"
 #include "PacketDecoder.h"
-#include "SimpleQueue.h"
+#include "CircularQueue.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION( PacketEDTest );
 
@@ -22,11 +22,10 @@ CPPUNIT_TEST_SUITE_REGISTRATION( PacketEDTest );
 using CPN::PacketDecoder;
 using CPN::BufferedPacketEncoder;
 using CPN::Packet;
-using CPN::SimpleQueue;
 
 class MockDecoder : public CPN::PacketDecoder {
 public:
-    MockDecoder(CPN::QueueBase &queue_, BufferedPacketEncoder &encoder_)
+    MockDecoder(CircularQueue &queue_, BufferedPacketEncoder &encoder_)
     : numevents(0), queue(queue_), encoder(encoder_)
     {
     }
@@ -84,7 +83,7 @@ protected:
 private:
     Packet header;
     unsigned numevents;
-    CPN::QueueBase &queue;
+    CircularQueue &queue;
     BufferedPacketEncoder &encoder;
 };
 
@@ -100,7 +99,7 @@ void PacketEDTest::EnqueueTest() {
     const unsigned chans = 10;
     const unsigned step = 100;
     unsigned numpkts = 0;
-    SimpleQueue queue(sizeof(int) * maxlen, sizeof(int) * maxlen, chans);
+    CircularQueue queue(sizeof(int) * maxlen, sizeof(int) * maxlen, chans);
     BufferedPacketEncoder encoder;
     MockDecoder decoder(queue, encoder);
     for (unsigned i = 1; i <= maxlen; i += step) {
@@ -116,7 +115,7 @@ void PacketEDTest::EnqueueTest() {
         header.Count(sizeof(int)*i).NumChannels(chans);
         header.BytesQueued(rand()).SourceKey(rand()).DestinationKey(rand())
             .Mode(rand()).Status(rand());
-        encoder.SendEnqueue(header, &queue);
+        encoder.SendEnqueue(header, queue);
         numpkts++;
         Transfer(&encoder, &decoder);
         CPPUNIT_ASSERT(decoder.NumEvents() == numpkts);
@@ -137,7 +136,7 @@ void PacketEDTest::EnqueueTest() {
 void PacketEDTest::DoTest(Packet &header) {
     const unsigned maxlen = 1000;
     const unsigned chans = 10;
-    SimpleQueue queue(sizeof(int) * maxlen, sizeof(int) * maxlen, chans);
+    CircularQueue queue(sizeof(int) * maxlen, sizeof(int) * maxlen, chans);
     BufferedPacketEncoder encoder;
     MockDecoder decoder(queue, encoder);
 
