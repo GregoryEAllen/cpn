@@ -25,6 +25,7 @@
 #include "StackTrace.h"
 #include <execinfo.h>
 #include <cstdlib>
+#include <cstdio>
 #include <sstream>
 
 void PrintStack() {

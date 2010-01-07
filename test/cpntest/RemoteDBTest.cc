@@ -204,7 +204,6 @@ void RemoteDBTest::WaitForNodeTest() {
     LocalRDBClient lrdbc(serv, __PRETTY_FUNCTION__);
     m_nodename = "bogus node";
     Pthread *waiter = CreatePthreadFunctional(this, &RemoteDBTest::WaitForNode);
-    waiter->Start();
     lock.Lock();
     signaled = false;
     waiter->Start();

@@ -29,6 +29,8 @@
 #include "AutoBuffer.h"
 #include <sstream>
 #include <limits>
+#include <stdlib.h>
+#include <string.h>
 
 using std::tr1::shared_ptr;
 
