@@ -26,7 +26,7 @@
 #pragma once
 
 #include "CPNCommon.h"
-#include "Message.h"
+#include "KernelBase.h"
 #include "QueueBase.h"
 #include "SockHandler.h"
 #include "PacketHeader.h"
@@ -54,7 +54,7 @@ namespace CPN {
         };
 
         SocketEndpoint(shared_ptr<Database> db, Mode_t mode,
-                KernelMessageHandler *kmh_, const SimpleQueueAttr &attr);
+                KernelBase *kmh_, const SimpleQueueAttr &attr);
 
         Status_t GetStatus() const;
 
@@ -146,7 +146,7 @@ namespace CPN {
 
         Status_t status;
         const Mode_t mode;
-        KernelMessageHandler *kmh;
+        KernelBase *kmh;
 
         shared_ptr<Future<int> > connection;
 

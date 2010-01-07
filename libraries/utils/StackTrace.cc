@@ -26,6 +26,7 @@
 #include <execinfo.h>
 #include <cstdlib>
 #include <sstream>
+#include <cstdio>
 
 void PrintStack() {
     void* stack[STACKTRACE_MAXTRACE];

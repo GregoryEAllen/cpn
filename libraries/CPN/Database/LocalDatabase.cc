@@ -50,9 +50,9 @@ namespace CPN {
     }
 
     Key_t LocalDatabase::SetupHost(const std::string &name, const std::string &hostname,
-            const std::string &servname, KernelMessageHandler *kmh) {
+            const std::string &servname, KernelBase *kmh) {
         PthreadMutexProtected pl(lock);
-        ASSERT(kmh, "Must have non null KernelMessageHandler.");
+        ASSERT(kmh, "Must have non null KernelBase.");
         ASSERT(hostnames.find(name) == hostnames.end(), "Names must be unique.");
         shared_ptr<HostInfo> hinfo = shared_ptr<HostInfo>(new HostInfo);
         hinfo->name = name;
@@ -126,7 +126,7 @@ namespace CPN {
     }
 
     void LocalDatabase::SendCreateWriter(Key_t hostkey, const SimpleQueueAttr &attr) {
-        KernelMessageHandler *kmh;
+        KernelBase *kmh;
         {
             PthreadMutexProtected pl(lock);
             shared_ptr<HostInfo> hinfo = hostmap[hostkey];
@@ -137,7 +137,7 @@ namespace CPN {
     }
 
     void LocalDatabase::SendCreateReader(Key_t hostkey, const SimpleQueueAttr &attr) {
-        KernelMessageHandler *kmh;
+        KernelBase *kmh;
         {
             PthreadMutexProtected pl(lock);
             shared_ptr<HostInfo> hinfo = hostmap[hostkey];
@@ -148,7 +148,7 @@ namespace CPN {
     }
 
     void LocalDatabase::SendCreateQueue(Key_t hostkey, const SimpleQueueAttr &attr) {
-        KernelMessageHandler *kmh;
+        KernelBase *kmh;
         {
             PthreadMutexProtected pl(lock);
             shared_ptr<HostInfo> hinfo = hostmap[hostkey];
@@ -159,7 +159,7 @@ namespace CPN {
     }
 
     void LocalDatabase::SendCreateNode(Key_t hostkey, const NodeAttr &attr) {
-        KernelMessageHandler *kmh;
+        KernelBase *kmh;
         {
             PthreadMutexProtected pl(lock);
             shared_ptr<HostInfo> hinfo = hostmap[hostkey];

@@ -28,7 +28,6 @@
 #include "Database.h"
 #include "QueueAttr.h"
 #include "NodeAttr.h"
-#include "Message.h"
 #include "Pthread.h"
 #include "PthreadMutex.h"
 #include "PthreadCondition.h"
@@ -43,7 +42,7 @@ namespace CPN {
         virtual ~RemoteDBClient();
 
         virtual CPN::Key_t SetupHost(const std::string &name, const std::string &hostname,
-                const std::string &servname, CPN::KernelMessageHandler *kmh);
+                const std::string &servname, CPN::KernelBase *kmh);
         virtual CPN::Key_t GetHostKey(const std::string &host);
         virtual const std::string &GetHostName(CPN::Key_t hostkey);
         virtual void GetHostConnectionInfo(CPN::Key_t hostkey, std::string &hostname, std::string &servname);
@@ -118,7 +117,7 @@ namespace CPN {
 
         std::map<unsigned, WaiterInfo*> callwaiters;
         std::list<std::tr1::weak_ptr<GenericWaiter> > waiters;
-        std::map<CPN::Key_t, CPN::KernelMessageHandler*> kmhandlers;
+        std::map<CPN::Key_t, CPN::KernelBase*> kmhandlers;
         unsigned trancounter;
     };
 }

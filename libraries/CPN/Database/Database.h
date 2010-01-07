@@ -25,7 +25,7 @@
 #define CPNDB_DATABASE_H
 #pragma once
 #include "CPNCommon.h"
-#include "Message.h"
+#include "KernelBase.h"
 #include "Logger.h"
 #include <string>
 
@@ -39,7 +39,7 @@ namespace CPN {
         virtual ~Database();
 
         virtual Key_t SetupHost(const std::string &name, const std::string &hostname,
-                const std::string &servname, KernelMessageHandler *kmh) = 0;
+                const std::string &servname, KernelBase *kmh) = 0;
         virtual Key_t GetHostKey(const std::string &host) = 0;
         virtual const std::string &GetHostName(Key_t hostkey) = 0;
         virtual void GetHostConnectionInfo(Key_t hostkey, std::string &hostname, std::string &servname) = 0;

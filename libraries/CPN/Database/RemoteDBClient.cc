@@ -37,7 +37,7 @@ namespace CPN {
     }
 
     Key_t RemoteDBClient::SetupHost(const std::string &name, const std::string &hostname,
-            const std::string &servname, KernelMessageHandler *kmh) {
+            const std::string &servname, KernelBase *kmh) {
         PthreadMutexProtected plock(lock);
         WaiterInfo winfo(NewTranID());
         AddWaiter(&winfo);
@@ -570,9 +570,9 @@ namespace CPN {
             }
         } else if (msgtype == "kernel") {
             Key_t hostkey = msg["hostkey"].AsNumber<Key_t>();
-            std::map<Key_t, KernelMessageHandler*>::iterator entry = kmhandlers.find(hostkey);
+            std::map<Key_t, KernelBase*>::iterator entry = kmhandlers.find(hostkey);
             if (entry != kmhandlers.end()) {
-                KernelMessageHandler *kmh = entry->second;
+                KernelBase *kmh = entry->second;
                 // Release the lock (but get it back once we leave scope)
                 // We can't call the kernel with the lock
                 AutoUnlock<PthreadMutex> aul(lock);

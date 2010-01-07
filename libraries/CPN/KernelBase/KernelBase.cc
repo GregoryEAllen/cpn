@@ -21,32 +21,32 @@
  * \author John Bridgman
  */
 
-#include "Message.h"
+#include "KernelBase.h"
 
 namespace CPN {
-    KernelMessageHandler::~KernelMessageHandler() {}
+    KernelBase::~KernelBase() {}
 
-    void KernelMessageHandler::CreateWriter(Key_t dst, const SimpleQueueAttr &attr) {
+    void KernelBase::CreateWriter(Key_t dst, const SimpleQueueAttr &attr) {
         ASSERT(false, "Unexpected message");
     }
-    void KernelMessageHandler::CreateReader(Key_t dst, const SimpleQueueAttr &attr) {
+    void KernelBase::CreateReader(Key_t dst, const SimpleQueueAttr &attr) {
         ASSERT(false, "Unexpected message");
     }
-    void KernelMessageHandler::CreateQueue(Key_t dst, const SimpleQueueAttr &attr) {
+    void KernelBase::CreateQueue(Key_t dst, const SimpleQueueAttr &attr) {
         ASSERT(false, "Unexpected message");
     }
-    void KernelMessageHandler::CreateNode(Key_t dst, const NodeAttr &attr) {
+    void KernelBase::CreateNode(Key_t dst, const NodeAttr &attr) {
         ASSERT(false, "Unexpected message");
     }
-    shared_ptr<Future<int> > KernelMessageHandler::GetReaderDescriptor(Key_t readerkey, Key_t writerkey) {
-        ASSERT(false, "Unexpected message");
-        return shared_ptr<Future<int> >();
-    }
-    shared_ptr<Future<int> > KernelMessageHandler::GetWriterDescriptor(Key_t readerkey, Key_t writerkey) {
+    shared_ptr<Future<int> > KernelBase::GetReaderDescriptor(Key_t readerkey, Key_t writerkey) {
         ASSERT(false, "Unexpected message");
         return shared_ptr<Future<int> >();
     }
-    void KernelMessageHandler::SendWakeup() {
+    shared_ptr<Future<int> > KernelBase::GetWriterDescriptor(Key_t readerkey, Key_t writerkey) {
+        ASSERT(false, "Unexpected message");
+        return shared_ptr<Future<int> >();
+    }
+    void KernelBase::SendWakeup() {
         ASSERT(false, "Unexpected message");
     }
 }

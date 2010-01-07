@@ -44,7 +44,7 @@ private:
 namespace CPN {
 
     SocketEndpoint::SocketEndpoint(shared_ptr<Database> db, Mode_t mode_,
-            KernelMessageHandler *kmh_, const SimpleQueueAttr &attr)
+            KernelBase *kmh_, const SimpleQueueAttr &attr)
         : QueueBase(db, attr),
         logger(kmh_->GetLogger(), Logger::INFO),
         queue(attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels()),

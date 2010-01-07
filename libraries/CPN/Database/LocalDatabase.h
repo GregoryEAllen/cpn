@@ -43,7 +43,7 @@ namespace CPN {
             std::string name;
             std::string hostname;
             std::string servname;
-            KernelMessageHandler *kmh;
+            KernelBase *kmh;
             bool live;
             bool dead;
         };
@@ -76,7 +76,7 @@ namespace CPN {
         virtual int LogLevel(int level);
 
         virtual Key_t SetupHost(const std::string &name, const std::string &hostname,
-                const std::string &servname, KernelMessageHandler *kmh);
+                const std::string &servname, KernelBase *kmh);
         virtual Key_t GetHostKey(const std::string &host);
         virtual const std::string &GetHostName(Key_t hostkey);
         virtual void GetHostConnectionInfo(Key_t hostkey, std::string &hostname, std::string &servname);

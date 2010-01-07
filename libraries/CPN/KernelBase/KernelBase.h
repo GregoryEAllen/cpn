@@ -21,8 +21,8 @@
  * \author John Bridgman
  */
 
-#ifndef CPN_MESSAGE_H
-#define CPN_MESSAGE_H
+#ifndef CPN_KERNELBASE_H
+#define CPN_KERNELBASE_H
 #pragma once
 #include "CPNCommon.h"
 #include "Assert.h"
@@ -31,9 +31,9 @@
 
 namespace CPN {
 
-    class KernelMessageHandler {
+    class KernelBase {
     public:
-        virtual ~KernelMessageHandler();
+        virtual ~KernelBase();
         virtual void CreateWriter(Key_t dst, const SimpleQueueAttr &attr);
         virtual void CreateReader(Key_t dst, const SimpleQueueAttr &attr);
         virtual void CreateQueue(Key_t dst, const SimpleQueueAttr &attr);

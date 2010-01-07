@@ -2,7 +2,7 @@
 #include "QueueRWTest.h"
 #include "QueueWriter.h"
 #include "QueueReader.h"
-#include "Message.h"
+#include "KernelBase.h"
 #include "QueueBase.h"
 #include "SimpleQueue.h"
 #include <cppunit/TestAssert.h>

@@ -31,7 +31,7 @@
 #include "NodeAttr.h"
 #include "QueueAttr.h"
 
-#include "Message.h"
+#include "KernelBase.h"
 
 #include "ReentrantLock.h"
 #include "StatusHandler.h"
@@ -61,7 +61,7 @@ namespace CPN {
      * correctly and to provide a unified interface to
      * the user of the process network.
      */
-    class CPN_API Kernel : private Pthread, private KernelMessageHandler {
+    class CPN_API Kernel : private Pthread, private KernelBase {
         enum KernelStatus_t {
             INITIALIZED, RUNNING, TERMINATE, DONE
         };

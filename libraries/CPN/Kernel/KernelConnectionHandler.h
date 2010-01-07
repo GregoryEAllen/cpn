@@ -26,7 +26,7 @@
 #pragma once
 
 #include "CPNCommon.h"
-#include "Message.h"
+#include "KernelBase.h"
 
 #include "ListenSockHandler.h"
 #include "Future.h"
@@ -38,7 +38,7 @@
 namespace CPN {
     class KernelConnectionHandler : public ListenSockHandler {
     public:
-        KernelConnectionHandler(KernelMessageHandler *kmh_);
+        KernelConnectionHandler(KernelBase *kmh_);
         void OnRead();
         void OnError();
         void OnInval();
@@ -53,7 +53,7 @@ namespace CPN {
 
         Sync::ReentrantLock lock;
         Logger logger;
-        KernelMessageHandler *kmh;
+        KernelBase *kmh;
         class Connection;
         void Transfer(Key_t key, shared_ptr<Connection> conn);
 

@@ -15,13 +15,13 @@ CPPUNIT_TEST_SUITE_REGISTRATION( RemoteDBTest.h );
 
 #include <cppunit/extensions/HelperMacros.h>
 #include "CPNCommon.h"
-#include "Message.h"
+#include "KernelBase.h"
 #include "PthreadMutex.h"
 #include "PthreadCondition.h"
 #include <string>
 class LocalRDBServ;
 
-class RemoteDBTest: public CppUnit::TestFixture, public CPN::KernelMessageHandler {
+class RemoteDBTest: public CppUnit::TestFixture, public CPN::KernelBase {
 public:
 	void setUp();
 

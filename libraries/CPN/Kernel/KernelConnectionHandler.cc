@@ -251,7 +251,7 @@ namespace CPN {
         Key_t writerkey;
     };
 
-    KernelConnectionHandler::KernelConnectionHandler(KernelMessageHandler *kmh_)
+    KernelConnectionHandler::KernelConnectionHandler(KernelBase *kmh_)
         : kmh(kmh_)
     {
         Readable(true);

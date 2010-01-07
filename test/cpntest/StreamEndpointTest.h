@@ -15,12 +15,12 @@ CPPUNIT_TEST_SUITE_REGISTRATION( StreamEndpointTest );
 
 #include <cppunit/extensions/HelperMacros.h>
 #include "SocketEndpoint.h"
-#include "Message.h"
+#include "KernelBase.h"
 #include "QueueBase.h"
 #include <deque>
 
 class StreamEndpointTest : public CppUnit::TestFixture,
-public CPN::KernelMessageHandler {
+public CPN::KernelBase {
 public:
 
     StreamEndpointTest() : logger(Logger::INFO) {}

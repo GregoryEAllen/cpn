@@ -9,7 +9,7 @@ class MockDatabase : public CPN::Database {
     virtual void Log(int level, const std::string &msg) const {}
 
     virtual CPN::Key_t SetupHost(const std::string &name, const std::string &hostname,
-            const std::string &servname, CPN::KernelMessageHandler *kmh) { return 0; }
+            const std::string &servname, CPN::KernelBase *kmh) { return 0; }
     virtual CPN::Key_t GetHostKey(const std::string &host) { return 0; }
     virtual const std::string &GetHostName(CPN::Key_t hostkey) { return blank; }
     virtual void GetHostConnectionInfo(CPN::Key_t hostkey, std::string &hostname, std::string &servname) { }

@@ -74,7 +74,7 @@ namespace CPN {
 
     // Forward declarations
     class Kernel;
-    class KernelImpl;
+    class KernelBase;
     class KernelAttr;
 
     class QueueBase;
