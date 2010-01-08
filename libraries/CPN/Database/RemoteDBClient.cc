@@ -526,6 +526,9 @@ namespace CPN {
         return info["readerkey"].AsNumber<Key_t>();
     }
 
+    void RemoteDBClient::Terminate() {
+    }
+
     void RemoteDBClient::AddWaiter(WaiterInfo *info) {
         callwaiters.insert(std::make_pair(info->waiterid, info));
     }

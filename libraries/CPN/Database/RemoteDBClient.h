@@ -87,6 +87,8 @@ namespace CPN {
         virtual CPN::Key_t GetReadersWriter(CPN::Key_t readerkey);
         virtual CPN::Key_t GetWritersReader(CPN::Key_t writerkey);
 
+        virtual void Terminate();
+
         void DispatchMessage(const Variant &msg);
     protected:
         RemoteDBClient();

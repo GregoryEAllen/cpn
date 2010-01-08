@@ -20,40 +20,54 @@
 /** \file
  * \author John Bridgman
  */
-#ifndef LISTENSOCKETHANDLER_H
-#define LISTENSOCKETHANDLER_H
-#pragma once
+#include "RemoteDatabase.h"
 
-#include "FileHandler.h"
-#include "SocketAddress.h"
+void RemoteDatabase::SendMessage(const Variant &msg) {
+    std::string message = msg.AsJSON();
+    Write(message.c_str(), message.size() + 1);
+}
 
-class ListenSockHandler : public FileHandler {
-public:
+void *RemoteDatabase::EntryPoint() {
+    while (Good()) {
+        Poll(-1);
+    }
+}
 
-    ListenSockHandler() {}
-    ListenSockHandler(int nfd) : FileHandler(nfd) {}
-    ListenSockHandler(const SocketAddress &addr) { Listen(addr); }
-    ListenSockHandler(const SockAddrList &addrs) { Listen(addrs); }
+void RemoteDatabase::OnRead() {
+    const unsigned BUF_SIZE = 4*1024;
+    char buf[BUF_SIZE];
+    while (Good()) {
+        unsigned numread = Recv(buf, BUF_SIZE, false);
+        if (numread == 0) {
+            if (Eof()) {
+                Terminate();
+            }
+            break;
+        }
+        for (unsigned i = 0; i < numread; ++i) {
+            if (buf[i] == 0) {
+                Variant msg = Variant::FromJSON(buffer);
+                DispatchMessage(msg);
+                buffer.clear();
+            } else {
+                buffer.push_back(buf[i]);
+            }
+        }
+    }
+}
 
-    void Listen(const SocketAddress &addr);
+void RemoteDatabase::OnWrite() {
+}
 
-    void Listen(const SockAddrList &addrs);
+void RemoteDatabase::OnError() {
+    Terminate();
+}
 
-    /**
-     * \return -1 if no connection >=0 on success
-     * \throws ErrnoException for errors
-     */
-    int Accept(SocketAddress &addr);
-    int Accept();
+void RemoteDatabase::OnHup() {
+    Terminate();
+}
 
-    virtual void OnRead() = 0;
-    virtual void OnError() = 0;
-    virtual void OnInval() = 0;
-private:
-    // These can't happen
-    void OnWrite() {}
-    void OnHup() {}
-    bool Listen(const SocketAddress &addr, int &error);
-    int Accept(SocketAddress *addr);
-};
-#endif
+void RemoteDatabase::OnInval() {
+    Terminate();
+}
+

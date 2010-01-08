@@ -20,40 +20,27 @@
 /** \file
  * \author John Bridgman
  */
-#ifndef LISTENSOCKETHANDLER_H
-#define LISTENSOCKETHANDLER_H
+#ifndef REMOTEDATABASE_H
+#define REMOTEDATABASE_H
 #pragma once
+#include "RemoteDBClient.h"
+#include "SockHandler.h"
+#include "Pthread.h"
+#include <vector>
 
-#include "FileHandler.h"
-#include "SocketAddress.h"
-
-class ListenSockHandler : public FileHandler {
+class RemoteDatabase : public Pthread, public CPN::RemoteDBClient, private SockHandler {
 public:
-
-    ListenSockHandler() {}
-    ListenSockHandler(int nfd) : FileHandler(nfd) {}
-    ListenSockHandler(const SocketAddress &addr) { Listen(addr); }
-    ListenSockHandler(const SockAddrList &addrs) { Listen(addrs); }
-
-    void Listen(const SocketAddress &addr);
-
-    void Listen(const SockAddrList &addrs);
-
-    /**
-     * \return -1 if no connection >=0 on success
-     * \throws ErrnoException for errors
-     */
-    int Accept(SocketAddress &addr);
-    int Accept();
-
-    virtual void OnRead() = 0;
-    virtual void OnError() = 0;
-    virtual void OnInval() = 0;
+    RemoteDatabase(const SocketAddress &addr) { Connect(addr); }
+    RemoteDatabase(const SockAddrList &addrs) { Connect(addrs); }
+protected:
+    void SendMessage(const Variant &msg);
+    void *EntryPoint();
+    void OnRead();
+    void OnWrite();
+    void OnError();
+    void OnHup();
+    void OnInval();
 private:
-    // These can't happen
-    void OnWrite() {}
-    void OnHup() {}
-    bool Listen(const SocketAddress &addr, int &error);
-    int Accept(SocketAddress *addr);
+    std::vector<char> buffer;
 };
 #endif

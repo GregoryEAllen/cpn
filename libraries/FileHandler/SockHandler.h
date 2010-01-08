@@ -29,6 +29,9 @@
 class SockHandler : public FileHandler {
 public:
 
+    SockHandler() {}
+    SockHandler(int nfd) : FileHandler(nfd) {}
+
     static void CreatePair(SockHandler &sock1, SockHandler &sock2);
     static void CreatePair(int fd[2]);
 
