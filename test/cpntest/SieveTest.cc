@@ -21,7 +21,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION( SieveTest );
 #define DEBUG(frmt, ...)
 #endif
 
-#if 0
+#if 1
 #define DBPRINT(fmt, ...) printf(fmt, __VA_ARGS__)
 #else
 #define DBPRINT(fmt, ...)
@@ -88,6 +88,7 @@ void SieveResultNode::Process() {
             ++portnum;
             DBPRINT("Result swapped port to %lu\n", portnum);
             CreateNextFilter(portnum);
+            in.Release();
             in = GetReader(ToString(PORT_FORMAT, portnum));
         } else {
             result[index] = value;
@@ -98,6 +99,7 @@ void SieveResultNode::Process() {
     SieveNumber val = -1;
     ASSERT(in.Dequeue(&val, 1));
     ASSERT(0 == val);
+    in.Release();
     DBPRINT("%s stopped\n", ourname.c_str());
 }
 
@@ -169,6 +171,8 @@ void SieveFilterNode::Process() {
             break;
         }
     }
+    in.Release();
+    out.Release();
     DBPRINT("%s stopped\n", ourname.c_str());
 }
 
@@ -193,6 +197,7 @@ void SieveProducerNode::Process(void) {
     }
     index = 0;
     out.Enqueue(&index, 1);
+    out.Release();
     DBPRINT("%s stopped\n", ourname.c_str());
 }
 

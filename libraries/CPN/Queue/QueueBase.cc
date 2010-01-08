@@ -23,6 +23,7 @@
  */
 #include "QueueBase.h"
 #include "QueueDatatypes.h"
+#include <stdio.h>
 
 namespace CPN {
     QueueBase::QueueBase() : shutdown(false), datatype(TypeName<void>()) {
@@ -78,6 +79,11 @@ namespace CPN {
             cond.Wait(lock);
         }
         return !shutdown;
+    }
+
+    void QueueBase::LogState() {
+        printf("Regular queue: size: %u count: %u thresh: %u\n",
+                QueueLength(), Count(), MaxThreshold());
     }
 }
 

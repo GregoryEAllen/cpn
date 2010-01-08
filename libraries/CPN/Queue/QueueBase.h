@@ -214,7 +214,7 @@ namespace CPN {
         Sync::ReentrantCondition cond;
         bool CheckRMH();
         bool CheckWMH();
-        virtual void LogState() {}
+        virtual void LogState();
 	private:
         bool shutdown;
         std::string datatype;
