@@ -88,6 +88,7 @@ namespace CPN {
         virtual CPN::Key_t GetWritersReader(CPN::Key_t writerkey);
 
         virtual void Terminate();
+        virtual bool IsTerminated();
 
         void DispatchMessage(const Variant &msg);
     protected:
@@ -114,6 +115,8 @@ namespace CPN {
         unsigned NewTranID();
         void AddWaiter(WaiterInfo *info);
         GenericWaiterPtr NewGenericWaiter();
+        void InternalTerminate();
+        void InternalCheckTerminated();
 
         CPN::Key_t GetCreateEndpointKey(RDBMT_t msgtype, CPN::Key_t nodekey, const std::string &portname);
         Variant GetEndpointInfo(RDBMT_t msgtype, CPN::Key_t portkey);
@@ -122,6 +125,7 @@ namespace CPN {
         std::list<std::tr1::weak_ptr<GenericWaiter> > waiters;
         std::map<CPN::Key_t, CPN::KernelMessageHandler*> kmhandlers;
         unsigned trancounter;
+        bool shutdown;
     };
 }
 #endif

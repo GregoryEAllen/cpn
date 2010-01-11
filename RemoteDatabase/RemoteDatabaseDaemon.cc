@@ -52,6 +52,7 @@ void RemoteDatabaseDaemon::Run() {
 }
 
 void RemoteDatabaseDaemon::Terminate() {
+    CPN::RemoteDBServer::Terminate();
     Close();
     ClientMap::iterator itr = clients.begin();
     while (itr != clients.end()) {

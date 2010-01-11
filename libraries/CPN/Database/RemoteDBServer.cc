@@ -28,7 +28,7 @@
 namespace CPN {
 
     RemoteDBServer::RemoteDBServer()
-        : numlivenodes(0), keycount(0)
+        : shutdown(false), numlivenodes(0), keycount(0)
     {
     }
 
@@ -36,6 +36,9 @@ namespace CPN {
     }
 
     void RemoteDBServer::DispatchMessage(const std::string &sender, const Variant &msg) {
+        if (IsTerminated()) {
+            return;
+        }
         RDBMT_t type = msg["type"].AsNumber<RDBMT_t>();
         switch (type) {
         case RDBMT_SETUP_HOST:
@@ -92,9 +95,19 @@ namespace CPN {
         case RDBMT_CONNECT_ENDPOINTS:
             ConnectEndpoints(msg);
             break;
+        case RDBMT_TERMINATE:
+            Terminate();
+            break;
         default:
             ASSERT(false);
         }
+    }
+
+    void RemoteDBServer::Terminate() {
+        shutdown = true;
+        Variant msg(Variant::ObjectType);
+        msg["type"] = RDBMT_TERMINATE;
+        BroadcastMessage(msg);
     }
 
     void RemoteDBServer::SetupHost(const std::string &sender, const Variant &msg) {

@@ -157,6 +157,8 @@ namespace CPN {
         shared_ptr<Future<int> > GetReaderDescriptor(Key_t readerkey, Key_t writerkey);
         shared_ptr<Future<int> > GetWriterDescriptor(Key_t readerkey, Key_t writerkey);
 
+        void NotifyTerminate();
+
         void LogEndpoints();
 
         Sync::ReentrantLock lock;

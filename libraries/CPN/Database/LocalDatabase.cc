@@ -23,14 +23,17 @@
 
 #include "LocalDatabase.h"
 #include "KernelAttr.h"
+#include "Exceptions.h"
 #include "Assert.h"
 #include <iostream>
 #include <stdexcept>
 
 namespace CPN {
 
-    LocalDatabase::LocalDatabase() : loglevel(Logger::WARNING), numlivenodes(0), counter(0) {}
-    LocalDatabase::~LocalDatabase() {}
+    LocalDatabase::LocalDatabase()
+        : loglevel(Logger::WARNING), numlivenodes(0), shutdown(false), counter(0) {}
+    LocalDatabase::~LocalDatabase() {
+    }
 
     void LocalDatabase::Log(int level, const std::string &msg) const {
         PthreadMutexProtected pl(lock);
@@ -52,6 +55,7 @@ namespace CPN {
     Key_t LocalDatabase::SetupHost(const std::string &name, const std::string &hostname,
             const std::string &servname, KernelMessageHandler *kmh) {
         PthreadMutexProtected pl(lock);
+        InternalCheckTerminated();
         ASSERT(kmh, "Must have non null KernelMessageHandler.");
         ASSERT(hostnames.find(name) == hostnames.end(), "Names must be unique.");
         shared_ptr<HostInfo> hinfo = shared_ptr<HostInfo>(new HostInfo);
@@ -69,6 +73,7 @@ namespace CPN {
 
     Key_t LocalDatabase::GetHostKey(const std::string &host) {
         PthreadMutexProtected pl(lock);
+        InternalCheckTerminated();
         NameMap::iterator entry = hostnames.find(host);
         if (entry == hostnames.end()) {
             throw std::invalid_argument("No such host");
@@ -78,6 +83,7 @@ namespace CPN {
 
     const std::string &LocalDatabase::GetHostName(Key_t hostkey) {
         PthreadMutexProtected pl(lock);
+        InternalCheckTerminated();
         HostMap::iterator entry = hostmap.find(hostkey);
         if (entry == hostmap.end()) {
             throw std::invalid_argument("No such host");
@@ -87,6 +93,7 @@ namespace CPN {
 
     void LocalDatabase::GetHostConnectionInfo(Key_t hostkey, std::string &hostname, std::string &servname) {
         PthreadMutexProtected pl(lock);
+        InternalCheckTerminated();
         HostMap::iterator entry = hostmap.find(hostkey);
         if (entry == hostmap.end()) {
             throw std::invalid_argument("No such host");
@@ -103,6 +110,7 @@ namespace CPN {
 
     Key_t LocalDatabase::WaitForHostStart(const std::string &host) {
         PthreadMutexProtected pl(lock);
+        InternalCheckTerminated();
         while (true) {
             NameMap::iterator entry = hostnames.find(host);
             if (entry != hostnames.end()) {
@@ -112,11 +120,13 @@ namespace CPN {
                 }
             }
             hostlivedead.Wait(lock);
+            InternalCheckTerminated();
         }
     }
 
     void LocalDatabase::SignalHostStart(Key_t hostkey) {
         PthreadMutexProtected pl(lock);
+        InternalCheckTerminated();
         HostMap::iterator entry = hostmap.find(hostkey);
         if (entry == hostmap.end()) {
             throw std::invalid_argument("No such host");
@@ -129,6 +139,7 @@ namespace CPN {
         KernelMessageHandler *kmh;
         {
             PthreadMutexProtected pl(lock);
+            InternalCheckTerminated();
             shared_ptr<HostInfo> hinfo = hostmap[hostkey];
             kmh = hinfo->kmh;
         }
@@ -140,6 +151,7 @@ namespace CPN {
         KernelMessageHandler *kmh;
         {
             PthreadMutexProtected pl(lock);
+            InternalCheckTerminated();
             shared_ptr<HostInfo> hinfo = hostmap[hostkey];
             kmh = hinfo->kmh;
         }
@@ -151,6 +163,7 @@ namespace CPN {
         KernelMessageHandler *kmh;
         {
             PthreadMutexProtected pl(lock);
+            InternalCheckTerminated();
             shared_ptr<HostInfo> hinfo = hostmap[hostkey];
             kmh = hinfo->kmh;
         }
@@ -162,6 +175,7 @@ namespace CPN {
         KernelMessageHandler *kmh;
         {
             PthreadMutexProtected pl(lock);
+            InternalCheckTerminated();
             shared_ptr<HostInfo> hinfo = hostmap[hostkey];
             kmh = hinfo->kmh;
         }
@@ -171,6 +185,7 @@ namespace CPN {
 
     Key_t LocalDatabase::CreateNodeKey(Key_t hostkey, const std::string &nodename) {
         PthreadMutexProtected pl(lock);
+        InternalCheckTerminated();
         NameMap::iterator nameentry = nodenames.find(nodename);
         Key_t key;
         if (nameentry == nodenames.end()) {
@@ -190,6 +205,7 @@ namespace CPN {
 
     Key_t LocalDatabase::GetNodeKey(const std::string &nodename) {
         PthreadMutexProtected pl(lock);
+        InternalCheckTerminated();
         NameMap::iterator nameentry = nodenames.find(nodename);
         if (nameentry == nodenames.end()) {
             throw std::invalid_argument("No such node");
@@ -209,6 +225,7 @@ namespace CPN {
 
     void LocalDatabase::SignalNodeStart(Key_t nodekey) {
         PthreadMutexProtected pl(lock);
+        InternalCheckTerminated();
         NodeMap::iterator entry = nodemap.find(nodekey);
         if (entry == nodemap.end()) {
             throw std::invalid_argument("No such node");
@@ -233,6 +250,7 @@ namespace CPN {
 
     Key_t LocalDatabase::WaitForNodeStart(const std::string &nodename) {
         PthreadMutexProtected pl(lock);
+        InternalCheckTerminated();
         while (true) {
             NameMap::iterator nameentry = nodenames.find(nodename);
             if (nameentry != nodenames.end()) {
@@ -244,12 +262,13 @@ namespace CPN {
                 }
             }
             nodelivedead.Wait(lock);
+            InternalCheckTerminated();
         }
     }
 
     void LocalDatabase::WaitForNodeEnd(const std::string &nodename) {
         PthreadMutexProtected pl(lock);
-        while (true) {
+        while (!shutdown) {
             NameMap::iterator nameentry = nodenames.find(nodename);
             if (nameentry != nodenames.end()) {
                 NodeMap::iterator entry = nodemap.find(nameentry->second);
@@ -266,13 +285,14 @@ namespace CPN {
 
     void LocalDatabase::WaitForAllNodeEnd() {
         PthreadMutexProtected pl(lock);
-        while (numlivenodes > 0) {
+        while (numlivenodes > 0 && !shutdown) {
             nodelivedead.Wait(lock);
         }
     }
 
     Key_t LocalDatabase::GetNodeHost(Key_t nodekey) {
         PthreadMutexProtected pl(lock);
+        InternalCheckTerminated();
         NodeMap::iterator entry = nodemap.find(nodekey);
         if (entry == nodemap.end()) {
             throw std::invalid_argument("No such node");
@@ -281,6 +301,7 @@ namespace CPN {
     }
 
     Key_t LocalDatabase::GetCreateReaderKey(Key_t nodekey, const std::string &portname) {
+        InternalCheckTerminated();
         PthreadMutexProtected pl(lock);
         NodeMap::iterator entry = nodemap.find(nodekey);
         if (entry == nodemap.end()) {
@@ -302,6 +323,7 @@ namespace CPN {
         }
     }
     Key_t LocalDatabase::GetReaderNode(Key_t portkey) {
+        InternalCheckTerminated();
         PthreadMutexProtected pl(lock);
         PortMap::iterator entry = readports.find(portkey);
         if (entry == readports.end()) {
@@ -317,6 +339,7 @@ namespace CPN {
 
     const std::string &LocalDatabase::GetReaderName(Key_t portkey) {
         PthreadMutexProtected pl(lock);
+        InternalCheckTerminated();
         PortMap::iterator entry = readports.find(portkey);
         if (entry == readports.end()) {
             throw std::invalid_argument("No such port");
@@ -333,6 +356,7 @@ namespace CPN {
 
     Key_t LocalDatabase::GetCreateWriterKey(Key_t nodekey, const std::string &portname) {
         PthreadMutexProtected pl(lock);
+        InternalCheckTerminated();
         NodeMap::iterator entry = nodemap.find(nodekey);
         if (entry == nodemap.end()) {
             throw std::invalid_argument("No such node");
@@ -354,6 +378,7 @@ namespace CPN {
     }
     Key_t LocalDatabase::GetWriterNode(Key_t portkey) {
         PthreadMutexProtected pl(lock);
+        InternalCheckTerminated();
         PortMap::iterator entry = writeports.find(portkey);
         if (entry == writeports.end()) {
             throw std::invalid_argument("No such port");
@@ -368,6 +393,7 @@ namespace CPN {
 
     const std::string &LocalDatabase::GetWriterName(Key_t portkey) {
         PthreadMutexProtected pl(lock);
+        InternalCheckTerminated();
         PortMap::iterator entry = writeports.find(portkey);
         if (entry == writeports.end()) {
             throw std::invalid_argument("No such port");
@@ -384,6 +410,7 @@ namespace CPN {
 
     void LocalDatabase::ConnectEndpoints(Key_t writerkey, Key_t readerkey) {
         PthreadMutexProtected pl(lock);
+        InternalCheckTerminated();
         PortMap::iterator writeentry = writeports.find(writerkey);
         if (writeentry == writeports.end()) {
             throw std::invalid_argument("Write port does not exist.");
@@ -398,6 +425,7 @@ namespace CPN {
 
     Key_t LocalDatabase::GetReadersWriter(Key_t readerkey) {
         PthreadMutexProtected pl(lock);
+        InternalCheckTerminated();
         PortMap::iterator readentry = readports.find(readerkey);
         if (readentry == readports.end()) {
             throw std::invalid_argument("Read port does not exist.");
@@ -407,6 +435,7 @@ namespace CPN {
 
     Key_t LocalDatabase::GetWritersReader(Key_t writerkey) {
         PthreadMutexProtected pl(lock);
+        InternalCheckTerminated();
         PortMap::iterator writeentry = writeports.find(writerkey);
         if (writeentry == writeports.end()) {
             throw std::invalid_argument("Write port does not exist.");
@@ -414,5 +443,29 @@ namespace CPN {
         return writeentry->second->opposingport;
     }
 
+    void LocalDatabase::Terminate() {
+        PthreadMutexProtected pl(lock);
+        shutdown = true;
+        nodelivedead.Broadcast();
+        hostlivedead.Broadcast();
+        HostMap::iterator itr = hostmap.begin();
+        while (itr != hostmap.end()) {
+            if (!itr->second->dead) {
+                itr->second->kmh->NotifyTerminate();
+            }
+            ++itr;
+        }
+    }
+
+    bool LocalDatabase::IsTerminated() {
+        PthreadMutexProtected pl(lock);
+        return shutdown;
+    }
+
+    void LocalDatabase::InternalCheckTerminated() {
+        if (shutdown) {
+            throw ShutdownException();
+        }
+    }
 }
 

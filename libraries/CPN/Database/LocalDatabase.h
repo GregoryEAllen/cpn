@@ -114,7 +114,13 @@ namespace CPN {
         virtual void ConnectEndpoints(Key_t writerkey, Key_t readerkey);
         virtual Key_t GetReadersWriter(Key_t readerkey);
         virtual Key_t GetWritersReader(Key_t writerkey);
+
+        virtual void Terminate();
+        virtual bool IsTerminated();
     private:
+
+        void InternalCheckTerminated();
+
         int loglevel;
         mutable PthreadMutex lock;
         PthreadCondition nodelivedead;
@@ -126,6 +132,7 @@ namespace CPN {
         PortMap readports;
         PortMap writeports;
         unsigned numlivenodes;
+        bool shutdown;
 
         Key_t NewKey() { return ++counter; }
         Key_t counter;

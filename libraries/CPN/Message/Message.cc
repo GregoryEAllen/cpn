@@ -85,5 +85,9 @@ namespace CPN {
     void KernelMessageHandler::SendWakeup() {
         ASSERT(false, "Unexpected message");
     }
+
+    void KernelMessageHandler::NotifyTerminate() {
+        ASSERT(false, "Unexpected message");
+    }
 }
 

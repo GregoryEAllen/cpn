@@ -22,6 +22,7 @@
  */
 
 #include "RemoteDBClient.h"
+#include "Exceptions.h"
 #include "Assert.h"
 #include "AutoUnlock.h"
 #include "Base64.h"
@@ -29,7 +30,7 @@
 namespace CPN {
 
     RemoteDBClient::RemoteDBClient()
-        : trancounter(0)
+        : trancounter(0), shutdown(false)
     {
     }
 
@@ -39,6 +40,7 @@ namespace CPN {
     Key_t RemoteDBClient::SetupHost(const std::string &name, const std::string &hostname,
             const std::string &servname, KernelMessageHandler *kmh) {
         PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
         WaiterInfo winfo(NewTranID());
         AddWaiter(&winfo);
 
@@ -52,6 +54,7 @@ namespace CPN {
 
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
+            InternalCheckTerminated();
         }
         ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
         Key_t key = winfo.msg["hostinfo"]["key"].AsNumber<Key_t>();
@@ -61,6 +64,7 @@ namespace CPN {
 
     Key_t RemoteDBClient::GetHostKey(const std::string &host) {
         PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
         WaiterInfo winfo(NewTranID());
         AddWaiter(&winfo);
 
@@ -72,6 +76,7 @@ namespace CPN {
 
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
+            InternalCheckTerminated();
         }
         ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
         return winfo.msg["hostinfo"]["key"].AsNumber<Key_t>();
@@ -79,6 +84,7 @@ namespace CPN {
 
     const std::string &RemoteDBClient::GetHostName(Key_t hostkey) {
         PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
         WaiterInfo winfo(NewTranID());
         AddWaiter(&winfo);
 
@@ -90,6 +96,7 @@ namespace CPN {
 
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
+            InternalCheckTerminated();
         }
         ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
         return winfo.msg["hostinfo"]["name"].AsString();
@@ -97,6 +104,7 @@ namespace CPN {
 
     void RemoteDBClient::GetHostConnectionInfo(Key_t hostkey, std::string &hostname, std::string &servname) {
         PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
         WaiterInfo winfo(NewTranID());
         AddWaiter(&winfo);
 
@@ -108,6 +116,7 @@ namespace CPN {
 
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
+            InternalCheckTerminated();
         }
         ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
         Variant hostinfo = winfo.msg["hostinfo"];
@@ -127,6 +136,7 @@ namespace CPN {
 
     Key_t RemoteDBClient::WaitForHostStart(const std::string &host) {
         PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
         WaiterInfo winfo(NewTranID());
         AddWaiter(&winfo);
         GenericWaiterPtr genwait = NewGenericWaiter();
@@ -139,6 +149,7 @@ namespace CPN {
 
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
+            InternalCheckTerminated();
         }
         if (winfo.msg["success"].IsTrue()) {
             Variant hostinfo = winfo.msg["hostinfo"];
@@ -149,6 +160,7 @@ namespace CPN {
         while (true) {
             if (genwait->messages.empty()) {
                 genwait->cond.Wait(lock);
+                InternalCheckTerminated();
             } else {
                 Variant msg = genwait->messages.front();
                 genwait->messages.pop_front();
@@ -164,6 +176,7 @@ namespace CPN {
 
     void RemoteDBClient::SignalHostStart(Key_t hostkey) {
         PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
         Variant msg(Variant::ObjectType);
         msg["key"] = hostkey;
         msg["type"] = RDBMT_SIGNAL_HOST_START;
@@ -172,21 +185,25 @@ namespace CPN {
 
     void RemoteDBClient::SendCreateWriter(Key_t hostkey, const SimpleQueueAttr &attr) {
         PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
         SendQueueMsg(hostkey, RDBMT_CREATE_WRITER, attr);
     }
 
     void RemoteDBClient::SendCreateReader(Key_t hostkey, const SimpleQueueAttr &attr) {
         PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
         SendQueueMsg(hostkey, RDBMT_CREATE_READER, attr);
     }
 
     void RemoteDBClient::SendCreateQueue(Key_t hostkey, const SimpleQueueAttr &attr) {
         PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
         SendQueueMsg(hostkey, RDBMT_CREATE_QUEUE, attr);
     }
 
     void RemoteDBClient::SendCreateNode(Key_t hostkey, const NodeAttr &attr) {
         PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
         Variant msg(Variant::ObjectType);
         msg["msgtype"] = "kernel";
         msg["type"] = RDBMT_CREATE_NODE;
@@ -251,6 +268,7 @@ namespace CPN {
 
     Key_t RemoteDBClient::CreateNodeKey(Key_t hostkey, const std::string &nodename) {
         PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
         WaiterInfo winfo(NewTranID());
         AddWaiter(&winfo);
 
@@ -263,6 +281,7 @@ namespace CPN {
 
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
+            InternalCheckTerminated();
         }
         ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
         return winfo.msg["nodeinfo"]["key"].AsNumber<Key_t>();
@@ -270,6 +289,7 @@ namespace CPN {
 
     Key_t RemoteDBClient::GetNodeKey(const std::string &nodename) {
         PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
         WaiterInfo winfo(NewTranID());
         AddWaiter(&winfo);
 
@@ -281,6 +301,7 @@ namespace CPN {
 
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
+            InternalCheckTerminated();
         }
         ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
         return winfo.msg["nodeinfo"]["key"].AsNumber<Key_t>();
@@ -288,6 +309,7 @@ namespace CPN {
 
     const std::string &RemoteDBClient::GetNodeName(Key_t nodekey) {
         PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
         WaiterInfo winfo(NewTranID());
         AddWaiter(&winfo);
 
@@ -306,6 +328,7 @@ namespace CPN {
 
     void RemoteDBClient::SignalNodeStart(Key_t nodekey) {
         PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
         Variant msg(Variant::ObjectType);
         msg["type"] = RDBMT_SIGNAL_NODE_START;
         msg["key"] = nodekey;
@@ -322,6 +345,7 @@ namespace CPN {
 
     Key_t RemoteDBClient::WaitForNodeStart(const std::string &nodename) {
         PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
         WaiterInfo winfo(NewTranID());
         AddWaiter(&winfo);
         GenericWaiterPtr genwait = NewGenericWaiter();
@@ -334,6 +358,7 @@ namespace CPN {
 
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
+            InternalCheckTerminated();
         }
         if (winfo.msg["success"].IsTrue()) {
             Variant nodeinfo = winfo.msg["nodeinfo"];
@@ -344,6 +369,7 @@ namespace CPN {
         while (true) {
             if (genwait->messages.empty()) {
                 genwait->cond.Wait(lock);
+                InternalCheckTerminated();
             } else {
                 Variant msg = genwait->messages.front();
                 genwait->messages.pop_front();
@@ -359,6 +385,7 @@ namespace CPN {
 
     void RemoteDBClient::WaitForNodeEnd(const std::string &nodename) {
         PthreadMutexProtected plock(lock);
+        if (shutdown) { return; }
         WaiterInfo winfo(NewTranID());
         AddWaiter(&winfo);
         GenericWaiterPtr genwait = NewGenericWaiter();
@@ -371,6 +398,7 @@ namespace CPN {
 
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
+            if (shutdown) { return; }
         }
         if (winfo.msg["success"].IsTrue()) {
             if (winfo.msg["nodeinfo"]["dead"].IsTrue()) {
@@ -380,6 +408,7 @@ namespace CPN {
         while (true) {
             if (genwait->messages.empty()) {
                 genwait->cond.Wait(lock);
+                if (shutdown) { return; }
             } else {
                 Variant msg = genwait->messages.front();
                 genwait->messages.pop_front();
@@ -395,6 +424,7 @@ namespace CPN {
 
     void RemoteDBClient::WaitForAllNodeEnd() {
         PthreadMutexProtected plock(lock);
+        if (shutdown) { return; }
         GenericWaiterPtr genwait = NewGenericWaiter();
         WaiterInfo winfo(NewTranID());
         AddWaiter(&winfo);
@@ -404,6 +434,7 @@ namespace CPN {
         SendMessage(msg);
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
+            if (shutdown) { return; }
         }
         ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
         if (winfo.msg["numlivenodes"].AsUnsigned() == 0) {
@@ -412,6 +443,7 @@ namespace CPN {
         while (true) {
             if (genwait->messages.empty()) {
                 genwait->cond.Wait(lock);
+                if (shutdown) { return; }
             } else {
                 Variant msg = genwait->messages.front();
                 genwait->messages.pop_front();
@@ -426,6 +458,7 @@ namespace CPN {
 
     Key_t RemoteDBClient::GetNodeHost(Key_t nodekey) {
         PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
         WaiterInfo winfo(NewTranID());
         AddWaiter(&winfo);
 
@@ -437,6 +470,7 @@ namespace CPN {
 
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
+            InternalCheckTerminated();
         }
         ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
         return winfo.msg["nodeinfo"]["hostkey"].AsNumber<Key_t>();
@@ -507,6 +541,7 @@ namespace CPN {
 
     void RemoteDBClient::ConnectEndpoints(Key_t writerkey, Key_t readerkey) {
         PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
         Variant msg(Variant::ObjectType);
         msg["type"] = RDBMT_CONNECT_ENDPOINTS;
         msg["readerkey"] = readerkey;
@@ -527,6 +562,46 @@ namespace CPN {
     }
 
     void RemoteDBClient::Terminate() {
+        PthreadMutexProtected plock(lock);
+        InternalTerminate();
+        Variant msg(Variant::ObjectType);
+        msg["type"] = RDBMT_TERMINATE;
+        SendMessage(msg);
+    }
+
+    void RemoteDBClient::InternalTerminate() {
+        shutdown = true;
+        std::map<unsigned, WaiterInfo*>::iterator cwitr = callwaiters.begin();
+        while (cwitr != callwaiters.end()) {
+            cwitr->second->cond.Signal();
+            ++cwitr;
+        }
+        std::list<std::tr1::weak_ptr<GenericWaiter> >::iterator gwitr;
+        gwitr = waiters.begin();
+        while (gwitr != waiters.end()) {
+            GenericWaiterPtr ptr = gwitr->lock();
+            if (ptr) {
+                ptr->cond.Signal();
+            }
+            ++gwitr;
+        }
+        std::map<Key_t, KernelMessageHandler*>::iterator kmhitr;
+        kmhitr = kmhandlers.begin();
+        while (kmhitr != kmhandlers.end()) {
+            kmhitr->second->NotifyTerminate();
+            ++kmhitr;
+        }
+    }
+
+    bool RemoteDBClient::IsTerminated() {
+        PthreadMutexProtected plock(lock);
+        return shutdown;
+    }
+
+    void RemoteDBClient::InternalCheckTerminated() {
+        if (shutdown) {
+            throw ShutdownException();
+        }
     }
 
     void RemoteDBClient::AddWaiter(WaiterInfo *info) {
@@ -545,6 +620,10 @@ namespace CPN {
 
     void RemoteDBClient::DispatchMessage(const Variant &msg) {
         PthreadMutexProtected plock(lock);
+        if (msg["type"].AsNumber<RDBMT_t>() == RDBMT_TERMINATE) {
+            InternalTerminate();
+            return;
+        }
         // Need to add for the general informative messages.
         //
         // The specific reply messages
@@ -605,6 +684,7 @@ namespace CPN {
     }
 
     Key_t RemoteDBClient::GetCreateEndpointKey(RDBMT_t msgtype, Key_t nodekey, const std::string &portname) {
+        InternalCheckTerminated();
         WaiterInfo winfo(NewTranID());
         AddWaiter(&winfo);
 
@@ -617,12 +697,14 @@ namespace CPN {
 
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
+            InternalCheckTerminated();
         }
         ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
         return winfo.msg["endpointinfo"]["key"].AsNumber<Key_t>();
     }
 
     Variant RemoteDBClient::GetEndpointInfo(RDBMT_t msgtype, Key_t portkey) {
+        InternalCheckTerminated();
         WaiterInfo winfo(NewTranID());
         AddWaiter(&winfo);
 
@@ -634,6 +716,7 @@ namespace CPN {
 
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
+            InternalCheckTerminated();
         }
         ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
         return winfo.msg["endpointinfo"];

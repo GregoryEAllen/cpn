@@ -31,6 +31,12 @@
 
 namespace CPN {
 
+    /**
+     * \brief The CPN::Database abstraction that holds all the global state
+     * for the process network.
+     *
+     * All methods may through a CPN::ShutdownException.
+     */
     class CPN_API Database : public LoggerOutput {
     public:
 
@@ -82,6 +88,14 @@ namespace CPN {
         virtual void ConnectEndpoints(Key_t writerkey, Key_t readerkey) = 0;
         virtual Key_t GetReadersWriter(Key_t readerkey) = 0;
         virtual Key_t GetWritersReader(Key_t writerkey) = 0;
+
+        virtual void Terminate() = 0;
+        virtual bool IsTerminated() = 0;
+
+        /** \brief Convenience method that checks IsTerminated and
+         * if so throws a ShutdownException
+         */
+        void CheckTerminated();
     };
 
 }

@@ -64,7 +64,9 @@ public:
     bool Closed() const { return fd == -1; }
 
     void SetBlocking(bool blocking);
+    static void SetBlocking(int fd, bool blocking);
     bool IsBlocking() const;
+    static bool IsBlocking(int fd);
 
     /**
      * Clear all internal state including the file

@@ -110,6 +110,8 @@ namespace CPN {
     public:
         RemoteDBServer();
         virtual ~RemoteDBServer();
+        virtual void Terminate();
+        bool IsTerminated() const { return shutdown; }
     protected:
         void DispatchMessage(const std::string &sender, const Variant &msg);
         virtual void SendMessage(const std::string &recipient, const Variant &msg) = 0;
@@ -141,6 +143,7 @@ namespace CPN {
         NameKeyMap hostmap;
         NameKeyMap nodemap;
 
+        bool shutdown;
         unsigned numlivenodes;
 
         Key_t keycount;

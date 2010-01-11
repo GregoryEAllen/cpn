@@ -96,6 +96,7 @@ namespace CPN {
         virtual shared_ptr<Future<int> > GetReaderDescriptor(Key_t readerkey, Key_t writerkey);
         virtual shared_ptr<Future<int> > GetWriterDescriptor(Key_t readerkey, Key_t writerkey);
         virtual void SendWakeup();
+        virtual void NotifyTerminate();
     };
 }
 

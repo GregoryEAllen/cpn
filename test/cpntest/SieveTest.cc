@@ -21,7 +21,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION( SieveTest );
 #define DEBUG(frmt, ...)
 #endif
 
-#if 1
+#if 0
 #define DBPRINT(fmt, ...) printf(fmt, __VA_ARGS__)
 #else
 #define DBPRINT(fmt, ...)
