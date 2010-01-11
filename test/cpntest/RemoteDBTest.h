@@ -63,7 +63,7 @@ public:
     void CreateQueue(CPN::Key_t dst, const CPN::SimpleQueueAttr &attr);
     void CreateNode(CPN::Key_t dst, const CPN::NodeAttr &attr);
 
-    const LoggerOutput *GetLogger() const {
+    LoggerOutput *GetLogger() {
         return 0;
     }
     CPN::shared_ptr<CPN::Database> GetDatabase() const {

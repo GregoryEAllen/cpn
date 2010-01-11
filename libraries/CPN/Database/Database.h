@@ -47,7 +47,7 @@ namespace CPN {
         virtual Key_t SetupHost(const std::string &name, const std::string &hostname,
                 const std::string &servname, KernelMessageHandler *kmh) = 0;
         virtual Key_t GetHostKey(const std::string &host) = 0;
-        virtual const std::string &GetHostName(Key_t hostkey) = 0;
+        virtual std::string GetHostName(Key_t hostkey) = 0;
         virtual void GetHostConnectionInfo(Key_t hostkey, std::string &hostname, std::string &servname) = 0;
         virtual void DestroyHostKey(Key_t hostkey) = 0;
         virtual Key_t WaitForHostStart(const std::string &host) = 0;
@@ -60,7 +60,7 @@ namespace CPN {
 
         virtual Key_t CreateNodeKey(Key_t hostkey, const std::string &nodename) = 0;
         virtual Key_t GetNodeKey(const std::string &nodename) = 0;
-        virtual const std::string &GetNodeName(Key_t nodekey) = 0;
+        virtual std::string GetNodeName(Key_t nodekey) = 0;
         virtual Key_t GetNodeHost(Key_t nodekey) = 0;
         virtual void SignalNodeStart(Key_t nodekey) = 0;
         virtual void SignalNodeEnd(Key_t nodekey) = 0;
@@ -76,13 +76,13 @@ namespace CPN {
         virtual Key_t GetCreateReaderKey(Key_t nodekey, const std::string &portname) = 0;
         virtual Key_t GetReaderNode(Key_t portkey) = 0;
         virtual Key_t GetReaderHost(Key_t portkey) = 0;
-        virtual const std::string &GetReaderName(Key_t portkey) = 0;
+        virtual std::string GetReaderName(Key_t portkey) = 0;
         virtual void DestroyReaderKey(Key_t portkey) = 0;
 
         virtual Key_t GetCreateWriterKey(Key_t nodekey, const std::string &portname) = 0;
         virtual Key_t GetWriterNode(Key_t portkey) = 0;
         virtual Key_t GetWriterHost(Key_t portkey) = 0;
-        virtual const std::string &GetWriterName(Key_t portkey) = 0;
+        virtual std::string GetWriterName(Key_t portkey) = 0;
         virtual void DestroyWriterKey(Key_t portkey) = 0;
 
         virtual void ConnectEndpoints(Key_t writerkey, Key_t readerkey) = 0;

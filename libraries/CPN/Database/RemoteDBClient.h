@@ -49,7 +49,7 @@ namespace CPN {
         virtual CPN::Key_t SetupHost(const std::string &name, const std::string &hostname,
                 const std::string &servname, CPN::KernelMessageHandler *kmh);
         virtual CPN::Key_t GetHostKey(const std::string &host);
-        virtual const std::string &GetHostName(CPN::Key_t hostkey);
+        virtual std::string GetHostName(CPN::Key_t hostkey);
         virtual void GetHostConnectionInfo(CPN::Key_t hostkey, std::string &hostname, std::string &servname);
         virtual void DestroyHostKey(CPN::Key_t hostkey);
         virtual CPN::Key_t WaitForHostStart(const std::string &host);
@@ -62,7 +62,7 @@ namespace CPN {
 
         virtual CPN::Key_t CreateNodeKey(CPN::Key_t hostkey, const std::string &nodename);
         virtual CPN::Key_t GetNodeKey(const std::string &nodename);
-        virtual const std::string &GetNodeName(CPN::Key_t nodekey);
+        virtual std::string GetNodeName(CPN::Key_t nodekey);
         virtual CPN::Key_t GetNodeHost(CPN::Key_t nodekey);
         virtual void SignalNodeStart(CPN::Key_t nodekey);
         virtual void SignalNodeEnd(CPN::Key_t nodekey);
@@ -78,13 +78,13 @@ namespace CPN {
         virtual CPN::Key_t GetCreateReaderKey(CPN::Key_t nodekey, const std::string &portname);
         virtual CPN::Key_t GetReaderNode(CPN::Key_t portkey);
         virtual CPN::Key_t GetReaderHost(CPN::Key_t portkey);
-        virtual const std::string &GetReaderName(CPN::Key_t portkey);
+        virtual std::string GetReaderName(CPN::Key_t portkey);
         virtual void DestroyReaderKey(CPN::Key_t portkey);
 
         virtual CPN::Key_t GetCreateWriterKey(CPN::Key_t nodekey, const std::string &portname);
         virtual CPN::Key_t GetWriterNode(CPN::Key_t portkey);
         virtual CPN::Key_t GetWriterHost(CPN::Key_t portkey);
-        virtual const std::string &GetWriterName(CPN::Key_t portkey);
+        virtual std::string GetWriterName(CPN::Key_t portkey);
         virtual void DestroyWriterKey(CPN::Key_t portkey);
 
         virtual void ConnectEndpoints(CPN::Key_t writerkey, CPN::Key_t readerkey);

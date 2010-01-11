@@ -81,7 +81,7 @@ namespace CPN {
         return entry->second;
     }
 
-    const std::string &LocalDatabase::GetHostName(Key_t hostkey) {
+    std::string LocalDatabase::GetHostName(Key_t hostkey) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
         HostMap::iterator entry = hostmap.find(hostkey);
@@ -214,7 +214,7 @@ namespace CPN {
         }
     }
 
-    const std::string &LocalDatabase::GetNodeName(Key_t nodekey) {
+    std::string LocalDatabase::GetNodeName(Key_t nodekey) {
         PthreadMutexProtected pl(lock);
         NodeMap::iterator entry = nodemap.find(nodekey);
         if (entry == nodemap.end()) {
@@ -337,7 +337,7 @@ namespace CPN {
         return GetNodeHost(nodekey);
     }
 
-    const std::string &LocalDatabase::GetReaderName(Key_t portkey) {
+    std::string LocalDatabase::GetReaderName(Key_t portkey) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
         PortMap::iterator entry = readports.find(portkey);
@@ -391,7 +391,7 @@ namespace CPN {
         return GetNodeHost(nodekey);
     }
 
-    const std::string &LocalDatabase::GetWriterName(Key_t portkey) {
+    std::string LocalDatabase::GetWriterName(Key_t portkey) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
         PortMap::iterator entry = writeports.find(portkey);

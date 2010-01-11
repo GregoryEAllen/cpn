@@ -108,7 +108,7 @@ private:
     CPN::shared_ptr<Future<int> > GetReaderDescriptor(CPN::Key_t readerkey, CPN::Key_t writerkey);
     CPN::shared_ptr<Future<int> > GetWriterDescriptor(CPN::Key_t readerkey, CPN::Key_t writerkey);
     void SendWakeup();
-    const LoggerOutput *GetLogger() const;
+    LoggerOutput *GetLogger();
     CPN::shared_ptr<CPN::Database> GetDatabase() const { return CPN::shared_ptr<CPN::Database>(); }
 
     LoggerStdOutput logger;

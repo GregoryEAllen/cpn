@@ -66,6 +66,10 @@ public:
         }
     }
 
+    void LogMessage(const std::string &msg) {
+        DEBUG("log: %s\n", msg.c_str());
+    }
+
     void *EntryPoint() {
         PthreadMutexProtected al(lock);
         while (!die) {

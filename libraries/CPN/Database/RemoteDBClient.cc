@@ -102,7 +102,7 @@ namespace CPN {
         return winfo.msg["hostinfo"]["key"].AsNumber<Key_t>();
     }
 
-    const std::string &RemoteDBClient::GetHostName(Key_t hostkey) {
+    std::string RemoteDBClient::GetHostName(Key_t hostkey) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
         WaiterInfo winfo(NewTranID());
@@ -327,7 +327,7 @@ namespace CPN {
         return winfo.msg["nodeinfo"]["key"].AsNumber<Key_t>();
     }
 
-    const std::string &RemoteDBClient::GetNodeName(Key_t nodekey) {
+    std::string RemoteDBClient::GetNodeName(Key_t nodekey) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
         WaiterInfo winfo(NewTranID());
@@ -514,7 +514,7 @@ namespace CPN {
         return info["hostkey"].AsNumber<Key_t>();
     }
 
-    const std::string &RemoteDBClient::GetReaderName(Key_t portkey) {
+    std::string RemoteDBClient::GetReaderName(Key_t portkey) {
         PthreadMutexProtected plock(lock);
         Variant info = GetEndpointInfo(RDBMT_GET_READER_INFO, portkey);
         return info["name"].AsString();
@@ -545,7 +545,7 @@ namespace CPN {
         return info["hostkey"].AsNumber<Key_t>();
     }
 
-    const std::string &RemoteDBClient::GetWriterName(Key_t portkey) {
+    std::string RemoteDBClient::GetWriterName(Key_t portkey) {
         PthreadMutexProtected plock(lock);
         Variant info = GetEndpointInfo(RDBMT_GET_WRITER_INFO, portkey);
         return info["name"].AsString();
