@@ -28,7 +28,7 @@
 #include "Pthread.h"
 #include <vector>
 
-class RemoteDatabase : public Pthread, public CPN::RemoteDBClient, private SockHandler {
+class RemoteDatabase : public Pthread, public CPN::RemoteDBClient, public SockHandler {
 public:
     RemoteDatabase(const SocketAddress &addr) { Connect(addr); }
     RemoteDatabase(const SockAddrList &addrs) { Connect(addrs); }

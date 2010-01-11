@@ -31,7 +31,7 @@
 #include <string>
 #include <tr1/memory>
 
-class RemoteDatabaseDaemon : public CPN::RemoteDBServer, private ListenSockHandler {
+class RemoteDatabaseDaemon : public CPN::RemoteDBServer, public ListenSockHandler {
 public:
     RemoteDatabaseDaemon(const SocketAddress &addr);
     RemoteDatabaseDaemon(const SockAddrList &addrs);
@@ -39,12 +39,14 @@ public:
     void Run();
     using CPN::RemoteDBServer::DispatchMessage;
     void Terminate();
+    void Terminate(const std::string &name);
 private:
     void OnRead();
     void OnError();
     void OnInval();
     void SendMessage(const std::string &recipient, const Variant &msg);
     void BroadcastMessage(const Variant &msg);
+    void LogMessage(const std::string &msg);
 
     class Client : public SockHandler {
     public:

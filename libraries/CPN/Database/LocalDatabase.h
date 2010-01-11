@@ -71,7 +71,7 @@ namespace CPN {
         LocalDatabase();
         virtual ~LocalDatabase();
 
-        virtual void Log(int level, const std::string &msg) const;
+        virtual void Log(int level, const std::string &msg);
         virtual int LogLevel() const;
         virtual int LogLevel(int level);
 

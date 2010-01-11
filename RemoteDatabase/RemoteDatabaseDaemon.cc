@@ -23,6 +23,8 @@
 
 #include "RemoteDatabaseDaemon.h"
 #include "Assert.h"
+#include "ErrnoException.h"
+#include <stdio.h>
 
 RemoteDatabaseDaemon::RemoteDatabaseDaemon(const SocketAddress &addr)
 {
@@ -34,18 +36,32 @@ RemoteDatabaseDaemon::RemoteDatabaseDaemon(const SockAddrList &addrs)
     Listen(addrs);
 }
 RemoteDatabaseDaemon::~RemoteDatabaseDaemon() {
-    Terminate();
 }
 
 void RemoteDatabaseDaemon::Run() {
-    while (Good()) {
+    Readable(true);
+    SocketAddress addr;
+    addr.SetFromSockName(FD());
+    dbprintf(1, "Listening on %s:%s\n", addr.GetHostName().c_str(), addr.GetServName().c_str());
+    while (true) {
         ClientMap::iterator itr = clients.begin();
         std::vector<FileHandler*> fds;
-        fds.push_back(this);
+        if (!Closed()) {
+            fds.push_back(this);
+        }
         while (itr != clients.end()) {
             ClientPtr client = itr->second;
-            fds.push_back(client.get());
-            ++itr;
+            if (client->Closed()) {
+                ClientMap::iterator todelete = itr;
+                ++itr;
+                clients.erase(todelete);
+            } else {
+                fds.push_back(client.get());
+                ++itr;
+            }
+        }
+        if ((clients.empty() && IsTerminated()) || fds.empty()) {
+            break;
         }
         Poll(&fds[0], fds.size(), -1);
     }
@@ -54,11 +70,11 @@ void RemoteDatabaseDaemon::Run() {
 void RemoteDatabaseDaemon::Terminate() {
     CPN::RemoteDBServer::Terminate();
     Close();
-    ClientMap::iterator itr = clients.begin();
-    while (itr != clients.end()) {
-        itr->second->Close();
-        ++itr;
-    }
+}
+
+void RemoteDatabaseDaemon::Terminate(const std::string &name) {
+    dbprintf(1, "Terminating %s\n", name.c_str());
+    clients[name]->Close();
 }
 
 void RemoteDatabaseDaemon::OnRead() {
@@ -80,45 +96,57 @@ void RemoteDatabaseDaemon::OnInval() {
 void RemoteDatabaseDaemon::SendMessage(const std::string &recipient, const Variant &msg) {
     ClientMap::iterator entry = clients.find(recipient);
     ASSERT(entry != clients.end());
+    dbprintf(2, "reply:%s:%s\n", recipient.c_str(), msg.AsJSON().c_str());
     entry->second->Send(msg);
 }
 
 void RemoteDatabaseDaemon::BroadcastMessage(const Variant &msg) {
     ClientMap::iterator entry = clients.begin();
+    dbprintf(2, "broadcast:%s\n", msg.AsJSON().c_str());
     while (entry != clients.end()) {
         entry->second->Send(msg);
         ++entry;
     }
 }
 
+void RemoteDatabaseDaemon::LogMessage(const std::string &msg) {
+    dbprintf(1, "log:%s\n", msg.c_str());
+}
+
 RemoteDatabaseDaemon::Client::Client(RemoteDatabaseDaemon *d, int nfd)
     : SockHandler(nfd), daemon(d)
 {
+    Readable(true);
     SocketAddress addr;
-    addr.SetFromSockName(FD());
+    addr.SetFromPeerName(FD());
     name = addr.GetHostName() + ":" + addr.GetServName();
+    d->dbprintf(1, "New connection from %s\n", name.c_str());
 }
 
 void RemoteDatabaseDaemon::Client::OnRead() {
     const unsigned BUF_SIZE = 4*1024;
     char buf[BUF_SIZE];
-    while (Good()) {
-        unsigned numread = Recv(buf, BUF_SIZE, false);
-        if (numread == 0) {
-            if (Eof()) {
-                daemon->Terminate();
+    try {
+        while (Good()) {
+            unsigned numread = Recv(buf, BUF_SIZE, false);
+            if (numread == 0) {
+                if (Eof()) {
+                    daemon->Terminate(name);
+                }
+                break;
             }
-            break;
-        }
-        for (unsigned i = 0; i < numread; ++i) {
-            if (buf[i] == 0) {
-                Variant msg = Variant::FromJSON(buffer);
-                daemon->DispatchMessage(name, msg);
-                buffer.clear();
-            } else {
-                buffer.push_back(buf[i]);
+            for (unsigned i = 0; i < numread; ++i) {
+                if (buf[i] == 0) {
+                    Variant msg = Variant::FromJSON(buffer);
+                    daemon->DispatchMessage(name, msg);
+                    buffer.clear();
+                } else {
+                    buffer.push_back(buf[i]);
+                }
             }
         }
+    } catch (const ErrnoException &e) {
+        daemon->dbprintf(0, "Error on read from %s:%d: %s\n", name.c_str(), e.Error(), e.what());
     }
 }
 
@@ -126,20 +154,25 @@ void RemoteDatabaseDaemon::Client::OnWrite() {
 }
 
 void RemoteDatabaseDaemon::Client::OnError() {
-    daemon->Terminate();
+    daemon->Terminate(name);
 }
 
 void RemoteDatabaseDaemon::Client::OnHup() {
-    daemon->Terminate();
+    daemon->Terminate(name);
 }
 
 void RemoteDatabaseDaemon::Client::OnInval() {
-    daemon->Terminate();
+    daemon->Terminate(name);
 }
 
 void RemoteDatabaseDaemon::Client::Send(const Variant &msg) {
-    std::string message = msg.AsJSON();
-    Write(message.c_str(), message.size() + 1);
+    try {
+        std::string message = msg.AsJSON();
+        Write(message.c_str(), message.size() + 1);
+    } catch (const ErrnoException &e) {
+        daemon->dbprintf(0, "Error on write to %s:%d: %s\n", name.c_str(), e.Error(), e.what());
+        daemon->Terminate(name);
+    }
 }
 
 

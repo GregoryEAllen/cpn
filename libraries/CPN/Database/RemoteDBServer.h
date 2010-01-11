@@ -112,10 +112,15 @@ namespace CPN {
         virtual ~RemoteDBServer();
         virtual void Terminate();
         bool IsTerminated() const { return shutdown; }
+        int DebugLevel() const { return debuglevel; }
+        int DebugLevel(int level) { return debuglevel = level; }
     protected:
         void DispatchMessage(const std::string &sender, const Variant &msg);
         virtual void SendMessage(const std::string &recipient, const Variant &msg) = 0;
         virtual void BroadcastMessage(const Variant &msg) = 0;
+        virtual void LogMessage(const std::string &msg) = 0;
+
+        void dbprintf(int level, const char *fmt, ...);
     private:
 
         void SetupHost(const std::string &sender, const Variant &msg);
@@ -143,6 +148,7 @@ namespace CPN {
         NameKeyMap hostmap;
         NameKeyMap nodemap;
 
+        int debuglevel;
         bool shutdown;
         unsigned numlivenodes;
 

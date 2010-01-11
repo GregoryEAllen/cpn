@@ -42,6 +42,10 @@ namespace CPN {
     public:
         virtual ~RemoteDBClient();
 
+        virtual int LogLevel() const;
+        virtual int LogLevel(int level);
+        virtual void Log(int level, const std::string &logmsg);
+
         virtual CPN::Key_t SetupHost(const std::string &name, const std::string &hostname,
                 const std::string &servname, CPN::KernelMessageHandler *kmh);
         virtual CPN::Key_t GetHostKey(const std::string &host);
@@ -126,6 +130,7 @@ namespace CPN {
         std::map<CPN::Key_t, CPN::KernelMessageHandler*> kmhandlers;
         unsigned trancounter;
         bool shutdown;
+        int loglevel;
     };
 }
 #endif

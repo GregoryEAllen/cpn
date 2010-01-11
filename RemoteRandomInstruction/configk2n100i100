@@ -1,0 +1,13 @@
+{
+    "iterations"    : 100,
+    "numnodes"      : 100,
+    "numkernels"    : 20,
+    "debuglevel"    : 2,
+    "loglevel"      : 25,
+    "kernels"       : {
+        "kone"  : [0, 9],
+        "ktwo"  : [10, 19]
+    },
+    "starter"       : "kone",
+    "server"        : { "hostname" : "localhost", "port" : "12345" }
+}

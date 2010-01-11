@@ -21,16 +21,31 @@
  * \author John Bridgman
  */
 #include "RemoteDatabase.h"
+#include "ErrnoException.h"
+#include <stdio.h>
 
 void RemoteDatabase::SendMessage(const Variant &msg) {
-    std::string message = msg.AsJSON();
-    Write(message.c_str(), message.size() + 1);
+    if (!Closed()) {
+        try {
+            std::string message = msg.AsJSON();
+            printf("<<< %s\n", message.c_str());
+            Write(message.c_str(), message.size() + 1);
+        } catch (const ErrnoException &e) {
+            // Swallow it...
+        }
+    }
 }
 
 void *RemoteDatabase::EntryPoint() {
-    while (Good()) {
-        Poll(-1);
+    try {
+        Readable(true);
+        while (Good()) {
+            Poll(-1);
+        }
+    } catch (const ErrnoException &e) {
+        printf("Uncaught errno exception (%d): %s\n", e.Error(), e.what());
     }
+    return 0;
 }
 
 void RemoteDatabase::OnRead() {
@@ -46,6 +61,8 @@ void RemoteDatabase::OnRead() {
         }
         for (unsigned i = 0; i < numread; ++i) {
             if (buf[i] == 0) {
+                buffer.push_back(buf[i]);
+                printf(">>> %s\n", &buffer[0]);
                 Variant msg = Variant::FromJSON(buffer);
                 DispatchMessage(msg);
                 buffer.clear();

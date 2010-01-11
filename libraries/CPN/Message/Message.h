@@ -89,7 +89,7 @@ namespace CPN {
         virtual void CreateQueue(Key_t dst, const SimpleQueueAttr &attr);
         virtual void CreateNode(Key_t dst, const NodeAttr &attr);
 
-        virtual const LoggerOutput *GetLogger() const = 0;
+        virtual LoggerOutput *GetLogger() = 0;
         virtual shared_ptr<Database> GetDatabase() const = 0;
 
         // Functions the streams need of the kernel

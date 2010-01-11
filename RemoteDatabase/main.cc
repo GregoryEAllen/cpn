@@ -44,6 +44,7 @@ int main(int argc, char **argv) {
     }
     SockAddrList addrlist = SocketAddress::CreateIP(argv[optind], argv[optind+1]);
     RemoteDatabaseDaemon rdd(addrlist);
+    rdd.DebugLevel(2);
     rdd.Run();
     return 0;
 }

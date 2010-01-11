@@ -120,7 +120,7 @@ namespace CPN {
         // the endpoints are already connected fail.
         void CreateQueue(const QueueAttr &attr);
        
-        const LoggerOutput *GetLogger() const { return &logger; }
+        LoggerOutput *GetLogger() { return &logger; }
 
         /** 
          * \return the name of this kernel.

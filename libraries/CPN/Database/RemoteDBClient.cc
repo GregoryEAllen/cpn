@@ -30,11 +30,31 @@
 namespace CPN {
 
     RemoteDBClient::RemoteDBClient()
-        : trancounter(0), shutdown(false)
+        : trancounter(0), shutdown(false), loglevel(Logger::WARNING)
     {
     }
 
     RemoteDBClient::~RemoteDBClient() {
+    }
+
+    int RemoteDBClient::LogLevel() const {
+        PthreadMutexProtected plock(lock);
+        return loglevel;
+    }
+
+    int RemoteDBClient:: LogLevel(int level) {
+        PthreadMutexProtected plock(lock);
+        return loglevel = level;
+    }
+
+    void RemoteDBClient::Log(int level, const std::string &logmsg) {
+        PthreadMutexProtected plock(lock);
+        if (level >= loglevel) {
+            Variant msg(Variant::ObjectType);
+            msg["type"] = RDBMT_LOG;
+            msg["msg"] = logmsg;
+            SendMessage(msg);
+        }
     }
 
     Key_t RemoteDBClient::SetupHost(const std::string &name, const std::string &hostname,
@@ -563,10 +583,12 @@ namespace CPN {
 
     void RemoteDBClient::Terminate() {
         PthreadMutexProtected plock(lock);
-        InternalTerminate();
-        Variant msg(Variant::ObjectType);
-        msg["type"] = RDBMT_TERMINATE;
-        SendMessage(msg);
+        if (!shutdown) {
+            InternalTerminate();
+            Variant msg(Variant::ObjectType);
+            msg["type"] = RDBMT_TERMINATE;
+            SendMessage(msg);
+        }
     }
 
     void RemoteDBClient::InternalTerminate() {
