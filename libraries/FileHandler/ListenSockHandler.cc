@@ -44,11 +44,22 @@ void ListenSockHandler::Listen(const SockAddrList &addrs) {
 }
 
 int ListenSockHandler::Accept(SocketAddress &addr) {
+    return Accept(&addr);
+}
+
+int ListenSockHandler::Accept() {
+    return Accept(0);
+}
+int ListenSockHandler::Accept(SocketAddress *addr) {
     bool loop = true;
     int nfd = -1;
     while (loop) {
-        addr.GetLen() = sizeof(sockaddr_storage);
-        nfd = accept(fd, addr.GetAddr(), &addr.GetLen());
+        if (addr) {
+            addr->GetLen() = sizeof(sockaddr_storage);
+            nfd = accept(fd, addr->GetAddr(), &addr->GetLen());
+        } else {
+            nfd = accept(fd, 0, 0);
+        }
         if (nfd < 0) {
             int error = errno;
             switch (error) {

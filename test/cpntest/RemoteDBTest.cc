@@ -66,6 +66,10 @@ public:
         }
     }
 
+    void LogMessage(const std::string &msg) {
+        DEBUG("log: %s\n", msg.c_str());
+    }
+
     void *EntryPoint() {
         PthreadMutexProtected al(lock);
         while (!die) {
@@ -204,7 +208,6 @@ void RemoteDBTest::WaitForNodeTest() {
     LocalRDBClient lrdbc(serv, __PRETTY_FUNCTION__);
     m_nodename = "bogus node";
     Pthread *waiter = CreatePthreadFunctional(this, &RemoteDBTest::WaitForNode);
-    waiter->Start();
     lock.Lock();
     signaled = false;
     waiter->Start();

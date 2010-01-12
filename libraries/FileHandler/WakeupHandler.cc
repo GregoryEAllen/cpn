@@ -25,6 +25,7 @@
 #include "ErrnoException.h"
 #include "Assert.h"
 #include <unistd.h>
+#include <errno.h>
 
 WakeupHandler::WakeupHandler()
     : wfd(-1)
@@ -38,6 +39,7 @@ WakeupHandler::WakeupHandler()
     Readable(true);
     Writeable(false);
     SetBlocking(false);
+    SetBlocking(wfd, false);
 }
 
 WakeupHandler::~WakeupHandler() {
@@ -51,6 +53,10 @@ void WakeupHandler::SendWakeup() {
     do {
         ret = write(wfd, &c, sizeof(c));
         if (ret < 0) {
+            if (errno == EAGAIN) {
+                // The buffer is full.
+                break;
+            }
             throw ErrnoException();
         }
     } while (ret != sizeof(c));

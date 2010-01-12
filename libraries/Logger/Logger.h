@@ -33,7 +33,7 @@ public:
     virtual ~LoggerOutput();
     virtual int LogLevel() const = 0;
     virtual int LogLevel(int level) = 0;
-    virtual void Log(int level, const std::string &msg) const = 0;
+    virtual void Log(int level, const std::string &msg) = 0;
 };
 
 class Logger : public LoggerOutput {
@@ -47,8 +47,8 @@ public:
     };
     Logger();
     Logger(int dfltlvl);
-    Logger(const LoggerOutput *lo, int dfltlvl);
-    Logger(const LoggerOutput *lo, int dfltlevel, const std::string &nm);
+    Logger(LoggerOutput *lo, int dfltlvl);
+    Logger(LoggerOutput *lo, int dfltlevel, const std::string &nm);
 
     int LogLevel() const;
     int LogLevel(int level);
@@ -62,31 +62,31 @@ public:
     const std::string &Name() const;
     const std::string &Name(const std::string &nm);
 
-    const LoggerOutput *Output() const;
-    const LoggerOutput *Output(const LoggerOutput *output);
+    LoggerOutput *Output();
+    LoggerOutput *Output(LoggerOutput *output);
 
-    virtual void Log(int level, const std::string &msg) const;
+    virtual void Log(int level, const std::string &msg);
 
-    void Log(const std::string &msg) const { Log(defaultlevel, msg); }
+    void Log(const std::string &msg) { Log(defaultlevel, msg); }
 
-    void Logf(int level, const char *fmt, ...) const;
+    void Logf(int level, const char *fmt, ...);
 
-    void vLogf(int level, const char *fmt, va_list ap) const;
+    void vLogf(int level, const char *fmt, va_list ap);
 
-    void Logf(const char *fmt, ...) const;
+    void Logf(const char *fmt, ...);
 
-    void Error(const char *fmt, ...) const;
-    void Warn(const char *fmt, ...) const;
-    void Info(const char *fmt, ...) const;
-    void Debug(const char *fmt, ...) const;
-    void Trace(const char *fmt, ...) const;
+    void Error(const char *fmt, ...);
+    void Warn(const char *fmt, ...);
+    void Info(const char *fmt, ...);
+    void Debug(const char *fmt, ...);
+    void Trace(const char *fmt, ...);
 protected:
 private:
     Logger(const Logger&);
     Logger &operator=(const Logger&);
 
     Sync::ReentrantLock lock;
-    const LoggerOutput *logout;
+    LoggerOutput *logout;
     int loglevel;
     int defaultlevel;
     int adjust;
@@ -98,14 +98,14 @@ public:
     LoggerStdOutput(int level) : loglevel(level) {}
     int LogLevel(int level);
     int LogLevel() const;
-    void Log(int level, const std::string &msg) const;
+    void Log(int level, const std::string &msg);
 private:
     Sync::ReentrantLock lock;
     int loglevel;
 };
 
 struct ScopeTrace {
-    ScopeTrace(const Logger &l, const char *fn, unsigned ln)
+    ScopeTrace(Logger &l, const char *fn, unsigned ln)
         : logger(l), fname(fn), line(ln)
     {
         logger.Trace("Enter %s:%u", fname, line);
@@ -113,7 +113,7 @@ struct ScopeTrace {
     ~ScopeTrace() {
         logger.Trace("Exit %s:%u", fname, line);
     }
-    const Logger &logger;
+    Logger &logger;
     const char *fname;
     unsigned line;
 };

@@ -469,7 +469,7 @@ void StreamEndpointTest::SendWakeup() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
 }
 
-const LoggerOutput *StreamEndpointTest::GetLogger() const {
+LoggerOutput *StreamEndpointTest::GetLogger() {
     return &logger;
 }
 

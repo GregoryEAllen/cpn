@@ -39,13 +39,14 @@ namespace CPN {
         virtual void CreateQueue(Key_t dst, const SimpleQueueAttr &attr);
         virtual void CreateNode(Key_t dst, const NodeAttr &attr);
 
-        virtual const LoggerOutput *GetLogger() const = 0;
+        virtual LoggerOutput *GetLogger() = 0;
         virtual shared_ptr<Database> GetDatabase() const = 0;
 
         // Functions the streams need of the kernel
         virtual shared_ptr<Future<int> > GetReaderDescriptor(Key_t readerkey, Key_t writerkey);
         virtual shared_ptr<Future<int> > GetWriterDescriptor(Key_t readerkey, Key_t writerkey);
         virtual void SendWakeup();
+        virtual void NotifyTerminate();
     };
 }
 

@@ -83,6 +83,10 @@ int FileHandler::Poll(double timeout) {
 }
 
 void FileHandler::SetBlocking(bool blocking) {
+    SetBlocking(fd, blocking);
+}
+
+void FileHandler::SetBlocking(int fd, bool blocking) {
     int flags = fcntl(fd, F_GETFL, 0);
     if (-1 == flags) { throw ErrnoException(); }
     if (blocking) {
@@ -96,6 +100,10 @@ void FileHandler::SetBlocking(bool blocking) {
 }
 
 bool FileHandler::IsBlocking() const {
+    return IsBlocking(fd);
+}
+
+bool FileHandler::IsBlocking(int fd) {
     int flags = fcntl(fd, F_GETFL, 0);
     if (-1 == flags) { throw ErrnoException(); }
     return !(flags & O_NONBLOCK);

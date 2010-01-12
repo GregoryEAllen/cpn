@@ -23,6 +23,7 @@
 
 #include "Database.h"
 #include "LocalDatabase.h"
+#include "Exceptions.h"
 
 namespace CPN {
     shared_ptr<Database> Database::Local() {
@@ -30,6 +31,12 @@ namespace CPN {
     }
 
     Database::~Database() {
+    }
+
+    void Database::CheckTerminated() {
+        if (IsTerminated()) {
+            throw ShutdownException();
+        }
     }
 }
 

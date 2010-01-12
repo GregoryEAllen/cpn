@@ -71,14 +71,14 @@ namespace CPN {
         LocalDatabase();
         virtual ~LocalDatabase();
 
-        virtual void Log(int level, const std::string &msg) const;
+        virtual void Log(int level, const std::string &msg);
         virtual int LogLevel() const;
         virtual int LogLevel(int level);
 
         virtual Key_t SetupHost(const std::string &name, const std::string &hostname,
                 const std::string &servname, KernelBase *kmh);
         virtual Key_t GetHostKey(const std::string &host);
-        virtual const std::string &GetHostName(Key_t hostkey);
+        virtual std::string GetHostName(Key_t hostkey);
         virtual void GetHostConnectionInfo(Key_t hostkey, std::string &hostname, std::string &servname);
         virtual void DestroyHostKey(Key_t hostkey);
         virtual Key_t WaitForHostStart(const std::string &host);
@@ -91,7 +91,7 @@ namespace CPN {
 
         virtual Key_t CreateNodeKey(Key_t hostkey, const std::string &nodename);
         virtual Key_t GetNodeKey(const std::string &nodename);
-        virtual const std::string &GetNodeName(Key_t nodekey);
+        virtual std::string GetNodeName(Key_t nodekey);
         virtual Key_t GetNodeHost(Key_t nodekey);
         virtual void SignalNodeStart(Key_t nodekey);
         virtual void SignalNodeEnd(Key_t nodekey);
@@ -102,19 +102,25 @@ namespace CPN {
         virtual Key_t GetCreateReaderKey(Key_t nodekey, const std::string &portname);
         virtual Key_t GetReaderNode(Key_t portkey);
         virtual Key_t GetReaderHost(Key_t portkey);
-        virtual const std::string &GetReaderName(Key_t portkey);
+        virtual std::string GetReaderName(Key_t portkey);
         virtual void DestroyReaderKey(Key_t portkey);
 
         virtual Key_t GetCreateWriterKey(Key_t nodekey, const std::string &portname);
         virtual Key_t GetWriterNode(Key_t portkey);
         virtual Key_t GetWriterHost(Key_t portkey);
-        virtual const std::string &GetWriterName(Key_t portkey);
+        virtual std::string GetWriterName(Key_t portkey);
         virtual void DestroyWriterKey(Key_t portkey);
 
         virtual void ConnectEndpoints(Key_t writerkey, Key_t readerkey);
         virtual Key_t GetReadersWriter(Key_t readerkey);
         virtual Key_t GetWritersReader(Key_t writerkey);
+
+        virtual void Terminate();
+        virtual bool IsTerminated();
     private:
+
+        void InternalCheckTerminated();
+
         int loglevel;
         mutable PthreadMutex lock;
         PthreadCondition nodelivedead;
@@ -126,6 +132,7 @@ namespace CPN {
         PortMap readports;
         PortMap writeports;
         unsigned numlivenodes;
+        bool shutdown;
 
         Key_t NewKey() { return ++counter; }
         Key_t counter;

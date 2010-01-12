@@ -120,7 +120,7 @@ namespace CPN {
         // the endpoints are already connected fail.
         void CreateQueue(const QueueAttr &attr);
        
-        const LoggerOutput *GetLogger() const { return &logger; }
+        LoggerOutput *GetLogger() { return &logger; }
 
         /** 
          * \return the name of this kernel.
@@ -156,6 +156,8 @@ namespace CPN {
 
         shared_ptr<Future<int> > GetReaderDescriptor(Key_t readerkey, Key_t writerkey);
         shared_ptr<Future<int> > GetWriterDescriptor(Key_t readerkey, Key_t writerkey);
+
+        void NotifyTerminate();
 
         void LogEndpoints();
 

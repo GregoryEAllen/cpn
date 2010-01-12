@@ -112,9 +112,14 @@ namespace CPN {
     }
 
     void Kernel::Terminate() {
+        database->Terminate();
+    }
+
+    void Kernel::NotifyTerminate() {
         FUNCBEGIN;
-        status.CompareAndPost(RUNNING, TERMINATE);
-        wakeuphandler.SendWakeup();
+        if (status.CompareAndPost(RUNNING, TERMINATE)) {
+            wakeuphandler.SendWakeup();
+        }
     }
 
     Key_t Kernel::CreateNode(const NodeAttr &attr) {

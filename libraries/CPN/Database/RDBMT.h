@@ -57,7 +57,10 @@ namespace CPN {
 
         RDBMT_CONNECT_ENDPOINTS,
         RDBMT_GET_READERS_WRITER,
-        RDBMT_GET_WRITERS_READER
+        RDBMT_GET_WRITERS_READER,
+
+        RDBMT_TERMINATE,
+        RDBMT_LOG
     };
 }
 #endif

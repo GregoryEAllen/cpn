@@ -60,7 +60,7 @@ namespace CPN {
         incheckstatus(false)
     {
         Writeable(false);
-        logger.Name(ToString("SocketEndpoint(m:%s, r:%lu, w: %lu)",
+        logger.Name(ToString("SocketEndpoint(m:%s, r:%llu, w: %llu)",
                     mode == READ ? "r" : "w", readerkey, writerkey));
     }
 
@@ -550,7 +550,7 @@ namespace CPN {
     }
 
     void SocketEndpoint::LogState() {
-        logger.Debug("Printing state");
+        logger.Debug("Printing state (w:%llu r:%llu)", readerkey, writerkey);
         switch (status) {
             case LIVE:
                 logger.Debug("State live");

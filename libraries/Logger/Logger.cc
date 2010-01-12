@@ -39,14 +39,14 @@ Logger::Logger(int dfltlvl)
     : logout(0), loglevel(WARNING), defaultlevel(dfltlvl), adjust(0)
 {}
 
-Logger::Logger(const LoggerOutput *lo, int dfltlvl)
+Logger::Logger(LoggerOutput *lo, int dfltlvl)
     : logout(lo), loglevel(WARNING), defaultlevel(dfltlvl), adjust(0)
 {
     ASSERT(logout);
     loglevel = logout->LogLevel();
 }
 
-Logger::Logger(const LoggerOutput *lo, int dfltlevel, const std::string &nm)
+Logger::Logger(LoggerOutput *lo, int dfltlevel, const std::string &nm)
     : logout(lo), loglevel(WARNING), defaultlevel(dfltlevel), name(nm)
 {
     ASSERT(logout);
@@ -93,23 +93,23 @@ const std::string &Logger::Name(const std::string &nm) {
     return name = nm;
 }
 
-const LoggerOutput *Logger::Output() const {
+LoggerOutput *Logger::Output() {
     Sync::AutoReentrantLock arl(lock);
     return logout;
 }
 
-const LoggerOutput *Logger::Output(const LoggerOutput *output) {
+LoggerOutput *Logger::Output(LoggerOutput *output) {
     Sync::AutoReentrantLock arl(lock);
     return logout = output;
 }
 
-void Logger::Log(int level, const std::string &msg) const {
+void Logger::Log(int level, const std::string &msg) {
     Sync::AutoReentrantLock arl(lock);
     if (level < loglevel) { return; }
     if (logout) { logout->Log(level + adjust, name + ":" + msg); }
 }
 
-void Logger::Logf(int level, const char *fmt, ...) const {
+void Logger::Logf(int level, const char *fmt, ...) {
     Sync::AutoReentrantLock arl(lock);
     if (level < loglevel) { return; }
     va_list ap;
@@ -118,7 +118,7 @@ void Logger::Logf(int level, const char *fmt, ...) const {
     va_end(ap);
 }
 
-void Logger::Logf(const char *fmt, ...) const {
+void Logger::Logf(const char *fmt, ...) {
     Sync::AutoReentrantLock arl(lock);
     if (defaultlevel < loglevel) { return; }
     va_list ap;
@@ -127,7 +127,7 @@ void Logger::Logf(const char *fmt, ...) const {
     va_end(ap);
 }
 
-void Logger::vLogf(int level, const char *fmt, va_list ap) const {
+void Logger::vLogf(int level, const char *fmt, va_list ap) {
     Sync::AutoReentrantLock arl(lock);
     if (level < loglevel) { return; }
     // This code was based on an example of how
@@ -154,7 +154,7 @@ void Logger::vLogf(int level, const char *fmt, va_list ap) const {
     }
 }
 
-void Logger::Error(const char *fmt, ...) const {
+void Logger::Error(const char *fmt, ...) {
     Sync::AutoReentrantLock arl(lock);
     if (ERROR < loglevel) { return; }
     va_list ap;
@@ -163,7 +163,7 @@ void Logger::Error(const char *fmt, ...) const {
     va_end(ap);
 }
 
-void Logger::Warn(const char *fmt, ...) const {
+void Logger::Warn(const char *fmt, ...) {
     Sync::AutoReentrantLock arl(lock);
     if (WARNING < loglevel) { return; }
     va_list ap;
@@ -172,7 +172,7 @@ void Logger::Warn(const char *fmt, ...) const {
     va_end(ap);
 }
 
-void Logger::Info(const char *fmt, ...) const {
+void Logger::Info(const char *fmt, ...) {
     Sync::AutoReentrantLock arl(lock);
     if (INFO < loglevel) { return; }
     va_list ap;
@@ -181,7 +181,7 @@ void Logger::Info(const char *fmt, ...) const {
     va_end(ap);
 }
 
-void Logger::Debug(const char *fmt, ...) const {
+void Logger::Debug(const char *fmt, ...) {
     Sync::AutoReentrantLock arl(lock);
     if (DEBUG < loglevel) { return; }
     va_list ap;
@@ -190,7 +190,7 @@ void Logger::Debug(const char *fmt, ...) const {
     va_end(ap);
 }
 
-void Logger::Trace(const char *fmt, ...) const {
+void Logger::Trace(const char *fmt, ...) {
     Sync::AutoReentrantLock arl(lock);
     if (TRACE < loglevel) { return; }
     va_list ap;
@@ -209,7 +209,7 @@ int LoggerStdOutput::LogLevel() const {
     return loglevel;
 }
 
-void LoggerStdOutput::Log(int level, const std::string &msg) const {
+void LoggerStdOutput::Log(int level, const std::string &msg) {
     Sync::AutoReentrantLock arl(lock);
     if (level >= loglevel) {
         std::cout << level << ":" << msg << std::endl;

@@ -24,18 +24,33 @@
 #include "RemoteDBServer.h"
 #include "RDBMT.h"
 #include "Assert.h"
+#include <stdio.h>
+#include <stdarg.h>
 
 namespace CPN {
 
     RemoteDBServer::RemoteDBServer()
-        : numlivenodes(0), keycount(0)
+        : debuglevel(0), shutdown(false), numlivenodes(0), keycount(0)
     {
     }
 
     RemoteDBServer::~RemoteDBServer() {
     }
 
+    void RemoteDBServer::dbprintf(int level, const char *fmt, ...) {
+        if (debuglevel >= level) {
+            va_list ap;
+            va_start(ap, fmt);
+            vprintf(fmt, ap);
+            va_end(ap);
+        }
+    }
+
     void RemoteDBServer::DispatchMessage(const std::string &sender, const Variant &msg) {
+        dbprintf(2, "msg:%s:%s\n", sender.c_str(), msg.AsJSON().c_str());
+        if (IsTerminated()) {
+            return;
+        }
         RDBMT_t type = msg["type"].AsNumber<RDBMT_t>();
         switch (type) {
         case RDBMT_SETUP_HOST:
@@ -92,9 +107,22 @@ namespace CPN {
         case RDBMT_CONNECT_ENDPOINTS:
             ConnectEndpoints(msg);
             break;
+        case RDBMT_TERMINATE:
+            Terminate();
+            break;
+        case RDBMT_LOG:
+            LogMessage(sender + ":" + msg["msg"].AsString());
+            break;
         default:
             ASSERT(false);
         }
+    }
+
+    void RemoteDBServer::Terminate() {
+        shutdown = true;
+        Variant msg(Variant::ObjectType);
+        msg["type"] = RDBMT_TERMINATE;
+        BroadcastMessage(msg);
     }
 
     void RemoteDBServer::SetupHost(const std::string &sender, const Variant &msg) {
