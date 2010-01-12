@@ -7,7 +7,7 @@ OS_INCDIR += `pkg-config --cflags libxml++-2.6 cppunit`
 CC_OTHER += -Wall
 #CXX_OTHER += -Wall
 #LD_OTHER += -Wall --static -rdynamic
-LD_OTHER += -Wall 
+LD_OTHER += -Wall -rdynamic
 
 OS_DEFS += -D_DEBUG
 
