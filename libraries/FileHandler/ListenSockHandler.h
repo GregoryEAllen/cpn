@@ -35,24 +35,41 @@ public:
     ListenSockHandler(const SocketAddress &addr) { Listen(addr); }
     ListenSockHandler(const SockAddrList &addrs) { Listen(addrs); }
 
+    /**
+     * Open a new socket and try to listen on the given
+     * SocketAddress.
+     */
     void Listen(const SocketAddress &addr);
 
+    /**
+     * Open a new socket and try to listen on one of the
+     * addresses in the given list.
+     */
     void Listen(const SockAddrList &addrs);
 
     /**
+     * Accept an incoming connection.
+     * \param addr a SocketAddress object to fill with the address of the connecting peer.
      * \return -1 if no connection >=0 on success
      * \throws ErrnoException for errors
      */
     int Accept(SocketAddress &addr);
+    /**
+     * Accept an incoming connection
+     */
     int Accept();
 
+    /**
+     * When a connection is ready OnRead will be called by Poll
+     */
     virtual void OnRead() = 0;
     virtual void OnError() = 0;
     virtual void OnInval() = 0;
 private:
-    // These can't happen
+    // These can't happen to a listening socket
     void OnWrite() {}
     void OnHup() {}
+
     bool Listen(const SocketAddress &addr, int &error);
     int Accept(SocketAddress *addr);
 };

@@ -26,23 +26,58 @@
 #include "FileHandler.h"
 #include "SocketAddress.h"
 
+/**
+ * \brief A FileHandler customized with some socket specific functionality
+ * and functions.
+ */
 class SockHandler : public FileHandler {
 public:
 
     SockHandler() {}
     SockHandler(int nfd) : FileHandler(nfd) {}
 
+    /** \brief Create a socket pair.
+     * \param sock1 SockHandler to fill with one of the created file descriptors
+     * \param sock2 SockHandler to fill with one of the created file descriptors
+     */
     static void CreatePair(SockHandler &sock1, SockHandler &sock2);
+    /** \brief Convenience function that returns actual file descriptors
+     */
     static void CreatePair(int fd[2]);
 
+    /**
+     * \brief Create a new socket and try to connect to the given address
+     * \param addr the address to connect to
+     */
     void Connect(const SocketAddress &addr);
 
+    /**
+     * \brief Create a new socket and try to connect to one of the addresses
+     * in the address list
+     * \param addrs the addresses to try to connect to
+     */
     void Connect(const SockAddrList &addrs);
 
+    /**
+     * \brief Shutdown the read end of this socket.
+     * This does NOT close the socket! Any future attempt to read
+     * from this socket will fail.
+     */
     void ShutdownRead();
+    /**
+     * \brief Shutdown the write end of this socket.
+     * Any future attempt to write to this socket will fail.
+     * This is how you send an end of file down the socket.
+     */
     void ShutdownWrite();
-    // If block true then wait for buffer to be full
-    // if block false don't wait for anything
+
+    /**
+     * \param ptr pointer to memory to place read data
+     * \param len maximum number of bytes to read
+     * \param block If block true then wait for buffer to be full
+     * if block false don't wait for anything
+     * \return number of bytes read
+     */
     unsigned Recv(void *ptr, unsigned len, bool block);
 
     /** Convenience structure for Send
@@ -62,6 +97,12 @@ public:
         int flags;
     };
 
+    /**
+     * \param ptr pointer to bytes to write
+     * \param len number of bytes to write
+     * \param opts an option object (note that a blank option object this function is exactly the same as Write)
+     * \return number of bytes written
+     */
     unsigned Send(const void *ptr, unsigned len, const SendOpts &opts);
 private:
     bool Connect(const SocketAddress &addr, int &error);

@@ -60,17 +60,36 @@ namespace CPN {
 
 		virtual ~NodeBase();
 
+        /** \return the name of this node
+         */
 		const std::string &GetName() const { return name; }
 
+        /** \return the type name for this node
+         */
         const std::string &GetTypeName() const { return type; }
 
+        /** \return the unique key for this node
+         */
         Key_t GetKey() const { return nodekey; }
 
+        /** \breif used by the node to get an reader endpoint
+         * \param portname the name of the reader endpoint
+         * \return a shared_ptr to a QueueReader
+         * \note This function blocks until the reader is set by the Kernel
+         */
         shared_ptr<QueueReader> GetReader(const std::string &portname);
+        /** \brief used by the node to get a writer endpoint
+         * \param portname the name of the writer endpoint
+         * \return a shared_ptr to a QueueWriter
+         * \note this function blocks until the writer is set by the Kernel.
+         */
         shared_ptr<QueueWriter> GetWriter(const std::string &portname);
 
+        /** \brief Return a pointer to the kernel that his node is running under
+         */
         Kernel *GetKernel() { return &kernel; }
 
+        /// Internal do not use, will be removed later
         NodeMessageHandler *GetNodeMessageHandler() { return this; }
 	protected:
 

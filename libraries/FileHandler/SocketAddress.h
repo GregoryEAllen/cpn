@@ -36,6 +36,9 @@ class SocketAddress;
 
 typedef std::vector<SocketAddress> SockAddrList;
 
+/**
+ * \brief An abstraction of a socket address with convenience methods.
+ */
 class SocketAddress {
 public:
 
@@ -83,8 +86,18 @@ public:
     SocketAddress(sockaddr *addr, socklen_t len);
     ~SocketAddress() {}
 
+    /**
+     * \param numerichost true to force no resolution of host names and just return the number
+     * \return a string representation of the host name
+     */
     std::string GetHostName(bool numerichost = false) const;
+    /**
+     * \return the service (port) name or number as a string.
+     */
     std::string GetServName() const;
+    /**
+     * \return the service (port) number
+     */
     unsigned GetServ() const;
 
     Type_t GetType() const;
@@ -95,7 +108,17 @@ public:
     sa_family_t &Family() { return address.storage.ss_family; }
     sa_family_t Family() const { return address.storage.ss_family; }
 
+    /**
+     * \brief Fill this SocketAddress with data from this side of the
+     * connection represented by fd.
+     * \param fd the socket to use
+     */
     void SetFromSockName(int fd);
+    /**
+     * \brief Fill this SocketAddress with data from the other side of the
+     * connection represented by fd.
+     * \param fd the socket to use
+     */
     void SetFromPeerName(int fd);
 
 private:

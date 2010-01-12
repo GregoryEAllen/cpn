@@ -106,6 +106,11 @@
 */
 
 namespace CPN {
+    /** \brief the server for the remote database.
+     *
+     * Implementors only need to override SendMessage, BroadcastMessage, and LogMessage.
+     * then call DispatchMessage for all messages from the clients.
+     */
     class RemoteDBServer {
     public:
         RemoteDBServer();
@@ -115,9 +120,24 @@ namespace CPN {
         int DebugLevel() const { return debuglevel; }
         int DebugLevel(int level) { return debuglevel = level; }
     protected:
+        /**
+         * \brief Process the given message.
+         * \param sender a string id for the client
+         * \param msg the message that the client sent
+         */
         void DispatchMessage(const std::string &sender, const Variant &msg);
+        /** \breif Send the given message to the given client.
+         * \param recipient the id (previously used in DispatchMessage sender)
+         * \param msg the message to be sent to the client
+         */
         virtual void SendMessage(const std::string &recipient, const Variant &msg) = 0;
+        /** \breif Broadcast a message to all clients
+         * \param msg the message to send to all clients
+         */
         virtual void BroadcastMessage(const Variant &msg) = 0;
+        /** \breif Log a message
+         * \param msg the message to be logged
+         */
         virtual void LogMessage(const std::string &msg) = 0;
 
         void dbprintf(int level, const char *fmt, ...);

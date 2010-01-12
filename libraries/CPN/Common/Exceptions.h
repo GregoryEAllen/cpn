@@ -44,7 +44,7 @@ namespace CPN {
 	};
 
     /**
-     * \brief An exception indicating that there is a type mismatch.
+     * \brief An exception indicating that there is a type mismatch in the queue.
      */
     class CPN_API TypeMismatchException : public std::exception {
     public:
@@ -53,6 +53,10 @@ namespace CPN {
         const char* what() const throw() { return "Queue types mismatch."; }
     };
 
+    /**
+     * \brief An exception indicating that the node tried to write
+     * to a shutdown queue
+     */
     class CPN_API BrokenQueueException : public std::exception {
     public:
         BrokenQueueException(Key_t key) throw();

@@ -29,7 +29,6 @@
 #include "QueueReader.h"
 #include "QueueWriter.h"
 
-#include "MapInvoke.h"
 #include <vector>
 
 namespace CPN {

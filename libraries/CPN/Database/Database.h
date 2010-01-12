@@ -36,60 +36,181 @@ namespace CPN {
      * for the process network.
      *
      * All methods may through a CPN::ShutdownException.
+     *
+     * Note that all key values should be unique across all objects.
+     * That is to say that even though a node and a kernel are of different types
+     * none of there keys should ever be equal.
+     *
+     * Note that the only function here that should be called outside
+     * of the library (i.e. by the user of the library) are the log level functions
+     * the Get functions and the Wait functions and the Terminate functions.
      */
     class CPN_API Database : public LoggerOutput {
     public:
 
+        /** \brief Create a local database.
+         * \return a new local database.
+         */
         static shared_ptr<Database> Local();
 
         virtual ~Database();
 
+        /** \brief Called by the Kernel when it has successfully set it self up.
+         * This gives the Database a way to notify the Kernel of events and
+         * lets other Kernels look up the connection information for this Kernel.
+         * \param name the kernel name
+         * \param hostname the hostname to use to connect to this kernel
+         * \param servname the service name the kernel is listening on
+         * \param kmh callback reference
+         * \return the unique key for the new kernel
+         */
         virtual Key_t SetupHost(const std::string &name, const std::string &hostname,
                 const std::string &servname, KernelMessageHandler *kmh) = 0;
+        /** \param host the name of the host
+         * \return the key for the given hostname.
+         */
         virtual Key_t GetHostKey(const std::string &host) = 0;
+        /** \param hostkey the key to the host
+         * \return the name for the host
+         */
         virtual std::string GetHostName(Key_t hostkey) = 0;
+        /** \brief obtain the connection information for the given host
+         * \param hostkey the unique id for the host
+         * \param hostname (output) string to be filled with the hostname
+         * \param servname (output) string to be filled with the service name
+         */
         virtual void GetHostConnectionInfo(Key_t hostkey, std::string &hostname, std::string &servname) = 0;
+        /** \brief Signal to the Database that the given host is dead.
+         * \param hostkey id of the host that died
+         */
         virtual void DestroyHostKey(Key_t hostkey) = 0;
+        /** \brief Does not return until the given host has started.
+         * \param host the name of the host (the key may not be known yet)
+         */
         virtual Key_t WaitForHostStart(const std::string &host) = 0;
+        /** \brief Signal to the database that the given host has started
+         * \param hostkey the id for the host
+         */
         virtual void SignalHostStart(Key_t hostkey) = 0;
 
+        /** \brief Tell a given host that it needs to create a queue write end.
+         * \param hostkey the id of the host
+         * \parma attr the queue attribute
+         */
         virtual void SendCreateWriter(Key_t hostkey, const SimpleQueueAttr &attr) = 0;
+        /** \brief Tell a given host that it needs to create a queue read end.
+         * \param hostkey the id of the host
+         * \parma attr the queue attribute
+         */
         virtual void SendCreateReader(Key_t hostkey, const SimpleQueueAttr &attr) = 0;
+        /** \brief Tell a given host that it needs to create a queue.
+         * \param hostkey the id of the host
+         * \parma attr the queue attribute
+         */
         virtual void SendCreateQueue(Key_t hostkey, const SimpleQueueAttr &attr) = 0;
+        /** \brief Tell a given host that it needs to create a node.
+         * \param hostkey the id of the host
+         * \param attr the node attribute
+         */
         virtual void SendCreateNode(Key_t hostkey, const NodeAttr &attr) = 0;
 
+        /** \brief Tell the database to allocate a new node key and data structure for
+         * a node with nodename which is on hostkey.
+         * \param hostkey the id of the kernel that the node will run on
+         * \param nodename the name of the node
+         */
         virtual Key_t CreateNodeKey(Key_t hostkey, const std::string &nodename) = 0;
+        /** \return the unique key associated with the given node name.
+         */
         virtual Key_t GetNodeKey(const std::string &nodename) = 0;
+        /** \return the name associated with the given node key
+         */
         virtual std::string GetNodeName(Key_t nodekey) = 0;
+        /** \param nodekey the unique key for the node
+         * \return the key for the host the node is running on
+         */
         virtual Key_t GetNodeHost(Key_t nodekey) = 0;
+        /** \brief Called by the node startup routine to indicate that the node has started.
+         * \param nodekey the unique key for the node
+         */
         virtual void SignalNodeStart(Key_t nodekey) = 0;
+        /** \brief Called by the node cleanup routine to indicate that the node has ended.
+         * \param nodekey the unique key for the node
+         */
         virtual void SignalNodeEnd(Key_t nodekey) = 0;
 
-        /** Waits until the node starts and returns the key, if the node is
+        /** \brief Waits until the node starts and returns the key, if the node is
          * already started returns the key
+         * \param nodename the name of the node to wait for
+         * \return the key for the node
          */
         virtual Key_t WaitForNodeStart(const std::string &nodename) = 0;
+        /** \brief Waits for the given node to signal end
+         * \param nodename the name of the node
+         */
         virtual void WaitForNodeEnd(const std::string &nodename) = 0;
+        /** \brief Convenience method which waits until there are no
+         * nodes running. If no node have started then this will return immediately.
+         */
         virtual void WaitForAllNodeEnd() = 0;
 
 
+        /** \brief Get the key associated with the given endpoint for the given node.
+         * Creates the information if it does not exist
+         * \param nodekey the unique id for the node
+         * \param portname the name of the endpoint.
+         */
         virtual Key_t GetCreateReaderKey(Key_t nodekey, const std::string &portname) = 0;
+        /** \param portkey the unique id for the port
+         * \return the key for the node this port is on
+         */
         virtual Key_t GetReaderNode(Key_t portkey) = 0;
+        /** \param portkey the unique id for the port
+         * \return the key for the host this port is on
+         */
         virtual Key_t GetReaderHost(Key_t portkey) = 0;
+        /** \param portkey the unique id for the port
+         * \return the name of the port
+         */
         virtual std::string GetReaderName(Key_t portkey) = 0;
+        /** \brief called by the endpoint when it is released.
+         * \param portkey the unique id for the port
+         */
         virtual void DestroyReaderKey(Key_t portkey) = 0;
 
+        /** \see GetCreateReaderKey */
         virtual Key_t GetCreateWriterKey(Key_t nodekey, const std::string &portname) = 0;
+        /** \see GetReaderNode */
         virtual Key_t GetWriterNode(Key_t portkey) = 0;
+        /** \see GetReaderHost */
         virtual Key_t GetWriterHost(Key_t portkey) = 0;
+        /** \see GetReaderName */
         virtual std::string GetWriterName(Key_t portkey) = 0;
+        /** \see DestroyReaderKey */
         virtual void DestroyWriterKey(Key_t portkey) = 0;
 
+        /** \brief Called by the kernel when a queue is created.
+         * Note that the endpoints may have been created when the node requests them but
+         * the queue may be created long after that.
+         * \param writerkey the unique key for the writer endpoint
+         * \param readerkey the unique key for the reader endpoint
+         */
         virtual void ConnectEndpoints(Key_t writerkey, Key_t readerkey) = 0;
+        /** \param readerkey a unique reader key
+         * \return the writer key associated with this reader key if there is one
+         */
         virtual Key_t GetReadersWriter(Key_t readerkey) = 0;
+        /** \param writerkey a unique writer key
+         * \return the reader key associated with this writer
+         */
         virtual Key_t GetWritersReader(Key_t writerkey) = 0;
 
+        /** \brief Signal to the Database that the network is terminating.
+         * After this call most methods will throw a ShutdownException
+         */
         virtual void Terminate() = 0;
+        /** \return true if Terminate has been called
+         */
         virtual bool IsTerminated() = 0;
 
         /** \brief Convenience method that checks IsTerminated and

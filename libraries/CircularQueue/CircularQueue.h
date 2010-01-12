@@ -40,6 +40,13 @@
  * Unlike ThresholdQueue this does not do any memory mapping so
  * has no minimum size.
  *
+ * The interface here is intentionally almost identical to ThresholdQueue.
+ *
+ * No checking is made in this class to ensure that the max threshold is
+ * less than or equal to the queue length. If max threshold is greater than
+ * the queue length and one asks for a dequeue or enqueue for under the max
+ * threshold but greater than the queue length it will fail as if there wasn't
+ * enough space.
  */
 class CircularQueue {
 public:
@@ -47,14 +54,14 @@ public:
     CircularQueue(unsigned size, unsigned maxThresh, unsigned numChans);
     ~CircularQueue();
 
-    void* GetRawEnqueuePtr(unsigned thresh, unsigned chan=0);
+    void *GetRawEnqueuePtr(unsigned thresh, unsigned chan=0);
     void Enqueue(unsigned count);
-    bool RawEnqueue(const void* data, unsigned count);
-    bool RawEnqueue(const void* data, unsigned count, unsigned numChans, unsigned chanStride);
-    const void* GetRawDequeuePtr(unsigned thresh, unsigned chan=0);
+    bool RawEnqueue(const void *data, unsigned count);
+    bool RawEnqueue(const void *data, unsigned count, unsigned numChans, unsigned chanStride);
+    const void *GetRawDequeuePtr(unsigned thresh, unsigned chan=0);
     void Dequeue(unsigned count);
-    bool RawDequeue(void* data, unsigned count);
-    bool RawDequeue(void* data, unsigned count, unsigned numChans, unsigned chanStride);
+    bool RawDequeue(void *data, unsigned count);
+    bool RawDequeue(void *data, unsigned count, unsigned numChans, unsigned chanStride);
 
     unsigned NumChannels() const;
     unsigned MaxThreshold() const;
@@ -66,7 +73,11 @@ public:
 
     unsigned ChannelStride() const;
 
-    // Only increases size
+    /**
+     * Increase the size of the queue. Only increases, does nothing otherwise.
+     * \param queueLen the new length of the queue
+     * \param maxThresh the new max threshold
+     */
     void Grow(unsigned queueLen, unsigned maxThresh);
 
     void Clear();

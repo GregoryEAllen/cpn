@@ -74,7 +74,6 @@ namespace CPN {
 
     // Forward declarations
     class Kernel;
-    class KernelImpl;
     class KernelAttr;
 
     class QueueBase;
@@ -91,14 +90,8 @@ namespace CPN {
 
     class SocketEndpoint;
 
-    class StreamEndpoint;
-    class KernelStream;
-    class Stream;
-    class UnknownStream;
-
     // Global enums
     enum QueueHint_t { QUEUEHINT_DEFAULT, QUEUEHINT_THRESHOLD };
-    enum Error_t { E_NONE, E_EXISTS, E_NOTEXISTS };
 
     // Types
     typedef uint64_t Key_t;

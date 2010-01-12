@@ -28,14 +28,31 @@
 #include "ReentrantLock.h"
 #include <string>
 #include <cstdarg>
+/**
+ * \brief Abstract base class for logger outputers.
+ * Any object who wishes to be a place for logging messages to go
+ * inherits from this class.
+ */
 class LoggerOutput {
 public:
     virtual ~LoggerOutput();
+    /** \return the current log level
+     */
     virtual int LogLevel() const = 0;
+    /** \param level the new log level
+     * \return the new log level
+     */
     virtual int LogLevel(int level) = 0;
+    /** \brief Log a message to this outputer
+     * \param level the level of this message
+     * \param msg the message
+     */
     virtual void Log(int level, const std::string &msg) = 0;
 };
 
+/**
+ * \brief Logger object that is used for forwarding log messages.
+ */
 class Logger : public LoggerOutput {
 public:
     enum {
@@ -93,6 +110,9 @@ private:
     std::string name;
 };
 
+/**
+ * \brief A LoggerOutput implementation that prints to stdout
+ */
 class LoggerStdOutput : public LoggerOutput {
 public:
     LoggerStdOutput(int level) : loglevel(level) {}
