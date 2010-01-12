@@ -9,7 +9,7 @@
 #include <cstdlib>
 
 
-const char* const VALID_OPS = "m:q:";
+const char* const VALID_OPS = "hm:q:";
 
 int main(int argc, char **argv) {
 	int maxprime = 100;
@@ -30,6 +30,7 @@ int main(int argc, char **argv) {
 		case -1:
 			procOpts = false;
 			break;
+        case 'h':
 		default:
 			printf("Usage: %s -m maxprime -q queuesize\n", argv[0]);
 			return 0;

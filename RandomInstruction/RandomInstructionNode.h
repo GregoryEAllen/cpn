@@ -8,12 +8,11 @@
 #include "RandomInstructionGenerator.h"
 #include "QueueWriter.h"
 #include "QueueReader.h"
+#include <vector>
 
 class Variant;
 
 #define RANDOMINSTRUCTIONNODE_TYPENAME "RandomInstructionNodeType"
-
-#define KERNEL_NAME_FORMAT "K #%u"
 
 class RandomInstructionNode : public CPN::NodeBase, private RandomInstructionGenerator {
 public:
@@ -22,14 +21,15 @@ public:
 
         RINState(const Variant &args);
 
-        RINState(unsigned id, unsigned iter, unsigned nk, RandomInstructionGenerator::State s)
-            : nodeID(id), iterations(iter), numKernels(nk), state(s) {}
+        RINState(unsigned id, unsigned iter, const std::vector<std::string> &kn,
+                RandomInstructionGenerator::State s)
+            : nodeID(id), iterations(iter), kernelnames(kn), state(s) {}
 
         std::string ToJSON();
 
         unsigned nodeID;
         unsigned iterations;
-        unsigned numKernels;
+        std::vector<std::string> kernelnames;
         RandomInstructionGenerator::State state;
     };
 
@@ -44,13 +44,14 @@ public:
     static std::string GetNodeNameFromID(unsigned id);
 
     static void CreateRIN(CPN::Kernel& kernel, unsigned iterations,
-        unsigned numNodes, unsigned debugLevel, LFSR::LFSR_t seed, unsigned numKernels);
+        unsigned numNodes, unsigned debugLevel, LFSR::LFSR_t seed,
+        const std::vector<std::string> &kernelnames);
 private:
     /// Random Instruction Node IDentifier
     unsigned myID;
     unsigned iterations;
     bool die;
-    unsigned numKernels;
+    std::vector<std::string> kernelnames;
     void DoCreateNode(unsigned newNodeID, unsigned creatorNodeID);
     void DoDeleteNode(unsigned nodeID);
     void DoProducerNode(unsigned nodeID, unsigned dstNodeID);

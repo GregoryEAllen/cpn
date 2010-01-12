@@ -35,12 +35,10 @@ const char* const HELP_OPTS = "Usage: %s <config> <name>\n"
 "\t\"seed\"\t\t: (optional) starting seed,\n"
 "\t\"debugLevel\"\t: (optional) number for debug level,\n"
 "\t\"loglevel\"\t: (optional) number for log level,\n"
-"\t\"numkernels\"\t: total number of kernels in this network,\n"
-"\t\"kernels\"\t: {\n"
-"\t\t\"kernelhostnameone\"\t: [start kernel num, end kernel num],\n"
-"\t\t...\n"
-"\t}\n"
-"\t\"starter\"\t: \"kernelhostnamethatstarts all nodes\",\n"
+"\t\"kernels\"\t: [\n"
+"\t\t\"kernelone\", \"kerneltwo\", ...\n"
+"\t]\n"
+"\t\"starter\"\t: \"kernelname to start all nodes\",\n"
 "\t\"server\"\t: {\"hostname\": hostname, \"port\": portname}\n"
 "}\n"
 ;
@@ -53,7 +51,6 @@ int main(int argc, char **argv) {
     unsigned numNodes = 10;
     int debugLevel = 0;
     int loglevel = 75;
-    unsigned numKernels = 0;
     LFSR::LFSR_t seed = RandomInstructionGenerator::DEFAULT_SEED;
 
     bool procOpts = true;
@@ -116,12 +113,6 @@ int main(int argc, char **argv) {
     if (val.IsNumber()) {
         loglevel = val.AsInt();
     }
-    val = conf["numkernels"];
-    if (!val.IsNumber()) {
-        printf("numkernels must be a number\n");
-        return 1;
-    }
-    numKernels = val.AsUnsigned();
 
     std::string starter = conf["starter"].AsString();
 
@@ -134,30 +125,27 @@ int main(int argc, char **argv) {
             val["port"].AsString());
 
     val = conf["kernels"];
-    val = val[name];
-    if (!val.IsArray() || !val[0].IsNumber() || !val[1].IsNumber()) {
-        printf("Invalid config or name\n");
-        return 1;
+    std::vector<std::string> kernelnames;
+    for (Variant::List::const_iterator i = val.AsArray().begin();
+            i != val.AsArray().end();
+            ++i)
+    {
+        kernelnames.push_back(i->AsString());
     }
-    unsigned kernelstart = val[0].AsUnsigned();
-    unsigned kernelend = val[1].AsUnsigned();
 
-    printf("%s started running kernels %u to %u\n", name.c_str(), kernelstart, kernelend);
+
+    printf("%s started\n", name.c_str());
     printf("debug level %d seed %lu and iterations %u numnodes %u\n", debugLevel, seed, iterations, numNodes);
 
     shared_ptr<RemoteDatabase> database = shared_ptr<RemoteDatabase>(new RemoteDatabase(addrs));
     database->LogLevel(loglevel);
     database->Start();
 
-    std::vector< shared_ptr<Kernel> > kernels;
-
-    for (unsigned i = kernelstart; i <= kernelend; ++i) {
-        kernels.push_back(shared_ptr<Kernel>(new Kernel(KernelAttr(ToString("K #%u", i)).SetDatabase(database))));
-    }
+    Kernel kernel(KernelAttr(name).SetDatabase(database));
 
     if (name == starter) {
         printf("Creating %u nodes\n", numNodes);
-        RandomInstructionNode::CreateRIN(*kernels.front(), iterations, numNodes, debugLevel, seed, numKernels);
+        RandomInstructionNode::CreateRIN(kernel, iterations, numNodes, debugLevel, seed, kernelnames);
     }
 
     // Wait for one of the nodes to start before we wait for all nodes to be gone

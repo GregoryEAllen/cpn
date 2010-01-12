@@ -4,10 +4,10 @@
     "numkernels"    : 20,
     "debuglevel"    : 2,
     "loglevel"      : 25,
-    "kernels"       : {
-        "kone"  : [0, 9],
-        "ktwo"  : [10, 19]
-    },
+    "kernels"       : [
+        "kone",
+        "ktwo"
+    ],
     "starter"       : "kone",
-    "server"        : { "hostname" : "localhost", "port" : "12345" }
+    "server"        : { "hostname" : "zeus", "port" : "12345" }
 }

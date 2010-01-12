@@ -24,14 +24,17 @@
 #include "ErrnoException.h"
 #include <stdio.h>
 
+RemoteDatabase::~RemoteDatabase() {
+}
+
 void RemoteDatabase::SendMessage(const Variant &msg) {
     if (!Closed()) {
         try {
             std::string message = msg.AsJSON();
-            printf("<<< %s\n", message.c_str());
+            //printf("<<< %s\n", message.c_str());
             Write(message.c_str(), message.size() + 1);
         } catch (const ErrnoException &e) {
-            // Swallow it...
+            printf("ErrnoException on write (%d): %s\n", e.Error(), e.what());
         }
     }
 }
@@ -44,6 +47,7 @@ void *RemoteDatabase::EntryPoint() {
         }
     } catch (const ErrnoException &e) {
         printf("Uncaught errno exception (%d): %s\n", e.Error(), e.what());
+        Terminate();
     }
     return 0;
 }
@@ -56,13 +60,14 @@ void RemoteDatabase::OnRead() {
         if (numread == 0) {
             if (Eof()) {
                 Terminate();
+                Close();
             }
             break;
         }
         for (unsigned i = 0; i < numread; ++i) {
             if (buf[i] == 0) {
-                buffer.push_back(buf[i]);
-                printf(">>> %s\n", &buffer[0]);
+                //buffer.push_back(buf[i]);
+                //printf(">>> %s\n", &buffer[0]);
                 Variant msg = Variant::FromJSON(buffer);
                 DispatchMessage(msg);
                 buffer.clear();
@@ -78,10 +83,12 @@ void RemoteDatabase::OnWrite() {
 
 void RemoteDatabase::OnError() {
     Terminate();
+    Close();
 }
 
 void RemoteDatabase::OnHup() {
     Terminate();
+    Close();
 }
 
 void RemoteDatabase::OnInval() {

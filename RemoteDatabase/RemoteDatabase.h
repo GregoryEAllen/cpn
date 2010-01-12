@@ -28,10 +28,14 @@
 #include "Pthread.h"
 #include <vector>
 
+/**
+ * An implementation for the RemoteDBClient that is paired with RemoteDatabaseDaemon.
+ */
 class RemoteDatabase : public Pthread, public CPN::RemoteDBClient, public SockHandler {
 public:
     RemoteDatabase(const SocketAddress &addr) { Connect(addr); }
     RemoteDatabase(const SockAddrList &addrs) { Connect(addrs); }
+    ~RemoteDatabase();
 protected:
     void SendMessage(const Variant &msg);
     void *EntryPoint();
