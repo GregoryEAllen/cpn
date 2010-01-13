@@ -35,6 +35,8 @@
 
 namespace CPN {
 
+    /** \brief A local implementation of the Database interface
+     */
     class LocalDatabase : public Database {
     public:
         typedef std::map< std::string, Key_t > NameMap;

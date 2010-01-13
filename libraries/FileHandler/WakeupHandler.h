@@ -27,11 +27,19 @@
 
 #include "FileHandler.h"
 
+/** \brief A convenience handler for even loops so that
+ * one can interrupt a Poll before it times out.
+ *
+ * SendWakeup my be called from any thread.
+ */
 class WakeupHandler : public FileHandler {
 public:
     WakeupHandler();
     virtual ~WakeupHandler();
 
+    /** \brief Causes this handler to become readable
+     * any Poll on this FileHandler will then return.
+     */
     void SendWakeup();
 
 private:

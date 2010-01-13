@@ -35,7 +35,8 @@ CircularQueue::CircularQueue(unsigned size, unsigned maxThresh, unsigned numChan
        : queueLength(size + 1),
     maxThreshold(maxThresh), numChannels(numChans),
     chanStride(size + 1 + maxThresh),
-    head(0), tail(0), buffer((size + 1 + maxThresh)*numChans) {
+    head(0), tail(0), buffer((size + 1 + maxThresh)*numChans)
+{
 }
 
 CircularQueue::~CircularQueue() {

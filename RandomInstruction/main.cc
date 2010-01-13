@@ -86,11 +86,14 @@ int main(int argc, char **argv) {
     database->LogLevel(loglevel);
 
     std::vector< shared_ptr<Kernel> > kernels;
+    std::vector<std::string> kernelnames;
 
     for (unsigned i = 0; i < numKernels; ++i) {
-        kernels.push_back(shared_ptr<Kernel>(new Kernel(KernelAttr(ToString("K #%u", i)).SetDatabase(database))));
+        std::string name = ToString("K #%u", i);
+        kernelnames.push_back(name);
+        kernels.push_back(shared_ptr<Kernel>(new Kernel(KernelAttr(name).SetDatabase(database))));
     }
-    RandomInstructionNode::CreateRIN(*kernels.front(), iterations, numNodes, debugLevel, seed, numKernels);
+    RandomInstructionNode::CreateRIN(*kernels.front(), iterations, numNodes, debugLevel, seed, kernelnames);
 
     database->WaitForAllNodeEnd();
 

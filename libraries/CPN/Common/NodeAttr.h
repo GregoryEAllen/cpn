@@ -39,6 +39,22 @@ namespace CPN {
      * this structure is used to pass to the Kernel to
      * create a node and that fields like key are set by
      * the Kernel.
+     *
+     * The only required parameters are the name and node type.
+     *
+     * The other parameters that the user may set are:
+     *
+     * The host for the node, can be set as ether the host name
+     * or the host key. The host key is set host name is ignored.
+     * See SetHost and SetHostKey.
+     *
+     *
+     * The parameters sent to the node. This can be either or both
+     * a string or a StaticConstBuffer which is copied.
+     * See SetParam and GetParam and GetArg
+     *
+     * Note that the key and database attribute are set by the kernel
+     * when the node is to be created and such are overwritten.
      */
     class CPN_API NodeAttr {
     public:

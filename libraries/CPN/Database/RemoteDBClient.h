@@ -37,6 +37,13 @@
 
 namespace CPN {
 
+    /**
+     * \brief This abstract class is the remote database client.
+     * 
+     * An implementor only needs to override SendMessage to send the necessary
+     * messages to the RemoteDBServer and then call DispatchMessage for the
+     * replies from the server.
+     */
     class RemoteDBClient : public Database {
     public:
         virtual ~RemoteDBClient();

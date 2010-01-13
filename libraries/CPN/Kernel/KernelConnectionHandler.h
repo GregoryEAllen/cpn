@@ -36,7 +36,9 @@
 #include <map>
 
 namespace CPN {
-    class KernelConnectionHandler : public ListenSockHandler {
+    /** \brief This class handles created and accepting all connections for the Kernel.
+     */
+    class CPN_LOCAL KernelConnectionHandler : public ListenSockHandler {
     public:
         KernelConnectionHandler(KernelBase *kmh_);
         void OnRead();

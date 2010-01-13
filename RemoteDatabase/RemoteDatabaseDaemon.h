@@ -31,12 +31,22 @@
 #include <string>
 #include <tr1/memory>
 
+/**
+ * the RemoteDatabaseDaemon is an implementation of RemoteDBServer that uses
+ * simple tcp/ip and listens on an address you specify.
+ */
 class RemoteDatabaseDaemon : public CPN::RemoteDBServer, public ListenSockHandler {
 public:
     RemoteDatabaseDaemon(const SocketAddress &addr);
     RemoteDatabaseDaemon(const SockAddrList &addrs);
     ~RemoteDatabaseDaemon();
+    /** \brief Run the actual database
+     * returns when the database is terminated
+     * and all clients have disconnected
+     */
     void Run();
+
+    // These functions are for the Client
     using CPN::RemoteDBServer::DispatchMessage;
     void Terminate();
     void Terminate(const std::string &name);

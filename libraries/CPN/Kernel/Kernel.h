@@ -109,15 +109,18 @@ namespace CPN {
          * \throws ShutdownException if the kernel has shutdown
          */
         void WaitNodeTerminate(const std::string &nodename);
+        /** \brief Waits until there are no running nodes.
+         */
         void WaitForAllNodeEnd();
+        /** \brief Wait for the given node to start
+         * \param nodename the name of the node to wait for
+         */
         void WaitNodeStart(const std::string &nodename);
 
-        // Attempt to connect the given endpoints together using the given attributes
-        // If the endpoints are of the wrong type
-        // this function will fail. Only one side has to free the connection for
-        // the other port to become disconnected and available.
-        // If the endpoints do not exist create them. If
-        // the endpoints are already connected fail.
+        /** \brief Create a new queue
+         * \param attr the attribute to use to create the queu
+         * \see QueueAttr
+         */
         void CreateQueue(const QueueAttr &attr);
        
         LoggerOutput *GetLogger() { return &logger; }
@@ -131,6 +134,8 @@ namespace CPN {
 
         shared_ptr<Database> GetDatabase() const { return database; }
 
+        /** \brief Called by the node in the cleanup routine.
+         */
         void NodeTerminated(Key_t key);
     private:
         // Not copyable

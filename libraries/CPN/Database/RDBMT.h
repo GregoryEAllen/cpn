@@ -25,6 +25,10 @@
 #pragma once
 
 namespace CPN {
+    /**
+     * \brief RDBMT Remote Data Base Message Type
+     * These are the message types that the remote database uses to send information back and forth.
+     */
     enum RDBMT_t {
         RDBMT_SETUP_HOST,
         RDBMT_DESTROY_HOST_KEY,

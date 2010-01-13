@@ -31,7 +31,11 @@ public:
 RandomInstructionNode::RINState::RINState(const Variant &args) {
     nodeID = args["nodeID"].AsUnsigned();
     iterations = args["iterations"].AsUnsigned();
-    numKernels = args["numKernels"].AsUnsigned();
+    Variant::List::const_iterator ki = args["kernelnames"].AsArray().begin();
+    while (ki != args["kernelnames"].AsArray().end()) {
+        kernelnames.push_back(ki->AsString());
+        ++ki;
+    }
     if (args["state"].IsObject()) {
         // We have state for the RIG
         Variant s = args["state"];
@@ -39,7 +43,7 @@ RandomInstructionNode::RINState::RINState(const Variant &args) {
         state.seed = s["seed"].AsNumber<LFSR::LFSR_t>();
         state.maxID = s["maxID"].AsUnsigned();
         state.debugLevel = s["debugLevel"].AsInt();
-        Variant::List::iterator i = s["liveNodes"].AsArray().begin();
+        Variant::List::const_iterator i = s["liveNodes"].AsArray().begin();
         while (i != s["liveNodes"].AsArray().end()) {
             state.liveNodes.push_back(i->AsUnsigned());
             ++i;
@@ -73,7 +77,12 @@ std::string RandomInstructionNode::RINState::ToJSON() {
     Variant rinstate(Variant::ObjectType);
     rinstate["nodeID"] = nodeID;
     rinstate["iterations"] = iterations;
-    rinstate["numKernels"] = numKernels;
+    rinstate["kernelnames"] = Variant(Variant::ArrayType);
+    std::vector<std::string>::iterator ki = kernelnames.begin();
+    while (ki != kernelnames.end()) {
+        rinstate["kernelnames"].Append(*ki);
+        ++ki;
+    }
     Variant rigstate(Variant::ObjectType);
     rigstate["feed"] = state.feed;
     rigstate["seed"] = state.seed;
@@ -95,7 +104,7 @@ RandomInstructionNode::RandomInstructionNode(CPN::Kernel& ker,
 :   CPN::NodeBase(ker, attr), RandomInstructionGenerator(initialState.state) {
     myID = initialState.nodeID;
     iterations = initialState.iterations;
-    numKernels = initialState.numKernels;
+    kernelnames = initialState.kernelnames;
     die = false;
 }
 
@@ -111,20 +120,24 @@ void RandomInstructionNode::Process(void) {
 }
 
 void RandomInstructionNode::CreateRIN(CPN::Kernel& kernel, unsigned iterations,
-        unsigned numNodes, unsigned debugLevel, LFSR::LFSR_t seed, unsigned numKernels) {
+        unsigned numNodes, unsigned debugLevel, LFSR::LFSR_t seed, const std::vector<std::string> &kernelnames) {
 
     Variant state(Variant::ObjectType);
     state["iterations"] = iterations;
     state["seed"] = seed;
     state["debugLevel"] = debugLevel;
     state["numNodes"] = numNodes;
-    state["numKernels"] = numKernels;
+    std::vector<std::string>::const_iterator ki = kernelnames.begin();
+    while (ki != kernelnames.end()) {
+        state["kernelnames"].Append(*ki);
+        ++ki;
+    }
     for (unsigned i = 0; i < numNodes; ++i) {
         state["nodeID"] = i;
         CPN::NodeAttr attr(GetNodeNameFromID(i),
                 RANDOMINSTRUCTIONNODE_TYPENAME);
         attr.SetParam(state.AsJSON());
-        attr.SetHost(ToString(KERNEL_NAME_FORMAT, (i % numKernels)));
+        attr.SetHost(kernelnames[(i % kernelnames.size())]);
         kernel.CreateNode(attr);
     }
 }
@@ -139,11 +152,11 @@ void RandomInstructionNode::CreateRIN(CPN::Kernel& kernel, unsigned iterations,
 void RandomInstructionNode::DoCreateNode(unsigned newNodeID, unsigned creatorNodeID) {
     if (creatorNodeID == myID) {
         RandomInstructionGenerator::DoCreateNode(newNodeID, creatorNodeID);
-        RINState state = RINState(newNodeID, iterations, numKernels, GetState());
+        RINState state = RINState(newNodeID, iterations, kernelnames, GetState());
         CPN::NodeAttr attr(GetNodeNameFromID(state.nodeID),
                 RANDOMINSTRUCTIONNODE_TYPENAME);
         attr.SetParam(state.ToJSON());
-        attr.SetHost(ToString(KERNEL_NAME_FORMAT, (newNodeID % numKernels)));
+        attr.SetHost(kernelnames[(newNodeID % kernelnames.size())]);
         kernel.CreateNode(attr);
     }
     if (newNodeID == myID) {

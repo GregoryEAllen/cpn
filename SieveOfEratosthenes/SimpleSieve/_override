@@ -3,5 +3,5 @@
 #OS_INCDIR += `pkg-config --cflags sigc++-2.0`
 OS_DEFS += -D_DEBUG
 CC_OTHER += -Wall
-LD_OTHER += -Wall
+LD_OTHER += -Wall -rdynamic
 

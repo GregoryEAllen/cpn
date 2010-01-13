@@ -32,9 +32,16 @@
 namespace CPN {
 	/**
 	 * \brief The attribute for the Kernel.
+     *
+     * Possible parameters to the Kernel are the name, hostname, servname, and database.
+     * Only name is required.
 	 */
 	class CPN_API KernelAttr {
 	public:
+        /** \brief Create a new KernelAttr.
+         * There is only one required attributed and that is to give the Kernel a name.
+         * \param name_ the name for the Kernel.
+         */
 		KernelAttr(const std::string &name_)
 			: name(name_),
             hostname("localhost"),

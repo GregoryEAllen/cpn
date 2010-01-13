@@ -41,6 +41,9 @@
 #include <exception>
 #include <string>
 
+/**
+ * \brief The exception thrown by the ASSERT macro.
+ */
 class AssertException : public std::exception {
 public:
     AssertException(const std::string &msg) throw();
