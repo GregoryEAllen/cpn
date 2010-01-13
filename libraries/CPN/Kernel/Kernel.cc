@@ -24,6 +24,8 @@
 
 #include "Kernel.h"
 
+#include "Exceptions.h"
+
 #include "NodeFactory.h"
 #include "NodeBase.h"
 
@@ -93,7 +95,6 @@ namespace CPN {
         FUNCBEGIN;
         Terminate();
         Wait();
-        database->DestroyHostKey(hostkey);
         Sync::AutoReentrantLock arlock(lock);
         assert(status.Get() == DONE);
         assert(nodemap.empty());
@@ -364,33 +365,37 @@ namespace CPN {
         FUNCBEGIN;
         Sync::AutoReentrantLock arlock(lock, false);
         status.CompareAndPost(INITIALIZED, RUNNING);
-        database->SignalHostStart(hostkey);
-        while (status.Get() == RUNNING) {
-            ClearGarbage();
-            Poll(-1);
-        }
-        // Close the listen port
-        connhandler.Shutdown();
-        // Tell everybody that is left to die.
-        arlock.Lock();
-        for (NodeMap::iterator itr = nodemap.begin();
-                itr != nodemap.end(); ++itr) {
-            itr->second->Shutdown();
-        }
-        for (EndpointList::iterator itr = endpoints.begin();
-                itr != endpoints.end(); ++itr) {
-            itr->get()->Shutdown();
-        }
-        // Wait for all nodes to end and all endpoints
-        // to finish sending data
-        while (!nodemap.empty() || !endpoints.empty()) {
-            arlock.Unlock();
-            ClearGarbage();
-            Poll(0);
+        try {
+            database->SignalHostStart(hostkey);
+            while (status.Get() == RUNNING) {
+                ClearGarbage();
+                Poll(-1);
+            }
+            // Close the listen port
+            connhandler.Shutdown();
+            // Tell everybody that is left to die.
             arlock.Lock();
+            for (NodeMap::iterator itr = nodemap.begin();
+                    itr != nodemap.end(); ++itr) {
+                itr->second->Shutdown();
+            }
+            for (EndpointList::iterator itr = endpoints.begin();
+                    itr != endpoints.end(); ++itr) {
+                itr->get()->Shutdown();
+            }
+            // Wait for all nodes to end and all endpoints
+            // to finish sending data
+            while (!nodemap.empty() || !endpoints.empty()) {
+                arlock.Unlock();
+                ClearGarbage();
+                Poll(0);
+                arlock.Lock();
+            }
+            arlock.Unlock();
+        } catch (const ShutdownException &e) {
         }
-        arlock.Unlock();
         ClearGarbage();
+        database->DestroyHostKey(hostkey);
         status.Post(DONE);
         FUNCEND;
         return 0;

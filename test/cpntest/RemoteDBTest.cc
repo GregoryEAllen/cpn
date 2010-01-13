@@ -21,6 +21,12 @@ CPPUNIT_TEST_SUITE_REGISTRATION( RemoteDBTest);
 #define DEBUG(frmt, ...)
 #endif
 
+#if 0
+#define DBPRINT(fmt, ...) printf(fmt, __VA_ARGS__)
+#else
+#define DBPRINT(fmt, ...)
+#endif
+
 using CPN::shared_ptr;
 using CPN::Key_t;
 
@@ -53,12 +59,12 @@ public:
     }
 
     void SendMessage(const std::string &recipient, const Variant &msg) {
-        DEBUG("Reply %s -> %s\n", recipient.c_str(), msg.AsJSON().c_str());
+        DBPRINT("Reply %s -> %s\n", recipient.c_str(), msg.AsJSON().c_str());
         replymap[recipient]->DispatchMessage(msg);
     }
 
     void BroadcastMessage(const Variant &msg) {
-        DEBUG("Broadcast %s\n", msg.AsJSON().c_str());
+        DBPRINT("Broadcast %s\n", msg.AsJSON().c_str());
         for(std::map<std::string, CPN::RemoteDBClient *>::iterator entry = replymap.begin();
                 entry != replymap.end(); ++entry)
         {
@@ -78,7 +84,7 @@ public:
             } else {
                 std::pair<std::string, Variant> entry = msgqueue.front();
                 msgqueue.pop_front();
-                DEBUG("Processing %s -> %s\n", entry.first.c_str(), entry.second.AsJSON().c_str());
+                DBPRINT("Processing %s -> %s\n", entry.first.c_str(), entry.second.AsJSON().c_str());
                 DispatchMessage(entry.first, entry.second);
             }
         }

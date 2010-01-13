@@ -423,12 +423,8 @@ namespace CPN {
 
         try {
 
-            // this is experimental
-            // If we have recieved EOF and we don't think we are going
-            // to shut down close the connection because there was an error
-            // and reestablish.
             if (Eof() && !(readshutdown || writeshutdown)) {
-                Close();
+                logger.Error("Eof detected but not shutdown!");
             }
 
             if (Closed()) {
@@ -440,11 +436,14 @@ namespace CPN {
                     while (true) {
                         if (connection) {
                             if (connection->Done()) {
+                                ASSERT(Closed());
                                 FileHandler::Reset();
                                 FileHandler::FD(connection->Get());
                                 connection.reset();
+                                logger.Debug("Connection established");
                             } else { return; }
                         } else if (Closed()) {
+                            logger.Debug("Getting new connection");
                             if (mode == READ) {
                                 connection = kmh->GetReaderDescriptor(readerkey, writerkey);
                             } else {

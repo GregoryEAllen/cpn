@@ -60,8 +60,8 @@ public:
      * \param timeout -1 to wait forever for activity
      * 0 to poll and return immediately or a time to wait
      * in seconds.
-     * \return zero if timed out, posiive if an event occured
-     * or negative if an error occured.
+     * \return zero if timed out, positive if an event occurred
+     * or negative if an error occurred.
      */
     int Poll(double timeout);
 
@@ -79,10 +79,15 @@ public:
     virtual void OnError() = 0;
     /**
      * \brief Called by Poll when a hangup has been detected.
+     * \note This means different things on different systems!! Be careful. For
+     * example as far as I can tell, on linux this means that any subsequent writes
+     * will result in a broken pipe error but on Mac OS X this appears to mean
+     * that the other side has hung up in some form or fashion (i.e. write may succeed
+     * and read returns eof).
      */
     virtual void OnHup() = 0;
     /**
-     * \brief Called by Poll when the file descritor is invalid.
+     * \brief Called by Poll when the file descriptor is invalid.
      */
     virtual void OnInval() = 0;
 
@@ -104,7 +109,7 @@ public:
      */
     bool Writeable(bool w) { return writeable = w; }
     /**
-     * \brief Called by Poll to decide if poll shoudl check for writeability.
+     * \brief Called by Poll to decide if poll should check for writeability.
      * \return the writeable status
      */
     virtual bool Writeable() const { return writeable; }
@@ -145,7 +150,7 @@ public:
     void SetBlocking(bool blocking);
     /** \brief a convenience method that allows one to set the
      * same blocking parameters for a file descriptor without
-     * settign it inside a FileHandler.
+     * setting it inside a FileHandler.
      * \param fd the file descriptor
      * \param blocking true or false see SetBlock
      */
