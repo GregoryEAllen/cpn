@@ -12,6 +12,8 @@ _Linux-i686
 _Linux-x86_64
 # vim temporary file
 .*.swp
+# not interested in the hg backup files
+*.orig
 
 # Ignore the documentation directory
 documentation
@@ -22,5 +24,6 @@ syntax: regexp
 # Ignore all files/directories that have the exact same
 # name as thier parent directory.
 # I.e the default executable name for jmake
+# This match is a little bit broad it will match foobar/bar
 ([^/]+)/\1$
 
