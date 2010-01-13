@@ -59,7 +59,7 @@ namespace CPN {
         }
 
         ~Connection() {
-            kch.logger.Trace("Connection destroyed r:%lu w:%lu s:%u %s",
+            kch.logger.Trace("Connection destroyed r:%llu w:%llu s:%u %s",
                     readerkey, writerkey, mode, Closed() ? "closed" : "open");
         }
 
@@ -109,6 +109,8 @@ namespace CPN {
                     }
                 }
             } catch (const ErrnoException &e) {
+                kch.logger.Error("Exception on read (r:%llu w:%llu s:%u) closing (%d): %s",
+                        readerkey, writerkey, mode, e.Error(), e.what());
                 mode = DEAD;
                 Close();
             }
@@ -117,16 +119,20 @@ namespace CPN {
         virtual void OnWrite() {}
         virtual void OnError() {
             Sync::AutoReentrantLock arlock(lock);
+            kch.logger.Debug("OnError (r:%llu w:%llu s:%u) closing ",
+                    readerkey, writerkey, mode);
             mode = DEAD;
             Close();
         }
         virtual void OnHup() {
             Sync::AutoReentrantLock arlock(lock);
-            mode = DEAD;
-            Close();
+            kch.logger.Debug("OnHup (r:%llu w:%llu s:%u)",
+                    readerkey, writerkey, mode);
         }
         virtual void OnInval() {
             Sync::AutoReentrantLock arlock(lock);
+            kch.logger.Debug("OnInval (r:%llu w:%llu s:%u) closing ",
+                    readerkey, writerkey, mode);
             mode = DEAD;
             Close();
         }
@@ -224,13 +230,13 @@ namespace CPN {
         void LogState() {
             switch (mode) {
             case ID_READER:
-                kch.logger.Debug("Connection in mode ID_READER w:%lu r:%lu", writerkey, readerkey);
+                kch.logger.Debug("Connection in mode ID_READER w:%llu r:%llu", writerkey, readerkey);
                 break;
             case ID_WRITER:
-                kch.logger.Debug("Connection in mode ID_WRITER w:%lu r:%lu", writerkey, readerkey);
+                kch.logger.Debug("Connection in mode ID_WRITER w:%llu r:%llu", writerkey, readerkey);
                 break;
             case WAITING:
-                kch.logger.Debug("Connection in mode WAITING w:%lu r:%lu", writerkey, readerkey);
+                kch.logger.Debug("Connection in mode WAITING w:%llu r:%llu", writerkey, readerkey);
                 break;
             case UNKNOWN:
                 kch.logger.Debug("Connection in mode UNKNOWN");

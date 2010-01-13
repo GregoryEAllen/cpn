@@ -31,7 +31,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION( SieveTest );
  * A lot of things have to be working for this to pass.
  */
 
-typedef unsigned long SieveNumber;
+typedef unsigned long long SieveNumber;
 
 const SieveNumber PRIMES[] = {
 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97
@@ -43,9 +43,9 @@ const SieveNumber MAX_PRIME_VALUE = 100;
 
 const char PORT_IN[] = "x";
 const char PORT_OUT[] = "y";
-const char PORT_FORMAT[] = "Result: %lu";
-const char FILTER_FORMAT[] = "Filter: %lu";
-const char QUEUE_FORMAT[] = "Queue %lu";
+const char PORT_FORMAT[] = "Result: %llu";
+const char FILTER_FORMAT[] = "Filter: %llu";
+const char QUEUE_FORMAT[] = "Queue %llu";
 
 const char FILTER_TYPE[] = "SieveFilterType";
 const char RESULT_TYPE[] = "SieveResultType";
@@ -77,22 +77,22 @@ SieveResultNode::SieveResultNode(CPN::Kernel& ker, const CPN::NodeAttr& attr)
 
 void SieveResultNode::Process() {
     std::string ourname = GetName();
-    DBPRINT("Result node %s started\n", ourname.c_str());
     SieveNumber portnum = 0;
     CPN::QueueReaderAdapter<SieveNumber> in = GetReader(ToString(PORT_FORMAT, portnum));
+    DBPRINT("Result node %s started (in %llu)\n", ourname.c_str(), in.GetKey());
     SieveNumber index = 0;
     while (index < resultsize) {
         SieveNumber value;
         ASSERT(in.Dequeue(&value, 1));
         if (value == 0) {
             ++portnum;
-            DBPRINT("Result swapped port to %lu\n", portnum);
             CreateNextFilter(portnum);
             in.Release();
             in = GetReader(ToString(PORT_FORMAT, portnum));
+            DBPRINT("Result swapped port to %llu (%llu)\n", portnum, in.GetKey());
         } else {
             result[index] = value;
-            DBPRINT("Result[%lu] = %lu\n", index, value);
+            DBPRINT("Result[%llu] = %llu\n", index, value);
             ++index;
         }
     }
@@ -139,11 +139,11 @@ SieveFilterNode::SieveFilterNode(CPN::Kernel& ker, const CPN::NodeAttr& attr)
 
 void SieveFilterNode::Process() {
     std::string ourname = GetName();
-    DBPRINT("Filter node %s started\n", ourname.c_str());
     CPN::QueueReaderAdapter<SieveNumber> in = GetReader(PORT_IN);
     std::string portname = ToString(PORT_FORMAT, nodenum);
     CPN::QueueWriterAdapter<SieveNumber> result = GetWriter(portname);
     CPN::QueueWriterAdapter<SieveNumber> out;
+    DBPRINT("Filter node %s started (in %llu result %llu)\n", ourname.c_str(), in.GetKey(), result.GetKey());
     SieveNumber input = 0;
     SieveNumber value = 0;
     ASSERT(in.Dequeue(&input, 1));
@@ -158,6 +158,7 @@ void SieveFilterNode::Process() {
         result.Enqueue(&input, 1);
         result.Release();
         out = GetWriter(PORT_OUT);
+        DBPRINT("%s swapped to out port (%llu)\n", ourname.c_str(), out.GetKey());
     } else {
         out = result;
     }
@@ -187,11 +188,11 @@ SieveProducerNode::SieveProducerNode(CPN::Kernel& ker, const CPN::NodeAttr& attr
 }
 void SieveProducerNode::Process(void) {
     std::string ourname = GetName();
-    DBPRINT("Producer node %s started\n", ourname.c_str());
     CPN::QueueWriterAdapter<SieveNumber> out = GetWriter(PORT_OUT);
+    DBPRINT("Producer node %s started (out %llu)\n", ourname.c_str(), out.GetKey());
     SieveNumber index = 2;
     while (index <= MAX_PRIME_VALUE) {
-        DBPRINT("Enqueueing %lu\n", index);
+        DBPRINT("Enqueueing %llu\n", index);
         out.Enqueue(&index, 1);
         ++index;
     }

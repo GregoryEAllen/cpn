@@ -24,6 +24,8 @@
 
 #include "Kernel.h"
 
+#include "Exceptions.h"
+
 #include "NodeFactory.h"
 #include "NodeBase.h"
 
@@ -347,6 +349,7 @@ namespace CPN {
         FUNCBEGIN;
         Sync::AutoReentrantLock arlock(lock, false);
         status.CompareAndPost(INITIALIZED, RUNNING);
+        try {
         database->SignalHostStart(hostkey);
         while (status.Get() == RUNNING) {
             ClearGarbage();
@@ -375,7 +378,10 @@ namespace CPN {
             arlock.Lock();
         }
         arlock.Unlock();
+        } catch (const ShutdownException &e) {
+        }
         ClearGarbage();
+        database->DestroyHostKey(hostkey);
         status.Post(DONE);
         FUNCEND;
         return 0;
