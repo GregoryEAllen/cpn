@@ -59,8 +59,6 @@ namespace CPN {
         Status_t GetStatus() const;
 
         Mode_t GetMode() const { return mode; }
-        Key_t GetWriterKey() const { return writerkey; }
-        Key_t GetReaderKey() const { return readerkey; }
         Key_t GetKey() const { return mode == READ ? readerkey : writerkey; }
 
         /** 

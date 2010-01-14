@@ -14,6 +14,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION( StreamEndpointTest );
 #pragma once
 
 #include <cppunit/extensions/HelperMacros.h>
+#include "CPNCommon.h"
 #include "SocketEndpoint.h"
 #include "KernelBase.h"
 #include "QueueBase.h"
@@ -68,27 +69,6 @@ private:
         bool canceled;
     };
 
-    enum MsgType {
-        RMHENQUEUE,
-        RMHENDOFWRITEQUEUE,
-        RMHWRITEBLOCK,
-        RMHTAGCHANGE,
-        WMHDEQUEUE,
-        WMHENDOFREADQUEUE,
-        WMHREADBLOCK,
-        WMHTAGCHANGE
-    };
-
-    struct Msg {
-        Msg() {}
-        Msg(MsgType t, CPN::Key_t s, CPN::Key_t d)
-            : type(t), src(s), dst(d), requested(0) {}
-        MsgType type;
-        CPN::Key_t src;
-        CPN::Key_t dst;
-        unsigned requested;
-    };
-
     Msg WaitForReadMsg();
     Msg WaitForWriteMsg();
     int Poll(double timeout);
@@ -99,9 +79,7 @@ private:
     CPN::shared_ptr<Future<int> > GetWriterDescriptor(CPN::Key_t readerkey, CPN::Key_t writerkey);
     void SendWakeup();
     LoggerOutput *GetLogger();
-    CPN::shared_ptr<CPN::Database> GetDatabase() const { return CPN::shared_ptr<CPN::Database>(); }
-
-    LoggerStdOutput logger;
+    CPN::shared_ptr<CPN::Database> GetDatabase() const { return database; }
 
     CPN::shared_ptr<CPN::QueueBase> wqueue;
     CPN::shared_ptr<CPN::QueueBase> rqueue;
@@ -111,5 +89,6 @@ private:
     CPN::shared_ptr<FileFuture> wfd;
     std::deque<Msg> readmsg;
     std::deque<Msg> writemsg;
+    CPN::shared_ptr<CPN::Database> database;
 };
 #endif

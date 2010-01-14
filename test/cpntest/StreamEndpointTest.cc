@@ -3,6 +3,10 @@
 #include "StreamEndpointTest.h"
 #include <cppunit/TestAssert.h>
 
+#include "QueueAttr.h"
+
+#include "PthreadFunctional.h"
+
 #include <tr1/memory>
 #include <vector>
 
@@ -28,21 +32,30 @@ void Error(int err) {
 
 void StreamEndpointTest::setUp() {
 
-    logger.LogLevel(Logger::WARNING);
+    database = CPN::Database::Local();
+
+    logger.LogLevel(Logger::TRACE);
 
     rfd = shared_ptr<FileFuture>(new FileFuture);
     wfd = shared_ptr<FileFuture>(new FileFuture);
 
-    /*
-    wendp = shared_ptr<SocketEndpoint>(new SocketEndpoint(RKEY, WKEY, SocketEndpoint::WRITE,
-                this, QUEUESIZE*2, QUEUESIZE, 1));
-*/
+    SimpleQueueAttr attr(QUEUESIZE*2, QUEUESIZE);
+    attr.SetReaderKey(RKEY).SetWriterKey(WKEY);
+
+    wendp = shared_ptr<SocketEndpoint>(new SocketEndpoint(
+        database,
+        SocketEndpoint::WRITE,
+        this, attr
+        ));
+
     wqueue = wendp;
 
-    /*
-    rendp = shared_ptr<SocketEndpoint>(new SocketEndpoint(RKEY, WKEY, SocketEndpoint::READ,
-                this, QUEUESIZE*2, QUEUESIZE, 1));
-    */
+    rendp = shared_ptr<SocketEndpoint>(new SocketEndpoint(
+                database,
+                SocketEndpoint::READ,
+                this,
+                attr));
+
     rqueue = rendp;
 }
 
@@ -51,11 +64,11 @@ void StreamEndpointTest::tearDown() {
     rqueue.reset();
     wendp.reset();
     rendp.reset();
+    database.reset();
     readmsg.clear();
     writemsg.clear();
 }
 
-/*
 void StreamEndpointTest::CommunicationTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
     Msg msg;
@@ -63,8 +76,6 @@ void StreamEndpointTest::CommunicationTest() {
     // Test sending some data from the reader
     const char data[] = { 'a', 'b', 'c', 'd', 'e' };
     wqueue->RawEnqueue(data, sizeof(data));
-
-    rmh->RMHEnqueue(WKEY, RKEY);
 
     msg = WaitForReadMsg();
     CPPUNIT_ASSERT(msg.src == WKEY);
@@ -407,70 +418,13 @@ void StreamEndpointTest::SetupDescriptors() {
     wfd->SetDone();
 }
 
-const char* StreamEndpointTest::MsgName(MsgType type) {
-    switch(type) {
-    case RMHENQUEUE:
-        return "Enqueue";
-    case RMHENDOFWRITEQUEUE:
-        return "End of write";
-    case RMHWRITEBLOCK:
-        return "Write block";
-    case RMHTAGCHANGE:
-        return "RMHTagChange";
-    case WMHDEQUEUE:
-        return "Dequeue";
-    case WMHENDOFREADQUEUE:
-        return "End of read";
-    case WMHREADBLOCK:
-        return "Read block";
-    case WMHTAGCHANGE:
-        return "WMHTagChange";
-    }
-    CPPUNIT_FAIL("Not reachable");
-    return 0;
-}
 
-void StreamEndpointTest::RMHEnqueue(Key_t src, Key_t dst) {
-    readmsg.push_back(Msg(RMHENQUEUE, src, dst));
-}
-
-void StreamEndpointTest::RMHEndOfWriteQueue(Key_t src, Key_t dst) {
-    readmsg.push_back(Msg(RMHENDOFWRITEQUEUE, src, dst));
-}
-
-void StreamEndpointTest::RMHWriteBlock(Key_t src, Key_t dst, unsigned requested) {
-    readmsg.push_back(Msg(RMHWRITEBLOCK, src, dst));
-    readmsg.back().requested = requested;
-}
-
-void StreamEndpointTest::RMHTagChange(Key_t src, Key_t dst) {
-    readmsg.push_back(Msg(RMHTAGCHANGE, src, dst));
-}
-
-void StreamEndpointTest::WMHDequeue(Key_t src, Key_t dst) {
-    writemsg.push_back(Msg(WMHDEQUEUE, src, dst));
-}
-
-void StreamEndpointTest::WMHEndOfReadQueue(Key_t src, Key_t dst) {
-    writemsg.push_back(Msg(WMHENDOFREADQUEUE, src, dst));
-}
-
-void StreamEndpointTest::WMHReadBlock(Key_t src, Key_t dst, unsigned requested) {
-    writemsg.push_back(Msg(WMHREADBLOCK, src, dst));
-    writemsg.back().requested = requested;
-}
-
-void StreamEndpointTest::WMHTagChange(Key_t src, Key_t dst) {
-    writemsg.push_back(Msg(WMHTAGCHANGE, src, dst));
-}
-
-*/
 void StreamEndpointTest::SendWakeup() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
 }
 
 LoggerOutput *StreamEndpointTest::GetLogger() {
-    return &logger;
+    return database.get();
 }
 
 CPN::shared_ptr<Future<int> > StreamEndpointTest::GetReaderDescriptor(CPN::Key_t readerkey, CPN::Key_t writerkey)
