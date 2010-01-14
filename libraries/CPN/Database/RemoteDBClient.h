@@ -73,9 +73,6 @@ namespace CPN {
         virtual void SignalNodeStart(CPN::Key_t nodekey);
         virtual void SignalNodeEnd(CPN::Key_t nodekey);
 
-        /** Waits until the node starts and returns the key, if the node is
-         * already started returns the key
-         */
         virtual CPN::Key_t WaitForNodeStart(const std::string &nodename);
         virtual void WaitForNodeEnd(const std::string &nodename);
         virtual void WaitForAllNodeEnd();

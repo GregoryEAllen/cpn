@@ -84,6 +84,8 @@ namespace CPN {
          */
         shared_ptr<QueueWriter> GetWriter(const std::string &portname);
 
+        /** \brief Return a pointer to the kernel that his node is running under
+         */
         Kernel *GetKernel() { return &kernel; }
 
         /**
@@ -103,8 +105,12 @@ namespace CPN {
 
         void Lock() const { lock.Lock(); }
         void Unlock() const { lock.Unlock(); }
+
+        /** \brief Called by the kernel when it is shutting down */
+        void NotifyTerminate();
 	protected:
 
+        /** \brief Override this method to implement a node */
 		virtual void Process() = 0;
 
 		Kernel &kernel;
@@ -117,8 +123,6 @@ namespace CPN {
 
         void ReleaseReader(Key_t ekey);
         void ReleaseWriter(Key_t ekey);
-
-        void CheckTerminate();
 
         // Private data
         Sync::ReentrantLock lock;

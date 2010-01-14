@@ -63,8 +63,8 @@ namespace CPN {
         Key_t GetReaderKey() const { return readerkey; }
         Key_t GetKey() const { return mode == READ ? readerkey : writerkey; }
 
-        /** Signal that the kernel is shutting down.
-         * This is a forced shutdown. 
+        /** 
+         * to be removed
          */
         void Shutdown();
 

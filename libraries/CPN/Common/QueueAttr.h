@@ -178,6 +178,10 @@ namespace CPN {
         Key_t writernodekey;
     };
 
+    /**
+     * \brief This is a simplified internal representation of the queue
+     * attributes needed to create a queue.  This is for internal use only.
+     */
     class SimpleQueueAttr {
     public:
         SimpleQueueAttr() {}

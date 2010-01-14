@@ -95,7 +95,6 @@ namespace CPN {
         FUNCBEGIN;
         Terminate();
         Wait();
-        database->DestroyHostKey(hostkey);
         Sync::AutoReentrantLock arlock(lock);
         assert(status.Get() == DONE);
         assert(nodemap.empty());
@@ -132,7 +131,6 @@ namespace CPN {
 
         ASSERT(status.Get() == RUNNING);
 
-
         NodeAttr nodeattr = attr;
 
         if (nodeattr.GetHostKey() == 0) {
@@ -144,7 +142,7 @@ namespace CPN {
             }
             nodeattr.SetHostKey(key);
         }
-        Key_t nodekey = database->CreateNodeKey(nodeattr.GetHostKey(), attr.GetName());
+        Key_t nodekey = database->CreateNodeKey(nodeattr.GetHostKey(), nodeattr.GetName());
         nodeattr.SetKey(nodekey);
 
         // check the host the node should go on and send
@@ -332,11 +330,14 @@ namespace CPN {
     void Kernel::NodeTerminated(Key_t key) {
         Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
-        ASSERT(status.Get() != DONE, "Nodes running after shutdown");
-        shared_ptr<NodeBase> node = nodemap[key];
-        nodemap.erase(key);
-        garbagenodes.push_back(node);
-        wakeuphandler.SendWakeup();
+        if (status.Get() == DONE) {
+            logger.Warn("Nodes running after shutdown");
+        } else {
+            shared_ptr<NodeBase> node = nodemap[key];
+            nodemap.erase(key);
+            garbagenodes.push_back(node);
+            wakeuphandler.SendWakeup();
+        }
     }
 
     void Kernel::ClearGarbage() {
@@ -347,37 +348,28 @@ namespace CPN {
 
     void *Kernel::EntryPoint() {
         FUNCBEGIN;
-        Sync::AutoReentrantLock arlock(lock, false);
         status.CompareAndPost(INITIALIZED, RUNNING);
         try {
-        database->SignalHostStart(hostkey);
-        while (status.Get() == RUNNING) {
-            ClearGarbage();
-            Poll(-1);
-        }
-        // Close the listen port
-        connhandler.Shutdown();
-        /*
-        // Tell everybody that is left to die.
-        arlock.Lock();
-        for (NodeMap::iterator itr = nodemap.begin();
-                itr != nodemap.end(); ++itr) {
-            itr->second->Shutdown();
-        }
-        for (EndpointList::iterator itr = endpoints.begin();
-                itr != endpoints.end(); ++itr) {
-            itr->get()->Shutdown();
-        }
-        */
-        // Wait for all nodes to end and all endpoints
-        // to finish sending data
-        while (!nodemap.empty()) {
+            database->SignalHostStart(hostkey);
+            while (status.Get() == RUNNING) {
+                ClearGarbage();
+                Poll(-1);
+            }
+            // Close the listen port
+            connhandler.Shutdown();
+            Sync::AutoReentrantLock arlock(lock);
+            NodeMap::iterator nitr = nodemap.begin();
+            while (nitr != nodemap.end()) {
+                (nitr++)->second->NotifyTerminate();
+            }
+            // Wait for all nodes to end
+            while (!nodemap.empty()) {
+                arlock.Unlock();
+                ClearGarbage();
+                Poll(0);
+                arlock.Lock();
+            }
             arlock.Unlock();
-            ClearGarbage();
-            Poll(0);
-            arlock.Lock();
-        }
-        arlock.Unlock();
         } catch (const ShutdownException &e) {
         }
         ClearGarbage();

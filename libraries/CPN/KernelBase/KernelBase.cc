@@ -22,6 +22,7 @@
  */
 
 #include "KernelBase.h"
+#include "Assert.h"
 
 namespace CPN {
     KernelBase::~KernelBase() {}

@@ -130,8 +130,12 @@ namespace CPN {
          */
         const std::string &GetName() const { return kernelname; }
 
+        /** \return the unique key for this kernel
+         */
         Key_t GetKey() const { return hostkey; }
 
+        /** \return the database this kernel is using
+         */
         shared_ptr<Database> GetDatabase() const { return database; }
 
         /** \brief Called by the node in the cleanup routine.

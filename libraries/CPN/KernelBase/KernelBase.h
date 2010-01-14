@@ -25,7 +25,6 @@
 #define CPN_KERNELBASE_H
 #pragma once
 #include "CPNCommon.h"
-#include "Assert.h"
 #include "Future.h"
 #include "Logger.h"
 

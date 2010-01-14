@@ -63,13 +63,13 @@ namespace CPN {
     }
 
     shared_ptr<QueueReader> NodeBase::GetReader(const std::string &portname) {
-        CheckTerminate();
+        database->CheckTerminated();
         Key_t ekey = database->GetCreateReaderKey(nodekey, portname);
         return GetReader(ekey);
     }
 
     shared_ptr<QueueWriter> NodeBase::GetWriter(const std::string &portname) {
-        CheckTerminate();
+        database->CheckTerminated();
         Key_t ekey = database->GetCreateWriterKey(nodekey, portname);
         return GetWriter(ekey);
     }
@@ -102,7 +102,7 @@ namespace CPN {
         while (!reader) {
             ReaderMap::iterator entry = readermap.find(ekey);
             if (entry == readermap.end()) {
-                CheckTerminate();
+                database->CheckTerminated();
                 cond.Wait(lock);
             } else {
                 reader = shared_ptr<QueueReader>(entry->second);
@@ -117,7 +117,7 @@ namespace CPN {
         while (!writer) {
             WriterMap::iterator entry = writermap.find(ekey);
             if (entry == writermap.end()) {
-                CheckTerminate();
+                database->CheckTerminated();
                 cond.Wait(lock);
             } else {
                 writer = shared_ptr<QueueWriter>(entry->second);
@@ -150,7 +150,13 @@ namespace CPN {
         writer.reset();
     }
 
-    void NodeBase::CheckTerminate() {
+    void NodeBase::NotifyTerminate() {
+        Sync::AutoReentrantLock arl(lock);
+        cond.Signal();
+        WriterMap::iterator witr = writermap.begin();
+        while (witr != writermap.end()) { (witr++)->second->NotifyTerminate(); }
+        ReaderMap::iterator ritr = readermap.begin();
+        while (ritr != readermap.end()) { (ritr++)->second->NotifyTerminate(); }
     }
 }
 

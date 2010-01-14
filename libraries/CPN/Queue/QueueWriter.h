@@ -143,6 +143,9 @@ namespace CPN {
          * used.
          */
         void Release();
+
+        /** \brief Called by the node */
+        void NotifyTerminate() { queue->NotifyTerminate(); }
     private:
         QueueReleaser *releaser;
         shared_ptr<QueueBase> queue;

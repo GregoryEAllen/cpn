@@ -183,13 +183,18 @@ namespace CPN {
          */
         virtual void Grow(unsigned queueLen, unsigned maxThresh) = 0;
 
+        /** \return the writer key associated with this queue */
         Key_t GetWriterKey() const { return writerkey; }
+        /** \return the reader key associated with this queue */
         Key_t GetReaderKey() const { return readerkey; }
-
+        /** \return the datatype name associated with this queue */
         const std::string &GetDatatype() const { return datatype; }
-
+        /** \brief Called by the QueueReader when no more data will be read */
         virtual void ShutdownReader();
+        /** \brief Called by the QueueWriter when no more data will be written */
         virtual void ShutdownWriter();
+        /** \brief Used to tell any waiting threads that the network is terminating */
+        void NotifyTerminate();
 
         void Lock() const { lock.Lock(); }
         void Unlock() const { lock.Unlock(); }

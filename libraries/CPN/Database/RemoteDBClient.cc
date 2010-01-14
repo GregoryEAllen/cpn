@@ -22,10 +22,12 @@
  */
 
 #include "RemoteDBClient.h"
+#include "KernelBase.h"
 #include "Exceptions.h"
 #include "Assert.h"
 #include "AutoUnlock.h"
 #include "Base64.h"
+#include <stdexcept>
 
 namespace CPN {
 
@@ -61,6 +63,7 @@ namespace CPN {
             const std::string &servname, KernelBase *kmh) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
+        if (!kmh) { throw std::invalid_argument("Must have non null KernelBase."); }
         WaiterInfo winfo(NewTranID());
         AddWaiter(&winfo);
 
@@ -76,7 +79,9 @@ namespace CPN {
             winfo.cond.Wait(lock);
             InternalCheckTerminated();
         }
-        ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
+        if (!winfo.msg["success"].IsTrue()) {
+           throw std::invalid_argument("Cannot create two kernels with the same name");
+        }
         Key_t key = winfo.msg["hostinfo"]["key"].AsNumber<Key_t>();
         kmhandlers.insert(std::make_pair(key, kmh));
         return key;
@@ -98,7 +103,9 @@ namespace CPN {
             winfo.cond.Wait(lock);
             InternalCheckTerminated();
         }
-        ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
+        if (!winfo.msg["success"].IsTrue()) {
+            throw std::invalid_argument("No such host");
+        }
         return winfo.msg["hostinfo"]["key"].AsNumber<Key_t>();
     }
 
@@ -118,7 +125,9 @@ namespace CPN {
             winfo.cond.Wait(lock);
             InternalCheckTerminated();
         }
-        ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
+        if (!winfo.msg["success"].IsTrue()) {
+            throw std::invalid_argument("No such host");
+        }
         return winfo.msg["hostinfo"]["name"].AsString();
     }
 
@@ -138,7 +147,9 @@ namespace CPN {
             winfo.cond.Wait(lock);
             InternalCheckTerminated();
         }
-        ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
+        if (!winfo.msg["success"].IsTrue()) {
+            throw std::invalid_argument("No such host");
+        }
         Variant hostinfo = winfo.msg["hostinfo"];
         hostname = hostinfo["hostname"].AsString();
         servname = hostinfo["servname"].AsString();
@@ -303,7 +314,9 @@ namespace CPN {
             winfo.cond.Wait(lock);
             InternalCheckTerminated();
         }
-        ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
+        if (!(winfo.msg["success"].IsTrue())) {
+            throw std::invalid_argument("Node " + nodename + " already exists.");
+        }
         return winfo.msg["nodeinfo"]["key"].AsNumber<Key_t>();
     }
 
@@ -322,6 +335,9 @@ namespace CPN {
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
             InternalCheckTerminated();
+        }
+        if (!(winfo.msg["success"].IsTrue())) {
+            throw std::invalid_argument("No such node");
         }
         ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
         return winfo.msg["nodeinfo"]["key"].AsNumber<Key_t>();
@@ -342,7 +358,9 @@ namespace CPN {
         while (!winfo.signaled) {
             winfo.cond.Wait(lock);
         }
-        ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
+        if (!(winfo.msg["success"].IsTrue())) {
+            throw std::invalid_argument("No such node");
+        }
         return winfo.msg["nodeinfo"]["name"].AsString();
     }
 
@@ -492,7 +510,9 @@ namespace CPN {
             winfo.cond.Wait(lock);
             InternalCheckTerminated();
         }
-        ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
+        if (!(winfo.msg["success"].IsTrue())) {
+            throw std::invalid_argument("No such node");
+        }
         return winfo.msg["nodeinfo"]["hostkey"].AsNumber<Key_t>();
     }
 
@@ -698,7 +718,7 @@ namespace CPN {
                     ASSERT(false, "Unknown kernel message type");
                 }
             } else {
-                ASSERT(false, "Message for kernel %lu but said kernel doesn't exist!", hostkey);
+                ASSERT(false, "Message for kernel %llu but said kernel doesn't exist!", hostkey);
             }
         } else {
             ASSERT(false);
@@ -721,7 +741,9 @@ namespace CPN {
             winfo.cond.Wait(lock);
             InternalCheckTerminated();
         }
-        ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
+        if (!winfo.msg["success"].IsTrue()) {
+            throw std::invalid_argument("No such port");
+        }
         return winfo.msg["endpointinfo"]["key"].AsNumber<Key_t>();
     }
 

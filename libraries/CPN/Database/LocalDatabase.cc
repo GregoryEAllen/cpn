@@ -22,6 +22,7 @@
  */
 
 #include "LocalDatabase.h"
+#include "KernelBase.h"
 #include "KernelAttr.h"
 #include "Exceptions.h"
 #include "Assert.h"
@@ -31,7 +32,9 @@
 namespace CPN {
 
     LocalDatabase::LocalDatabase()
-        : loglevel(Logger::WARNING), numlivenodes(0), shutdown(false), counter(0) {}
+        : loglevel(Logger::WARNING), numlivenodes(0), shutdown(false), counter(0)
+    {}
+
     LocalDatabase::~LocalDatabase() {
     }
 
@@ -56,8 +59,10 @@ namespace CPN {
             const std::string &servname, KernelBase *kmh) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
-        ASSERT(kmh, "Must have non null KernelBase.");
-        ASSERT(hostnames.find(name) == hostnames.end(), "Names must be unique.");
+        if (!kmh) { throw std::invalid_argument("Must have non null KernelBase."); }
+        if (hostnames.find(name) != hostnames.end()) {
+           throw std::invalid_argument("Cannot create two kernels with the same name");
+        }
         shared_ptr<HostInfo> hinfo = shared_ptr<HostInfo>(new HostInfo);
         hinfo->name = name;
         hinfo->hostname = hostname;
@@ -104,7 +109,11 @@ namespace CPN {
 
     void LocalDatabase::DestroyHostKey(Key_t hostkey) {
         PthreadMutexProtected pl(lock);
-        hostmap[hostkey]->dead = true;
+        HostMap::iterator entry = hostmap.find(hostkey);
+        if (entry == hostmap.end()) {
+            throw std::invalid_argument("No such host");
+        }
+        entry->second->dead = true;
         hostlivedead.Broadcast();
     }
 
@@ -350,7 +359,9 @@ namespace CPN {
     void LocalDatabase::DestroyReaderKey(Key_t portkey) {
         PthreadMutexProtected pl(lock);
         PortMap::iterator entry = readports.find(portkey);
-        ASSERT(entry != readports.end());
+        if (entry == readports.end()) {
+            throw std::invalid_argument("No such port");
+        }
         entry->second->dead = true;
     }
 
@@ -404,7 +415,9 @@ namespace CPN {
     void LocalDatabase::DestroyWriterKey(Key_t portkey) {
         PthreadMutexProtected pl(lock);
         PortMap::iterator entry = writeports.find(portkey);
-        ASSERT(entry != writeports.end());
+        if (entry == writeports.end()) {
+            throw std::invalid_argument("No such port");
+        }
         entry->second->dead = true;
     }
 

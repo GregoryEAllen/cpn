@@ -63,51 +63,70 @@ namespace CPN {
          * \param servname the service name the kernel is listening on
          * \param kmh callback reference
          * \return the unique key for the new kernel
+         * \throw ShutdownException
+         * \throw std::invalid_argument
          */
         virtual Key_t SetupHost(const std::string &name, const std::string &hostname,
                 const std::string &servname, KernelBase *kmh) = 0;
+        /** \param host the name of the host
+         * \return the key for the given hostname.
+         * \throw ShutdownException
+         * \throw std::invalid_argument
+         */
         virtual Key_t GetHostKey(const std::string &host) = 0;
         /** \param hostkey the key to the host
          * \return the name for the host
+         * \throw ShutdownException
+         * \throw std::invalid_argument
          */
         virtual std::string GetHostName(Key_t hostkey) = 0;
         /** \brief obtain the connection information for the given host
          * \param hostkey the unique id for the host
          * \param hostname (output) string to be filled with the hostname
          * \param servname (output) string to be filled with the service name
+         * \throw ShutdownException
+         * \throw std::invalid_argument
          */
         virtual void GetHostConnectionInfo(Key_t hostkey, std::string &hostname, std::string &servname) = 0;
         /** \brief Signal to the Database that the given host is dead.
          * \param hostkey id of the host that died
+         * \throw std::invalid_argument
          */
         virtual void DestroyHostKey(Key_t hostkey) = 0;
         /** \brief Does not return until the given host has started.
          * \param host the name of the host (the key may not be known yet)
+         * \throw ShutdownException
          */
         virtual Key_t WaitForHostStart(const std::string &host) = 0;
         /** \brief Signal to the database that the given host has started
          * \param hostkey the id for the host
+         * \throw ShutdownException
+         * \throw std::invalid_argument
          */
         virtual void SignalHostStart(Key_t hostkey) = 0;
 
         /** \brief Tell a given host that it needs to create a queue write end.
          * \param hostkey the id of the host
          * \parma attr the queue attribute
+         * \throw ShutdownException
          */
         virtual void SendCreateWriter(Key_t hostkey, const SimpleQueueAttr &attr) = 0;
         /** \brief Tell a given host that it needs to create a queue read end.
          * \param hostkey the id of the host
          * \parma attr the queue attribute
+         * \throw ShutdownException
          */
         virtual void SendCreateReader(Key_t hostkey, const SimpleQueueAttr &attr) = 0;
         /** \brief Tell a given host that it needs to create a queue.
          * \param hostkey the id of the host
          * \parma attr the queue attribute
+         * \throw ShutdownException
          */
         virtual void SendCreateQueue(Key_t hostkey, const SimpleQueueAttr &attr) = 0;
         /** \brief Tell a given host that it needs to create a node.
          * \param hostkey the id of the host
          * \param attr the node attribute
+         * \throw ShutdownException
          */
         virtual void SendCreateNode(Key_t hostkey, const NodeAttr &attr) = 0;
 
@@ -115,24 +134,35 @@ namespace CPN {
          * a node with nodename which is on hostkey.
          * \param hostkey the id of the kernel that the node will run on
          * \param nodename the name of the node
+         * \throw ShutdownException
+         * \throw std::invalid_argument
          */
         virtual Key_t CreateNodeKey(Key_t hostkey, const std::string &nodename) = 0;
         /** \return the unique key associated with the given node name.
+         * \throw ShutdownException
+         * \throw std::invalid_argument
          */
         virtual Key_t GetNodeKey(const std::string &nodename) = 0;
         /** \return the name associated with the given node key
+         * \throw ShutdownException
+         * \throw std::invalid_argument
          */
         virtual std::string GetNodeName(Key_t nodekey) = 0;
         /** \param nodekey the unique key for the node
          * \return the key for the host the node is running on
+         * \throw ShutdownException
+         * \throw std::invalid_argument
          */
         virtual Key_t GetNodeHost(Key_t nodekey) = 0;
         /** \brief Called by the node startup routine to indicate that the node has started.
          * \param nodekey the unique key for the node
+         * \throw ShutdownException
+         * \throw std::invalid_argument
          */
         virtual void SignalNodeStart(Key_t nodekey) = 0;
         /** \brief Called by the node cleanup routine to indicate that the node has ended.
          * \param nodekey the unique key for the node
+         * \throw std::invalid_argument
          */
         virtual void SignalNodeEnd(Key_t nodekey) = 0;
 
@@ -140,14 +170,17 @@ namespace CPN {
          * already started returns the key
          * \param nodename the name of the node to wait for
          * \return the key for the node
+         * \throw ShutdownException
          */
         virtual Key_t WaitForNodeStart(const std::string &nodename) = 0;
         /** \brief Waits for the given node to signal end
          * \param nodename the name of the node
+         * \throw ShutdownException
          */
         virtual void WaitForNodeEnd(const std::string &nodename) = 0;
         /** \brief Convenience method which waits until there are no
          * nodes running. If no node have started then this will return immediately.
+         * \throw ShutdownException
          */
         virtual void WaitForAllNodeEnd() = 0;
 
@@ -156,22 +189,31 @@ namespace CPN {
          * Creates the information if it does not exist
          * \param nodekey the unique id for the node
          * \param portname the name of the endpoint.
+         * \throw ShutdownException
+         * \throw std::invalid_argument
          */
         virtual Key_t GetCreateReaderKey(Key_t nodekey, const std::string &portname) = 0;
         /** \param portkey the unique id for the port
          * \return the key for the node this port is on
+         * \throw ShutdownException
+         * \throw std::invalid_argument
          */
         virtual Key_t GetReaderNode(Key_t portkey) = 0;
         /** \param portkey the unique id for the port
          * \return the key for the host this port is on
+         * \throw ShutdownException
+         * \throw std::invalid_argument
          */
         virtual Key_t GetReaderHost(Key_t portkey) = 0;
         /** \param portkey the unique id for the port
          * \return the name of the port
+         * \throw ShutdownException
+         * \throw std::invalid_argument
          */
         virtual std::string GetReaderName(Key_t portkey) = 0;
         /** \brief called by the endpoint when it is released.
          * \param portkey the unique id for the port
+         * \throw std::invalid_argument
          */
         virtual void DestroyReaderKey(Key_t portkey) = 0;
 
@@ -191,14 +233,20 @@ namespace CPN {
          * the queue may be created long after that.
          * \param writerkey the unique key for the writer endpoint
          * \param readerkey the unique key for the reader endpoint
+         * \throw ShutdownException
+         * \throw std::invalid_argument
          */
         virtual void ConnectEndpoints(Key_t writerkey, Key_t readerkey) = 0;
         /** \param readerkey a unique reader key
          * \return the writer key associated with this reader key if there is one
+         * \throw ShutdownException
+         * \throw std::invalid_argument
          */
         virtual Key_t GetReadersWriter(Key_t readerkey) = 0;
         /** \param writerkey a unique writer key
          * \return the reader key associated with this writer
+         * \throw ShutdownException
+         * \throw std::invalid_argument
          */
         virtual Key_t GetWritersReader(Key_t writerkey) = 0;
 
@@ -212,6 +260,7 @@ namespace CPN {
 
         /** \brief Convenience method that checks IsTerminated and
          * if so throws a ShutdownException
+         * \throw ShutdownException
          */
         void CheckTerminated();
     };

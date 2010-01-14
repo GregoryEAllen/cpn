@@ -24,6 +24,7 @@
 #include "QueueBase.h"
 #include "Exceptions.h"
 #include "QueueAttr.h"
+#include "Database.h"
 
 namespace CPN {
     QueueBase::QueueBase(shared_ptr<Database> db, const SimpleQueueAttr &attr)
@@ -41,6 +42,7 @@ namespace CPN {
     QueueBase::~QueueBase() {}
 
     const void *QueueBase::GetRawDequeuePtr(unsigned thresh, unsigned chan) {
+        database->CheckTerminated();
         Sync::AutoLock<QueueBase> al(*this);
         while (true) {
             const void *ptr = InternalGetRawDequeuePtr(thresh, chan);
@@ -77,6 +79,7 @@ namespace CPN {
     }
 
     void *QueueBase::GetRawEnqueuePtr(unsigned thresh, unsigned chan) {
+        database->CheckTerminated();
         Sync::AutoLock<QueueBase> al(*this);
         while (true) {
             void *ptr = InternalGetRawEnqueuePtr(thresh, chan);
@@ -125,6 +128,7 @@ namespace CPN {
     void QueueBase::WaitForData(unsigned requested) {
         readrequest = requested;
         while (Count() < readrequest && !(readshutdown || writeshutdown)) {
+            database->CheckTerminated();
             cond.Wait(lock);
         }
         readrequest = 0;
@@ -139,6 +143,7 @@ namespace CPN {
     void QueueBase::WaitForFreespace(unsigned requested) {
         writerequest = requested;
         while (Freespace() < writerequest && !(readshutdown || writeshutdown)) {
+            database->CheckTerminated();
             cond.Wait(lock);
         }
         writerequest = 0;
@@ -148,6 +153,10 @@ namespace CPN {
         if (Freespace() >= writerequest) {
             cond.Broadcast();
         }
+    }
+
+    void QueueBase::NotifyTerminate() {
+        cond.Broadcast();
     }
 
     QueueReleaser::~QueueReleaser() {}

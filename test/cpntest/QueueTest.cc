@@ -34,19 +34,18 @@ void QueueTest::SimpleQueueTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
     shared_ptr<Database> database = shared_ptr<Database>(new MockDatabase);
     SimpleQueueAttr attr;
-    attr.SetLength(309).SetMaxThreshold(10).SetNumChannels(1);
+    attr.SetLength(309).SetMaxThreshold(10).SetNumChannels(1)
+        .SetReaderKey(1).SetWriterKey(2);
 	//DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, size, maxthresh, chans);
     shared_ptr<QueueBase> queue = shared_ptr<QueueBase>(new CPN::SimpleQueue(database, attr));
     TestBulk(queue.get());
-    TestDirect(queue.get());
-    TestBulk(queue.get());
+    queue = shared_ptr<QueueBase>(new CPN::SimpleQueue(database, attr));
     TestDirect(queue.get());
     attr.SetNumChannels(10);
 	//DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, size, maxthresh, chans);
     queue = shared_ptr<QueueBase>(new CPN::SimpleQueue(database, attr));
     TestBulk(queue.get());
-    TestDirect(queue.get());
-    TestBulk(queue.get());
+    queue = shared_ptr<QueueBase>(new CPN::SimpleQueue(database, attr));
     TestDirect(queue.get());
 }
 
@@ -55,14 +54,16 @@ void QueueTest::ThresholdQueueTest() {
     shared_ptr<Database> database = shared_ptr<Database>(new MockDatabase);
     SimpleQueueAttr attr;
     attr.SetLength(30).SetMaxThreshold(10).SetNumChannels(1);
-	//DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, size, maxthresh, chans);
+	DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
     shared_ptr<QueueBase> queue = shared_ptr<QueueBase>(new ThresholdQueue(database, attr));
     TestBulk(queue.get());
+    queue = shared_ptr<QueueBase>(new ThresholdQueue(database, attr));
     TestDirect(queue.get());
     attr.SetNumChannels(10);
-	//DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, size, maxthresh, chans);
+	DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
     queue = shared_ptr<QueueBase>(new ThresholdQueue(database, attr));
     TestBulk(queue.get());
+    queue = shared_ptr<QueueBase>(new ThresholdQueue(database, attr));
     TestDirect(queue.get());
 
 }
