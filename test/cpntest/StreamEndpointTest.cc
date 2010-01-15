@@ -4,11 +4,13 @@
 #include <cppunit/TestAssert.h>
 
 #include "QueueAttr.h"
+#include "Database.h"
 
 #include "PthreadFunctional.h"
 
 #include <tr1/memory>
 #include <vector>
+#include <algorithm>
 
 CPPUNIT_TEST_SUITE_REGISTRATION( StreamEndpointTest );
 
@@ -23,6 +25,7 @@ using namespace CPN;
 #endif
 
 const unsigned QUEUESIZE = 5;
+const char data[] = { 'a', 'b', 'c', 'd', 'e' };
 
 const Key_t RKEY = 1;
 const Key_t WKEY = 2;
@@ -32,14 +35,24 @@ void Error(int err) {
 
 void StreamEndpointTest::setUp() {
 
+    fail = false;
+    stopenqueue = false;
+    stopdequeue = false;
+    numenqueued = 0;
+    numdequeued = 0;
+    enqueuedead = false;
+    dequeuedead = false;
+
+
     database = CPN::Database::Local();
 
-    logger.LogLevel(Logger::TRACE);
+    database->LogLevel(Logger::WARNING);
 
     rfd = shared_ptr<FileFuture>(new FileFuture);
     wfd = shared_ptr<FileFuture>(new FileFuture);
 
-    SimpleQueueAttr attr(QUEUESIZE*2, QUEUESIZE);
+    SimpleQueueAttr attr;
+    attr.SetLength(QUEUESIZE*2).SetMaxThreshold(QUEUESIZE).SetNumChannels(1);
     attr.SetReaderKey(RKEY).SetWriterKey(WKEY);
 
     wendp = shared_ptr<SocketEndpoint>(new SocketEndpoint(
@@ -65,333 +78,234 @@ void StreamEndpointTest::tearDown() {
     wendp.reset();
     rendp.reset();
     database.reset();
-    readmsg.clear();
-    writemsg.clear();
 }
 
 void StreamEndpointTest::CommunicationTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
-    Msg msg;
+    // Send data across and wait for it at the other end.
+    // Then verify that reading more blocks.
+    // then verify that filling up the queue and then some will block the writer.
     SetupDescriptors();
-    // Test sending some data from the reader
-    const char data[] = { 'a', 'b', 'c', 'd', 'e' };
-    wqueue->RawEnqueue(data, sizeof(data));
+    std::auto_ptr<Pthread> enqueuer = std::auto_ptr<Pthread>(
+            CreatePthreadFunctional(this, &StreamEndpointTest::EnqueueData));
+    std::auto_ptr<Pthread> dequeuer = std::auto_ptr<Pthread>(
+            CreatePthreadFunctional(this, &StreamEndpointTest::DequeueData));
 
-    msg = WaitForReadMsg();
-    CPPUNIT_ASSERT(msg.src == WKEY);
-    CPPUNIT_ASSERT(msg.dst == RKEY);
-    CPPUNIT_ASSERT(readmsg.empty());
+    dequeuer->Start();
+    while (wqueue->ReadRequest() == 0) {
+        Poll(0);
+    }
+    CPPUNIT_ASSERT(wqueue->ReadRequest() == sizeof(data));
+    enqueuer->Start();
 
-    // Test sending received data reply
-    const void *dequeueptr = rqueue->GetRawDequeuePtr(sizeof(data));
-    CPPUNIT_ASSERT(dequeueptr);
-    CPPUNIT_ASSERT(memcmp(dequeueptr, data, sizeof(data)) == 0);
-    rqueue->Dequeue(sizeof(data));
-    wmh->WMHDequeue(RKEY, WKEY);
-
-    msg = WaitForWriteMsg();
-    CPPUNIT_ASSERT(writemsg.empty());
-    CPPUNIT_ASSERT(msg.type == WMHDEQUEUE);
-    CPPUNIT_ASSERT(msg.src == RKEY);
-    CPPUNIT_ASSERT(msg.dst == WKEY);
-
-    DEBUG("ReadBlock\n");
-    wmh->WMHReadBlock(RKEY, WKEY, 1);
-    msg = WaitForWriteMsg();
-    CPPUNIT_ASSERT(writemsg.empty());
-    CPPUNIT_ASSERT(msg.type == WMHREADBLOCK);
-    CPPUNIT_ASSERT(msg.src == RKEY);
-    CPPUNIT_ASSERT(msg.dst == WKEY);
-    CPPUNIT_ASSERT(msg.requested == 1);
-
-    DEBUG("WriteBlock and Throttle\n");
-    // Fill up the queue to the brim
-    void *enqueueptr = 0;
-    unsigned numsent = 0;
-    while ((enqueueptr = wqueue->GetRawEnqueuePtr(sizeof(data))) != 0) {
-        ++numsent;
-        memcpy(enqueueptr, data, sizeof(data));
-        wqueue->Enqueue(sizeof(data));
-        rmh->RMHEnqueue(WKEY, RKEY);
-        while (0 < Poll(0));
+    while (true) {
+        {
+            PthreadMutexProtected al(lock);
+            CPPUNIT_ASSERT(!fail);
+            if (numdequeued > sizeof(data)) {
+                break;
+            }
+        }
+        Poll(0);
     }
 
-    rmh->RMHWriteBlock(WKEY, RKEY, QUEUESIZE);
-    do {
-        msg = WaitForReadMsg();
-        CPPUNIT_ASSERT(msg.type == RMHWRITEBLOCK || msg.type == RMHENQUEUE);
-    } while (msg.type != RMHWRITEBLOCK);
-    CPPUNIT_ASSERT(readmsg.empty());
-    CPPUNIT_ASSERT(msg.type == RMHWRITEBLOCK);
-    CPPUNIT_ASSERT(msg.src == WKEY);
-    CPPUNIT_ASSERT(msg.dst == RKEY);
-    CPPUNIT_ASSERT(msg.requested == QUEUESIZE);
-
-    // Now empty it out
-    unsigned numreceived = 0;
-    while ((dequeueptr = rqueue->GetRawDequeuePtr(sizeof(data))) != 0) {
-        CPPUNIT_ASSERT(memcmp(dequeueptr, data, sizeof(data)) == 0);
-        rqueue->Dequeue(sizeof(data));
-        ++numreceived;
-        wmh->WMHDequeue(RKEY, WKEY);
-        while (0 < Poll(0));
+    {
+        PthreadMutexProtected al(lock);
+        stopdequeue = true;
     }
-    CPPUNIT_ASSERT(numsent == numreceived);
-    // now send the read block again
-    wmh->WMHReadBlock(RKEY, WKEY, sizeof(data));
-    do {
-        msg = WaitForWriteMsg();
-        CPPUNIT_ASSERT(msg.type == WMHREADBLOCK || msg.type == WMHDEQUEUE);
-    } while (msg.type != WMHREADBLOCK);
+    while (true) {
+        Poll(0);
+        {
+            PthreadMutexProtected al(lock);
+            if (dequeuedead) { break; }
+        }
+    }
+    dequeuer->Join();
 
-    CPPUNIT_ASSERT(writemsg.empty());
-    CPPUNIT_ASSERT(wqueue->Empty());
-    CPPUNIT_ASSERT(rqueue->Empty());
+    rqueue->ShutdownReader();
+    while (wqueue->IsReaderShutdown() == false) {
+        Poll(0);
+    }
+    enqueuer->Join();
+    CPPUNIT_ASSERT(!fail);
+}
 
-    // At this point we will have some enqueue messages in the read queue
-    // because of throttling
-    CPPUNIT_ASSERT(!readmsg.empty());
-    readmsg.clear();
-    // Now send the write shutdown
+void *StreamEndpointTest::EnqueueData() {
+    try {
+        while (true) {
+            wqueue->RawEnqueue(data, sizeof(data));
+            {
+                PthreadMutexProtected al(lock);
+                numenqueued += sizeof(data);
+                if (stopenqueue) {
+                    break;
+                }
+            }
+        }
+    } catch (...) {
+    }
+    PthreadMutexProtected al(lock);
+    enqueuedead = true;
+    return 0;
+}
 
-    rmh->RMHEndOfWriteQueue(WKEY, RKEY);
-    msg = WaitForReadMsg();
-    CPPUNIT_ASSERT(msg.type == RMHENDOFWRITEQUEUE);
-    msg = WaitForWriteMsg();
-    CPPUNIT_ASSERT(msg.type == WMHENDOFREADQUEUE);
-
-    CPPUNIT_ASSERT(wqueue->Empty());
-    CPPUNIT_ASSERT(wendp->Closed());
-    CPPUNIT_ASSERT(wendp->GetStatus() == SocketEndpoint::DEAD);
-    CPPUNIT_ASSERT(rqueue->Empty());
-    CPPUNIT_ASSERT(rendp->Closed());
-    CPPUNIT_ASSERT(rendp->GetStatus() == SocketEndpoint::DEAD);
+void *StreamEndpointTest::DequeueData() {
+    try {
+        while (true) {
+            const void *ptr = rqueue->GetRawDequeuePtr(sizeof(data), 0);
+            if (ptr) {
+                PthreadMutexProtected al(lock);
+                if (memcmp(ptr, data, sizeof(data)) != 0) {
+                    fail = true;
+                    break;
+                }
+                numdequeued += sizeof(data);
+                rqueue->Dequeue(sizeof(data));
+                if (stopdequeue) {
+                    break;
+                }
+            } else {
+                break;
+            }
+        }
+    } catch (...) {
+    }
+    PthreadMutexProtected al(lock);
+    dequeuedead = true;
+    return 0;
 }
 
 // Test what happens when we write a bunch of stuff then
 // shutdown
 void StreamEndpointTest::EndOfWriteQueueTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
-    Msg msg;
     SetupDescriptors();
-    const char data[] = { 'a', 'b', 'c', 'd', 'e' };
 
-    void *enqueueptr = 0;
-    unsigned numsent = 0;
-    while ((enqueueptr = wqueue->GetRawEnqueuePtr(sizeof(data))) != 0) {
-        memcpy(enqueueptr, data, sizeof(data));
-        wqueue->Enqueue(sizeof(data));
-        ++numsent;
-        rmh->RMHEnqueue(WKEY, RKEY);
-        while (0 < Poll(0));
+    std::auto_ptr<Pthread> enqueuer = std::auto_ptr<Pthread>(
+            CreatePthreadFunctional(this, &StreamEndpointTest::EnqueueData));
+    std::auto_ptr<Pthread> dequeuer = std::auto_ptr<Pthread>(
+            CreatePthreadFunctional(this, &StreamEndpointTest::DequeueData));
+    enqueuer->Start();
+    while (rqueue->WriteRequest() == 0) {
+        Poll(0);
     }
-
-    rmh->RMHEndOfWriteQueue(WKEY, RKEY);
-
-    const void *dequeueptr;
-    unsigned numreceived = 0;
-    while ((dequeueptr = rqueue->GetRawDequeuePtr(sizeof(data))) != 0) {
-        CPPUNIT_ASSERT(memcmp(dequeueptr, data, sizeof(data)) == 0);
-        rqueue->Dequeue(sizeof(data));
-        ++numreceived;
-        wmh->WMHDequeue(RKEY, WKEY);
-        while (0 < Poll(0));
+    wqueue->ShutdownWriter();
+    enqueuer->Join();
+    dequeuer->Start();
+    while (true) {
+        Poll(0);
+        {
+            PthreadMutexProtected al(lock);
+            if (dequeuedead) {
+                break;
+            }
+        }
     }
-    CPPUNIT_ASSERT(numsent == numreceived);
-
-    do {
-        msg = WaitForReadMsg();
-        CPPUNIT_ASSERT(msg.type == RMHENDOFWRITEQUEUE || msg.type == RMHENQUEUE);
-    } while (msg.type != RMHENDOFWRITEQUEUE);
-    CPPUNIT_ASSERT(msg.type == RMHENDOFWRITEQUEUE);
-    CPPUNIT_ASSERT(readmsg.empty());
-    do {
-        msg = WaitForWriteMsg();
-        CPPUNIT_ASSERT(msg.type == WMHENDOFREADQUEUE || msg.type == WMHDEQUEUE);
-    } while (msg.type != WMHENDOFREADQUEUE);
-    CPPUNIT_ASSERT(msg.type == WMHENDOFREADQUEUE);
-    CPPUNIT_ASSERT(writemsg.empty());
-
-    CPPUNIT_ASSERT(wqueue->Empty());
-    CPPUNIT_ASSERT(wendp->Closed());
-    CPPUNIT_ASSERT(wendp->GetStatus() == SocketEndpoint::DEAD);
-    CPPUNIT_ASSERT(rqueue->Empty());
-    CPPUNIT_ASSERT(rendp->Closed());
-    CPPUNIT_ASSERT(rendp->GetStatus() == SocketEndpoint::DEAD);
+    dequeuer->Join();
+    CPPUNIT_ASSERT(rqueue->IsWriterShutdown());
+    CPPUNIT_ASSERT(!fail);
+    CPPUNIT_ASSERT(numdequeued == numenqueued);
 }
 
 void StreamEndpointTest::EndOfReadQueueTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
     SetupDescriptors();
 
-    wmh->WMHEndOfReadQueue(RKEY, WKEY);
-    Msg msg = WaitForReadMsg();
-    CPPUNIT_ASSERT(msg.type == RMHENDOFWRITEQUEUE);
-    msg = WaitForWriteMsg();
-    CPPUNIT_ASSERT(msg.type == WMHENDOFREADQUEUE);
-
-    CPPUNIT_ASSERT(wendp->Closed());
-    CPPUNIT_ASSERT(wendp->GetStatus() == SocketEndpoint::DEAD);
-    CPPUNIT_ASSERT(wqueue->Empty());
-    CPPUNIT_ASSERT(rendp->Closed());
-    CPPUNIT_ASSERT(rendp->GetStatus() == SocketEndpoint::DEAD);
-    CPPUNIT_ASSERT(rqueue->Empty());
+    rqueue->ShutdownReader();
+    while (wqueue->IsReaderShutdown() == false) {
+        Poll(0);
+    }
+    CPPUNIT_ASSERT(rqueue->IsReaderShutdown());
+    CPPUNIT_ASSERT(wqueue->IsReaderShutdown());
 }
 
 // Test that the connection aborts correctly for end of read
 // with data in the queue
 void StreamEndpointTest::EndOfReadQueueTest2() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
-    Msg msg;
     SetupDescriptors();
-    const char data[] = { 'a', 'b', 'c', 'd', 'e' };
 
-    void *enqueueptr = 0;
-    while ((enqueueptr = wqueue->GetRawEnqueuePtr(sizeof(data))) != 0) {
-        memcpy(enqueueptr, data, sizeof(data));
-        wqueue->Enqueue(sizeof(data));
-        rmh->RMHEnqueue(WKEY, RKEY);
-        while (0 < Poll(0));
+    std::auto_ptr<Pthread> enqueuer = std::auto_ptr<Pthread>(
+            CreatePthreadFunctional(this, &StreamEndpointTest::EnqueueData));
+    enqueuer->Start();
+    while (rqueue->WriteRequest() == 0) {
+        Poll(0);
     }
-
-
-    wmh->WMHEndOfReadQueue(RKEY, WKEY);
-
-    do {
-        msg = WaitForReadMsg();
-        CPPUNIT_ASSERT(msg.type == RMHENDOFWRITEQUEUE || msg.type == RMHENQUEUE);
-    } while (msg.type != RMHENDOFWRITEQUEUE);
-    CPPUNIT_ASSERT(msg.type == RMHENDOFWRITEQUEUE);
-    CPPUNIT_ASSERT(readmsg.empty());
-
-    do {
-        msg = WaitForWriteMsg();
-        CPPUNIT_ASSERT(msg.type == WMHENDOFREADQUEUE || msg.type == WMHDEQUEUE);
-    } while (msg.type != WMHENDOFREADQUEUE);
-    CPPUNIT_ASSERT(msg.type == WMHENDOFREADQUEUE);
-    CPPUNIT_ASSERT(writemsg.empty());
-
-    CPPUNIT_ASSERT(wendp->Closed());
-    CPPUNIT_ASSERT(wendp->GetStatus() == SocketEndpoint::DEAD);
-    CPPUNIT_ASSERT(!wqueue->Empty());
-    CPPUNIT_ASSERT(rendp->Closed());
-    CPPUNIT_ASSERT(rendp->GetStatus() == SocketEndpoint::DEAD);
-    CPPUNIT_ASSERT(!rqueue->Empty());
+    rqueue->ShutdownReader();
+    while (wqueue->IsReaderShutdown() == false) {
+        Poll(0);
+    }
+    enqueuer->Join();
+    CPPUNIT_ASSERT(rqueue->IsReaderShutdown());
+    CPPUNIT_ASSERT(wqueue->IsReaderShutdown());
 }
 
 void StreamEndpointTest::WriteBlockWithNoFDTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
-    Msg msg;
-    const char data[] = { 'a', 'b', 'c', 'd', 'e' };
-    void *enqueueptr = 0;
-    unsigned numsent = 0;
-    while ((enqueueptr = wqueue->GetRawEnqueuePtr(sizeof(data))) != 0) {
-        memcpy(enqueueptr, data, sizeof(data));
-        wqueue->Enqueue(sizeof(data));
-        ++numsent;
-        rmh->RMHEnqueue(WKEY, RKEY);
-        while (0 < Poll(0));
+    std::auto_ptr<Pthread> enqueuer = std::auto_ptr<Pthread>(
+            CreatePthreadFunctional(this, &StreamEndpointTest::EnqueueData));
+    enqueuer->Start();
+    // Wait for the enqueuer to block
+    while (wqueue->WriteRequest() == 0) {
+        Poll(0);
     }
-    rmh->RMHWriteBlock(WKEY, RKEY, QUEUESIZE);
-
-    wmh->WMHReadBlock(RKEY, WKEY, sizeof(data));
 
     SetupDescriptors();
 
-    while (0 < Poll(0));
-    const void *dequeueptr;
-    unsigned numreceived = 0;
-    while ((dequeueptr = rqueue->GetRawDequeuePtr(sizeof(data))) != 0) {
-        CPPUNIT_ASSERT(memcmp(dequeueptr, data, sizeof(data)) == 0);
-        rqueue->Dequeue(sizeof(data));
-        ++numreceived;
-        wmh->WMHDequeue(RKEY, WKEY);
-        while (0 < Poll(0));
+    // Now wait for the reader side to recieve the block
+    while (rqueue->WriteRequest() == 0) {
+        Poll(0);
     }
-    CPPUNIT_ASSERT(numsent == numreceived);
-    rmh->RMHEndOfWriteQueue(WKEY, RKEY);
-    do {
-        msg = WaitForReadMsg();
-        CPPUNIT_ASSERT(msg.type == RMHENDOFWRITEQUEUE || msg.type == RMHENQUEUE);
-    } while (msg.type != RMHENDOFWRITEQUEUE);
-    CPPUNIT_ASSERT(msg.type == RMHENDOFWRITEQUEUE);
-    CPPUNIT_ASSERT(readmsg.empty());
-    do {
-        msg = WaitForWriteMsg();
-    } while (msg.type != WMHENDOFREADQUEUE);
-    CPPUNIT_ASSERT(msg.type == WMHENDOFREADQUEUE);
-    CPPUNIT_ASSERT(writemsg.empty());
-
-    CPPUNIT_ASSERT(wqueue->Empty());
-    CPPUNIT_ASSERT(wendp->Closed());
-    CPPUNIT_ASSERT(wendp->GetStatus() == SocketEndpoint::DEAD);
-    CPPUNIT_ASSERT(rqueue->Empty());
-    CPPUNIT_ASSERT(rendp->Closed());
-    CPPUNIT_ASSERT(rendp->GetStatus() == SocketEndpoint::DEAD);
+    wqueue->ShutdownWriter();
+    while (true) {
+        Poll(0);
+        {
+            PthreadMutexProtected al(lock);
+            if (enqueuedead) { break; }
+        }
+    }
+    CPPUNIT_ASSERT(!rqueue->IsWriterShutdown());
+    CPPUNIT_ASSERT(wqueue->IsWriterShutdown());
+    CPPUNIT_ASSERT(rqueue->Full());
+    CPPUNIT_ASSERT(wqueue->Full());
 }
 
 void StreamEndpointTest::WriteEndWithNoFDTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
-    Msg msg;
-    const char data[] = { 'a', 'b', 'c', 'd', 'e' };
-    void *enqueueptr = 0;
-    unsigned numsent = 0;
-    while ((enqueueptr = wqueue->GetRawEnqueuePtr(sizeof(data))) != 0) {
-        memcpy(enqueueptr, data, sizeof(data));
-        wqueue->Enqueue(sizeof(data));
-        ++numsent;
-        rmh->RMHEnqueue(WKEY, RKEY);
-        while (0 < Poll(0));
+    std::auto_ptr<Pthread> enqueuer = std::auto_ptr<Pthread>(
+            CreatePthreadFunctional(this, &StreamEndpointTest::EnqueueData));
+    enqueuer->Start();
+    // Wait for the enqueuer to block
+    while (wqueue->WriteRequest() == 0) {
+        Poll(0);
     }
 
-    rmh->RMHEndOfWriteQueue(WKEY, RKEY);
+    wqueue->ShutdownWriter();
+    while (true) {
+        Poll(0);
+        {
+            PthreadMutexProtected al(lock);
+            if (enqueuedead) { break; }
+        }
+    }
+    enqueuer->Join();
 
     SetupDescriptors();
 
-    while (0 < Poll(0));
-    const void *dequeueptr;
-    unsigned numreceived = 0;
-    while ((dequeueptr = rqueue->GetRawDequeuePtr(sizeof(data))) != 0) {
-        CPPUNIT_ASSERT(memcmp(dequeueptr, data, sizeof(data)) == 0);
-        rqueue->Dequeue(sizeof(data));
-        ++numreceived;
-        wmh->WMHDequeue(RKEY, WKEY);
-        while (0 < Poll(0));
+    std::auto_ptr<Pthread> dequeuer = std::auto_ptr<Pthread>(
+            CreatePthreadFunctional(this, &StreamEndpointTest::DequeueData));
+    dequeuer->Start();
+    while (true) {
+        Poll(0);
+        {
+            PthreadMutexProtected al(lock);
+            if (dequeuedead) { break; }
+        }
     }
-    CPPUNIT_ASSERT(numsent == numreceived);
-    do {
-        msg = WaitForReadMsg();
-        CPPUNIT_ASSERT(msg.type == RMHENDOFWRITEQUEUE || msg.type == RMHENQUEUE);
-    } while (msg.type != RMHENDOFWRITEQUEUE);
-    CPPUNIT_ASSERT(msg.type == RMHENDOFWRITEQUEUE);
-    CPPUNIT_ASSERT(readmsg.empty());
-    do {
-        msg = WaitForWriteMsg();
-    } while (msg.type != WMHENDOFREADQUEUE);
-    CPPUNIT_ASSERT(msg.type == WMHENDOFREADQUEUE);
-    CPPUNIT_ASSERT(writemsg.empty());
-
-    CPPUNIT_ASSERT(wqueue->Empty());
-    CPPUNIT_ASSERT(wendp->Closed());
-    CPPUNIT_ASSERT(wendp->GetStatus() == SocketEndpoint::DEAD);
-    CPPUNIT_ASSERT(rqueue->Empty());
-    CPPUNIT_ASSERT(rendp->Closed());
-    CPPUNIT_ASSERT(rendp->GetStatus() == SocketEndpoint::DEAD);
-
-}
-
-StreamEndpointTest::Msg StreamEndpointTest::WaitForReadMsg() {
-    while (readmsg.empty()) { ASSERT(0 <= Poll(-1)); }
-    Msg msg = readmsg.front();
-    readmsg.pop_front();
-    return msg;
-}
-
-StreamEndpointTest::Msg StreamEndpointTest::WaitForWriteMsg() {
-    while (writemsg.empty()) { ASSERT(0 <= Poll(-1)); }
-    Msg msg = writemsg.front();
-    writemsg.pop_front();
-    return msg;
+    dequeuer->Join();
+    CPPUNIT_ASSERT(rqueue->IsWriterShutdown());
+    CPPUNIT_ASSERT(wqueue->IsWriterShutdown());
+    CPPUNIT_ASSERT(numenqueued == numdequeued);
 }
 
 int StreamEndpointTest::Poll(double timeout) {

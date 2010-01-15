@@ -198,12 +198,20 @@ namespace CPN {
 
         void Lock() const { lock.Lock(); }
         void Unlock() const { lock.Unlock(); }
+
+        /// \brief For unit tests
+        unsigned ReadRequest();
+        /// \brief For unit tests
+        unsigned WriteRequest();
+        bool IsReaderShutdown();
+        bool IsWriterShutdown();
+
 	protected:
 		QueueBase(shared_ptr<Database> db, const SimpleQueueAttr &attr);
 
-        virtual void WaitForData(unsigned requested);
+        virtual void WaitForData();
         void NotifyData();
-        virtual void WaitForFreespace(unsigned requested);
+        virtual void WaitForFreespace();
         void NotifyFreespace();
 
         virtual void LogState() {}

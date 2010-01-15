@@ -163,20 +163,20 @@ namespace CPN {
     }
 
 
-    void SocketEndpoint::WaitForFreespace(unsigned request) {
+    void SocketEndpoint::WaitForFreespace() {
         Sync::AutoLock<QueueBase> arl(*this);
         ASSERT(mode == WRITE);
         pendingBlock = true;
         InternCheckStatus();
-        QueueBase::WaitForFreespace(request);
+        QueueBase::WaitForFreespace();
     }
 
-    void SocketEndpoint::WaitForData(unsigned request) {
+    void SocketEndpoint::WaitForData() {
         Sync::AutoLock<QueueBase> arl(*this);
         ASSERT(mode == READ);
         pendingBlock = true;
         InternCheckStatus();
-        QueueBase::WaitForData(request);
+        QueueBase::WaitForData();
     }
 
     void SocketEndpoint::ShutdownReader() {
@@ -271,6 +271,7 @@ namespace CPN {
         ASSERT(numread == packet.DataLength());
         queue.Enqueue(packet.Count());
         readcount += packet.Count();
+        writerequest = 0;
         NotifyData();
     }
 
@@ -282,6 +283,7 @@ namespace CPN {
         );
         ASSERT(mode == WRITE);
         ASSERT(!readshutdown);
+        readrequest = 0;
         writecount -= packet.Count();
         InternCheckStatus();
     }
@@ -294,6 +296,7 @@ namespace CPN {
         );
         ASSERT(mode == WRITE);
         ASSERT(!readshutdown);
+        readrequest = packet.Requested();
         InternCheckStatus();
     }
 
@@ -305,6 +308,7 @@ namespace CPN {
         );
         ASSERT(mode == READ);
         ASSERT(!writeshutdown);
+        writerequest = packet.Requested();
         InternCheckStatus();
     }
 
@@ -430,10 +434,8 @@ namespace CPN {
                 ASSERT(mode == WRITE);
 
                 // In write mode
-                if (!queue.Empty()) {
-                    if (!EnqueueBlocked()) {
-                        SendEnqueue();
-                    }
+                while (!queue.Empty() && !EnqueueBlocked()) {
+                    SendEnqueue();
                 }
 
                 if (pendingBlock) {
@@ -493,7 +495,7 @@ namespace CPN {
         packet.Count(count).BytesQueued(queue.Count());
         PacketEncoder::SendEnqueue(packet, queue);
         writecount += count;
-        QueueBase::NotifyData();
+        QueueBase::NotifyFreespace();
     }
 
     void SocketEndpoint::SendWriteBlock() {

@@ -48,7 +48,9 @@ namespace CPN {
             const void *ptr = InternalGetRawDequeuePtr(thresh, chan);
             if (ptr || writeshutdown) { return ptr; }
             if (readshutdown) { throw BrokenQueueException(readerkey); }
-            WaitForData(thresh);
+            readrequest = thresh;
+            WaitForData();
+            readrequest = 0;
         }
     }
 
@@ -85,7 +87,9 @@ namespace CPN {
             void *ptr = InternalGetRawEnqueuePtr(thresh, chan);
             if (ptr) { return ptr; }
             if (readshutdown || writeshutdown) { throw BrokenQueueException(writerkey); }
-            WaitForFreespace(thresh);
+            writerequest = thresh;
+            WaitForFreespace();
+            writerequest = 0;
         }
     }
 
@@ -125,13 +129,11 @@ namespace CPN {
         cond.Broadcast();
     }
 
-    void QueueBase::WaitForData(unsigned requested) {
-        readrequest = requested;
+    void QueueBase::WaitForData() {
         while (Count() < readrequest && !(readshutdown || writeshutdown)) {
             database->CheckTerminated();
             cond.Wait(lock);
         }
-        readrequest = 0;
     }
 
     void QueueBase::NotifyData() {
@@ -140,13 +142,11 @@ namespace CPN {
         }
     }
 
-    void QueueBase::WaitForFreespace(unsigned requested) {
-        writerequest = requested;
+    void QueueBase::WaitForFreespace() {
         while (Freespace() < writerequest && !(readshutdown || writeshutdown)) {
             database->CheckTerminated();
             cond.Wait(lock);
         }
-        writerequest = 0;
     }
 
     void QueueBase::NotifyFreespace() {
@@ -157,6 +157,26 @@ namespace CPN {
 
     void QueueBase::NotifyTerminate() {
         cond.Broadcast();
+    }
+
+    unsigned QueueBase::ReadRequest() {
+        Sync::AutoLock<QueueBase> al(*this);
+        return readrequest;
+    }
+
+    unsigned QueueBase::WriteRequest() {
+        Sync::AutoLock<QueueBase> al(*this);
+        return writerequest;
+    }
+
+    bool QueueBase::IsReaderShutdown() {
+        Sync::AutoLock<QueueBase> al(*this);
+        return readshutdown;
+    }
+
+    bool QueueBase::IsWriterShutdown() {
+        Sync::AutoLock<QueueBase> al(*this);
+        return writeshutdown;
     }
 
     QueueReleaser::~QueueReleaser() {}

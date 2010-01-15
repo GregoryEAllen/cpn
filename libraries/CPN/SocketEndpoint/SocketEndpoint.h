@@ -93,8 +93,8 @@ namespace CPN {
 
         virtual void ShutdownReader();
         virtual void ShutdownWriter();
-        virtual void WaitForData(unsigned request);
-        virtual void WaitForFreespace(unsigned request);
+        virtual void WaitForData();
+        virtual void WaitForFreespace();
 
         // FileHandler
         virtual void OnRead();

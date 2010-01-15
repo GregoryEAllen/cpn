@@ -18,27 +18,26 @@ CPPUNIT_TEST_SUITE_REGISTRATION( StreamEndpointTest );
 #include "SocketEndpoint.h"
 #include "KernelBase.h"
 #include "QueueBase.h"
+#include "PthreadMutex.h"
 #include <deque>
 
 class StreamEndpointTest : public CppUnit::TestFixture,
 public CPN::KernelBase {
 public:
 
-    StreamEndpointTest() : logger(Logger::INFO) {}
+    StreamEndpointTest() {}
 
 	void setUp();
 
 	void tearDown();
 
 	CPPUNIT_TEST_SUITE( StreamEndpointTest );
-    /*
     CPPUNIT_TEST( CommunicationTest );
     CPPUNIT_TEST( EndOfWriteQueueTest );
     CPPUNIT_TEST( EndOfReadQueueTest );
     CPPUNIT_TEST( EndOfReadQueueTest2 );
     CPPUNIT_TEST( WriteBlockWithNoFDTest );
     CPPUNIT_TEST( WriteEndWithNoFDTest );
-    */
 	CPPUNIT_TEST_SUITE_END();
 
     void CommunicationTest();
@@ -69,11 +68,10 @@ private:
         bool canceled;
     };
 
-    Msg WaitForReadMsg();
-    Msg WaitForWriteMsg();
+    void *EnqueueData();
+    void *DequeueData();
     int Poll(double timeout);
     void SetupDescriptors();
-    const char* MsgName(MsgType type);
 
     CPN::shared_ptr<Future<int> > GetReaderDescriptor(CPN::Key_t readerkey, CPN::Key_t writerkey);
     CPN::shared_ptr<Future<int> > GetWriterDescriptor(CPN::Key_t readerkey, CPN::Key_t writerkey);
@@ -87,8 +85,14 @@ private:
     CPN::shared_ptr<CPN::SocketEndpoint> rendp;
     CPN::shared_ptr<FileFuture> rfd;
     CPN::shared_ptr<FileFuture> wfd;
-    std::deque<Msg> readmsg;
-    std::deque<Msg> writemsg;
     CPN::shared_ptr<CPN::Database> database;
+    bool fail;
+    bool stopenqueue;
+    bool stopdequeue;
+    bool enqueuedead;
+    bool dequeuedead;
+    unsigned numenqueued;
+    unsigned numdequeued;
+    PthreadMutex lock;
 };
 #endif
