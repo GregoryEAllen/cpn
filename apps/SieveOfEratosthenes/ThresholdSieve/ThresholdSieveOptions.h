@@ -14,6 +14,7 @@ struct ThresholdSieveOptions {
     unsigned long queuesize;
     unsigned long threshold;
     unsigned long primesPerFilter;
+    unsigned long numPrimesSource;
     CPN::QueueHint_t queuehint;
     std::vector<NumberT> *results;
     CPN::Key_t consumerkey;
@@ -25,6 +26,8 @@ const char* const QUEUE_FORMAT = "Queue: %lu";
 const char* const CONTROL_PORT = "Control Port";
 const char* const IN_PORT = "x";
 const char* const OUT_PORT = "y";
+
+void CreateNewFilter(CPN::Kernel &kernel, ThresholdSieveOptions &opts, CPN::Key_t ourkey);
 
 #endif
 

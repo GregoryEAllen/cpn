@@ -3,7 +3,6 @@
 
 #include "ThresholdSieveFilter.h"
 #include "NodeFactory.h"
-#include "Kernel.h"
 #include "QueueReaderAdapter.h"
 #include "QueueWriterAdapter.h"
 #include "ToString.h"
@@ -11,6 +10,7 @@
 #include "Assert.h"
 #include <cmath>
 #include <stdexcept>
+#include <sstream>
 
 #if _DEBUG
 #include <cstdio>
@@ -33,87 +33,99 @@ public:
     }
 };
 
+const NumberT *GetDequeueCount(CPN::QueueReaderAdapter<NumberT> &in, unsigned &incount) {
+    const NumberT *inbuff = in.GetDequeuePtr(incount);
+    if (!inbuff) {
+        incount = in.Count();
+        if (incount != 0) {
+            inbuff = in.GetDequeuePtr(incount);
+        }
+    }
+    return inbuff;
+}
+
+void ThresholdSieveFilter::ReportCandidates(
+        const ThresholdSieveOptions::NumberT *inbuff, unsigned incount,
+        ThresholdSieveOptions::NumberT *primes, unsigned numPrimes,
+        ThresholdSieveOptions::NumberT *passed, unsigned numPassed)
+{
+    std::ostringstream oss;
+    oss << GetName() << "\nin ";
+    for (unsigned i = 0; i < incount; ++i) {
+        oss << inbuff[i] << " ";
+    }
+    if (numPrimes != 0) {
+        oss << "\nprimes ";
+        for (unsigned i = 0; i < numPrimes; ++i) {
+            oss << primes[i] << " ";
+        }
+    }
+    if (numPassed != 0) {
+        oss << "\npassed ";
+        for (unsigned i = 0; i < numPassed; ++i) {
+            oss << passed[i] << " ";
+        }
+    }
+    puts(oss.str().c_str());
+}
+
 void ThresholdSieveFilter::Process() {
     DEBUG("%s started\n", GetName().c_str());
     CPN::QueueReaderAdapter<NumberT> in = GetReader(IN_PORT);
     CPN::QueueWriterAdapter<NumberT> out = GetWriter(CONTROL_PORT);
     const unsigned long threshold = opts.threshold;
     const NumberT cutoff = (NumberT)(ceil(sqrt(opts.maxprime)));
+    NumberT buffer[threshold];
     PrimeSieve sieve(opts.primesPerFilter);
-    bool createFilter = false;
-    bool filterCreated = false;
-    do {
-        unsigned incount = threshold;
-        const NumberT* inbuff = in.GetDequeuePtr(incount);
-        unsigned inidx = 0;
-        unsigned outidx = 0;
+    unsigned numPrimes = 0;
+    unsigned numPassed = 0;
+    unsigned incount = threshold;
+    bool loop = true;
+    while (loop && (numPassed == 0) ) {
+        incount = threshold;
+        const NumberT *inbuff = GetDequeueCount(in, incount);
         if (!inbuff) {
-            incount = in.Count();
-            if (incount == 0) {
-                break;
-            } else {
-                inbuff = in.GetDequeuePtr(incount);
-            }
+            loop = false;
+        } else {
+            NumberT *outbuff = out.GetEnqueuePtr(threshold);
+            sieve.TryCandidates(inbuff, incount, outbuff, numPrimes, buffer, numPassed);
+#if _DEBUG
+            ReportCandidates(inbuff, incount, outbuff, numPrimes, buffer, numPassed);
+#endif
+            out.Enqueue(numPrimes);
+            in.Dequeue(incount);
+            DEBUG("%s processed primes %u -> %u (%u)\n", GetName().c_str(), incount, numPrimes, numPassed);
         }
-        NumberT *outbuff = out.GetEnqueuePtr(threshold);
-        while ( (inidx < incount) && (createFilter == false) ) {
-            NumberT inval = inbuff[inidx];
-            switch (sieve.TryCandidate(inval)) {
-            case -1:
-//  -1 if pr passed the sieve, but the sieve is full (still possible prime)
-                if (filterCreated == false && inval < cutoff) {
-                    createFilter = true;
-                } else {
-                    outbuff[outidx] = inval;
-                    ++outidx;
-                    ++inidx;
-                }
-                break;
-            case 0:
-//  0 if pr was stopped by the sieve
-                ++inidx;
-                break;
-            case 1:
-//  1 if pr is prime, and has been added to the sieve
-                outbuff[outidx] = inval;
-                ++outidx;
-                ++inidx;
-                break;
-            default:
-                assert(false);
-            }
-        }
-        in.Dequeue(inidx);
-        out.Enqueue(outidx);
-        if (createFilter) {
-            createFilter = false;
-            filterCreated = true;
+    }
+    if (loop) {
+        if (buffer[0] <= cutoff) {
             out.Release();
             CreateNewFilter();
+            DEBUG("%s created new filter\n", GetName().c_str());
             out = GetWriter(OUT_PORT);
         }
-    } while (true);
+        out.Enqueue(buffer, numPassed);
+    }
+    while (loop) {
+        incount = threshold;
+        const NumberT *inbuff = GetDequeueCount(in, incount);
+        if (!inbuff) {
+            loop = false;
+        } else {
+            NumberT *outbuff = out.GetEnqueuePtr(threshold);
+            sieve.TryCandidates(inbuff, incount, buffer, numPrimes, outbuff, numPassed);
+#if _DEBUG
+            ReportCandidates(inbuff, incount, buffer, numPrimes, outbuff, numPassed);
+#endif
+            ASSERT(numPrimes == 0);
+            out.Enqueue(numPassed);
+            in.Dequeue(incount);
+            DEBUG("%s processed candidates %u -> %u (%u)\n", GetName().c_str(), incount, numPassed, numPrimes);
+        }
+    }
     out.Release();
     in.Release();
     DEBUG("%s stopped\n", GetName().c_str());
-}
-
-void ThresholdSieveFilter::CreateNewFilter() {
-    ++opts.filtercount;
-    std::string nodename = ToString(FILTER_FORMAT, opts.filtercount);
-    CPN::NodeAttr attr (nodename, THRESHOLDSIEVEFILTER_TYPENAME);
-    attr.SetParam(StaticBuffer(&opts, sizeof(opts)));
-    CPN::Key_t nodekey = kernel.CreateNode(attr);
-
-    CPN::QueueAttr qattr(opts.queuesize * sizeof(NumberT), opts.threshold * sizeof(NumberT));
-    qattr.SetHint(opts.queuehint).SetDatatype<NumberT>();
-    qattr.SetWriter(GetKey(), OUT_PORT);
-    qattr.SetReader(nodekey, IN_PORT);
-    kernel.CreateQueue(qattr);
-
-    qattr.SetWriter(nodekey, CONTROL_PORT);
-    qattr.SetReader(opts.consumerkey, ToString(FILTER_FORMAT, opts.filtercount));
-    kernel.CreateQueue(qattr);
 }
 
 void ThresholdSieveFilter::RegisterNodeType() {
