@@ -99,6 +99,8 @@ int main(int argc, char **argv) {
     if (tofile) {
         f = fopen(filename.c_str(), "a");
         if (!f) f = stdout;
+    } else {
+        printf("maxprime\tqsize\tthresh\tp per filt\tnum wheel\trealtime\tusertime\tsystime\tnumprimes\n");
     }
     for (int i = 0; i < numIterations; ++i) {
         TestResults timeresults = SieveTest(options);

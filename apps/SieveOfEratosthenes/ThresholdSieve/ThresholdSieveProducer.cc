@@ -74,7 +74,7 @@ void ThresholdSieveProducer::Process(void) {
             while (loop) {
                 NumberT *outbuff = out.GetEnqueuePtr(roundLength);
                 unsigned len = source.GetNextRound(outbuff);
-                if (outbuff[len-1] > cutoff) {
+                if (len != 0 && outbuff[len-1] > cutoff) {
                     loop = false;
                 }
 #if _DEBUG
@@ -92,7 +92,7 @@ void ThresholdSieveProducer::Process(void) {
                 std::vector<NumberT> buff;
                 buff.resize(roundLength, 0);
                 unsigned len = source.GetNextRound(&buff[0]);
-                if (buff[len - 1] > cutoff) {
+                if (len != 0 && buff[len - 1] > cutoff) {
                     loop = false;
                 }
 #if _DEBUG
