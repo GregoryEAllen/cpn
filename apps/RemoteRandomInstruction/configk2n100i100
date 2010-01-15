@@ -2,12 +2,11 @@
     "iterations"    : 100,
     "numnodes"      : 100,
     "numkernels"    : 20,
-    "debuglevel"    : 2,
+    "debuglevel"    : 1,
     "loglevel"      : 25,
     "kernels"       : [
         "kone",
         "ktwo"
     ],
-    "starter"       : "kone",
-    "server"        : { "hostname" : "zeus", "port" : "12345" }
+    "starter"       : "kone"
 }

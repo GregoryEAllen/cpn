@@ -24,7 +24,7 @@ using CPN::KernelAttr;
 
 const char* const VALID_OPTS = "h";
 
-const char* const HELP_OPTS = "Usage: %s <config> <name>\n"
+const char* const HELP_OPTS = "Usage: %s <config> <name> <datbase hostname> <database port>\n"
 "\t-h\tPrint out this message\n"
 "\n"
 "The config file should be of the format:\n"
@@ -38,8 +38,7 @@ const char* const HELP_OPTS = "Usage: %s <config> <name>\n"
 "\t\"kernels\"\t: [\n"
 "\t\t\"kernelone\", \"kerneltwo\", ...\n"
 "\t]\n"
-"\t\"starter\"\t: \"kernelname to start all nodes\",\n"
-"\t\"server\"\t: {\"hostname\": hostname, \"port\": portname}\n"
+"\t\"starter\"\t: \"kernelname to start all nodes\"\n"
 "}\n"
 ;
 
@@ -57,18 +56,19 @@ int main(int argc, char **argv) {
     while (procOpts) {
         switch (getopt(argc, argv, VALID_OPTS)) {
         case 'h':
-            puts(HELP_OPTS);
+            printf(HELP_OPTS, argv[0]);
             return 0;
         case -1:
             procOpts = false;
             break;
         default:
-            puts(HELP_OPTS);
+            printf(HELP_OPTS, argv[0]);
             return 0;
         }
     }
-    if (argc < optind + 2) {
+    if (argc < optind + 4) {
         printf("Not enough arguments\n");
+        printf(HELP_OPTS, argv[0]);
         return 1;
     }
 
@@ -90,6 +90,8 @@ int main(int argc, char **argv) {
     config = 0;
 
     std::string name = argv[optind+1];
+    std::string hostname = argv[optind+2];
+    std::string servname = argv[optind+3];
 
     Variant conf = Variant::FromJSON(buffer);
 
@@ -116,13 +118,7 @@ int main(int argc, char **argv) {
 
     std::string starter = conf["starter"].AsString();
 
-    val = conf["server"];
-    if (!val.IsObject()) {
-        printf("Invalid server specification");
-        return 1;
-    }
-    SockAddrList addrs = SocketAddress::CreateIP(val["hostname"].AsString(),
-            val["port"].AsString());
+    SockAddrList addrs = SocketAddress::CreateIP(hostname, servname);
 
     val = conf["kernels"];
     std::vector<std::string> kernelnames;

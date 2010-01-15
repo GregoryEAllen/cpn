@@ -18,7 +18,11 @@ public:
 
     static void RegisterNodeType();
 private:
-    void CreateNewFilter();
+    void CreateNewFilter() { ::CreateNewFilter(kernel, opts, GetKey()); }
+    void ReportCandidates(
+        const ThresholdSieveOptions::NumberT *inbuff, unsigned incount,
+        ThresholdSieveOptions::NumberT *primes, unsigned numPrimes,
+        ThresholdSieveOptions::NumberT *passed, unsigned numPassed);
 
     ThresholdSieveOptions opts;
 };

@@ -36,36 +36,33 @@ public:
 
 void ThresholdSieveController::Process(void) {
     DEBUG("%s started\n", GetName().c_str());
-    NumberT filterCount = 1;
     Initialize();
+    NumberT filterCount = opts.filtercount;
     CPN::QueueReaderAdapter<NumberT> in = GetReader(ToString(FILTER_FORMAT, filterCount));
     std::vector<NumberT> *results = opts.results;
     const unsigned long threshold = opts.threshold;
     const NumberT cutoff = (NumberT)(ceil(sqrt(opts.maxprime)));
-    NumberT primecount = 0;
-    // Count the number of primes under cutoff/primesperfilter and that is how many filters there are
-    // Alternatively, when the last received prime is greater than cutoff there are no more
-    // filters
+    // When the last received prime is greater than cutoff there are no more filters
     do {
         unsigned inCount = threshold;
         const NumberT *inBuff = in.GetDequeuePtr(inCount);
         if (!inBuff) {
             inCount = in.Count();
             if (inCount == 0) {
-                if (results->back() > cutoff) {
+                if (!results->empty() && results->back() > cutoff) {
                     break;
                 }
                 ++filterCount;
                 in.Release();
                 in = GetReader(ToString(FILTER_FORMAT, filterCount));
+                DEBUG("Consumer swapped input to %llu\n", filterCount);
                 continue;
             } else {
                 inBuff = in.GetDequeuePtr(inCount);
             }
         }
-        DEBUG("Consumer Reading %lu values\n", inCount);
+        DEBUG("Consumer Reading %u values\n", inCount);
         ASSERT(inBuff);
-        primecount += inCount;
         results->insert(results->end(), inBuff, inBuff + inCount);
         in.Dequeue(inCount);
     } while (true);
@@ -76,26 +73,17 @@ void ThresholdSieveController::Process(void) {
 void ThresholdSieveController::Initialize(void) {
     ThresholdSieveProducer::RegisterNodeType();
     ThresholdSieveFilter::RegisterNodeType();
-    opts.filtercount = 1;
+    opts.filtercount = 0;
     opts.consumerkey = GetKey();
 
-    std::string nodename = ToString(FILTER_FORMAT, 1);
-    CPN::NodeAttr attr(nodename, THRESHOLDSIEVEFILTER_TYPENAME);
+    CPN::NodeAttr attr(PRODUCER_NAME, THRESHOLDSIEVEPRODUCER_TYPENAME);
     attr.SetParam(StaticBuffer(&opts, sizeof(opts)));
-    kernel.CreateNode(attr);
-
-    attr.SetName(PRODUCER_NAME).SetTypeName(THRESHOLDSIEVEPRODUCER_TYPENAME);
-    kernel.CreateNode(attr);
+    CPN::Key_t prodkey = kernel.CreateNode(attr);
 
     CPN::QueueAttr qattr(opts.queuesize * sizeof(NumberT), opts.threshold * sizeof(NumberT));
     qattr.SetHint(opts.queuehint).SetDatatype<NumberT>();
-
-    qattr.SetWriter(nodename, CONTROL_PORT);
-    qattr.SetReader(GetName(), ToString(FILTER_FORMAT, 1));
-    kernel.CreateQueue(qattr);
-
-    qattr.SetWriter(PRODUCER_NAME, OUT_PORT);
-    qattr.SetReader(nodename, IN_PORT);
+    qattr.SetWriter(prodkey, CONTROL_PORT);
+    qattr.SetReader(GetKey(), ToString(FILTER_FORMAT, opts.filtercount));
     kernel.CreateQueue(qattr);
 }
 

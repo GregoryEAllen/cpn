@@ -9,7 +9,7 @@
 #include <unistd.h>
 #include <cstdio>
 
-const char* const VALID_OPTS = "Mm:q:t:hf:i:p:v";
+const char* const VALID_OPTS = "Mm:q:t:hf:i:p:vw:";
 const char* const HELP_OPTS = "Usage: %s -hv -m maxprime -q queuesize -t threshold -f filename -p primes per filter\n"
 "\t-h\tPrint out this message\n"
 "\t-v\tBe verbose, print out the primes found\n"
@@ -17,7 +17,12 @@ const char* const HELP_OPTS = "Usage: %s -hv -m maxprime -q queuesize -t thresho
 "\t-q\tSpecify the queue size to use (default 100)\n"
 "\t-t\tSpecify the threshold to use (default 2)\n"
 "\t-f\tSpecify a file to use instead of stdout (appends)\n"
-"\t-p\tSpecify the number of primes per filter (default 1)\n";
+"\t-p\tSpecify the number of primes per filter (default 1)\n"
+"\t-w\tSpecify the number of primes in the producer prime wheel (default 0)\n"
+"\n"
+"Note that when the number of primes in the prime wheel is not zero the maximum\n"
+"number to consider for primes is not exact.\n"
+;
 
 struct TestResults {
     double usertime;
@@ -35,6 +40,7 @@ int main(int argc, char **argv) {
     options.queuesize = 100;
     options.threshold = 2;
     options.primesPerFilter = 1;
+    options.numPrimesSource = 0;
     options.queuehint = CPN::QUEUEHINT_THRESHOLD;
     options.results = &results;
     int numIterations = 1;
@@ -45,6 +51,11 @@ int main(int argc, char **argv) {
     bool procOpts = true;
     while (procOpts) {
         switch (getopt(argc, argv, VALID_OPTS)) {
+        case 'w':
+            options.numPrimesSource = atoi(optarg);
+            if (options.numPrimesSource < 0) { options.numPrimesSource = 0; }
+            if (options.numPrimesSource >= 8) { options.numPrimesSource = 8; }
+            break;
         case 'm':
             options.maxprime = atoi(optarg);
             if (options.maxprime < 2) options.maxprime = 2;
@@ -91,14 +102,17 @@ int main(int argc, char **argv) {
     if (tofile) {
         f = fopen(filename.c_str(), "a");
         if (!f) f = stdout;
+    } else {
+        printf("maxprime\tqsize\tthresh\tp per filt\tnum wheel\trealtime\tusertime\tsystime\tnumprimes\n");
     }
     for (int i = 0; i < numIterations; ++i) {
         TestResults timeresults = SieveTest(options);
-        fprintf(f, "m:%lu\tq:%lu\tt:%lu\tp:%lu\t%f\t%f\t%f\t%u\n",
+        fprintf(f, "m:%lu\tq:%lu\tt:%lu\tp:%lu\tw:%lu\t%f\t%f\t%f\t%u\n",
                 (unsigned long)options.maxprime,
                 options.queuesize,
                 options.threshold,
                 options.primesPerFilter,
+                options.numPrimesSource,
                 timeresults.realtime,
                 timeresults.usertime,
                 timeresults.systime,
