@@ -19,6 +19,9 @@ const char* const HELP_OPTS = "Usage: %s -hv -m maxprime -q queuesize -t thresho
 "\t-f\tSpecify a file to use instead of stdout (appends)\n"
 "\t-p\tSpecify the number of primes per filter (default 1)\n"
 "\t-w\tSpecify the number of primes in the producer prime wheel (default 0)\n"
+"\n"
+"Note that when the number of primes in the prime wheel is not zero the maximum\n"
+"number to consider for primes is not exact.\n"
 ;
 
 struct TestResults {

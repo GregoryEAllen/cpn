@@ -38,7 +38,7 @@ const char* const HELP_OPTS = "Usage: %s <config> <name> <datbase hostname> <dat
 "\t\"kernels\"\t: [\n"
 "\t\t\"kernelone\", \"kerneltwo\", ...\n"
 "\t]\n"
-"\t\"starter\"\t: \"kernelname to start all nodes\",\n"
+"\t\"starter\"\t: \"kernelname to start all nodes\"\n"
 "}\n"
 ;
 
