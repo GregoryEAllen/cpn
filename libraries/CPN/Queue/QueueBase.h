@@ -226,6 +226,8 @@ namespace CPN {
         bool writeshutdown;
         unsigned readrequest;
         unsigned writerequest;
+        bool indequeue;
+        bool inenqueue;
         shared_ptr<Database> database;
 	private:
         Sync::ReentrantLock lock;

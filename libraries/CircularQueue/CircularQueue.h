@@ -56,22 +56,22 @@ public:
 
     void *GetRawEnqueuePtr(unsigned thresh, unsigned chan=0);
     void Enqueue(unsigned count);
-    bool RawEnqueue(const void *data, unsigned count);
+    bool RawEnqueue(const void *data, unsigned count) { return RawEnqueue(data, count, 1, 0); }
     bool RawEnqueue(const void *data, unsigned count, unsigned numChans, unsigned chanStride);
     const void *GetRawDequeuePtr(unsigned thresh, unsigned chan=0);
     void Dequeue(unsigned count);
-    bool RawDequeue(void *data, unsigned count);
+    bool RawDequeue(void *data, unsigned count) { return RawDequeue(data, count, 1, 0); }
     bool RawDequeue(void *data, unsigned count, unsigned numChans, unsigned chanStride);
 
-    unsigned NumChannels() const;
-    unsigned MaxThreshold() const;
-    unsigned QueueLength() const;
+    unsigned NumChannels() const { return numChannels; }
+    unsigned MaxThreshold() const { return maxThreshold; }
+    unsigned QueueLength() const { return queueLength - 1; }
     unsigned Freespace() const;
-    bool Full() const;
+    bool Full() const { return Freespace() == 0; }
     unsigned Count() const;
-    bool Empty() const;
+    bool Empty() const { return head == tail; }
 
-    unsigned ChannelStride() const;
+    unsigned ChannelStride() const { return chanStride; }
 
     /**
      * Increase the size of the queue. Only increases, does nothing otherwise.
@@ -80,7 +80,7 @@ public:
      */
     void Grow(unsigned queueLen, unsigned maxThresh);
 
-    void Clear();
+    void Clear() { head = tail = 0; }
 private:
     unsigned queueLength;
     unsigned maxThreshold;

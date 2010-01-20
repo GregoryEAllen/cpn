@@ -34,6 +34,8 @@ namespace CPN {
         writeshutdown(false),
         readrequest(0),
         writerequest(0),
+        indequeue(false),
+        inenqueue(false),
         database(db),
         datatype(attr.GetDatatype())
     {
@@ -46,11 +48,18 @@ namespace CPN {
         Sync::AutoLock<QueueBase> al(*this);
         while (true) {
             const void *ptr = InternalGetRawDequeuePtr(thresh, chan);
-            if (ptr || writeshutdown) { return ptr; }
+            if (ptr || writeshutdown) {
+                if (ptr) { indequeue = true; }
+                return ptr;
+            }
             if (readshutdown) { throw BrokenQueueException(readerkey); }
-            readrequest = thresh;
-            WaitForData();
-            readrequest = 0;
+            if (thresh > MaxThreshold()) {
+                Grow(0, thresh);
+            } else {
+                readrequest = thresh;
+                WaitForData();
+                readrequest = 0;
+            }
         }
     }
 
@@ -58,6 +67,7 @@ namespace CPN {
         Sync::AutoLock<QueueBase> al(*this);
         if (readshutdown) { throw BrokenQueueException(readerkey); }
         InternalDequeue(count);
+        indequeue = false;
         NotifyFreespace();
     }
 
@@ -85,11 +95,18 @@ namespace CPN {
         Sync::AutoLock<QueueBase> al(*this);
         while (true) {
             void *ptr = InternalGetRawEnqueuePtr(thresh, chan);
-            if (ptr) { return ptr; }
+            if (ptr) {
+                inenqueue = true;
+                return ptr;
+            }
             if (readshutdown || writeshutdown) { throw BrokenQueueException(writerkey); }
-            writerequest = thresh;
-            WaitForFreespace();
-            writerequest = 0;
+            if (thresh > MaxThreshold()) {
+                Grow(0, thresh);
+            } else {
+                writerequest = thresh;
+                WaitForFreespace();
+                writerequest = 0;
+            }
         }
     }
 
@@ -97,6 +114,7 @@ namespace CPN {
         Sync::AutoLock<QueueBase> al(*this);
         if (writeshutdown) { throw BrokenQueueException(writerkey); }
         InternalEnqueue(count);
+        inenqueue = false;
         NotifyData();
     }
 
