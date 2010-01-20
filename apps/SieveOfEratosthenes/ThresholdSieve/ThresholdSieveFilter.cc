@@ -87,7 +87,7 @@ void ThresholdSieveFilter::Process() {
         if (!inbuff) {
             loop = false;
         } else {
-            NumberT *outbuff = out.GetEnqueuePtr(threshold);
+            NumberT *outbuff = out.GetEnqueuePtr(incount);
             sieve.TryCandidates(inbuff, incount, outbuff, numPrimes, buffer, numPassed);
 #if _DEBUG
             ReportCandidates(inbuff, incount, outbuff, numPrimes, buffer, numPassed);
@@ -112,7 +112,7 @@ void ThresholdSieveFilter::Process() {
         if (!inbuff) {
             loop = false;
         } else {
-            NumberT *outbuff = out.GetEnqueuePtr(threshold);
+            NumberT *outbuff = out.GetEnqueuePtr(incount);
             sieve.TryCandidates(inbuff, incount, buffer, numPrimes, outbuff, numPassed);
 #if _DEBUG
             ReportCandidates(inbuff, incount, buffer, numPrimes, outbuff, numPassed);

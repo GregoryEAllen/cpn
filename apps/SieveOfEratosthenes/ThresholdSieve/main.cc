@@ -10,7 +10,7 @@
 #include <cstdio>
 
 const char* const VALID_OPTS = "Mm:q:t:hf:i:p:vw:";
-const char* const HELP_OPTS = "Usage: %s -hv -m maxprime -q queuesize -t threshold -f filename -p primes per filter\n"
+const char* const HELP_OPTS = "Usage: %s -hv -m maxprime -q queuesize -t threshold -f filename -p primes per filter -i iterations\n"
 "\t-h\tPrint out this message\n"
 "\t-v\tBe verbose, print out the primes found\n"
 "\t-m\tSpecify the maximum number to consider for primes (default 100)\n"
@@ -19,9 +19,11 @@ const char* const HELP_OPTS = "Usage: %s -hv -m maxprime -q queuesize -t thresho
 "\t-f\tSpecify a file to use instead of stdout (appends)\n"
 "\t-p\tSpecify the number of primes per filter (default 1)\n"
 "\t-w\tSpecify the number of primes in the producer prime wheel (default 0)\n"
+"\t-i\tRerun the given number of times\n"
 "\n"
 "Note that when the number of primes in the prime wheel is not zero the maximum\n"
 "number to consider for primes is not exact.\n"
+"Also, If the queue size is the same as the threshold size the sieve may deadlock.\n"
 ;
 
 struct TestResults {
@@ -98,16 +100,25 @@ int main(int argc, char **argv) {
             return 0;
         }
     }
+    const char STDOUT_FORMAT[] = "    \"maxprime\"        : %lu,\n"
+        "    \"queuesize\"       : %lu,\n"
+        "    \"threshold\"       : %lu,\n"
+        "    \"primesperfilter\" : %lu,\n"
+        "    \"primewheel\"      : %lu,\n"
+        "    \"readtime\"        : %f,\n"
+        "    \"usertime\"        : %f,\n"
+        "    \"systime\"         : %f,\n"
+        "    \"numprimes\"       : %u";
     FILE *f = stdout;
+    const char *format_str = STDOUT_FORMAT;
     if (tofile) {
         f = fopen(filename.c_str(), "a");
         if (!f) f = stdout;
-    } else {
-        printf("maxprime\tqsize\tthresh\tp per filt\tnum wheel\trealtime\tusertime\tsystime\tnumprimes\n");
     }
     for (int i = 0; i < numIterations; ++i) {
         TestResults timeresults = SieveTest(options);
-        fprintf(f, "m:%lu\tq:%lu\tt:%lu\tp:%lu\tw:%lu\t%f\t%f\t%f\t%u\n",
+        fprintf(f,"{\n");
+        fprintf(f, format_str,
                 (unsigned long)options.maxprime,
                 options.queuesize,
                 options.threshold,
@@ -118,11 +129,20 @@ int main(int argc, char **argv) {
                 timeresults.systime,
                 (unsigned)results.size());
         if (verbose) {
-            fprintf(f, "%u primes found\n", (unsigned)results.size());
+            fprintf(f, ",\n    \"primes\"          : [");
             for (size_t j = 0; j < results.size(); ++j) {
-                fprintf(f, "%lu, ", (unsigned long)results[j]);
+                if (j < results.size() -1) {
+                    fprintf(f, "%lu, ", (unsigned long)results[j]);
+                } else {
+                    fprintf(f, "%lu", (unsigned long)results[j]);
+                }
             }
-            fprintf(f, "\n");
+            fprintf(f, "]\n");
+        } else { fprintf(f, "\n"); }
+        if (i == numIterations - 1) {
+            fprintf(f, "}\n");
+        } else {
+            fprintf(f, "},\n");
         }
         results.clear();
     }
