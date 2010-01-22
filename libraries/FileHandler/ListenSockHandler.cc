@@ -27,17 +27,17 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-void ListenSockHandler::Listen(const SocketAddress &addr) {
+void ListenSockHandler::Listen(const SocketAddress &addr, int queuelength) {
     int error = 0;
-    if (!Listen(addr, error)) { throw ErrnoException(error); }
+    if (!Listen(addr, queuelength, error)) { throw ErrnoException(error); }
 }
 
-void ListenSockHandler::Listen(const SockAddrList &addrs) {
+void ListenSockHandler::Listen(const SockAddrList &addrs, int queuelength) {
     int error = 0;
     bool success = false;
     for (SockAddrList::const_iterator itr = addrs.begin();
             itr != addrs.end(); ++itr) {
-        success = Listen(*itr, error);
+        success = Listen(*itr, queuelength, error);
         if (success) break;
     }
     if (!success) throw ErrnoException(error);
@@ -99,7 +99,7 @@ int ListenSockHandler::Accept(SocketAddress *addr) {
     return nfd;
 }
 
-bool ListenSockHandler::Listen(const SocketAddress &addr, int &error) {
+bool ListenSockHandler::Listen(const SocketAddress &addr, int queuelength, int &error) {
     SocketAddress address = addr;
     fd = socket(address.Family(), SOCK_STREAM, 0);
     if (fd < 0) {
@@ -110,7 +110,7 @@ bool ListenSockHandler::Listen(const SocketAddress &addr, int &error) {
         error = errno;
         return false;
     }
-    if (listen(fd, 10) < 0) {
+    if (listen(fd, queuelength) < 0) {
         error = errno;
         return false;
     }

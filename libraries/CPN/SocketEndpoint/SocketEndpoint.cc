@@ -367,6 +367,7 @@ namespace CPN {
 
             if (Eof() && !(readshutdown || writeshutdown)) {
                 logger.Error("Eof detected but not shutdown!");
+                ASSERT(false, "EOF detected but not shutdown!");
             }
 
             if (Closed()) {

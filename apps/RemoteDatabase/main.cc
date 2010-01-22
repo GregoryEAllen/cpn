@@ -4,11 +4,12 @@
 #include <stdio.h>
 #include <signal.h>
 
-const char* const VALID_OPTS = "hd";
+const char* const VALID_OPTS = "hdl:";
 
-const char* const HELP_OPTS = "Usage: %s [-h|-d] <address> <port>\n"
+const char* const HELP_OPTS = "Usage: %s [-h|-d] [-l loglevel ] <address> <port>\n"
 "\t-h\t This message.\n"
 "\t-d\t Go into background\n"
+"\t-l\t Level of output 0 for errors only, 1 for log, 2 for database status, etc. (default: 1)\n"
 ;
 
 int main(int argc, char **argv) {
@@ -16,10 +17,14 @@ int main(int argc, char **argv) {
 	signal(SIGPIPE,SIG_IGN);
     bool background = false;
     bool procOpts = true;
+    int loglevel = 1;
     while (procOpts) {
         switch (getopt(argc, argv, VALID_OPTS)) {
         case 'd':
             background = true;
+            break;
+        case 'l':
+            loglevel = atoi(optarg);
             break;
         case 'h':
             printf(HELP_OPTS, argv[0]);
@@ -44,7 +49,7 @@ int main(int argc, char **argv) {
     }
     SockAddrList addrlist = SocketAddress::CreateIP(argv[optind], argv[optind+1]);
     RemoteDatabaseDaemon rdd(addrlist);
-    rdd.DebugLevel(2);
+    rdd.DebugLevel(loglevel);
     rdd.Run();
     return 0;
 }

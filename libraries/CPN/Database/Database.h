@@ -263,6 +263,8 @@ namespace CPN {
          * \throw ShutdownException
          */
         void CheckTerminated();
+
+        virtual int ListenQueueLength() { return 256; }
     };
 
 }

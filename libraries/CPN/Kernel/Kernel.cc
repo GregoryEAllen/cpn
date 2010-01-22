@@ -79,7 +79,7 @@ namespace CPN {
 
         SockAddrList addrlist = SocketAddress::CreateIP(kattr.GetHostName(),
                 kattr.GetServName());
-        connhandler.Listen(addrlist);
+        connhandler.Listen(addrlist, database->ListenQueueLength());
 
         SocketAddress addr;
         addr.SetFromSockName(connhandler.FD());
@@ -129,8 +129,6 @@ namespace CPN {
         Key_t ourkey = hostkey;
         arlock.Unlock();
 
-        ASSERT(status.Get() == RUNNING);
-
         NodeAttr nodeattr = attr;
 
         if (nodeattr.GetHostKey() == 0) {
@@ -171,7 +169,6 @@ namespace CPN {
 
     void Kernel::CreateQueue(const QueueAttr &qattr) {
         FUNCBEGIN;
-        ASSERT(status.Get() == RUNNING);
         // Normalize the QueueAttr into a SimpleQueueAttr
         // This gets rid of the names and translates to IDs
         SimpleQueueAttr attr = qattr;

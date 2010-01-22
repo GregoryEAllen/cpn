@@ -32,20 +32,20 @@ public:
 
     ListenSockHandler() {}
     ListenSockHandler(int nfd) : FileHandler(nfd) {}
-    ListenSockHandler(const SocketAddress &addr) { Listen(addr); }
-    ListenSockHandler(const SockAddrList &addrs) { Listen(addrs); }
+    ListenSockHandler(const SocketAddress &addr, int queuelength = 256) { Listen(addr, queuelength); }
+    ListenSockHandler(const SockAddrList &addrs, int queuelength = 256) { Listen(addrs, queuelength); }
 
     /**
      * Open a new socket and try to listen on the given
      * SocketAddress.
      */
-    void Listen(const SocketAddress &addr);
+    void Listen(const SocketAddress &addr, int queuelength = 256);
 
     /**
      * Open a new socket and try to listen on one of the
      * addresses in the given list.
      */
-    void Listen(const SockAddrList &addrs);
+    void Listen(const SockAddrList &addrs, int queuelength = 256);
 
     /**
      * Accept an incoming connection.
@@ -65,12 +65,14 @@ public:
     virtual void OnRead() = 0;
     virtual void OnError() = 0;
     virtual void OnInval() = 0;
+
 private:
     // These can't happen to a listening socket
     void OnWrite() {}
     void OnHup() {}
 
-    bool Listen(const SocketAddress &addr, int &error);
+    bool Listen(const SocketAddress &addr, int queuelength, int &error);
     int Accept(SocketAddress *addr);
+
 };
 #endif

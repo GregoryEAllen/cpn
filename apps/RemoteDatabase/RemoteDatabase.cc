@@ -29,13 +29,9 @@ RemoteDatabase::~RemoteDatabase() {
 
 void RemoteDatabase::SendMessage(const Variant &msg) {
     if (!Closed()) {
-        try {
-            std::string message = msg.AsJSON();
-            //printf("<<< %s\n", message.c_str());
-            Write(message.c_str(), message.size() + 1);
-        } catch (const ErrnoException &e) {
-            printf("ErrnoException on write (%d): %s\n", e.Error(), e.what());
-        }
+        std::string message = msg.AsJSON();
+        //printf("<<< %s\n", message.c_str());
+        Write(message.c_str(), message.size() + 1);
     }
 }
 
@@ -46,7 +42,7 @@ void *RemoteDatabase::EntryPoint() {
             Poll(-1);
         }
     } catch (const ErrnoException &e) {
-        printf("Uncaught errno exception (%d): %s\n", e.Error(), e.what());
+        printf("RemoteDatabase: Uncaught errno exception (%d): %s\n", e.Error(), e.what());
         Terminate();
     }
     return 0;
