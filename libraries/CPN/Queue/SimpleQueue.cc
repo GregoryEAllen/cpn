@@ -126,8 +126,11 @@ namespace CPN {
         Sync::AutoLock<QueueBase> al(*this);
         ASSERT(!(inenqueue && indequeue), "Unhandled grow case of having an outstanding dequeue and enqueue");
         if (oldqueue) {
+            // If the old queue is still around we have to still be in the same state
             ASSERT(enqueueUseOld == inenqueue);
             ASSERT(dequeueUseOld == indequeue);
+            queue->Grow(queueLen, maxThresh);
+        } else if (!inenqueue && !indequeue) {
             queue->Grow(queueLen, maxThresh);
         } else {
             enqueueUseOld = inenqueue;

@@ -228,6 +228,8 @@ namespace CPN {
         bool writeshutdown;
         unsigned readrequest;
         unsigned writerequest;
+        unsigned enqueuethresh;
+        unsigned dequeuethresh;
         bool indequeue;
         bool inenqueue;
         shared_ptr<Database> database;

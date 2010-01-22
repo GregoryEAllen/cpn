@@ -35,12 +35,17 @@ public:
     void SimpleQueueTest();
     void ThresholdQueueTest();
 
-    void TestBulk(CPN::QueueBase *queue);
-    void TestDirect(CPN::QueueBase *queue);
+    void TestBulk();
+    void TestDirect();
 
+    void CommunicationTest();
+    void DequeueBlockTest();
+    void MaxThreshGrowTest();
+    void GrowTest();
 
     void *EnqueueData();
     void *DequeueData();
+    void Reset();
 
     CPN::QueueBase *queue;
 

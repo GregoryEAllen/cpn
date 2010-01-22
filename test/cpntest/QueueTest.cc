@@ -26,6 +26,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION( QueueTest );
 using CPN::shared_ptr;
 using CPN::QueueBase;
 using CPN::ThresholdQueue;
+using CPN::SimpleQueue;
 using CPN::Database;
 using CPN::SimpleQueueAttr;
 using CPN::Key_t;
@@ -99,7 +100,7 @@ void *QueueTest::DequeueData() {
     return 0;
 }
 
-void QueueTest::setUp() {
+void QueueTest::Reset() {
     enqueue_fail = false;
     enqueue_stop = false;
     enqueue_dead = false;
@@ -108,9 +109,16 @@ void QueueTest::setUp() {
     dequeue_stop = false;
     dequeue_dead = false;
     dequeue_num = 0;
+
+}
+void QueueTest::setUp() {
+    Reset();
+    queue = 0;
 }
 
 void QueueTest::tearDown() {
+    delete queue;
+    queue = 0;
 }
 
 // I want to first test that normal dequeue and enqueue work.
@@ -119,23 +127,45 @@ void QueueTest::tearDown() {
 // grow the queue automatically
 // Then I want to test growing the queue with and without pending dequeues and enqueues
 
+
+
 void QueueTest::SimpleQueueTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
     shared_ptr<Database> database = shared_ptr<Database>(new MockDatabase);
     SimpleQueueAttr attr;
     attr.SetLength(309).SetMaxThreshold(10).SetNumChannels(1)
-        .SetReaderKey(1).SetWriterKey(2);
+        .SetReaderKey(RKEY).SetWriterKey(WKEY);
 	//DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
-    shared_ptr<QueueBase> queue = shared_ptr<QueueBase>(new CPN::SimpleQueue(database, attr));
-    TestBulk(queue.get());
-    //queue = shared_ptr<QueueBase>(new CPN::SimpleQueue(database, attr));
+    queue = new SimpleQueue(database, attr);
+    TestBulk();
+    delete queue;
+    queue = 0;
+    //queue = shared_ptr<QueueBase>(new SimpleQueue(database, attr));
     //TestDirect(queue.get());
     attr.SetNumChannels(10);
 	//DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
-    queue = shared_ptr<QueueBase>(new CPN::SimpleQueue(database, attr));
-    TestBulk(queue.get());
-    queue = shared_ptr<QueueBase>(new CPN::SimpleQueue(database, attr));
-    TestDirect(queue.get());
+    queue = new SimpleQueue(database, attr);
+    TestBulk();
+    delete queue;
+    queue = 0;
+    queue = new SimpleQueue(database, attr);
+    TestDirect();
+    delete queue;
+    queue = 0;
+    queue = new SimpleQueue(database, attr);
+    CommunicationTest();
+    delete queue;
+    queue = 0;
+    queue = new SimpleQueue(database, attr);
+    DequeueBlockTest();
+    delete queue;
+    queue = 0;
+    queue = new SimpleQueue(database, attr);
+    MaxThreshGrowTest();
+    delete queue;
+    queue = 0;
+    queue = new SimpleQueue(database, attr);
+    GrowTest();
 }
 
 void QueueTest::ThresholdQueueTest() {
@@ -144,20 +174,25 @@ void QueueTest::ThresholdQueueTest() {
     SimpleQueueAttr attr;
     attr.SetLength(30).SetMaxThreshold(10).SetNumChannels(1);
 	//DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
-    shared_ptr<QueueBase> queue = shared_ptr<QueueBase>(new ThresholdQueue(database, attr));
-    TestBulk(queue.get());
+    queue = new ThresholdQueue(database, attr);
+    TestBulk();
+    delete queue;
+    queue = 0;
     //queue = shared_ptr<QueueBase>(new ThresholdQueue(database, attr));
     //TestDirect(queue.get());
     attr.SetNumChannels(10);
 	//DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
-    queue = shared_ptr<QueueBase>(new ThresholdQueue(database, attr));
-    TestBulk(queue.get());
-    queue = shared_ptr<QueueBase>(new ThresholdQueue(database, attr));
-    TestDirect(queue.get());
-
+    queue = new ThresholdQueue(database, attr);
+    TestDirect();
+    delete queue;
+    queue = 0;
+    queue = new ThresholdQueue(database, attr);
+    CommunicationTest();
+    delete queue;
+    queue = 0;
 }
 
-void QueueTest::TestBulk(QueueBase *queue) {
+void QueueTest::TestBulk() {
     unsigned maxthresh = queue->MaxThreshold();
     unsigned channels = queue->NumChannels();
     //printf("Size %u, Thresh %u, Chans %u\n", queue->QueueLength(), maxthresh, channels);
@@ -210,7 +245,7 @@ void QueueTest::TestBulk(QueueBase *queue) {
     CPPUNIT_ASSERT(queue->Empty());
 }
 
-void QueueTest::TestDirect(QueueBase *queue) {
+void QueueTest::TestDirect() {
     unsigned maxthresh = queue->MaxThreshold();
     unsigned channels = queue->NumChannels();
     unsigned qsize = queue->QueueLength();
@@ -219,7 +254,7 @@ void QueueTest::TestDirect(QueueBase *queue) {
     CPPUNIT_ASSERT(queue->Empty());
     // fill it up with deterministic garbage
     srand(1);
-    for (unsigned i = 0; i < (3*qsize/maxthresh); ++i) {
+    for (unsigned i = 0; i < 2; ++i) {
         for (unsigned amount = 1; amount <= maxthresh; amount += maxthresh/10 + 1) {
             for (unsigned chan = 0; chan < channels; ++chan) {
                 for ( unsigned j = 0; j < amount; ++j) {
@@ -248,5 +283,141 @@ void QueueTest::TestDirect(QueueBase *queue) {
         }
     }
     CPPUNIT_ASSERT(queue->Empty());
+}
+
+// Tests normal communication and blocking on the enqueue side
+void QueueTest::CommunicationTest() {
+    Reset();
+    std::auto_ptr<Pthread> enqueuer = std::auto_ptr<Pthread>(
+            CreatePthreadFunctional(this, &QueueTest::EnqueueData));
+    std::auto_ptr<Pthread> dequeuer = std::auto_ptr<Pthread>(
+            CreatePthreadFunctional(this, &QueueTest::DequeueData));
+    enqueuer->Start();
+    while (queue->WriteRequest() == 0);
+    dequeuer->Start();
+    {
+        PthreadMutexProtected al(dequeue_lock);
+        while (dequeue_num == 0) {
+            dequeue_cond.Wait(dequeue_lock);
+        }
+    }
+    {
+        PthreadMutexProtected al(enqueue_lock);
+        enqueue_stop = true;
+    }
+    enqueuer->Join();
+    dequeuer->Join();
+    CPPUNIT_ASSERT(dequeue_num == enqueue_num);
+    CPPUNIT_ASSERT(!enqueue_fail);
+    CPPUNIT_ASSERT(!dequeue_fail);
+}
+
+// Test that dequeue will block and then test that enqueue properly
+// dies when the dequeue side shuts down.
+void QueueTest::DequeueBlockTest() {
+    Reset();
+    std::auto_ptr<Pthread> enqueuer = std::auto_ptr<Pthread>(
+            CreatePthreadFunctional(this, &QueueTest::EnqueueData));
+    std::auto_ptr<Pthread> dequeuer = std::auto_ptr<Pthread>(
+            CreatePthreadFunctional(this, &QueueTest::DequeueData));
+    dequeuer->Start();
+    while (queue->ReadRequest() == 0);
+    enqueuer->Start();
+    {
+        PthreadMutexProtected al(dequeue_lock);
+        dequeue_stop = true;
+    }
+    enqueuer->Join();
+    dequeuer->Join();
+    CPPUNIT_ASSERT(!dequeue_fail);
+    CPPUNIT_ASSERT(enqueue_fail);
+}
+
+void QueueTest::MaxThreshGrowTest() {
+    unsigned maxthresh = queue->MaxThreshold();
+    unsigned len = queue->QueueLength();
+    unsigned numchan = queue->NumChannels();
+    char *ptr = 0;
+    const char *cptr = 0;
+    std::vector<char> buff(4*maxthresh * numchan);
+    srand(0);
+    for (unsigned i = 0; i < buff.size(); ++i) {
+        buff[i] = (char)rand();
+    }
+    maxthresh *= 2;
+
+    for (unsigned i = 0; i < numchan; ++i) {
+        ptr = (char*)queue->GetRawEnqueuePtr(maxthresh, i);
+        CPPUNIT_ASSERT(ptr);
+        memcpy(ptr, &buff[2*maxthresh*i], maxthresh);
+    }
+    CPPUNIT_ASSERT(queue->MaxThreshold() == maxthresh);
+    queue->Enqueue(maxthresh);
+
+    // Test that growth works
+    queue->Grow(2*len, maxthresh);
+    CPPUNIT_ASSERT(queue->QueueLength() == 2*len);
+    CPPUNIT_ASSERT(queue->MaxThreshold() == maxthresh);
+    for (unsigned i = 0; i < numchan; ++i) {
+        ptr = (char*)queue->GetRawEnqueuePtr(maxthresh, i);
+        CPPUNIT_ASSERT(ptr);
+        memcpy(ptr, &buff[2*maxthresh*i + maxthresh], maxthresh);
+    }
+    queue->Enqueue(maxthresh);
+
+    maxthresh *= 2;
+    for (unsigned i = 0; i < numchan; ++i) {
+        cptr = (const char*)queue->GetRawDequeuePtr(maxthresh, i);
+        CPPUNIT_ASSERT(cptr);
+        CPPUNIT_ASSERT(memcmp(cptr, &buff[maxthresh * i], maxthresh) == 0);
+    }
+    CPPUNIT_ASSERT(queue->MaxThreshold() == maxthresh);
+}
+
+void QueueTest::GrowTest() {
+    unsigned maxthresh = queue->MaxThreshold();
+    unsigned len = queue->QueueLength();
+    unsigned numchan = queue->NumChannels();
+    char *ptr = 0;
+    const char *cptr = 0;
+    std::vector<char> buff(4*maxthresh * numchan);
+    srand(0);
+    for (unsigned i = 0; i < buff.size(); ++i) {
+        buff[i] = (char)rand();
+    }
+    maxthresh *= 2;
+
+    for (unsigned i = 0; i < numchan; ++i) {
+        ptr = (char*)queue->GetRawEnqueuePtr(maxthresh, i);
+        CPPUNIT_ASSERT(ptr);
+        memcpy(ptr, &buff[2*maxthresh*i], maxthresh);
+    }
+    CPPUNIT_ASSERT(queue->MaxThreshold() == maxthresh);
+    queue->Enqueue(maxthresh);
+
+    cptr = (const char*)queue->GetRawDequeuePtr(maxthresh, 0);
+    len *=2;
+    queue->Grow(len, maxthresh);
+    CPPUNIT_ASSERT(queue->QueueLength() == len);
+    CPPUNIT_ASSERT(queue->MaxThreshold() == maxthresh);
+    for (unsigned i = 0; i < numchan; ++i) {
+        ptr = (char*)queue->GetRawEnqueuePtr(maxthresh, i);
+        CPPUNIT_ASSERT(ptr);
+        memcpy(ptr, &buff[2*maxthresh*i + maxthresh], maxthresh);
+    }
+    queue->Enqueue(maxthresh);
+    queue->Dequeue(0);
+
+    ptr = (char*)queue->GetRawEnqueuePtr(maxthresh, 0);
+    maxthresh *= 2;
+    for (unsigned i = 0; i < numchan; ++i) {
+        cptr = (const char*)queue->GetRawDequeuePtr(maxthresh, i);
+        CPPUNIT_ASSERT(cptr);
+        CPPUNIT_ASSERT(memcmp(cptr, &buff[maxthresh * i], maxthresh) == 0);
+    }
+    CPPUNIT_ASSERT(queue->MaxThreshold() == maxthresh);
+    queue->Enqueue(0);
+    queue->Dequeue(maxthresh);
+    CPPUNIT_ASSERT(queue->Count() == 0);
 }
 

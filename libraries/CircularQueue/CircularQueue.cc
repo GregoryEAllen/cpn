@@ -78,7 +78,7 @@ void CircularQueue::Enqueue(unsigned count) {
 bool CircularQueue::RawEnqueue(const void* data, unsigned count,
         unsigned numChans, unsigned chanStride) {
     ASSERT(numChans <= numChannels);
-    if (Count() < count) { return false; }
+    if (Freespace() < count) { return false; }
     unsigned numcopied = 0;
     while (numcopied < count) {
         unsigned numtocopy = count - numcopied;
@@ -123,12 +123,11 @@ void CircularQueue::Dequeue(unsigned count) {
 
 bool CircularQueue::RawDequeue(void *data, unsigned count, unsigned numChans, unsigned chanStride) {
     ASSERT(numChans <= numChannels);
-    if (Freespace() < count) { return false; }
+    if (Count() < count) { return false; }
     unsigned numcopied = 0;
     while (numcopied < count) {
         unsigned numtocopy = count - numcopied;
         if (numtocopy > MaxThreshold()) { numtocopy = MaxThreshold(); }
-
         const char *src = (const char*)GetRawDequeuePtr(numtocopy, 0);
         char *dest = ((char*)data) + numcopied;
         ASSERT(src);
@@ -162,18 +161,18 @@ unsigned CircularQueue::Count() const {
 
 void CircularQueue::Grow(unsigned queueLen, unsigned maxThresh) {
     // Enforce interface contract of not reducing size
-    if (queueLen < queueLength && maxThresh < maxThreshold) return;
+    if (queueLen <= queueLength && maxThresh <= maxThreshold) return;
     if (queueLen < queueLength) { queueLen = queueLength; }
     if (maxThresh < maxThreshold) { maxThresh = maxThreshold; }
     AutoBuffer copybuff = AutoBuffer(buffer.GetSize());
     unsigned oldcount = Count();
     unsigned oldchanstride = ChannelStride();
-    RawDequeue(copybuff.GetBuffer(), oldcount, NumChannels(), oldchanstride);
+    ENSURE(RawDequeue(copybuff.GetBuffer(), oldcount, NumChannels(), oldchanstride));
     head = tail = 0;
-    queueLength = queueLen;
+    queueLength = queueLen + 1;
     maxThreshold = maxThresh;
     chanStride = queueLength + maxThreshold;
     buffer.ChangeSize(chanStride * NumChannels());
-    RawEnqueue(copybuff.GetBuffer(), oldcount, NumChannels(), oldchanstride);
+    ENSURE(RawEnqueue(copybuff.GetBuffer(), oldcount, NumChannels(), oldchanstride));
 }
 

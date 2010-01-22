@@ -34,6 +34,8 @@ namespace CPN {
         writeshutdown(false),
         readrequest(0),
         writerequest(0),
+        enqueuethresh(0),
+        dequeuethresh(0),
         indequeue(false),
         inenqueue(false),
         database(db),
@@ -46,6 +48,8 @@ namespace CPN {
     const void *QueueBase::GetRawDequeuePtr(unsigned thresh, unsigned chan) {
         database->CheckTerminated();
         Sync::AutoLock<QueueBase> al(*this);
+        if (indequeue) { ASSERT(dequeuethresh >= thresh); }
+        else { dequeuethresh = thresh; }
         while (true) {
             const void *ptr = InternalGetRawDequeuePtr(thresh, chan);
             if (ptr || writeshutdown) {
@@ -65,6 +69,7 @@ namespace CPN {
 
     void QueueBase::Dequeue(unsigned count) {
         Sync::AutoLock<QueueBase> al(*this);
+        dequeuethresh = 0;
         if (readshutdown) { throw BrokenQueueException(readerkey); }
         InternalDequeue(count);
         indequeue = false;
@@ -93,6 +98,8 @@ namespace CPN {
     void *QueueBase::GetRawEnqueuePtr(unsigned thresh, unsigned chan) {
         database->CheckTerminated();
         Sync::AutoLock<QueueBase> al(*this);
+        if (inenqueue) { ASSERT(enqueuethresh >= thresh); }
+        else { enqueuethresh = thresh; }
         while (true) {
             void *ptr = InternalGetRawEnqueuePtr(thresh, chan);
             if (ptr) {
@@ -112,6 +119,7 @@ namespace CPN {
 
     void QueueBase::Enqueue(unsigned count) {
         Sync::AutoLock<QueueBase> al(*this);
+        enqueuethresh = 0;
         if (writeshutdown) { throw BrokenQueueException(writerkey); }
         InternalEnqueue(count);
         inenqueue = false;
