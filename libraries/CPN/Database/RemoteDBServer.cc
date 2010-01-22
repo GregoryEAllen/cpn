@@ -47,7 +47,7 @@ namespace CPN {
     }
 
     void RemoteDBServer::DispatchMessage(const std::string &sender, const Variant &msg) {
-        dbprintf(2, "msg:%s:%s\n", sender.c_str(), msg.AsJSON().c_str());
+        dbprintf(4, "msg:%s:%s\n", sender.c_str(), msg.AsJSON().c_str());
         if (IsTerminated()) {
             return;
         }
@@ -146,6 +146,7 @@ namespace CPN {
         hostinfo["client"] = sender;
         datamap.insert(std::make_pair(hostkey, hostinfo));
         hostmap.insert(std::make_pair(name, hostkey));
+        dbprintf(2, "Host %s created\n", name.c_str());
         Variant reply;
         reply["msgid"] = msg["msgid"];
         reply["msgtype"] = "reply";
@@ -159,6 +160,7 @@ namespace CPN {
         Variant hostinfo = datamap[hostkey];
         ASSERT(hostinfo["type"].AsString() == "hostinfo");
         hostinfo["live"] = true;
+        dbprintf(2, "Host %s started\n", hostinfo["name"].AsString().c_str());
         Variant notice = NewBroadcastMessage();
         notice["hostinfo"] = hostinfo.Copy();
         BroadcastMessage(notice);
@@ -169,6 +171,7 @@ namespace CPN {
         Variant hostinfo = datamap[hostkey];
         ASSERT(hostinfo["type"].AsString() == "hostinfo");
         hostinfo["live"] = false;
+        dbprintf(2, "Host %s stopped\n", hostinfo["name"].AsString().c_str());
         Variant notice = NewBroadcastMessage();
         notice["hostinfo"] = hostinfo.Copy();
         BroadcastMessage(notice);
@@ -220,6 +223,7 @@ namespace CPN {
         nodeinfo["dead"] = false;
         nodeinfo["type"] = "nodeinfo";
         nodeinfo["endpoints"] = Variant::ObjectType;
+        dbprintf(2, "Node %s created\n", nodename.c_str());
         nodemap[nodename] = nodekey;
         datamap[nodekey] = nodeinfo;
         reply["success"] = true;
@@ -233,6 +237,7 @@ namespace CPN {
         Variant nodeinfo = datamap[nodekey];
         ASSERT(nodeinfo["type"].AsString() == "nodeinfo");
         nodeinfo["started"] = true;
+        dbprintf(2, "Node %s started\n", nodeinfo["name"].AsString().c_str());
         Variant notice = NewBroadcastMessage();
         notice["nodeinfo"] = nodeinfo.Copy();
         BroadcastMessage(notice);
@@ -244,6 +249,7 @@ namespace CPN {
         Variant nodeinfo = datamap[nodekey];
         ASSERT(nodeinfo["type"].AsString() == "nodeinfo");
         nodeinfo["dead"] = true;
+        dbprintf(2, "Node %s stopped\n", nodeinfo["name"].AsString().c_str());
         Variant notice = NewBroadcastMessage();
         notice["nodeinfo"] = nodeinfo.Copy();
         BroadcastMessage(notice);

@@ -96,13 +96,13 @@ void RemoteDatabaseDaemon::OnInval() {
 void RemoteDatabaseDaemon::SendMessage(const std::string &recipient, const Variant &msg) {
     ClientMap::iterator entry = clients.find(recipient);
     ASSERT(entry != clients.end());
-    dbprintf(2, "reply:%s:%s\n", recipient.c_str(), msg.AsJSON().c_str());
+    dbprintf(4, "reply:%s:%s\n", recipient.c_str(), msg.AsJSON().c_str());
     entry->second->Send(msg);
 }
 
 void RemoteDatabaseDaemon::BroadcastMessage(const Variant &msg) {
     ClientMap::iterator entry = clients.begin();
-    dbprintf(2, "broadcast:%s\n", msg.AsJSON().c_str());
+    dbprintf(4, "broadcast:%s\n", msg.AsJSON().c_str());
     while (entry != clients.end()) {
         entry->second->Send(msg);
         ++entry;

@@ -352,6 +352,7 @@ namespace CPN {
                 conn->Mode(Connection::ID_READER);
             }
         }
+        kmh->SendWakeup();
         return conn;
     }
 

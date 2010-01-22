@@ -42,11 +42,6 @@
  *
  * The interface here is intentionally almost identical to ThresholdQueue.
  *
- * No checking is made in this class to ensure that the max threshold is
- * less than or equal to the queue length. If max threshold is greater than
- * the queue length and one asks for a dequeue or enqueue for under the max
- * threshold but greater than the queue length it will fail as if there wasn't
- * enough space.
  */
 class CircularQueue {
 public:

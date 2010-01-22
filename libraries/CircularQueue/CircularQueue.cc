@@ -37,6 +37,11 @@ CircularQueue::CircularQueue(unsigned size, unsigned maxThresh, unsigned numChan
     chanStride(size + 1 + maxThresh),
     head(0), tail(0), buffer((size + 1 + maxThresh)*numChans)
 {
+    if (size < maxThresh) {
+        queueLength = maxThresh + 1;
+        chanStride = 2 * maxThresh + 1;
+        buffer.ChangeSize(chanStride * numChannels);
+    }
 }
 
 CircularQueue::~CircularQueue() {
@@ -168,6 +173,7 @@ void CircularQueue::Grow(unsigned queueLen, unsigned maxThresh) {
     queueLength = queueLen;
     maxThreshold = maxThresh;
     chanStride = queueLength + maxThreshold;
+    buffer.ChangeSize(chanStride * NumChannels());
     RawEnqueue(copybuff.GetBuffer(), oldcount, NumChannels(), oldchanstride);
 }
 
