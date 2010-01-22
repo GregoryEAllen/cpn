@@ -26,12 +26,9 @@ using namespace CPN;
 
 const unsigned QUEUESIZE = 5;
 const char data[] = { 'a', 'b', 'c', 'd', 'e' };
-
 const Key_t RKEY = 1;
 const Key_t WKEY = 2;
 
-void Error(int err) {
-}
 
 void StreamEndpointTest::setUp() {
 

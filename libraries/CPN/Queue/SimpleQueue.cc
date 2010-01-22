@@ -28,70 +28,116 @@ namespace CPN {
 
     SimpleQueue::SimpleQueue(shared_ptr<Database> db, const SimpleQueueAttr &attr)
         : QueueBase(db, attr),
-        queue(attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels()) {}
+        queue(0),
+        oldqueue(0),
+        enqueueUseOld(false),
+        dequeueUseOld(false)
+    {
+        queue = new CircularQueue(attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
+    }
 
     SimpleQueue::~SimpleQueue() {
+        delete queue;
+        queue = 0;
+        delete oldqueue;
+        oldqueue = 0;
     }
 
     void *SimpleQueue::InternalGetRawEnqueuePtr(unsigned thresh, unsigned chan) {
-        return queue.GetRawEnqueuePtr(thresh, chan);
+        if (enqueueUseOld) {
+            return oldqueue->GetRawEnqueuePtr(thresh, chan);
+        } else {
+            return queue->GetRawEnqueuePtr(thresh, chan);
+        }
     }
 
     void SimpleQueue::InternalEnqueue(unsigned count) {
-        queue.Enqueue(count);
+        if (enqueueUseOld) {
+            oldqueue->Dequeue(oldqueue->Count());
+            oldqueue->Enqueue(count);
+            const void *ptr = oldqueue->GetRawDequeuePtr(count, 0);
+            queue->RawEnqueue(ptr, count, oldqueue->NumChannels(), oldqueue->ChannelStride());
+            enqueueUseOld = false;
+            delete oldqueue;
+            oldqueue = 0;
+        } else {
+            queue->Enqueue(count);
+        }
     }
 
     const void *SimpleQueue::InternalGetRawDequeuePtr(unsigned thresh, unsigned chan) {
-        return queue.GetRawDequeuePtr(thresh, chan);
+        if (dequeueUseOld) {
+            return oldqueue->GetRawDequeuePtr(thresh, chan);
+        } else {
+            return queue->GetRawDequeuePtr(thresh, chan);
+        }
     }
 
     void SimpleQueue::InternalDequeue(unsigned count) {
-        queue.Dequeue(count);
+        if (dequeueUseOld) {
+            dequeueUseOld = false;
+            delete oldqueue;
+            oldqueue = 0;
+        }
+        queue->Dequeue(count);
     }
 
     unsigned SimpleQueue::NumChannels() const {
         Sync::AutoLock<QueueBase> al(*this);
-        return queue.NumChannels();
+        return queue->NumChannels();
     }
 
     unsigned SimpleQueue::MaxThreshold() const {
         Sync::AutoLock<QueueBase> al(*this);
-        return queue.MaxThreshold();
+        return queue->MaxThreshold();
     }
 
     unsigned SimpleQueue::QueueLength() const {
         Sync::AutoLock<QueueBase> al(*this);
-        return queue.QueueLength();
+        return queue->QueueLength();
     }
 
     unsigned SimpleQueue::Freespace() const {
         Sync::AutoLock<QueueBase> al(*this);
-        return queue.Freespace();
+        return queue->Freespace();
     }
 
     bool SimpleQueue::Full() const {
         Sync::AutoLock<QueueBase> al(*this);
-        return queue.Full();
+        return queue->Full();
     }
 
     unsigned SimpleQueue::Count() const {
         Sync::AutoLock<QueueBase> al(*this);
-        return queue.Count();
+        return queue->Count();
     }
 
     bool SimpleQueue::Empty() const {
         Sync::AutoLock<QueueBase> al(*this);
-        return queue.Empty();
+        return queue->Empty();
     }
 
     unsigned SimpleQueue::ChannelStride() const {
         Sync::AutoLock<QueueBase> al(*this);
-        return queue.ChannelStride();
+        return queue->ChannelStride();
     }
 
     void SimpleQueue::Grow(unsigned queueLen, unsigned maxThresh) {
         Sync::AutoLock<QueueBase> al(*this);
-        queue.Grow(queueLen, maxThresh);
+        ASSERT(!(inenqueue && indequeue), "Unhandled grow case of having an outstanding dequeue and enqueue");
+        if (oldqueue) {
+            ASSERT(enqueueUseOld == inenqueue);
+            ASSERT(dequeueUseOld == indequeue);
+            queue->Grow(queueLen, maxThresh);
+        } else {
+            enqueueUseOld = inenqueue;
+            dequeueUseOld = indequeue;
+            oldqueue = queue;
+            // this should make a duplicate
+            // For CircularQueue this makes an actual copy
+            queue = new CircularQueue(*oldqueue);
+            queue->Grow(queueLen, maxThresh);
+        }
     }
 
 }

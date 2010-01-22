@@ -178,6 +178,8 @@ namespace CPN {
          * of space and can support at least maxThresh as the maxThreshold
          * the new queue length will be max(queueLen, QueueLength())
          * and the new max threshold will be max(maxThresh, MaxThreshold())
+         * \note that the caller must guarantee that both an enqueue and
+         * dequeue are not both outstanding. Otherwise this will fail.
          * \param queueLen the next queue length
          * \param maxThresh the next max threshold
          */

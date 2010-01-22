@@ -1,10 +1,15 @@
 
 #include "QueueTest.h"
+
 #include "QueueBase.h"
+#include "QueueAttr.h"
 #include "ThresholdQueue.h"
 #include "SimpleQueue.h"
+
 #include "MockDatabase.h"
-#include "QueueAttr.h"
+
+#include "PthreadFunctional.h"
+
 #include <stdlib.h>
 #include <cppunit/TestAssert.h>
 #include <vector>
@@ -23,12 +28,96 @@ using CPN::QueueBase;
 using CPN::ThresholdQueue;
 using CPN::Database;
 using CPN::SimpleQueueAttr;
+using CPN::Key_t;
+
+const char data[] = { 'a', 'b', 'c', 'd', 'e' };
+const unsigned data_size = sizeof(data);
+const Key_t RKEY = 1;
+const Key_t WKEY = 2;
+
+void *QueueTest::EnqueueData() {
+    try {
+        while (true) {
+            for (unsigned chan = 0; chan < queue->NumChannels(); ++chan) {
+                void *ptr = queue->GetRawEnqueuePtr(data_size, chan);
+                memcpy(ptr, data, data_size);
+            }
+            queue->Enqueue(data_size);
+            {
+                PthreadMutexProtected al(enqueue_lock);
+                enqueue_num += data_size;
+                enqueue_cond.Signal();
+                if (enqueue_stop) {
+                    queue->ShutdownWriter();
+                    break;
+                }
+            }
+        }
+    } catch (...) {
+        PthreadMutexProtected al(enqueue_lock);
+        enqueue_fail = true;
+    }
+    PthreadMutexProtected al(enqueue_lock);
+    enqueue_dead = true;
+    enqueue_cond.Signal();
+    return 0;
+}
+
+void *QueueTest::DequeueData() {
+    try {
+        while (true) {
+            bool fail = false;
+            const void *ptr = queue->GetRawDequeuePtr(data_size, 0);
+            if (!ptr) { break; }
+            if (memcmp(ptr, data, data_size) != 0) { fail = true; }
+            for (unsigned chan = 1; chan < queue->NumChannels() && !fail; ++chan) {
+                ptr = queue->GetRawDequeuePtr(data_size, chan);
+                if (memcmp(ptr, data, data_size) != 0) { fail = true; }
+            }
+            if (!fail) {
+                queue->Dequeue(data_size);
+                PthreadMutexProtected al(dequeue_lock);
+                dequeue_num += data_size;
+                dequeue_cond.Signal();
+                if (dequeue_stop) {
+                    queue->ShutdownReader();
+                    break;
+                }
+            } else {
+                PthreadMutexProtected al(dequeue_lock);
+                dequeue_fail = true;
+                break;
+            }
+        }
+    } catch (...) {
+        PthreadMutexProtected al(dequeue_lock);
+        dequeue_fail = true;
+    }
+    PthreadMutexProtected al(dequeue_lock);
+    dequeue_dead = true;
+    dequeue_cond.Signal();
+    return 0;
+}
 
 void QueueTest::setUp() {
+    enqueue_fail = false;
+    enqueue_stop = false;
+    enqueue_dead = false;
+    enqueue_num = 0;
+    dequeue_fail = false;
+    dequeue_stop = false;
+    dequeue_dead = false;
+    dequeue_num = 0;
 }
 
 void QueueTest::tearDown() {
 }
+
+// I want to first test that normal dequeue and enqueue work.
+// Then I want to test that blocking works right on both sides
+// Then I want to test that requesting a threshold larger than max thresh will
+// grow the queue automatically
+// Then I want to test growing the queue with and without pending dequeues and enqueues
 
 void QueueTest::SimpleQueueTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
@@ -39,8 +128,8 @@ void QueueTest::SimpleQueueTest() {
 	//DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
     shared_ptr<QueueBase> queue = shared_ptr<QueueBase>(new CPN::SimpleQueue(database, attr));
     TestBulk(queue.get());
-    queue = shared_ptr<QueueBase>(new CPN::SimpleQueue(database, attr));
-    TestDirect(queue.get());
+    //queue = shared_ptr<QueueBase>(new CPN::SimpleQueue(database, attr));
+    //TestDirect(queue.get());
     attr.SetNumChannels(10);
 	//DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
     queue = shared_ptr<QueueBase>(new CPN::SimpleQueue(database, attr));
@@ -57,8 +146,8 @@ void QueueTest::ThresholdQueueTest() {
 	//DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
     shared_ptr<QueueBase> queue = shared_ptr<QueueBase>(new ThresholdQueue(database, attr));
     TestBulk(queue.get());
-    queue = shared_ptr<QueueBase>(new ThresholdQueue(database, attr));
-    TestDirect(queue.get());
+    //queue = shared_ptr<QueueBase>(new ThresholdQueue(database, attr));
+    //TestDirect(queue.get());
     attr.SetNumChannels(10);
 	//DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
     queue = shared_ptr<QueueBase>(new ThresholdQueue(database, attr));

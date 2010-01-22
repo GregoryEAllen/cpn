@@ -59,7 +59,10 @@ namespace CPN {
         unsigned ChannelStride() const;
         void Grow(unsigned queueLen, unsigned maxThresh);
     private:
-        ::CircularQueue queue;
+        CircularQueue *queue;
+        CircularQueue *oldqueue;
+        bool enqueueUseOld;
+        bool dequeueUseOld;
     };
 }
 

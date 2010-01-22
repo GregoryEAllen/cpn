@@ -19,7 +19,6 @@ CPPUNIT_TEST_SUITE_REGISTRATION( StreamEndpointTest );
 #include "KernelBase.h"
 #include "QueueBase.h"
 #include "PthreadMutex.h"
-#include <deque>
 
 class StreamEndpointTest : public CppUnit::TestFixture,
 public CPN::KernelBase {

@@ -14,6 +14,8 @@ CPPUNIT_TEST_SUITE_REGISTRATION( QueueTest );
 #pragma once
 
 #include <cppunit/extensions/HelperMacros.h>
+#include "PthreadMutex.h"
+#include "PthreadCondition.h"
 
 namespace CPN {
     class QueueBase;
@@ -36,5 +38,24 @@ public:
     void TestBulk(CPN::QueueBase *queue);
     void TestDirect(CPN::QueueBase *queue);
 
+
+    void *EnqueueData();
+    void *DequeueData();
+
+    CPN::QueueBase *queue;
+
+    PthreadMutex enqueue_lock;
+    PthreadCondition enqueue_cond;
+    bool enqueue_fail;
+    bool enqueue_stop;
+    bool enqueue_dead;
+    unsigned enqueue_num;
+
+    PthreadMutex dequeue_lock;
+    PthreadCondition dequeue_cond;
+    bool dequeue_fail;
+    bool dequeue_stop;
+    bool dequeue_dead;
+    unsigned dequeue_num;
 };
 #endif
