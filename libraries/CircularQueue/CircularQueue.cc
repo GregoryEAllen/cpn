@@ -37,6 +37,11 @@ CircularQueue::CircularQueue(unsigned size, unsigned maxThresh, unsigned numChan
     chanStride(size + 1 + maxThresh),
     head(0), tail(0), buffer((size + 1 + maxThresh)*numChans)
 {
+    if (size < maxThresh) {
+        queueLength = maxThresh + 1;
+        chanStride = 2 * maxThresh + 1;
+        buffer.ChangeSize(chanStride * numChannels);
+    }
 }
 
 CircularQueue::~CircularQueue() {
@@ -70,41 +75,27 @@ void CircularQueue::Enqueue(unsigned count) {
     head = newHead;
 }
 
-bool CircularQueue::RawEnqueue(const void* data, unsigned count) {
-    return RawEnqueue(data, count, 1, 0);
-}
-
 bool CircularQueue::RawEnqueue(const void* data, unsigned count,
         unsigned numChans, unsigned chanStride) {
     ASSERT(numChans <= numChannels);
-    void* dest = GetRawEnqueuePtr(count, 0);
-    const void* src = data;
-    if (!dest) { return false; }
-    memcpy(dest, src, count);
-    for (unsigned chan = 1; chan < numChans; ++chan) {
-        dest = GetRawEnqueuePtr(count, chan);
-        src = ((char*)data) + chanStride*chan;
-        memcpy(dest, src, count);
+    if (Count() < count) { return false; }
+    unsigned numcopied = 0;
+    while (numcopied < count) {
+        unsigned numtocopy = count - numcopied;
+        if (numtocopy > MaxThreshold()) { numtocopy = MaxThreshold(); }
+        char *dest = (char*)GetRawEnqueuePtr(numtocopy, 0);
+        const char* src = ((const char*)data) + numcopied;
+        ASSERT(dest);
+        memcpy(dest, src, numtocopy);
+        for (unsigned chan = 1; chan < numChans; ++chan) {
+            dest = (char*)GetRawEnqueuePtr(numtocopy, chan);
+            src += chanStride;
+            memcpy(dest, src, numtocopy);
+        }
+        Enqueue(numtocopy);
+        numcopied += numtocopy;
     }
-    Enqueue(count);
     return true;
-}
-
-
-unsigned CircularQueue::NumChannels() const {
-    return numChannels;
-}
-
-unsigned CircularQueue::Freespace() const {
-    if (head >= tail) {
-        return queueLength - (head - tail) - 1;
-    } else {
-        return tail - head - 1;
-    }
-}
-
-bool CircularQueue::Full() const {
-    return Freespace() == 0;
 }
 
 const void* CircularQueue::GetRawDequeuePtr(unsigned thresh, unsigned chan) {
@@ -130,24 +121,35 @@ void CircularQueue::Dequeue(unsigned count) {
     tail = newTail;
 }
 
-bool CircularQueue::RawDequeue(void* data, unsigned count) {
-    return RawDequeue(data, count, 1, 0);
+bool CircularQueue::RawDequeue(void *data, unsigned count, unsigned numChans, unsigned chanStride) {
+    ASSERT(numChans <= numChannels);
+    if (Freespace() < count) { return false; }
+    unsigned numcopied = 0;
+    while (numcopied < count) {
+        unsigned numtocopy = count - numcopied;
+        if (numtocopy > MaxThreshold()) { numtocopy = MaxThreshold(); }
+
+        const char *src = (const char*)GetRawDequeuePtr(numtocopy, 0);
+        char *dest = ((char*)data) + numcopied;
+        ASSERT(src);
+        memcpy(dest, src, numtocopy);
+        for (unsigned chan = 1; chan < numChans; ++chan) {
+            src = (const char*)GetRawDequeuePtr(numtocopy, chan);
+            dest += chanStride;
+            memcpy(dest, src, numtocopy);
+        }
+        Dequeue(numtocopy);
+        numcopied += numtocopy;
+    }
+    return true;
 }
 
-bool CircularQueue::RawDequeue(void* data, unsigned count,
-        unsigned numChans, unsigned chanStride) {
-    ASSERT(numChans <= numChannels);
-    const void* src = GetRawDequeuePtr(count, 0);
-    void* dest = data;
-    if (!src) { return false; }
-    memcpy(dest, src, count);
-    for (unsigned chan = 1; chan < numChans; ++chan) {
-        src = GetRawDequeuePtr(count, chan);
-        dest = ((char*)data) + chanStride*chan;
-        memcpy(dest, src, count);
+unsigned CircularQueue::Freespace() const {
+    if (head >= tail) {
+        return queueLength - (head - tail) - 1;
+    } else {
+        return tail - head - 1;
     }
-    Dequeue(count);
-    return true;
 }
 
 unsigned CircularQueue::Count() const {
@@ -156,22 +158,6 @@ unsigned CircularQueue::Count() const {
     } else {
         return head + (queueLength - tail);
     }
-}
-
-bool CircularQueue::Empty() const {
-    return head == tail;
-}
-
-unsigned CircularQueue::ChannelStride() const {
-    return chanStride;
-}
-
-unsigned CircularQueue::MaxThreshold() const {
-    return maxThreshold;
-}
-
-unsigned CircularQueue::QueueLength() const {
-    return queueLength - 1;
 }
 
 void CircularQueue::Grow(unsigned queueLen, unsigned maxThresh) {
@@ -187,10 +173,7 @@ void CircularQueue::Grow(unsigned queueLen, unsigned maxThresh) {
     queueLength = queueLen;
     maxThreshold = maxThresh;
     chanStride = queueLength + maxThreshold;
+    buffer.ChangeSize(chanStride * NumChannels());
     RawEnqueue(copybuff.GetBuffer(), oldcount, NumChannels(), oldchanstride);
-}
-
-void CircularQueue::Clear() {
-    head = tail = 0;
 }
 
