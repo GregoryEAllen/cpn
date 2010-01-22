@@ -105,7 +105,7 @@ int main(int argc, char **argv) {
         "    \"threshold\"       : %lu,\n"
         "    \"primesperfilter\" : %lu,\n"
         "    \"primewheel\"      : %lu,\n"
-        "    \"readtime\"        : %f,\n"
+        "    \"realtime\"        : %f,\n"
         "    \"usertime\"        : %f,\n"
         "    \"systime\"         : %f,\n"
         "    \"numprimes\"       : %u";
