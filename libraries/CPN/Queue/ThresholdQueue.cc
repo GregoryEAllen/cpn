@@ -24,91 +24,202 @@
 
 #include "ThresholdQueue.h"
 #include "QueueAttr.h"
+#include "Assert.h"
 #include <cstring>
 
 namespace CPN {
 
     ThresholdQueue::ThresholdQueue(shared_ptr<Database> db, const SimpleQueueAttr &attr)
-        : QueueBase(db, attr),
-    // ThresholdQueueBase(ulong elemSize, ulong queueLen, ulong maxThresh, ulong numChans=1);
-        queue(1, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels())
-    { }
+        : QueueBase(db, attr), queue(0), oldqueue(0), enqueueUseOld(false), dequeueUseOld(false)
+    {
+        queue = new TQImpl(attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
+    }
 
     ThresholdQueue::~ThresholdQueue() {
+        delete queue;
+        queue = 0;
+        delete oldqueue;
+        oldqueue = 0;
     }
 
     void *ThresholdQueue::InternalGetRawEnqueuePtr(unsigned thresh, unsigned chan) {
-        return queue.GetRawEnqueuePtr(thresh, chan);
+        if (enqueueUseOld) {
+            return oldqueue->GetRawEnqueuePtr(thresh, chan);
+        } else {
+            return queue->GetRawEnqueuePtr(thresh, chan);
+        }
     }
 
     void ThresholdQueue::InternalEnqueue(unsigned count) {
-        queue.Enqueue(count);
+        if (enqueueUseOld) {
+            oldqueue->Dequeue(oldqueue->Count());
+            oldqueue->Enqueue(count);
+
+            unsigned count;
+            while ( (count = oldqueue->Count()) != 0 ) {
+                if (count > oldqueue->MaxThreshold()) {
+                    count = oldqueue->MaxThreshold();
+                }
+                for (unsigned chan = 0; chan < queue->NumChannels(); chan++) {
+                    const void* src = oldqueue->GetRawDequeuePtr(count, chan);
+                    void* dst = queue->GetRawEnqueuePtr(count, chan);
+                    ASSERT(src && dst);
+                    memcpy(dst,src,count);
+                }
+
+                queue->Enqueue(count);
+                oldqueue->Dequeue(count);
+            }
+
+            enqueueUseOld = false;
+            delete oldqueue;
+            oldqueue = 0;
+        } else {
+            queue->Enqueue(count);
+        }
     }
 
     unsigned ThresholdQueue::NumChannels() const {
         Sync::AutoLock<QueueBase> al(*this);
-        return queue.NumChannels();
+        return queue->NumChannels();
     }
 
     unsigned ThresholdQueue::ChannelStride() const {
         Sync::AutoLock<QueueBase> al(*this);
-        return queue.ChannelStride();
+        return queue->ChannelStride();
     }
 
     unsigned ThresholdQueue::Freespace() const {
         Sync::AutoLock<QueueBase> al(*this);
-        return queue.Freespace();
+        return queue->Freespace();
     }
 
     bool ThresholdQueue::Full() const {
         Sync::AutoLock<QueueBase> al(*this);
-        return queue.Full();
+        return queue->Full();
     }
 
-
-    // From QueueReader
     const void *ThresholdQueue::InternalGetRawDequeuePtr(unsigned thresh, unsigned chan) {
-        return queue.GetRawDequeuePtr(thresh, chan);
+        if (dequeueUseOld) {
+            return oldqueue->GetRawDequeuePtr(thresh, chan);
+        } else {
+            return queue->GetRawDequeuePtr(thresh, chan);
+        }
     }
 
     void ThresholdQueue::InternalDequeue(unsigned count) {
-        queue.Dequeue(count);
+        if (dequeueUseOld) {
+            dequeueUseOld = false;
+            delete oldqueue;
+            oldqueue = 0;
+        }
+        queue->Dequeue(count);
     }
 
     unsigned ThresholdQueue::Count() const {
         Sync::AutoLock<QueueBase> al(*this);
-        return queue.Count();
+        return queue->Count();
     }
 
     bool ThresholdQueue::Empty() const {
         Sync::AutoLock<QueueBase> al(*this);
-        return queue.Empty();
+        return queue->Empty();
     }
 
     unsigned ThresholdQueue::MaxThreshold() const {
         Sync::AutoLock<QueueBase> al(*this);
-        return queue.MaxThreshold();
+        return queue->MaxThreshold();
     }
 
     unsigned ThresholdQueue::QueueLength() const {
         Sync::AutoLock<QueueBase> al(*this);
-        return queue.QueueLength();
+        return queue->QueueLength();
     }
 
     unsigned ThresholdQueue::ElementsEnqueued() const {
         Sync::AutoLock<QueueBase> al(*this);
-        return queue.ElementsEnqueued();
+        return queue->ElementsEnqueued();
     }
 
     unsigned ThresholdQueue::ElementsDequeued() const {
         Sync::AutoLock<QueueBase> al(*this);
-        return queue.ElementsDequeued();
+        return queue->ElementsDequeued();
     }
 
     void ThresholdQueue::Grow(unsigned queueLen, unsigned maxThresh) {
         Sync::AutoLock<QueueBase> al(*this);
-        queue.Grow(queueLen, maxThresh);
+        ASSERT(!(inenqueue && indequeue), "Unhandled grow case of having an outstanding dequeue and enqueue");
+        if (oldqueue) {
+            // If the old queue is still around we have to still be in the same state
+            ASSERT(enqueueUseOld == inenqueue);
+            ASSERT(dequeueUseOld == indequeue);
+            queue->Grow(queueLen, maxThresh, false);
+        } else if (!inenqueue && !indequeue) {
+            queue->Grow(queueLen, maxThresh, false);
+        } else {
+            enqueueUseOld = inenqueue;
+            dequeueUseOld = indequeue;
+            // this should make a duplicate
+            oldqueue = queue->Grow(queueLen, maxThresh, true);
+            if (!oldqueue) {
+                enqueueUseOld = false;
+                enqueueUseOld = false;
+            }
+        }
     }
 
+    ThresholdQueue::TQImpl::TQImpl(unsigned length, unsigned maxthresh, unsigned numchan)
+        : ThresholdQueueBase(1, length, maxthresh, numchan)
+    {
+    }
+
+    ThresholdQueue::TQImpl *ThresholdQueue::TQImpl::Grow(unsigned queueLen, unsigned maxThresh, bool copy) {
+        // ignore the do-nothing case
+        if (queueLen <= QueueLength() && maxThresh <= MaxThreshold()) return 0;
+        
+        // we don't do any shrinking
+        if (maxThresh <= MaxThreshold()) maxThresh = MaxThreshold();
+        if (queueLen <= QueueLength()) queueLen = QueueLength();
+        
+        // keep our old info around
+        auto_ptr<TQImpl> oldQueue = auto_ptr<TQImpl>(new TQImpl(*this));	// just duplicate the pointers
+        // Save the head and tail, these are the only member variables
+        // that we care about that will be changed by dequeueing all the data.
+        ulong oldhead = head;
+        ulong oldtail = tail;
+        
+        // allocate a new buffer (or MirrorBufferSet)
+        AllocateBuf(queueLen,maxThresh,numChannels,mbs?1:0);
+        
+        // growth should not affect this member
+        elementsDequeued = oldQueue->ElementsDequeued();
+
+        // copy all in oldQueue to our new buffer with existing mechanisms
+        ulong count;
+        while ( (count = oldQueue->Count()) != 0 ) {
+            if (count > oldQueue->MaxThreshold()) {
+                count = oldQueue->MaxThreshold();
+            }
+            for (ulong chan = 0; chan < numChannels; chan++) {
+                const void* src = oldQueue->GetRawDequeuePtr(count, chan);
+                void* dst = GetRawEnqueuePtr(count, chan);
+                ASSERT(src && dst);
+                memcpy(dst, src, count*elementSize);
+            }
+            Enqueue(count);
+            oldQueue->Dequeue(count);
+        }
+        
+        // growth should not affect this member
+        elementsEnqueued = oldQueue->ElementsEnqueued();
+        // reset things inside oldQueue to where they where before we copied
+        oldQueue->head = oldhead;
+        oldQueue->tail = oldtail;
+
+        if (copy) {
+            return oldQueue.release();
+        }
+        return 0;
+    }
 }
 

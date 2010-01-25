@@ -72,7 +72,17 @@ namespace CPN {
         void Grow(unsigned queueLen, unsigned maxThresh);
 
     private:
-        ThresholdQueueBase queue;
+        class TQImpl : public ThresholdQueueBase {
+        public:
+            typedef ThresholdQueueBase::ulong ulong;
+            TQImpl(unsigned length, unsigned maxthres, unsigned numchan);
+
+            TQImpl *Grow(unsigned queueLen, unsigned maxThresh, bool copy);
+        };
+        TQImpl *queue;
+        TQImpl *oldqueue;
+        bool enqueueUseOld;
+        bool dequeueUseOld;
     };
 
 }

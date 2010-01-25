@@ -183,13 +183,15 @@ void QueueTest::ThresholdQueueTest() {
     attr.SetNumChannels(10);
 	//DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
     queue = new ThresholdQueue(database, attr);
-    TestDirect();
-    delete queue;
-    queue = 0;
-    queue = new ThresholdQueue(database, attr);
     CommunicationTest();
     delete queue;
     queue = 0;
+    queue = new ThresholdQueue(database, attr);
+    MaxThreshGrowTest();
+    delete queue;
+    queue = 0;
+    queue = new ThresholdQueue(database, attr);
+    GrowTest();
 }
 
 void QueueTest::TestBulk() {
@@ -335,7 +337,6 @@ void QueueTest::DequeueBlockTest() {
 
 void QueueTest::MaxThreshGrowTest() {
     unsigned maxthresh = queue->MaxThreshold();
-    unsigned len = queue->QueueLength();
     unsigned numchan = queue->NumChannels();
     char *ptr = 0;
     const char *cptr = 0;
@@ -351,13 +352,14 @@ void QueueTest::MaxThreshGrowTest() {
         CPPUNIT_ASSERT(ptr);
         memcpy(ptr, &buff[2*maxthresh*i], maxthresh);
     }
-    CPPUNIT_ASSERT(queue->MaxThreshold() == maxthresh);
+    CPPUNIT_ASSERT(queue->MaxThreshold() >= maxthresh);
     queue->Enqueue(maxthresh);
 
     // Test that growth works
-    queue->Grow(2*len, maxthresh);
-    CPPUNIT_ASSERT(queue->QueueLength() == 2*len);
-    CPPUNIT_ASSERT(queue->MaxThreshold() == maxthresh);
+    unsigned len = queue->QueueLength() * 2;
+    queue->Grow(len, maxthresh);
+    CPPUNIT_ASSERT(queue->QueueLength() >= len);
+    CPPUNIT_ASSERT(queue->MaxThreshold() >= maxthresh);
     for (unsigned i = 0; i < numchan; ++i) {
         ptr = (char*)queue->GetRawEnqueuePtr(maxthresh, i);
         CPPUNIT_ASSERT(ptr);
@@ -371,12 +373,11 @@ void QueueTest::MaxThreshGrowTest() {
         CPPUNIT_ASSERT(cptr);
         CPPUNIT_ASSERT(memcmp(cptr, &buff[maxthresh * i], maxthresh) == 0);
     }
-    CPPUNIT_ASSERT(queue->MaxThreshold() == maxthresh);
+    CPPUNIT_ASSERT(queue->MaxThreshold() >= maxthresh);
 }
 
 void QueueTest::GrowTest() {
     unsigned maxthresh = queue->MaxThreshold();
-    unsigned len = queue->QueueLength();
     unsigned numchan = queue->NumChannels();
     char *ptr = 0;
     const char *cptr = 0;
@@ -392,14 +393,14 @@ void QueueTest::GrowTest() {
         CPPUNIT_ASSERT(ptr);
         memcpy(ptr, &buff[2*maxthresh*i], maxthresh);
     }
-    CPPUNIT_ASSERT(queue->MaxThreshold() == maxthresh);
+    CPPUNIT_ASSERT(queue->MaxThreshold() >= maxthresh);
     queue->Enqueue(maxthresh);
 
     cptr = (const char*)queue->GetRawDequeuePtr(maxthresh, 0);
-    len *=2;
+    unsigned len = queue->QueueLength() * 2;
     queue->Grow(len, maxthresh);
-    CPPUNIT_ASSERT(queue->QueueLength() == len);
-    CPPUNIT_ASSERT(queue->MaxThreshold() == maxthresh);
+    CPPUNIT_ASSERT(queue->QueueLength() >= len);
+    CPPUNIT_ASSERT(queue->MaxThreshold() >= maxthresh);
     for (unsigned i = 0; i < numchan; ++i) {
         ptr = (char*)queue->GetRawEnqueuePtr(maxthresh, i);
         CPPUNIT_ASSERT(ptr);
@@ -408,14 +409,14 @@ void QueueTest::GrowTest() {
     queue->Enqueue(maxthresh);
     queue->Dequeue(0);
 
-    ptr = (char*)queue->GetRawEnqueuePtr(maxthresh, 0);
+    ptr = (char*)queue->GetRawEnqueuePtr(1, 0);
     maxthresh *= 2;
     for (unsigned i = 0; i < numchan; ++i) {
         cptr = (const char*)queue->GetRawDequeuePtr(maxthresh, i);
         CPPUNIT_ASSERT(cptr);
         CPPUNIT_ASSERT(memcmp(cptr, &buff[maxthresh * i], maxthresh) == 0);
     }
-    CPPUNIT_ASSERT(queue->MaxThreshold() == maxthresh);
+    CPPUNIT_ASSERT(queue->MaxThreshold() >= maxthresh);
     queue->Enqueue(0);
     queue->Dequeue(maxthresh);
     CPPUNIT_ASSERT(queue->Count() == 0);
