@@ -73,6 +73,7 @@ void ThresholdQueueBase::AllocateBuf(ulong queueLen, ulong maxThresh,
 {
     if (maxThresh<1)        maxThresh = 1;
     if (maxThresh>queueLen) queueLen = maxThresh;
+    numChannels = numChans;
 
     if ( useMBS && MirrorBufferSet::Supported() ) {
         ulong bufSz = queueLen * elementSize;
@@ -83,8 +84,10 @@ void ThresholdQueueBase::AllocateBuf(ulong queueLen, ulong maxThresh,
         queueLength  = mbs->BufferSize() / elementSize;
         maxThreshold = mbs->MirrorSize() / elementSize + 1;
         channelStride = queueLength + maxThreshold-1 + chanOffset;
-        maxThreshold -= baseOffset + (numChans-1)*chanOffset;
+        maxThreshold -= baseOffset + (numChannels-1)*chanOffset;
         base = (char*)((void*)(*mbs)) + baseOffset;
+        // Corner case of queueLength == maxThreshold
+        if (maxThreshold > queueLength) { maxThreshold = queueLength; }
     } else {
         queueLength = queueLen;
         maxThreshold = maxThresh;
