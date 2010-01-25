@@ -33,7 +33,6 @@ public:
 	}
 };
 
-static FilterFactory filterFactoryInstance;
 
 void FilterNode::Process(void) {
 	DEBUG("FilterNode %s start\n", GetName().c_str());
@@ -65,6 +64,11 @@ void FilterNode::Process(void) {
 	DEBUG("FilterNode %s end\n", GetName().c_str());
 }
 
-void FilterNode::RegisterNodeType(void) {
-	CPNRegisterNodeFactory(CPN::shared_ptr<CPN::NodeFactory>(new FilterFactory));
+extern "C" {
+    CPN::shared_ptr<CPN::NodeFactory> cpninitSieveFilterNodeTypeName(void);
 }
+
+CPN::shared_ptr<CPN::NodeFactory> cpninitSieveFilterNodeTypeName(void) {
+	return (CPN::shared_ptr<CPN::NodeFactory>(new FilterFactory));
+}
+

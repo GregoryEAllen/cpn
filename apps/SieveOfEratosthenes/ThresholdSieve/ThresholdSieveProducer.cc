@@ -130,8 +130,9 @@ void ThresholdSieveProducer::Process(void) {
     DEBUG("%s stopped\n", GetName().c_str());
 }
 
+extern "C" shared_ptr<CPN::NodeFactory> cpninitThresholdSieveProducerType(void);
 
-void ThresholdSieveProducer::RegisterNodeType(void) {
-    CPNRegisterNodeFactory(shared_ptr<CPN::NodeFactory>(new ProducerFactory));
+shared_ptr<CPN::NodeFactory> cpninitThresholdSieveProducerType(void) {
+    return (shared_ptr<CPN::NodeFactory>(new ProducerFactory));
 }
 

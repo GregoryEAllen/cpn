@@ -128,7 +128,9 @@ void ThresholdSieveFilter::Process() {
     DEBUG("%s stopped\n", GetName().c_str());
 }
 
-void ThresholdSieveFilter::RegisterNodeType() {
-    CPNRegisterNodeFactory(shared_ptr<CPN::NodeFactory>(new FilterFactory));
+extern "C" shared_ptr<CPN::NodeFactory> cpninitThresholdSieveFilterType(void);
+
+shared_ptr<CPN::NodeFactory> cpninitThresholdSieveFilterType(void) {
+    return (shared_ptr<CPN::NodeFactory>(new FilterFactory));
 }
 

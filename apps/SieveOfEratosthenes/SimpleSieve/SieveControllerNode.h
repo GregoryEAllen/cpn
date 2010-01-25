@@ -46,7 +46,6 @@ public:
 			Param param_)
 		: CPN::NodeBase(ker, attr), param(param_), lastprime(0) {}
 	void Process(void);
-	static void RegisterNodeType(void);
 private:
 	void Initialize(void);
 	void SetupQueue(const std::string& nodename);

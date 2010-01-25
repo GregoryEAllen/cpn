@@ -30,7 +30,6 @@ const char* const HELP_OPTS = "Usage: %s \n"
 ;
 
 int main(int argc, char **argv) {
-    RandomInstructionNode::RegisterNodeType();
 
     unsigned iterations = 10;
     unsigned numNodes = 10;

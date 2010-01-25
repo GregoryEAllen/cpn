@@ -51,8 +51,12 @@ void ProducerNode::Process(void) {
 	DEBUG("ProducerNode %s end\n", GetName().c_str());
 }
 
-void ProducerNode::RegisterNodeType(void) {
-	CPNRegisterNodeFactory(CPN::shared_ptr<CPN::NodeFactory>(new ProducerFactory));
+extern "C" {
+    CPN::shared_ptr<CPN::NodeFactory> cpninitSieveProducerNodeTypeName(void);
+}
+
+CPN::shared_ptr<CPN::NodeFactory> cpninitSieveProducerNodeTypeName(void) {
+	return (CPN::shared_ptr<CPN::NodeFactory>(new ProducerFactory));
 }
 
 

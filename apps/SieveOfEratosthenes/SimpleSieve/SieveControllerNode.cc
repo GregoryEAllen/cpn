@@ -83,13 +83,15 @@ void SieveControllerNode::Process(void) {
 	DEBUG("SieveControllerNode %s end\n", GetName().c_str());
 }
 
-void SieveControllerNode::RegisterNodeType(void) {
-	CPNRegisterNodeFactory(CPN::shared_ptr<CPN::NodeFactory>(new SCNFactory));
+extern "C" {
+    CPN::shared_ptr<CPN::NodeFactory> cpninitSieveControllerNodeTypeName(void);
+}
+
+CPN::shared_ptr<CPN::NodeFactory> cpninitSieveControllerNodeTypeName(void) {
+	return (CPN::shared_ptr<CPN::NodeFactory>(new SCNFactory));
 }
 
 void SieveControllerNode::Initialize(void) {
-	ProducerNode::RegisterNodeType();
-	FilterNode::RegisterNodeType();
 
     NodeAttr producerattr(PRODUCER_NAME, SIEVE_PRODUCERNODE_TYPENAME);
     producerattr.SetParam(StaticConstBuffer(&param, sizeof(param)));

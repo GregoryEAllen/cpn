@@ -33,7 +33,6 @@ public:
 		: CPN::NodeBase(ker, attr), filterval(filterval_),
        		threshold(threshold_) {}
 	void Process(void);
-	static void RegisterNodeType(void);
 private:
 	const unsigned long filterval;
 	const unsigned long threshold;

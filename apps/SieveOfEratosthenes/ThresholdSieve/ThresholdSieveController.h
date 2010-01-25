@@ -17,7 +17,6 @@ public:
 
     void Process(void);
 
-    static void RegisterNodeType(void);
 private:
     void Initialize(void);
     ThresholdSieveOptions opts;

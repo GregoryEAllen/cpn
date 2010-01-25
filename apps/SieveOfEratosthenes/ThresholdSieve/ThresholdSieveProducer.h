@@ -15,7 +15,6 @@ public:
             const ThresholdSieveOptions& opts_) :
         CPN::NodeBase(ker, attr), opts(opts_) {}
     void Process();
-    static void RegisterNodeType();
 private:
     ThresholdSieveOptions opts;
 };

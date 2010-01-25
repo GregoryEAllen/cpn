@@ -1,4 +1,5 @@
 
+OS_LIBS += -ldl
 # Turn on all warnings
 CC_OTHER += -Wall
 #CXX_OTHER += -Wall

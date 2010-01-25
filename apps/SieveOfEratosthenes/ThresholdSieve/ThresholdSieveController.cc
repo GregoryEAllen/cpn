@@ -71,8 +71,6 @@ void ThresholdSieveController::Process(void) {
 }
 
 void ThresholdSieveController::Initialize(void) {
-    ThresholdSieveProducer::RegisterNodeType();
-    ThresholdSieveFilter::RegisterNodeType();
     opts.filtercount = 0;
     opts.consumerkey = GetKey();
 
@@ -87,7 +85,9 @@ void ThresholdSieveController::Initialize(void) {
     kernel.CreateQueue(qattr);
 }
 
-void ThresholdSieveController::RegisterNodeType(void) {
-    CPNRegisterNodeFactory(shared_ptr<CPN::NodeFactory>(new ControllerFactory));
+extern "C" shared_ptr<CPN::NodeFactory> cpninitThresholdSieveControllerType(void);
+
+shared_ptr<CPN::NodeFactory> cpninitThresholdSieveControllerType(void) {
+    return (shared_ptr<CPN::NodeFactory>(new ControllerFactory));
 }
 

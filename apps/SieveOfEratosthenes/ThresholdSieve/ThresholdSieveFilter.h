@@ -7,7 +7,7 @@
 #include "NodeBase.h"
 #include "ThresholdSieveOptions.h"
 
-#define THRESHOLDSIEVEFILTER_TYPENAME "ThresholdSieveTypeName"
+#define THRESHOLDSIEVEFILTER_TYPENAME "ThresholdSieveFilterType"
 
 class ThresholdSieveFilter : public CPN::NodeBase {
 public:
@@ -16,7 +16,6 @@ public:
             : CPN::NodeBase(ker, attr), opts(opts_) {}
     void Process();
 
-    static void RegisterNodeType();
 private:
     void CreateNewFilter() { ::CreateNewFilter(kernel, opts, GetKey()); }
     void ReportCandidates(

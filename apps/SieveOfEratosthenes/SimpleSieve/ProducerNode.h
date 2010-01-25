@@ -34,7 +34,6 @@ public:
 		: CPN::NodeBase(ker, attr), param(param_) {}
 	void Process(void);
 
-	static void RegisterNodeType(void);
 private:
 	SieveControllerNode::Param param;
 };

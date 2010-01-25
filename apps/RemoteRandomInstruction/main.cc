@@ -43,7 +43,6 @@ const char* const HELP_OPTS = "Usage: %s <config> <name> <datbase hostname> <dat
 ;
 
 int main(int argc, char **argv) {
-    RandomInstructionNode::RegisterNodeType();
 
     signal(SIGPIPE, SIG_IGN);
     unsigned iterations = 10;

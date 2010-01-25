@@ -273,6 +273,8 @@ std::string RandomInstructionNode::CurrentOutPort() {
     return ToString(OUT_PORT_FORMAT, lfsr.Seed());
 }
 
-void RandomInstructionNode::RegisterNodeType() {
-    CPNRegisterNodeFactory(CPN::shared_ptr<CPN::NodeFactory>(new RINFactory));
+extern "C" CPN::shared_ptr<CPN::NodeFactory> cpninitRandomInstructionNodeType(void);
+
+CPN::shared_ptr<CPN::NodeFactory> cpninitRandomInstructionNodeType(void) {
+    return (CPN::shared_ptr<CPN::NodeFactory>(new RINFactory));
 }

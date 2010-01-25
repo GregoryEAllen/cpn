@@ -35,7 +35,6 @@ struct TestResults {
 TestResults SieveTest(ThresholdSieveOptions options);
 
 int main(int argc, char **argv) {
-    ThresholdSieveController::RegisterNodeType();
     std::vector<ThresholdSieveOptions::NumberT> results;
     ThresholdSieveOptions options;
     options.maxprime = 100;

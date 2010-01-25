@@ -39,8 +39,6 @@ public:
 
     void Process();
 
-    static void RegisterNodeType();
-
     static std::string GetNodeNameFromID(unsigned id);
 
     static void CreateRIN(CPN::Kernel& kernel, unsigned iterations,

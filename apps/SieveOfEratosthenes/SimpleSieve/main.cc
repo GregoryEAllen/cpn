@@ -36,7 +36,6 @@ int main(int argc, char **argv) {
 			return 0;
 		}
 	}
-	SieveControllerNode::RegisterNodeType();
 	CPN::Kernel kernel(CPN::KernelAttr("SimpleSieveKernel"));
 	std::vector<unsigned long> results;
 	SieveControllerNode::Param param;
