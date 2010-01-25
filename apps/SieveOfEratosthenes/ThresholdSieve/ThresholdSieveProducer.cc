@@ -70,7 +70,7 @@ void ThresholdSieveProducer::Process(void) {
         // TODO change to only top implementation when auto increasing of threshold
         // is implemented!
         // have enough threshold to send it all...
-        if (roundLength <= threshold) {
+        //if (roundLength <= threshold) {
             while (loop) {
                 NumberT *outbuff = out.GetEnqueuePtr(roundLength);
                 unsigned len = source.GetNextRound(outbuff);
@@ -87,6 +87,7 @@ void ThresholdSieveProducer::Process(void) {
 #endif
                 out.Enqueue(len);
             }
+        /*
         } else {
             while (loop) {
                 std::vector<NumberT> buff;
@@ -106,6 +107,7 @@ void ThresholdSieveProducer::Process(void) {
                 out.Enqueue(&buff[0], len);
             }
         }
+        */
     } else {
         DEBUG("%s using simple loop\n", GetName().c_str());
         out.Release();

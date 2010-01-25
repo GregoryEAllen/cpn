@@ -18,7 +18,7 @@
 CPPUNIT_TEST_SUITE_REGISTRATION( QueueTest );
 
 #if _DEBUG
-#define DEBUG(frmt, ...) printf(frmt, __VA_ARGS__)
+#define DEBUG(frmt, ...) printf(frmt, ## __VA_ARGS__)
 #else
 #define DEBUG(frmt, ...)
 #endif
@@ -37,6 +37,7 @@ const Key_t RKEY = 1;
 const Key_t WKEY = 2;
 
 void *QueueTest::EnqueueData() {
+    DEBUG("Enqueue started\n");
     try {
         while (true) {
             for (unsigned chan = 0; chan < queue->NumChannels(); ++chan) {
@@ -54,17 +55,20 @@ void *QueueTest::EnqueueData() {
                 }
             }
         }
-    } catch (...) {
+    } catch (const std::exception &e) {
         PthreadMutexProtected al(enqueue_lock);
         enqueue_fail = true;
+        DEBUG("Enqueue fail with exception: %s\n", e.what());
     }
     PthreadMutexProtected al(enqueue_lock);
     enqueue_dead = true;
     enqueue_cond.Signal();
+    DEBUG("Enqueue stopped\n");
     return 0;
 }
 
 void *QueueTest::DequeueData() {
+    DEBUG("Dequeue started\n");
     try {
         while (true) {
             bool fail = false;
@@ -87,16 +91,19 @@ void *QueueTest::DequeueData() {
             } else {
                 PthreadMutexProtected al(dequeue_lock);
                 dequeue_fail = true;
+                DEBUG("Dequeue fail: Data does not match.");
                 break;
             }
         }
-    } catch (...) {
+    } catch (const std::exception &e) {
         PthreadMutexProtected al(dequeue_lock);
         dequeue_fail = true;
+        DEBUG("Dequeue fail with exception: %s\n", e.what());
     }
     PthreadMutexProtected al(dequeue_lock);
     dequeue_dead = true;
     dequeue_cond.Signal();
+    DEBUG("Dequeue stopped\n");
     return 0;
 }
 
@@ -172,7 +179,8 @@ void QueueTest::ThresholdQueueTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
     shared_ptr<Database> database = shared_ptr<Database>(new MockDatabase);
     SimpleQueueAttr attr;
-    attr.SetLength(30).SetMaxThreshold(10).SetNumChannels(1);
+    attr.SetLength(30).SetMaxThreshold(10).SetNumChannels(1)
+        .SetReaderKey(RKEY).SetWriterKey(WKEY);
 	//DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
     queue = new ThresholdQueue(database, attr);
     TestBulk();
@@ -195,6 +203,7 @@ void QueueTest::ThresholdQueueTest() {
 }
 
 void QueueTest::TestBulk() {
+	DEBUG("%s\n",__PRETTY_FUNCTION__);
     unsigned maxthresh = queue->MaxThreshold();
     unsigned channels = queue->NumChannels();
     //printf("Size %u, Thresh %u, Chans %u\n", queue->QueueLength(), maxthresh, channels);
@@ -204,7 +213,11 @@ void QueueTest::TestBulk() {
     srand(1);
     unsigned indexbase = 0;
     while (true) {
-        int amount = queue->Freespace() < maxthresh ? queue->Freespace() : maxthresh;
+        int amount = maxthresh;
+        // force it to ask for maxthresh on first time
+        if (!queue->Empty() && queue->Freespace() < maxthresh) {
+            amount = queue->Freespace();
+        }
         if (amount == 0) break;
         for (unsigned chan = 0; chan < channels; ++chan) {
             unsigned index = indexbase;
@@ -248,6 +261,7 @@ void QueueTest::TestBulk() {
 }
 
 void QueueTest::TestDirect() {
+	DEBUG("%s\n",__PRETTY_FUNCTION__);
     unsigned maxthresh = queue->MaxThreshold();
     unsigned channels = queue->NumChannels();
     unsigned qsize = queue->QueueLength();
@@ -289,6 +303,7 @@ void QueueTest::TestDirect() {
 
 // Tests normal communication and blocking on the enqueue side
 void QueueTest::CommunicationTest() {
+	DEBUG("%s\n",__PRETTY_FUNCTION__);
     Reset();
     std::auto_ptr<Pthread> enqueuer = std::auto_ptr<Pthread>(
             CreatePthreadFunctional(this, &QueueTest::EnqueueData));
@@ -308,15 +323,16 @@ void QueueTest::CommunicationTest() {
         enqueue_stop = true;
     }
     enqueuer->Join();
-    dequeuer->Join();
-    CPPUNIT_ASSERT(dequeue_num == enqueue_num);
     CPPUNIT_ASSERT(!enqueue_fail);
+    dequeuer->Join();
     CPPUNIT_ASSERT(!dequeue_fail);
+    CPPUNIT_ASSERT(dequeue_num == enqueue_num);
 }
 
 // Test that dequeue will block and then test that enqueue properly
 // dies when the dequeue side shuts down.
 void QueueTest::DequeueBlockTest() {
+	DEBUG("%s\n",__PRETTY_FUNCTION__);
     Reset();
     std::auto_ptr<Pthread> enqueuer = std::auto_ptr<Pthread>(
             CreatePthreadFunctional(this, &QueueTest::EnqueueData));
@@ -336,6 +352,7 @@ void QueueTest::DequeueBlockTest() {
 }
 
 void QueueTest::MaxThreshGrowTest() {
+	DEBUG("%s\n",__PRETTY_FUNCTION__);
     unsigned maxthresh = queue->MaxThreshold();
     unsigned numchan = queue->NumChannels();
     char *ptr = 0;
@@ -377,6 +394,7 @@ void QueueTest::MaxThreshGrowTest() {
 }
 
 void QueueTest::GrowTest() {
+	DEBUG("%s\n",__PRETTY_FUNCTION__);
     unsigned maxthresh = queue->MaxThreshold();
     unsigned numchan = queue->NumChannels();
     char *ptr = 0;

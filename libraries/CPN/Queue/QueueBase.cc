@@ -58,7 +58,7 @@ namespace CPN {
             }
             if (readshutdown) { throw BrokenQueueException(readerkey); }
             if (thresh > MaxThreshold()) {
-                Grow(0, thresh);
+                Grow(2*thresh, thresh);
             } else {
                 readrequest = thresh;
                 WaitForData();
@@ -108,7 +108,7 @@ namespace CPN {
             }
             if (readshutdown || writeshutdown) { throw BrokenQueueException(writerkey); }
             if (thresh > MaxThreshold()) {
-                Grow(0, thresh);
+                Grow(2*thresh, thresh);
             } else {
                 writerequest = thresh;
                 WaitForFreespace();
