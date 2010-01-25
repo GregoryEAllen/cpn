@@ -57,7 +57,7 @@ namespace CPN {
                 return ptr;
             }
             if (readshutdown) { throw BrokenQueueException(readerkey); }
-            if (thresh > MaxThreshold()) {
+            if (thresh > MaxThreshold() && database->GrowQueueMaxThreshold()) {
                 Grow(2*thresh, thresh);
             } else {
                 readrequest = thresh;
@@ -107,7 +107,7 @@ namespace CPN {
                 return ptr;
             }
             if (readshutdown || writeshutdown) { throw BrokenQueueException(writerkey); }
-            if (thresh > MaxThreshold()) {
+            if (thresh > MaxThreshold() && database->GrowQueueMaxThreshold()) {
                 Grow(2*thresh, thresh);
             } else {
                 writerequest = thresh;
@@ -182,6 +182,7 @@ namespace CPN {
     }
 
     void QueueBase::NotifyTerminate() {
+        // Can't have the lock because this is called with the database lock
         cond.Broadcast();
     }
 

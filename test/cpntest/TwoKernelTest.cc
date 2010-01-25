@@ -28,8 +28,7 @@ using CPN::MemberFunction;
 CPPUNIT_TEST_SUITE_REGISTRATION( TwoKernelTest );
 
 void TwoKernelTest::setUp() {
-    CPNRegisterNodeFactory(shared_ptr<MockNodeFactory>(new MockNodeFactory("MockNode")));
-    shared_ptr<Database> database = Database::Local();
+    database = Database::Local();
     database->LogLevel(Logger::WARNING);
     KernelAttr kattrone("one");
     kattrone.SetDatabase(database);
@@ -44,7 +43,7 @@ void TwoKernelTest::tearDown() {
     kone = 0;
     delete ktwo;
     ktwo = 0;
-    CPNUnregisterNodeFactory("MockNode");
+    database.reset();
 }
 
 
@@ -65,7 +64,6 @@ void TwoKernelTest::SimpleTwoNodeTest() {
 
 void TwoKernelTest::TestSync() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
-    MockSyncNode::RegisterType();
     MockSyncNode::Param param;
     NodeAttr attr("sync1", MOCKSYNCNODE_TYPENAME);
     strncpy(param.othernode, "sync2", 50);
@@ -87,8 +85,8 @@ void TwoKernelTest::DoSyncTest(void (SyncSource::*fun1)(CPN::NodeBase*),
     DEBUG(">>DoSyncTest run %u\n", run);
     std::string sourcename = ToString("source %u", run);
     std::string sinkname = ToString("sink %u", run);
-    FunctionNode<MemberFunction<SyncSource> >::RegisterType(sourcename);
-    FunctionNode<MemberFunction<SyncSink> >::RegisterType(sinkname);
+    FunctionNode<MemberFunction<SyncSource> >::RegisterType(database, sourcename);
+    FunctionNode<MemberFunction<SyncSink> >::RegisterType(database, sinkname);
 
     // Create local to kone
     NodeAttr attrsource(sourcename, sourcename);

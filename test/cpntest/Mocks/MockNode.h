@@ -4,6 +4,8 @@
 #pragma once
 
 #include "NodeBase.h"
+
+#define MOCKNODE_TYPENAME "MockNode"
 /**
  * A mock node for testing general testing.
  * Takes a mode to define it's behavior.

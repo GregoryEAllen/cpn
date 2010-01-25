@@ -29,18 +29,16 @@ using CPN::FunctionNode;
 using CPN::MemberFunction;
 
 void KernelTest::setUp() {
-    CPNRegisterNodeFactory(shared_ptr<MockNodeFactory>(new MockNodeFactory("MockNode")));
 }
 
 void KernelTest::tearDown() {
-    CPNUnregisterNodeFactory("MockNode");
 }
 
 void KernelTest::TestInvalidNodeCreationType() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
     CPN::Kernel kernel(KernelAttr("test"));
     NodeAttr attr = NodeAttr("invalid", "invalid");
-	CPPUNIT_ASSERT_THROW(kernel.CreateNode(attr), std::invalid_argument);
+	CPPUNIT_ASSERT_THROW(kernel.CreateNode(attr), std::runtime_error);
 }
 
 void KernelTest::TestInvalidQueueCreationType() {
@@ -59,7 +57,7 @@ void KernelTest::TestCreateNodes() {
 void KernelTest::SimpleTwoNodeTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
     CPN::Kernel kernel(KernelAttr("test"));
-    NodeAttr attr("source", "MockNode");
+    NodeAttr attr("source", MOCKNODE_TYPENAME);
     attr.SetParam(MockNode::GetModeName(MockNode::MODE_SOURCE));
     kernel.CreateNode(attr);
     attr.SetName("sink").SetParam(MockNode::GetModeName(MockNode::MODE_SINK));
@@ -74,7 +72,7 @@ void KernelTest::SimpleTwoNodeTest() {
 
 void KernelTest::AddNoOps(CPN::Kernel &kernel) {
 
-    NodeAttr attr = NodeAttr("no op 1", "MockNode");
+    NodeAttr attr = NodeAttr("no op 1", MOCKNODE_TYPENAME);
     attr.SetParam(MockNode::GetModeName(MockNode::MODE_NOP));
 	// Create some nodes...
 	kernel.CreateNode(attr);
@@ -88,7 +86,6 @@ void KernelTest::AddNoOps(CPN::Kernel &kernel) {
 void KernelTest::TestSync() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
     CPN::Kernel kernel(KernelAttr("test"));
-    MockSyncNode::RegisterType();
     MockSyncNode::Param param;
     NodeAttr attr("sync1", MOCKSYNCNODE_TYPENAME);
     strncpy(param.othernode, "sync2", 50);
@@ -109,8 +106,8 @@ static void DoSyncTest(void (SyncSource::*fun1)(NodeBase*),
         void (SyncSink::*fun2)(NodeBase*)) {
 
     CPN::Kernel kernel(KernelAttr("test"));
-    FunctionNode<MemberFunction<SyncSource> >::RegisterType(SOURCENAME);
-    FunctionNode<MemberFunction<SyncSink> >::RegisterType(SINKNAME);
+    FunctionNode<MemberFunction<SyncSource> >::RegisterType(kernel.GetDatabase(), SOURCENAME);
+    FunctionNode<MemberFunction<SyncSink> >::RegisterType(kernel.GetDatabase(), SINKNAME);
 
     NodeAttr attr(SOURCENAME, SOURCENAME);
     SyncSource syncsource = SyncSource(SINKNAME);

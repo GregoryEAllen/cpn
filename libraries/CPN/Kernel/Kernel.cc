@@ -315,7 +315,7 @@ namespace CPN {
         FUNCBEGIN;
         ASSERT(status.Get() == RUNNING);
         nodeattr.SetDatabase(database);
-        shared_ptr<NodeFactory> factory = CPNGetNodeFactory(nodeattr.GetTypeName());
+        NodeFactory *factory = database->GetNodeFactory(nodeattr.GetTypeName());
         if (!factory) {
             throw std::invalid_argument("No such node type " + nodeattr.GetTypeName());
         }

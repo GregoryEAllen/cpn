@@ -101,7 +101,6 @@ namespace CPN {
     protected:
         RemoteDBClient();
         virtual void SendMessage(const Variant &msg) = 0;
-        mutable PthreadMutex lock;
     private:
 
         struct WaiterInfo {

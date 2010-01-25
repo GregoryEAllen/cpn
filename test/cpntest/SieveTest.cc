@@ -223,24 +223,29 @@ public:
         }
     }
 
-    static inline void RegisterFilter() {
-        CPNRegisterNodeFactory(CPN::shared_ptr<CPN::NodeFactory>(new SieveNodeFactory(FILTER_TYPE, FILTER)));
-    }
-    static inline void RegisterProducer() {
-        CPNRegisterNodeFactory(CPN::shared_ptr<CPN::NodeFactory>(new SieveNodeFactory(PRODUCER_TYPE, PRODUCER)));
-    }
-    static inline void RegisterResult() {
-        CPNRegisterNodeFactory(CPN::shared_ptr<CPN::NodeFactory>(new SieveNodeFactory(RESULT_TYPE, RESULT)));
-    }
 private:
     Type type;
 };
 
+extern "C" {
+    CPN::shared_ptr<CPN::NodeFactory> cpninitSieveFilterType(void);
+    CPN::shared_ptr<CPN::NodeFactory> cpninitSieveResultType(void);
+    CPN::shared_ptr<CPN::NodeFactory> cpninitSieveProducerType(void);
+}
+CPN::shared_ptr<CPN::NodeFactory> cpninitSieveFilterType(void) {
+    return CPN::shared_ptr<CPN::NodeFactory>(new SieveNodeFactory(FILTER_TYPE, SieveNodeFactory::FILTER));
+}
+
+CPN::shared_ptr<CPN::NodeFactory> cpninitSieveResultType(void) {
+    return CPN::shared_ptr<CPN::NodeFactory>(new SieveNodeFactory(RESULT_TYPE, SieveNodeFactory::RESULT));
+
+}
+
+CPN::shared_ptr<CPN::NodeFactory> cpninitSieveProducerType(void) {
+    return CPN::shared_ptr<CPN::NodeFactory>(new SieveNodeFactory(PRODUCER_TYPE, SieveNodeFactory::PRODUCER));
+}
 
 void SieveTest::setUp(void) {
-    SieveNodeFactory::RegisterFilter();
-    SieveNodeFactory::RegisterProducer();
-    SieveNodeFactory::RegisterResult();
 }
 
 void SieveTest::tearDown(void) {

@@ -55,8 +55,8 @@ private:
 };
 
 
-void MockSyncNode::RegisterType() {
-    CPNRegisterNodeFactory(CPN::shared_ptr<CPN::NodeFactory>(new MockSyncNodeFactory));
+CPN::shared_ptr<CPN::NodeFactory> cpninitmocksyncnodetypename(void) {
+    return (CPN::shared_ptr<CPN::NodeFactory>(new MockSyncNodeFactory));
 }
 
 void SyncSource::Run1(CPN::NodeBase *nb) {

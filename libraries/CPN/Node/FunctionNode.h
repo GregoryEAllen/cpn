@@ -30,6 +30,7 @@
 #include "CPNCommon.h"
 #include "NodeBase.h"
 #include "NodeFactory.h"
+#include "Database.h"
 #include "Assert.h"
 #include <string>
 
@@ -46,7 +47,7 @@ namespace CPN {
             ASSERT(attr.GetArg().GetSize() == sizeof(Func), "Required function parameter missing.");
             ASSERT(attr.GetArg().GetBuffer() != 0, "Required function parameter missing.");
         }
-        static void RegisterType(const std::string &name);
+        static void RegisterType(shared_ptr<Database> db, const std::string &name);
     private:
         void Process() {
             function(this);
@@ -64,8 +65,8 @@ namespace CPN {
     };
 
     template<typename Func>
-    inline void FunctionNode<Func>::RegisterType(const std::string &name) {
-        CPNRegisterNodeFactory(shared_ptr<NodeFactory>(
+    inline void FunctionNode<Func>::RegisterType(shared_ptr<Database> db, const std::string &name) {
+        db->RegisterNodeFactory(shared_ptr<NodeFactory>(
                     new FunctionFactory(name)));
     }
 

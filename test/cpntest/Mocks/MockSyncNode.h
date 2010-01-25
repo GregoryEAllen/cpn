@@ -7,6 +7,10 @@
 
 #define MOCKSYNCNODE_TYPENAME "mocksyncnodetypename"
 
+extern "C" {
+    CPN::shared_ptr<CPN::NodeFactory> cpninitmocksyncnodetypename(void);
+}
+
 class MockSyncNode : public CPN::NodeBase {
 public:
     enum Mode_t {
@@ -21,7 +25,6 @@ public:
 	MockSyncNode(CPN::Kernel &ker, const CPN::NodeAttr &attr);
 
 	void Process();
-    static void RegisterType();
 private:
     Param param;
 };

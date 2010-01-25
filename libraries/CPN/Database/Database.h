@@ -27,9 +27,21 @@
 #include "CPNCommon.h"
 #include "KernelBase.h"
 #include "Logger.h"
+#include "PthreadMutex.h"
 #include <string>
+#include <vector>
+#include <map>
+
+
+#define CPN_DEFAULT_INIT_SYMBOL "cpninit"
 
 namespace CPN {
+
+    /** \brief This is the prototype of the function
+     * that is called by the dynamic library loading
+     * facility.
+     */
+    typedef shared_ptr<NodeFactory> (*CPNInitPrototype)(void);
 
     /**
      * \brief The CPN::Database abstraction that holds all the global state
@@ -264,7 +276,50 @@ namespace CPN {
          */
         void CheckTerminated();
 
+        /** \brief This is the parameter used for the listen command.
+         * \return 256 by default
+         */
         virtual int ListenQueueLength() { return 256; }
+
+        /** \brief Whether or not D4R should be used.
+         * \return true or false (default true)
+         */
+        virtual bool UseD4R() { return true; }
+
+        /** \brief Whether the queue should grow when
+         * a threshold larger than the current max threshold is requested.
+         * \return true or false (default true)
+         */
+        virtual bool GrowQueueMaxThreshold() { return true; }
+
+        /** \brief Attempts to load the given dynamic library and call
+         * the init function.
+         * \param libname the library name and path
+         */
+        virtual void LoadSharedLib(const std::string &libname);
+
+        /** \brief Return a pointer to the node factory that produces the given
+         * node type. May load a shared library to find the node factory.
+         * \param nodetype the type of the node
+         * \return a node factory for the node type
+         */
+        virtual NodeFactory *GetNodeFactory(const std::string &nodetype);
+
+        /** \brief A function that lets others register node factories
+         * \param factory the node factory
+         */
+        virtual void RegisterNodeFactory(shared_ptr<NodeFactory> factory);
+
+    protected:
+        void InternalLoadLib(const std::string &lib);
+        void InternalLoad(const std::string &sym);
+
+        mutable PthreadMutex lock;
+        std::string sharedlibpath;
+        typedef std::vector<void*> LibList;
+        LibList loadedlibs;
+        typedef std::map<std::string, shared_ptr<NodeFactory> > FactoryMap;
+        FactoryMap factorymap;
     };
 
 }

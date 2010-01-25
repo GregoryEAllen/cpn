@@ -13,5 +13,9 @@ public:
 private:
 };
 
+extern "C" {
+    CPN::shared_ptr<CPN::NodeFactory> cpninitMockNode(void);
+}
+
 #endif
 
