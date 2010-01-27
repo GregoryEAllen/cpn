@@ -305,6 +305,123 @@ void StreamEndpointTest::WriteEndWithNoFDTest() {
     CPPUNIT_ASSERT(numenqueued == numdequeued);
 }
 
+void StreamEndpointTest::MaxThreshGrowTest() {
+	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    SetupDescriptors();
+    unsigned maxthresh = wqueue->MaxThreshold();
+    unsigned numchan = wqueue->NumChannels();
+    char *ptr = 0;
+    const char *cptr = 0;
+    std::vector<char> buff(4*maxthresh * numchan);
+    srand(0);
+    for (unsigned i = 0; i < buff.size(); ++i) {
+        buff[i] = (char)rand();
+    }
+    maxthresh *= 2;
+
+    for (unsigned i = 0; i < numchan; ++i) {
+        ptr = (char*)wqueue->GetRawEnqueuePtr(maxthresh, i);
+        CPPUNIT_ASSERT(ptr);
+        memcpy(ptr, &buff[2*maxthresh*i], maxthresh);
+    }
+    CPPUNIT_ASSERT(wqueue->MaxThreshold() >= maxthresh);
+    wqueue->Enqueue(maxthresh);
+    while (rqueue->MaxThreshold() != wqueue->MaxThreshold()) {
+        Poll(0);
+    }
+
+    // Test that growth works
+    unsigned len = rqueue->QueueLength() * 2;
+    rqueue->Grow(len, maxthresh);
+    while (rqueue->QueueLength() != wqueue->QueueLength()) {
+        Poll(0);
+    }
+    CPPUNIT_ASSERT(wqueue->QueueLength() >= len);
+    CPPUNIT_ASSERT(wqueue->MaxThreshold() >= maxthresh);
+    for (unsigned i = 0; i < numchan; ++i) {
+        ptr = (char*)wqueue->GetRawEnqueuePtr(maxthresh, i);
+        CPPUNIT_ASSERT(ptr);
+        memcpy(ptr, &buff[2*maxthresh*i + maxthresh], maxthresh);
+    }
+    wqueue->Enqueue(maxthresh);
+
+
+    maxthresh *= 2;
+    while (rqueue->Count() < maxthresh) {
+        Poll(0);
+    }
+    for (unsigned i = 0; i < numchan; ++i) {
+        cptr = (const char*)rqueue->GetRawDequeuePtr(maxthresh, i);
+        CPPUNIT_ASSERT(cptr);
+        CPPUNIT_ASSERT(memcmp(cptr, &buff[maxthresh * i], maxthresh) == 0);
+    }
+    while (rqueue->MaxThreshold() != wqueue->MaxThreshold()) {
+        Poll(0);
+    }
+    CPPUNIT_ASSERT(wqueue->MaxThreshold() >= maxthresh);
+}
+
+void StreamEndpointTest::GrowTest() {
+	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    SetupDescriptors();
+    unsigned maxthresh = wqueue->MaxThreshold();
+    unsigned numchan = wqueue->NumChannels();
+    char *ptr = 0;
+    const char *cptr = 0;
+    std::vector<char> buff(4*maxthresh * numchan);
+    srand(0);
+    for (unsigned i = 0; i < buff.size(); ++i) {
+        buff[i] = (char)rand();
+    }
+    maxthresh *= 2;
+
+    for (unsigned i = 0; i < numchan; ++i) {
+        ptr = (char*)wqueue->GetRawEnqueuePtr(maxthresh, i);
+        CPPUNIT_ASSERT(ptr);
+        memcpy(ptr, &buff[2*maxthresh*i], maxthresh);
+    }
+    CPPUNIT_ASSERT(wqueue->MaxThreshold() >= maxthresh);
+    wqueue->Enqueue(maxthresh);
+    while (rqueue->MaxThreshold() != wqueue->MaxThreshold()) {
+        Poll(0);
+    }
+
+    cptr = (const char*)rqueue->GetRawDequeuePtr(maxthresh, 0);
+    unsigned len = wqueue->QueueLength() * 2;
+    wqueue->Grow(len, maxthresh);
+    while (rqueue->QueueLength() != wqueue->QueueLength()) {
+        Poll(0);
+    }
+    CPPUNIT_ASSERT(rqueue->QueueLength() >= len);
+    CPPUNIT_ASSERT(rqueue->MaxThreshold() >= maxthresh);
+    for (unsigned i = 0; i < numchan; ++i) {
+        ptr = (char*)wqueue->GetRawEnqueuePtr(maxthresh, i);
+        CPPUNIT_ASSERT(ptr);
+        memcpy(ptr, &buff[2*maxthresh*i + maxthresh], maxthresh);
+    }
+    wqueue->Enqueue(maxthresh);
+    rqueue->Dequeue(0);
+
+    ptr = (char*)wqueue->GetRawEnqueuePtr(1, 0);
+    maxthresh *= 2;
+    while (rqueue->Count() < maxthresh) {
+        Poll(0);
+    }
+    for (unsigned i = 0; i < numchan; ++i) {
+        cptr = (const char*)rqueue->GetRawDequeuePtr(maxthresh, i);
+        CPPUNIT_ASSERT(cptr);
+        CPPUNIT_ASSERT(memcmp(cptr, &buff[maxthresh * i], maxthresh) == 0);
+    }
+    while (rqueue->MaxThreshold() != wqueue->MaxThreshold()) {
+        Poll(0);
+    }
+    CPPUNIT_ASSERT(wqueue->MaxThreshold() >= maxthresh);
+    wqueue->Enqueue(0);
+    rqueue->Dequeue(maxthresh);
+    CPPUNIT_ASSERT(rqueue->Count() == 0);
+}
+
+
 int StreamEndpointTest::Poll(double timeout) {
     std::vector<FileHandler*> filehandlers;
     wendp->CheckStatus();

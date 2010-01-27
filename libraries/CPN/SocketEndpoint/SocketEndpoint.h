@@ -56,15 +56,12 @@ namespace CPN {
         SocketEndpoint(shared_ptr<Database> db, Mode_t mode,
                 KernelBase *kmh_, const SimpleQueueAttr &attr);
 
+        ~SocketEndpoint();
+
         Status_t GetStatus() const;
 
         Mode_t GetMode() const { return mode; }
         Key_t GetKey() const { return mode == READ ? readerkey : writerkey; }
-
-        /** 
-         * to be removed
-         */
-        void Shutdown();
 
         /** Do any periodic things (like timing out a connection)
          * and/or return the maximum time we want to be checked again.
@@ -113,12 +110,14 @@ namespace CPN {
         virtual void WriteBlockPacket(const Packet &packet);
         virtual void EndOfWritePacket(const Packet &packet);
         virtual void EndOfReadPacket(const Packet &packet);
+        virtual void GrowPacket(const Packet &packet);
         virtual void IDReaderPacket(const Packet &packet);
         virtual void IDWriterPacket(const Packet &packet);
 
         // PacketEncoder
         virtual void WriteBytes(const iovec *iov, unsigned iovcnt);
 
+        void InternalGrow(unsigned queueLen, unsigned maxThresh);
         /** 
          * InternCheckStatus will do things like check the pending variables
          * and write data out if it thinks it should go out. It will also do things
@@ -137,10 +136,14 @@ namespace CPN {
         void SendDequeue();
         void SendReadBlock();
         void SendEndOfRead();
+        void SendGrow();
 
 
         Logger logger;
-        ::CircularQueue queue;
+        CircularQueue *queue;
+        CircularQueue *oldqueue;
+        bool enqueueUseOld;
+        bool dequeueUseOld;
 
         Status_t status;
         const Mode_t mode;
@@ -154,6 +157,7 @@ namespace CPN {
         bool pendingDequeue;
         bool pendingBlock;
         bool sentEnd;
+        bool pendingGrow;
 
         bool inread;
         bool incheckstatus;

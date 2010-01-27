@@ -42,8 +42,8 @@ namespace CPN {
     }
 
     void PacketDecoder::ReleaseDecoderBytes(unsigned amount) {
+        ASSERT(numbytes + amount <= sizeof(header.header));
         numbytes += amount;
-        ASSERT(numbytes <= sizeof(header.header));
         if (numbytes == sizeof(header.header)) {
             if (header.Valid()) {
                 FirePacket(header);

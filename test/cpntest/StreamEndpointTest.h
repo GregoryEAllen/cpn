@@ -37,6 +37,8 @@ public:
     CPPUNIT_TEST( EndOfReadQueueTest2 );
     CPPUNIT_TEST( WriteBlockWithNoFDTest );
     CPPUNIT_TEST( WriteEndWithNoFDTest );
+    CPPUNIT_TEST( MaxThreshGrowTest );
+    CPPUNIT_TEST( GrowTest );
 	CPPUNIT_TEST_SUITE_END();
 
     void CommunicationTest();
@@ -45,6 +47,8 @@ public:
     void EndOfReadQueueTest2();
     void WriteBlockWithNoFDTest();
     void WriteEndWithNoFDTest();
+    void MaxThreshGrowTest();
+    void GrowTest();
 
 private:
 

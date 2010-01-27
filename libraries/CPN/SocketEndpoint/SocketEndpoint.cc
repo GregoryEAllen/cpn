@@ -47,7 +47,10 @@ namespace CPN {
             KernelBase *kmh_, const SimpleQueueAttr &attr)
         : QueueBase(db, attr),
         logger(kmh_->GetLogger(), Logger::INFO),
-        queue(attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels()),
+        queue(0),
+        oldqueue(0),
+        enqueueUseOld(false),
+        dequeueUseOld(false),
         status(LIVE),
         mode(mode_),
         kmh(kmh_),
@@ -56,35 +59,26 @@ namespace CPN {
         pendingDequeue(false),
         pendingBlock(false),
         sentEnd(false),
+        pendingGrow(false),
         inread(false),
         incheckstatus(false)
     {
+        queue = new CircularQueue(attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
         Writeable(false);
         logger.Name(ToString("SocketEndpoint(m:%s, r:%llu, w: %llu)",
                     mode == READ ? "r" : "w", readerkey, writerkey));
     }
 
+    SocketEndpoint::~SocketEndpoint() {
+        delete queue;
+        queue = 0;
+        delete oldqueue;
+        oldqueue = 0;
+    }
+
     SocketEndpoint::Status_t SocketEndpoint::GetStatus() const {
         Sync::AutoLock<QueueBase> arl(*this);
         return status;
-    }
-
-    void SocketEndpoint::Shutdown() {
-        Sync::AutoLock<QueueBase> arl(*this);
-        FUNC_TRACE;
-        // force us into a shutdown state
-        if (connection) {
-            connection->Cancel();
-            connection.reset();
-        }
-        if (mode == READ) {
-            readshutdown = true;
-        } else {
-            writeshutdown = true;
-        }
-        queue.Clear();
-        status = DIEING;
-        InternCheckStatus();
     }
 
     double SocketEndpoint::CheckStatus() {
@@ -104,64 +98,90 @@ namespace CPN {
     }
 
     const void *SocketEndpoint::InternalGetRawDequeuePtr(unsigned thresh, unsigned chan) {
-        return queue.GetRawDequeuePtr(thresh, chan);
+        ASSERT(mode == READ);
+        if (dequeueUseOld) {
+            return oldqueue->GetRawDequeuePtr(thresh, chan);
+        } else {
+            return queue->GetRawDequeuePtr(thresh, chan);
+        }
     }
 
     void SocketEndpoint::InternalDequeue(unsigned count) {
-        queue.Dequeue(count);
+        if (dequeueUseOld) {
+            dequeueUseOld = false;
+            delete oldqueue;
+            oldqueue = 0;
+        }
+        queue->Dequeue(count);
         pendingDequeue = true;
         InternCheckStatus();
     }
 
     void *SocketEndpoint::InternalGetRawEnqueuePtr(unsigned thresh, unsigned chan) {
-        return queue.GetRawEnqueuePtr(thresh, chan);
+        ASSERT(mode == WRITE);
+        if (enqueueUseOld) {
+            return oldqueue->GetRawEnqueuePtr(thresh, chan);
+        } else {
+            return queue->GetRawEnqueuePtr(thresh, chan);
+        }
     }
 
     void SocketEndpoint::InternalEnqueue(unsigned count) {
-        queue.Enqueue(count);
+        if (enqueueUseOld) {
+            oldqueue->Dequeue(oldqueue->Count());
+            oldqueue->Enqueue(count);
+            const void *ptr = oldqueue->GetRawDequeuePtr(count, 0);
+            queue->RawEnqueue(ptr, count, oldqueue->NumChannels(), oldqueue->ChannelStride());
+            enqueueUseOld = false;
+            delete oldqueue;
+            oldqueue = 0;
+        } else {
+            queue->Enqueue(count);
+        }
         InternCheckStatus();
     }
 
     unsigned SocketEndpoint::NumChannels() const {
         Sync::AutoLock<QueueBase> arl(*this);
-        return queue.NumChannels();
+        return queue->NumChannels();
     }
 
     unsigned SocketEndpoint::Count() const {
         Sync::AutoLock<QueueBase> arl(*this);
-        return queue.Count();
+        return queue->Count();
     }
 
     bool SocketEndpoint::Empty() const {
         Sync::AutoLock<QueueBase> arl(*this);
-        return queue.Empty();
+        return queue->Empty();
     }
 
     unsigned SocketEndpoint::Freespace() const {
         Sync::AutoLock<QueueBase> arl(*this);
-        return queue.Freespace();
+        return queue->Freespace();
     }
 
     bool SocketEndpoint::Full() const {
         Sync::AutoLock<QueueBase> arl(*this);
-        return queue.Full();
+        return queue->Full();
     }
 
     unsigned SocketEndpoint::MaxThreshold() const {
         Sync::AutoLock<QueueBase> arl(*this);
-        return queue.MaxThreshold();
+        return queue->MaxThreshold();
     }
 
     unsigned SocketEndpoint::QueueLength() const {
         Sync::AutoLock<QueueBase> arl(*this);
-        return queue.QueueLength();
+        return queue->QueueLength();
     }
 
     void SocketEndpoint::Grow(unsigned queueLen, unsigned maxThresh) {
         Sync::AutoLock<QueueBase> arl(*this);
-        return queue.Grow(queueLen, maxThresh);
+        InternalGrow(queueLen, maxThresh);
+        pendingGrow = true;
+        InternCheckStatus();
     }
-
 
     void SocketEndpoint::WaitForFreespace() {
         Sync::AutoLock<QueueBase> arl(*this);
@@ -189,6 +209,27 @@ namespace CPN {
         Sync::AutoLock<QueueBase> al(*this);
         QueueBase::ShutdownWriter();
         InternCheckStatus();
+    }
+
+    void SocketEndpoint::InternalGrow(unsigned queueLen, unsigned maxThresh) {
+        if (queueLen <= queue->QueueLength() && maxThresh <= queue->MaxThreshold()) { return; }
+        ASSERT(!(inenqueue && indequeue), "Unhandled grow case of having an outstanding dequeue and enqueue");
+        if (oldqueue) {
+            // If the old queue is still around we have to still be in the same state
+            ASSERT(enqueueUseOld == inenqueue);
+            ASSERT(dequeueUseOld == indequeue);
+            queue->Grow(queueLen, maxThresh);
+        } else if (!inenqueue && !indequeue) {
+            queue->Grow(queueLen, maxThresh);
+        } else {
+            enqueueUseOld = inenqueue;
+            dequeueUseOld = indequeue;
+            oldqueue = queue;
+            // this should make a duplicate
+            // For CircularQueue this makes an actual copy
+            queue = new CircularQueue(*oldqueue);
+            queue->Grow(queueLen, maxThresh);
+        }
     }
 
     void SocketEndpoint::OnRead() {
@@ -258,19 +299,24 @@ namespace CPN {
         );
         ASSERT(mode == READ);
         ASSERT(!writeshutdown);
+        unsigned count = packet.Count();
+        if (count > queue->Freespace() || count > queue->MaxThreshold()) {
+            InternalGrow(queue->Count() + count, count);
+            pendingGrow = true;
+        }
         std::vector<iovec> iovs;
         for (unsigned i = 0; i < packet.NumChannels(); ++i) {
             iovec iov;
-            iov.iov_base = queue.GetRawEnqueuePtr(packet.Count(), i);
+            iov.iov_base = queue->GetRawEnqueuePtr(count, i);
             ASSERT(iov.iov_base, "Internal throttle failed!");
-            iov.iov_len = packet.Count();
+            iov.iov_len = count;
             iovs.push_back(iov);
         }
         unsigned numread = Readv(&iovs[0], iovs.size());
         // Need to figure out what to do when this fails.
         ASSERT(numread == packet.DataLength());
-        queue.Enqueue(packet.Count());
-        readcount += packet.Count();
+        queue->Enqueue(count);
+        readcount += count;
         writerequest = 0;
         NotifyData();
     }
@@ -336,6 +382,10 @@ namespace CPN {
         InternCheckStatus();
     }
 
+    void SocketEndpoint::GrowPacket(const Packet &packet) {
+        InternalGrow(packet.QueueSize(), packet.MaxThreshold());
+    }
+
     void SocketEndpoint::IDReaderPacket(const Packet &packet) {
         FUNC_TRACE;
         ASSERT(false, "Shouldn't receive an ID packet once the connection is successful");
@@ -397,6 +447,10 @@ namespace CPN {
                 }
             }
 
+            if (pendingGrow) {
+                SendGrow();
+            }
+
             if (mode == READ) {
                 // In read mode
      
@@ -406,7 +460,7 @@ namespace CPN {
 
                 if (pendingBlock) {
                     OnRead();
-                    if (readrequest > queue.Count()) {
+                    if (readrequest > queue->Count()) {
                         SendReadBlock();
                     } else {
                         pendingBlock = false;
@@ -435,13 +489,13 @@ namespace CPN {
                 ASSERT(mode == WRITE);
 
                 // In write mode
-                while (!queue.Empty() && !EnqueueBlocked()) {
+                while (!queue->Empty() && !EnqueueBlocked()) {
                     SendEnqueue();
                 }
 
                 if (pendingBlock) {
                     OnRead();
-                    if (writerequest > queue.Freespace()) {
+                    if (writerequest > queue->Freespace()) {
                         SendWriteBlock();
                     } else {
                         pendingBlock = false;
@@ -462,7 +516,7 @@ namespace CPN {
                 // have and then send across the writer end and wait for the confirming
                 // reader end
                 if (writeshutdown) {
-                    if ( queue.Empty() && !sentEnd ) {
+                    if ( queue->Empty() && !sentEnd ) {
                         SendEndOfWrite();
                     }
                 }
@@ -473,28 +527,28 @@ namespace CPN {
     }
 
     bool SocketEndpoint::EnqueueBlocked() {
-        return (2 * writecount) > queue.QueueLength();
+        return (2 * writecount) > queue->QueueLength();
     }
 
     void SocketEndpoint::SetupPacketDefaults(Packet &packet) {
         if (mode == WRITE) { packet.SourceKey(writerkey).DestinationKey(readerkey); }
         else { packet.SourceKey(readerkey).DestinationKey(writerkey); }
-        packet.Mode(mode).Status(status).NumChannels(queue.NumChannels());
+        packet.Mode(mode).Status(status).NumChannels(queue->NumChannels());
     }
 
     void SocketEndpoint::SendEnqueue() {
         FUNC_TRACE;
         ASSERT(!Closed());
-        unsigned count = queue.Count();
-        const unsigned maxthresh = queue.MaxThreshold();
-        const unsigned expectedfree = queue.QueueLength() - writecount;
+        unsigned count = queue->Count();
+        const unsigned maxthresh = queue->MaxThreshold();
+        const unsigned expectedfree = queue->QueueLength() - writecount;
         if (count > maxthresh) { count = maxthresh; }
         if (count > expectedfree) { count = expectedfree; }
-        unsigned datalength = count * queue.NumChannels();
+        unsigned datalength = count * queue->NumChannels();
         Packet packet(datalength, PACKET_ENQUEUE);
         SetupPacketDefaults(packet);
-        packet.Count(count).BytesQueued(queue.Count());
-        PacketEncoder::SendEnqueue(packet, queue);
+        packet.Count(count).BytesQueued(queue->Count());
+        PacketEncoder::SendEnqueue(packet, *queue);
         writecount += count;
         QueueBase::NotifyFreespace();
     }
@@ -524,7 +578,7 @@ namespace CPN {
         ASSERT(!Closed());
         Packet packet(PACKET_DEQUEUE);
         SetupPacketDefaults(packet);
-        unsigned count = readcount - queue.Count();
+        unsigned count = readcount - queue->Count();
         packet.Count(count);
         PacketEncoder::SendPacket(packet);
         readcount -= count;
@@ -549,6 +603,17 @@ namespace CPN {
         PacketEncoder::SendPacket(packet);
         sentEnd = true;
         SockHandler::ShutdownWrite();
+    }
+
+    void SocketEndpoint::SendGrow() {
+        FUNC_TRACE;
+        ASSERT(!Closed());
+        Packet packet(PACKET_GROW);
+        SetupPacketDefaults(packet);
+        packet.QueueSize(queue->QueueLength());
+        packet.MaxThreshold(queue->MaxThreshold());
+        PacketEncoder::SendPacket(packet);
+        pendingGrow = false;
     }
 
     void SocketEndpoint::LogState() {
@@ -581,7 +646,7 @@ namespace CPN {
             }
         }
         if (mode == READ) {
-            logger.Debug("Readcount %u (in queue %u)", readcount, queue.Count());
+            logger.Debug("Readcount %u (in queue %u)", readcount, queue->Count());
             if (pendingDequeue) {
                 logger.Debug("Dequeue pending");
             }
@@ -590,8 +655,8 @@ namespace CPN {
             }
         } else {
             logger.Debug("Writecount %u", writecount);
-            if (!queue.Empty()) {
-                logger.Debug("Enqueue pending (count %u)", queue.Count());
+            if (!queue->Empty()) {
+                logger.Debug("Enqueue pending (count %u)", queue->Count());
                 if (EnqueueBlocked()) {
                     logger.Debug("Enqueue blocked");
                 }
@@ -612,6 +677,9 @@ namespace CPN {
         }
         if (writeshutdown) {
             logger.Debug("Writer shutdown");
+        }
+        if (pendingGrow) {
+            logger.Debug("Pending grow (q: %u, t: %u)", queue->QueueLength(), queue->MaxThreshold());
         }
     }
 }

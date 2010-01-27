@@ -72,6 +72,10 @@ protected:
         header = packet;
         ++numevents;
     }
+    void GrowPacket(const Packet &packet) {
+        header = packet;
+        ++numevents;
+    }
     void IDReaderPacket(const Packet &packet) {
         header = packet;
         ++numevents;

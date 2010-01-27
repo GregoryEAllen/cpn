@@ -49,6 +49,9 @@ namespace CPN {
         case PACKET_ENDOFREAD:
             EndOfReadPacket(packet);
             break;
+        case PACKET_GROW:
+            GrowPacket(packet);
+            break;
         case PACKET_ID_READER:
             IDReaderPacket(packet);
             break;

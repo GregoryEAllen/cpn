@@ -53,30 +53,35 @@ namespace CPN {
         PACKET_WRITEBLOCK,
         PACKET_ENDOFWRITE,
         PACKET_ENDOFREAD,
-        PACKET_CHANGESIZE,
+        PACKET_GROW,
 
         PACKET_ID_READER,
         PACKET_ID_WRITER
     };
 
     struct PacketHeader {
-        uint32_t syncWord;
-        uint32_t dataLength;
-        uint32_t dataType;
         union {
-            uint32_t bytesQueued;
-            uint32_t queueSize;
+            struct {
+                uint32_t syncWord;
+                uint32_t dataLength;
+                uint32_t dataType;
+                union {
+                    uint32_t bytesQueued;
+                    uint32_t queueSize;
+                };
+                uint64_t srckey;
+                uint64_t dstkey;
+                union {
+                    uint32_t requested;
+                    uint32_t maxThresh;
+                    uint32_t count;
+                };
+                uint32_t numChans;
+                uint8_t mode;
+                uint8_t status;
+            };
+            uint8_t pad[PACKET_HEADERLENGTH];
         };
-        uint64_t srckey;
-        uint64_t dstkey;
-        union {
-            uint32_t requested;
-            uint32_t maxThresh;
-            uint32_t count;
-        };
-        uint32_t numChans;
-        uint8_t mode;
-        uint8_t status;
     };
 
     inline bool ValidPacket(const PacketHeader *ph) {
@@ -144,6 +149,7 @@ namespace CPN {
         virtual void WriteBlockPacket(const Packet &packet) = 0;
         virtual void EndOfWritePacket(const Packet &packet) = 0;
         virtual void EndOfReadPacket(const Packet &packet) = 0;
+        virtual void GrowPacket(const Packet &packet) = 0;
         virtual void IDReaderPacket(const Packet &packet) = 0;
         virtual void IDWriterPacket(const Packet &packet) = 0;
     };

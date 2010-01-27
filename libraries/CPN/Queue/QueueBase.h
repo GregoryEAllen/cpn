@@ -216,7 +216,7 @@ namespace CPN {
         virtual void WaitForFreespace();
         void NotifyFreespace();
 
-        virtual void LogState() {}
+        virtual void LogState();
         virtual const void *InternalGetRawDequeuePtr(unsigned thresh, unsigned chan) = 0;
         virtual void InternalDequeue(unsigned count) = 0;
         virtual void *InternalGetRawEnqueuePtr(unsigned thresh, unsigned chan) = 0;
