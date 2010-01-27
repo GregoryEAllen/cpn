@@ -1,12 +1,12 @@
 
 
-#include "DDDRNode.h"
+#include "D4RNode.h"
 #include "Assert.h"
 
-class Node : public DDDR::Node {
+class Node : public D4R::Node {
 public:
     Node(unsigned long long k)
-        : DDDR::Node(k),
+        : D4R::Node(k),
         locked(false)
     {}
 
@@ -24,16 +24,16 @@ private:
     mutable bool locked;
 };
 
-class Queue : public DDDR::Queue {
+class Queue : public D4R::Queue {
 public:
     Queue(unsigned initialsize)
         : detected(false), queuesize(initialsize), locked(false)
     {}
 
-    void ReadBlock() { DDDR::Queue::ReadBlock(); }
-    void WriteBlock(unsigned count) { DDDR::Queue::WriteBlock(count); }
-    void ReadUnblock() { DDDR::Queue::ReadUnblock(); }
-    void WriteUnblock() { DDDR::Queue::WriteUnblock(); }
+    void ReadBlock() { D4R::Queue::ReadBlock(); }
+    void WriteBlock(unsigned count) { D4R::Queue::WriteBlock(count); }
+    void ReadUnblock() { D4R::Queue::ReadUnblock(); }
+    void WriteUnblock() { D4R::Queue::WriteUnblock(); }
 
     void Lock() const {
         ASSERT(!locked, "Deadlock");

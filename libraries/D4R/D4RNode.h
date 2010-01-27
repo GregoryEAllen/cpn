@@ -20,17 +20,17 @@
 /** \file
  * \author John Bridgman
  */
-#ifndef DDDR_NODE_H
-#define DDDR_NODE_H
+#ifndef D4R_NODE_H
+#define D4R_NODE_H
 #pragma once
-#include "DDDRTag.h"
+#include "D4RTag.h"
 #include <deque>
-namespace DDDR {
+namespace D4R {
 
 /*
  * Implementation notes
  *
- * In the DDDR algorithm there are four state transitions.
+ * In the D4R algorithm there are four state transitions.
  *
  * BLOCK:
  * This state transition happens when a node blocks on a queue.  There

@@ -20,14 +20,14 @@
 /** \file
  * \author John Bridgman
  */
-#include "DDDRNode.h"
+#include "D4RNode.h"
 #include "AutoLock.h"
 #include "AutoUnlock.h"
 #include "Assert.h"
 #include <algorithm>
 #include <functional>
 
-namespace DDDR {
+namespace D4R {
 
     Node::Node(unsigned long long key)
         : publicTag(key),

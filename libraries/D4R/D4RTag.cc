@@ -20,9 +20,9 @@
 /** \file
  * \author John Bridgman
  */
-#include "DDDRTag.h"
+#include "D4RTag.h"
 
-namespace DDDR {
+namespace D4R {
 
     bool Tag::operator<(const Tag &t) const {
         if (count < t.count) { return true; }

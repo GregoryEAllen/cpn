@@ -20,14 +20,14 @@
 /** \file
  * \author John Bridgman
  */
-#ifndef DDDR_TAG_H
-#define DDDR_TAG_H
+#ifndef D4R_TAG_H
+#define D4R_TAG_H
 #pragma once
 /** 
- * \brief DDDR algorithm as described in "A Distributed Deadlock Detection And
+ * \brief D4R algorithm as described in "A Distributed Deadlock Detection And
  * Resolution Algorithm For Process Networks" by Allen, Zucknick and Evans
  */
-namespace DDDR {
+namespace D4R {
 
     class Tag {
     public:
