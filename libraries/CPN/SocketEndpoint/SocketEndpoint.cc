@@ -230,6 +230,7 @@ namespace CPN {
             queue = new CircularQueue(*oldqueue);
             queue->Grow(queueLen, maxThresh);
         }
+        NotifyFreespace();
     }
 
     void SocketEndpoint::OnRead() {

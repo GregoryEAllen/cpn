@@ -79,8 +79,12 @@ namespace CPN {
         try {
             database->SignalNodeStart(nodekey);
             Process();
-        } catch (CPN::ShutdownException e) {
+        } catch (const CPN::ShutdownException &e) {
             // Forced shutdown
+        } catch (const CPN::BrokenQueueException &e) {
+            if (!database->SwallowBrokenQueueExceptions()) {
+                throw;
+            }
         }
         database->SignalNodeEnd(nodekey);
         arl.Lock();

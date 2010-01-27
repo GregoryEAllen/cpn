@@ -292,6 +292,12 @@ namespace CPN {
          */
         virtual bool GrowQueueMaxThreshold() { return true; }
 
+        /** \brief Whether the node should by default swallow the broken queue exceptions
+         * or let them propigate as an error.
+         * \return true or false
+         */
+        virtual bool SwallowBrokenQueueExceptions() { return false; }
+
         /** \brief Attempts to load the given dynamic library and call
          * the init function.
          * \param libname the library name and path
