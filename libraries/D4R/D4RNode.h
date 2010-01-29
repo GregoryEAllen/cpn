@@ -66,12 +66,7 @@ namespace D4R {
  */
 
     /*
-     * Notes on lock holding. The node should never hold a lock when
-     * calling any method in the queue. The queue may hold a lock when
-     * calling methods in node except for Transmit and Block
      */
-
-    class Queue;
 
     class Node {
     public:
@@ -80,58 +75,21 @@ namespace D4R {
 
         virtual ~Node();
 
-        void Block(const Tag &t, unsigned qsize);
+        Tag GetTag() const;
+        void Block(Tag t, unsigned qsize);
+        bool Transmit(Tag t);
 
-        /**
-         * Perform the transmit step.
-         * \return true if we should detect, otherwise false.
-         * \param t the transmitted tag
-         */
-        bool Transmit(const Tag &t);
+        virtual void SignalTagChanged() = 0;
 
-        void Activate();
-
-        Tag GetPublicTag() const;
-        Tag GetPrivateTag() const;
-        unsigned GetNumBlockees() const;
-
-        void RegisterTagChangeNotification(Queue *q, const Tag &t);
-
-        void AddBlockee();
-        void RemBlockee();
-
-        virtual void Lock() const;
-        virtual void Unlock() const;
-    private:
+        virtual void Lock() const = 0;
+        virtual void Unlock() const = 0;
+    protected:
         Tag publicTag;
         Tag privateTag;
-        unsigned numblockees;
-        std::deque<Queue*> blockees;
-    };
-
-    class Queue {
-    public:
-        Queue();
-        virtual ~Queue();
-        void SetReaderNode(Node *n);
-        void SetWriterNode(Node *n);
-        virtual void TagChanged(const Tag t);
-        virtual void Lock() const;
-        virtual void Unlock() const;
-    protected:
-        // ReadBlock, WriteBlock, and Unblock assume you already have the lock (and release and reaquire it)
-        virtual void ReadBlock();
-        virtual void WriteBlock(unsigned qsize);
-        virtual void ReadUnblock();
-        virtual void WriteUnblock();
-
-        virtual void Detect() = 0;
-
-        bool readblocked;
-        bool writeblocked;
     private:
-        Node *writer;
-        Node *reader;
+        Node(const Node&);
+        Node &operator=(const Node&);
     };
+
 }
 #endif

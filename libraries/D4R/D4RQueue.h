@@ -20,48 +20,45 @@
 /** \file
  * \author John Bridgman
  */
-#include "D4RNode.h"
-#include "AutoLock.h"
-#include "AutoUnlock.h"
-#include "Assert.h"
-#include <algorithm>
-#include <functional>
-
+#ifndef D4R_QUEUE_H
+#define D4R_QUEUE_H
 namespace D4R {
 
-    Node::Node(unsigned long long key)
-        : publicTag(key),
-        privateTag(key)
-    {
-    }
+    class Node;
 
-    Node::~Node() {}
+    class QueueBase {
+    public:
+        QueueBase();
+        virtual ~QueueBase();
 
-    Tag Node::GetTag() const {
-        Sync::AutoLock<Node> al(*this);
-        return publicTag;
-    }
+        void SetReaderNode(Node *n);
+        void SetWriterNode(Node *n);
 
-    void Node::Block(Tag t, unsigned qsize) {
-        Sync::AutoLock<Node> al(*this);
-        privateTag.QueueSize(qsize);
-        privateTag.Count(std::max(privateTag.Count(), publicTag.Count()) + 1);
-        publicTag = privateTag;
-        SignalTagChanged();
-    }
+        // reader ===> writer
+        virtual void ReadBlock();
+        virtual bool ReadBlocked() = 0;
 
-    bool Node::Transmit(Tag t) {
-        Sync::AutoLock<Node> al(*this);
-        if (publicTag < t) {
-            unsigned qsize = std::min(publicTag.QueueSize(), t.QueueSize());
-            publicTag = t;
-            publicTag.QueueSize(qsize);
-            SignalTagChanged();
-        } else if (publicTag == t) {
-            return privateTag.QueueSize() == privateTag.QueueSize();
-        }
-        return false;
-    }
+        // writer ===> reader
+        virtual void WriteBlock(unsigned qsize);
+        virtual bool WriteBlocked() = 0;
+
+        virtual void Lock() const = 0;
+        virtual void Unlock() const = 0;
+
+        virtual void SignalTagChanged();
+        virtual void Detect(bool artificial) = 0;
+    private:
+        QueueBase(const QueueBase&);
+        QueueBase &operator=(const QueueBase&);
+
+        virtual void Wait() = 0;
+        virtual void Signal() = 0;
+
+        Node *reader;
+        Node *writer;
+        bool readtagchanged;
+        bool writetagchanged;
+    };
 
 }
-
+#endif

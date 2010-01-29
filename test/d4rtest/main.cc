@@ -1,6 +1,7 @@
 
 
 #include "D4RNode.h"
+#include "D4RQueue.h"
 #include "Assert.h"
 
 class Node : public D4R::Node {
@@ -9,6 +10,8 @@ public:
         : D4R::Node(k),
         locked(false)
     {}
+
+    void SignalTagChanged() {}
 
     void Lock() const {
         ASSERT(!locked, "Deadlock");
@@ -24,16 +27,11 @@ private:
     mutable bool locked;
 };
 
-class Queue : public D4R::Queue {
+class Queue : public D4R::QueueBase {
 public:
     Queue(unsigned initialsize)
         : detected(false), queuesize(initialsize), locked(false)
     {}
-
-    void ReadBlock() { D4R::Queue::ReadBlock(); }
-    void WriteBlock(unsigned count) { D4R::Queue::WriteBlock(count); }
-    void ReadUnblock() { D4R::Queue::ReadUnblock(); }
-    void WriteUnblock() { D4R::Queue::WriteUnblock(); }
 
     void Lock() const {
         ASSERT(!locked, "Deadlock");
@@ -48,9 +46,13 @@ public:
     bool Detected() const { return detected; }
 private:
 
-    void Detect() {
+    bool ReadBlocked() { return true; }
+    bool WriteBlocked() { return true; }
+    void Detect(bool artificial) {
         detected = true;
     }
+    void Signal() {}
+    void Wait() {}
 
     bool detected;
     unsigned queuesize;
@@ -75,16 +77,10 @@ int main(int argc, char **argv) {
     Queue queueAB(1);
     Node A(1);
     Node B(2);
-    queueAB.SetWriterNode(&A);
-    queueAB.SetReaderNode(&B);
     queueAB.Lock();
     // A blocks on B
-    queueAB.WriteBlock(2);
     // B blocks on A
-    queueAB.ReadBlock();
     if (queueAB.Detected()) {
-        queueAB.WriteUnblock();
-        queueAB.ReadUnblock();
         printf("Success!\n");
     } else {
         printf("didn't detect deadlock");
