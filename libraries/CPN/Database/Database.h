@@ -298,14 +298,23 @@ namespace CPN {
          */
         virtual bool SwallowBrokenQueueExceptions() { return false; }
 
-        /** \brief Attempts to load the given dynamic library and call
-         * the init function.
+        /** \brief Attempts to load the given dynamic library
+         * and make the symbols inside available to be searched for
+         * node types.
+         * The library will be unloaded on distruction.
          * \param libname the library name and path
          */
         virtual void LoadSharedLib(const std::string &libname);
 
         /** \brief Return a pointer to the node factory that produces the given
          * node type. May load a shared library to find the node factory.
+         *
+         * If there is no node factory available already, attempt to find
+         * a function named "cpninitnodetype" and call it to get the factory.
+         * If there is no function named this, then quiery the library loader
+         * for a library with the name nodetype then try again. If all this
+         * fails then throw a runtime_error exception.
+         *
          * \param nodetype the type of the node
          * \return a node factory for the node type
          */
@@ -321,9 +330,8 @@ namespace CPN {
         void InternalLoad(const std::string &sym);
 
         mutable PthreadMutex lock;
-        std::string sharedlibpath;
-        typedef std::vector<void*> LibList;
-        LibList loadedlibs;
+        typedef std::map<std::string, void*> LibMap;
+        LibMap libmap;
         typedef std::map<std::string, shared_ptr<NodeFactory> > FactoryMap;
         FactoryMap factorymap;
     };

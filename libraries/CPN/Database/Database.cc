@@ -35,10 +35,10 @@ namespace CPN {
 
     Database::~Database() {
         factorymap.clear();
-        for (LibList::iterator itr = loadedlibs.begin(); itr != loadedlibs.end(); ++itr) {
-            dlclose(*itr);
+        for (LibMap::iterator itr = libmap.begin(); itr != libmap.end(); ++itr) {
+            dlclose(itr->second);
         }
-        loadedlibs.clear();
+        libmap.clear();
     }
 
     void Database::CheckTerminated() {
@@ -74,11 +74,13 @@ namespace CPN {
     }
 
     void Database::InternalLoadLib(const std::string &lib) {
-        void *handle = dlopen(lib.c_str(), RTLD_LAZY | RTLD_GLOBAL);
-        if (!handle) {
-            loadedlibs.push_back(handle);
-        } else {
-            throw std::runtime_error(dlerror());
+        if (libmap.find(lib) == libmap.end()) {
+            void *handle = dlopen(lib.c_str(), RTLD_LAZY | RTLD_GLOBAL);
+            if (!handle) {
+                throw std::runtime_error(dlerror());
+            } else {
+                libmap.insert(std::make_pair(lib, handle));
+            }
         }
     }
 
@@ -93,15 +95,19 @@ namespace CPN {
             throw std::runtime_error(dlerror());
         }
         try {
-            dlerror();
             *((void**)&init) = dlsym(handle, sym.c_str());
             char *error = 0;
             if ((error = dlerror()) != 0) {
-                throw std::runtime_error(error);
-            } else {
-                shared_ptr<NodeFactory> factory = init();
-                factorymap.insert(std::make_pair(factory->GetName(), factory));
+                InternalLoadLib(name);
+                dlerror();
+                *((void**)&init) = dlsym(handle, sym.c_str());
+                char *error = 0;
+                if ((error = dlerror()) != 0) {
+                    throw std::runtime_error(error);
+                }
             }
+            shared_ptr<NodeFactory> factory = init();
+            factorymap.insert(std::make_pair(factory->GetName(), factory));
         } catch (...) {
             dlclose(handle);
             throw;
