@@ -57,6 +57,7 @@ void KernelTest::TestCreateNodes() {
 void KernelTest::SimpleTwoNodeTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
     CPN::Kernel kernel(KernelAttr("test"));
+    kernel.GetDatabase()->UseD4R(false);
     NodeAttr attr("source", MOCKNODE_TYPENAME);
     attr.SetParam(MockNode::GetModeName(MockNode::MODE_SOURCE));
     kernel.CreateNode(attr);
@@ -86,6 +87,7 @@ void KernelTest::AddNoOps(CPN::Kernel &kernel) {
 void KernelTest::TestSync() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
     CPN::Kernel kernel(KernelAttr("test"));
+    kernel.GetDatabase()->UseD4R(false);
     MockSyncNode::Param param;
     NodeAttr attr("sync1", MOCKSYNCNODE_TYPENAME);
     strncpy(param.othernode, "sync2", 50);
@@ -106,6 +108,7 @@ static void DoSyncTest(void (SyncSource::*fun1)(NodeBase*),
         void (SyncSink::*fun2)(NodeBase*)) {
 
     CPN::Kernel kernel(KernelAttr("test"));
+    kernel.GetDatabase()->UseD4R(false);
     FunctionNode<MemberFunction<SyncSource> >::RegisterType(kernel.GetDatabase(), SOURCENAME);
     FunctionNode<MemberFunction<SyncSink> >::RegisterType(kernel.GetDatabase(), SINKNAME);
 

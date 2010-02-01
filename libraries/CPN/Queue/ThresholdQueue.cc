@@ -80,22 +80,22 @@ namespace CPN {
     }
 
     unsigned ThresholdQueue::NumChannels() const {
-        Sync::AutoLock<QueueBase> al(*this);
+        Sync::AutoLock<const QueueBase> al(*this);
         return queue->NumChannels();
     }
 
     unsigned ThresholdQueue::ChannelStride() const {
-        Sync::AutoLock<QueueBase> al(*this);
+        Sync::AutoLock<const QueueBase> al(*this);
         return queue->ChannelStride();
     }
 
     unsigned ThresholdQueue::Freespace() const {
-        Sync::AutoLock<QueueBase> al(*this);
+        Sync::AutoLock<const QueueBase> al(*this);
         return queue->Freespace();
     }
 
     bool ThresholdQueue::Full() const {
-        Sync::AutoLock<QueueBase> al(*this);
+        Sync::AutoLock<const QueueBase> al(*this);
         return queue->Full();
     }
 
@@ -117,32 +117,32 @@ namespace CPN {
     }
 
     unsigned ThresholdQueue::Count() const {
-        Sync::AutoLock<QueueBase> al(*this);
+        Sync::AutoLock<const QueueBase> al(*this);
         return queue->Count();
     }
 
     bool ThresholdQueue::Empty() const {
-        Sync::AutoLock<QueueBase> al(*this);
+        Sync::AutoLock<const QueueBase> al(*this);
         return queue->Empty();
     }
 
     unsigned ThresholdQueue::MaxThreshold() const {
-        Sync::AutoLock<QueueBase> al(*this);
+        Sync::AutoLock<const QueueBase> al(*this);
         return queue->MaxThreshold();
     }
 
     unsigned ThresholdQueue::QueueLength() const {
-        Sync::AutoLock<QueueBase> al(*this);
+        Sync::AutoLock<const QueueBase> al(*this);
         return queue->QueueLength();
     }
 
     unsigned ThresholdQueue::ElementsEnqueued() const {
-        Sync::AutoLock<QueueBase> al(*this);
+        Sync::AutoLock<const QueueBase> al(*this);
         return queue->ElementsEnqueued();
     }
 
     unsigned ThresholdQueue::ElementsDequeued() const {
-        Sync::AutoLock<QueueBase> al(*this);
+        Sync::AutoLock<const QueueBase> al(*this);
         return queue->ElementsDequeued();
     }
 

@@ -33,12 +33,27 @@ namespace CPN {
         return shared_ptr<Database>(new LocalDatabase);
     }
 
+    Database::Database()
+        : useD4R(true)
+    {
+    }
+
     Database::~Database() {
         factorymap.clear();
         for (LibMap::iterator itr = libmap.begin(); itr != libmap.end(); ++itr) {
             dlclose(itr->second);
         }
         libmap.clear();
+    }
+
+    bool Database::UseD4R() {
+        PthreadMutexProtected al(lock);
+        return useD4R;
+    }
+
+    bool Database::UseD4R(bool u) {
+        PthreadMutexProtected al(lock);
+        return useD4R = u;
     }
 
     void Database::CheckTerminated() {

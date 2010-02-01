@@ -149,6 +149,7 @@ namespace CPN {
         virtual void EndOfWritePacket(const Packet &packet) { ASSERT(false); }
         virtual void EndOfReadPacket(const Packet &packet) { ASSERT(false); }
         virtual void GrowPacket(const Packet &packet) { ASSERT(false); }
+        virtual void D4RTagPacket(const Packet &packet) { ASSERT(false); }
         virtual void IDReaderPacket(const Packet &packet) {
             Sync::AutoReentrantLock arlock(lock);
             FUNC_TRACE(kch.logger);

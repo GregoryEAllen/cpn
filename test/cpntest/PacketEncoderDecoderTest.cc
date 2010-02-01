@@ -76,6 +76,10 @@ protected:
         header = packet;
         ++numevents;
     }
+    void D4RTagPacket(const Packet &packet) {
+        header = packet;
+        ++numevents;
+    }
     void IDReaderPacket(const Packet &packet) {
         header = packet;
         ++numevents;

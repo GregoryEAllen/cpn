@@ -52,6 +52,9 @@ namespace CPN {
         case PACKET_GROW:
             GrowPacket(packet);
             break;
+        case PACKET_D4RTAG:
+            D4RTagPacket(packet);
+            break;
         case PACKET_ID_READER:
             IDReaderPacket(packet);
             break;

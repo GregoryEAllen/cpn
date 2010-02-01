@@ -33,6 +33,7 @@
 #include "CircularQueue.h"
 #include "PacketDecoder.h"
 #include "PacketEncoder.h"
+#include "D4RNode.h"
 
 namespace CPN {
     
@@ -93,6 +94,8 @@ namespace CPN {
         virtual void WaitForData();
         virtual void WaitForFreespace();
 
+        virtual void SignalTagChanged();
+
         // FileHandler
         virtual void OnRead();
         virtual void OnWrite();
@@ -111,6 +114,7 @@ namespace CPN {
         virtual void EndOfWritePacket(const Packet &packet);
         virtual void EndOfReadPacket(const Packet &packet);
         virtual void GrowPacket(const Packet &packet);
+        virtual void D4RTagPacket(const Packet &packet);
         virtual void IDReaderPacket(const Packet &packet);
         virtual void IDWriterPacket(const Packet &packet);
 
@@ -137,7 +141,15 @@ namespace CPN {
         void SendReadBlock();
         void SendEndOfRead();
         void SendGrow();
+        void SendD4RTag();
 
+        class MockNode : public D4R::Node {
+        public:
+            MockNode(Key_t key) : D4R::Node(key) {}
+            void SignalTagChanged() { ASSERT(false); }
+        };
+
+        MockNode mocknode;
 
         Logger logger;
         CircularQueue *queue;
@@ -158,6 +170,7 @@ namespace CPN {
         bool pendingBlock;
         bool sentEnd;
         bool pendingGrow;
+        bool pendingD4RTag;
 
         bool inread;
         bool incheckstatus;

@@ -51,6 +51,7 @@ namespace D4R {
         QueueBase(const QueueBase&);
         QueueBase &operator=(const QueueBase&);
 
+    protected:
         virtual void Wait() = 0;
         virtual void Signal() = 0;
 

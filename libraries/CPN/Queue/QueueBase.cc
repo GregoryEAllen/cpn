@@ -39,6 +39,7 @@ namespace CPN {
         indequeue(false),
         inenqueue(false),
         database(db),
+        useD4R(db->UseD4R()),
         datatype(attr.GetDatatype())
     {
     }
@@ -156,10 +157,18 @@ namespace CPN {
     }
 
     void QueueBase::WaitForData() {
-        while (Count() < readrequest && !(readshutdown || writeshutdown)) {
-            database->CheckTerminated();
-            cond.Wait(lock);
+        if (useD4R) {
+            ReadBlock();
+        } else {
+            while (ReadBlocked()) {
+                cond.Wait(lock);
+            }
         }
+    }
+
+    bool QueueBase::ReadBlocked() {
+        database->CheckTerminated();
+        return Count() < readrequest && !(readshutdown || writeshutdown);
     }
 
     void QueueBase::NotifyData() {
@@ -169,10 +178,18 @@ namespace CPN {
     }
 
     void QueueBase::WaitForFreespace() {
-        while (Freespace() < writerequest && !(readshutdown || writeshutdown)) {
-            database->CheckTerminated();
-            cond.Wait(lock);
+        if (useD4R) {
+            WriteBlock(QueueLength());
+        } else {
+            while (WriteBlocked()) {
+                cond.Wait(lock);
+            }
         }
+    }
+
+    bool QueueBase::WriteBlocked() {
+        database->CheckTerminated();
+        return Freespace() < writerequest && !(readshutdown || writeshutdown);
     }
 
     void QueueBase::NotifyFreespace() {
@@ -184,6 +201,16 @@ namespace CPN {
     void QueueBase::NotifyTerminate() {
         // Can't have the lock because this is called with the database lock
         cond.Broadcast();
+    }
+
+    void QueueBase::Detect(bool artificial) {
+        Sync::AutoLock<QueueBase> al(*this);
+        printf("Detect called\n");
+        if (artificial) {
+            printf("Artificial deadlock\n");
+        } else {
+            printf("True deadlock\n");
+        }
     }
 
     unsigned QueueBase::ReadRequest() {

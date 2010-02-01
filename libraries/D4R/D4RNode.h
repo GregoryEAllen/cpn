@@ -24,6 +24,7 @@
 #define D4R_NODE_H
 #pragma once
 #include "D4RTag.h"
+#include "PthreadMutex.h"
 #include <deque>
 namespace D4R {
 
@@ -75,17 +76,20 @@ namespace D4R {
 
         virtual ~Node();
 
-        Tag GetTag() const;
+        Tag GetPublicTag() const;
+        void SetPublicTag(Tag t);
+        Tag GetPrivateTag() const;
+        void SetPrivateTag(Tag t);
+
         void Block(Tag t, unsigned qsize);
         bool Transmit(Tag t);
 
+    protected:
         virtual void SignalTagChanged() = 0;
 
-        virtual void Lock() const = 0;
-        virtual void Unlock() const = 0;
-    protected:
         Tag publicTag;
         Tag privateTag;
+        mutable PthreadMutex taglock;
     private:
         Node(const Node&);
         Node &operator=(const Node&);

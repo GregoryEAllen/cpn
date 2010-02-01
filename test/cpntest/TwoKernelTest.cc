@@ -30,6 +30,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION( TwoKernelTest );
 void TwoKernelTest::setUp() {
     database = Database::Local();
     database->LogLevel(Logger::WARNING);
+    database->UseD4R(false);
     KernelAttr kattrone("one");
     kattrone.SetDatabase(database);
     KernelAttr kattrtwo("two");

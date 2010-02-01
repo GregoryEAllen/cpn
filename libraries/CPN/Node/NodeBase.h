@@ -32,6 +32,8 @@
 
 #include "ReentrantLock.h"
 
+#include "D4RNode.h"
+
 #include "Pthread.h"
 
 #include <map>
@@ -45,7 +47,7 @@ namespace CPN {
 	 * lifetime of the node object.
 	 *
 	 */
-	class CPN_API NodeBase : private Pthread, private QueueReleaser {
+	class CPN_API NodeBase : private Pthread, private QueueReleaser, private D4R::Node {
 	public:
 		NodeBase(Kernel &ker, const NodeAttr &attr);
 
@@ -103,9 +105,6 @@ namespace CPN {
          */
         using Pthread::Start;
 
-        void Lock() const { lock.Lock(); }
-        void Unlock() const { lock.Unlock(); }
-
         /** \brief Called by the kernel when it is shutting down */
         void NotifyTerminate();
 	protected:
@@ -117,6 +116,7 @@ namespace CPN {
 	private:
 		void* EntryPoint();
 
+        void SignalTagChanged();
 
         shared_ptr<QueueReader> GetReader(Key_t ekey);
         shared_ptr<QueueWriter> GetWriter(Key_t ekey);

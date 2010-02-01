@@ -23,7 +23,6 @@
 #include "D4RQueue.h"
 #include "D4RNode.h"
 #include "AutoLock.h"
-#include "AutoUnlock.h"
 #include "Assert.h"
 
 namespace D4R {
@@ -54,20 +53,14 @@ namespace D4R {
             while (ReadBlocked() && !writer) {
                 Wait();
             }
-            if (!ReadBlocked()) {
-                return;
-            }
         }
+        if (!ReadBlocked()) { return; }
         readtagchanged = false;
-        {
-            AutoUnlock<QueueBase> aul(*this);
-            reader->Block(writer->GetTag(), -1);
-        }
+        reader->Block(writer->GetPublicTag(), -1);
         while (ReadBlocked()) {
             if (readtagchanged) {
                 readtagchanged = false;
-                AutoUnlock<QueueBase> aul(*this);
-                if (reader->Transmit(writer->GetTag())) {
+                if (reader->Transmit(writer->GetPublicTag())) {
                     Detect(false);
                 }
             } else {
@@ -81,20 +74,14 @@ namespace D4R {
             while (WriteBlocked() && !reader) {
                 Wait();
             }
-            if (!WriteBlocked()) {
-                return;
-            }
         }
+        if (!WriteBlocked()) { return; }
         writetagchanged = false;
-        {
-            AutoUnlock<QueueBase> aul(*this);
-            writer->Block(reader->GetTag(), qsize);
-        }
+        writer->Block(reader->GetPublicTag(), qsize);
         while (WriteBlocked()) {
             if (writetagchanged) {
                 writetagchanged = false;
-                AutoUnlock<QueueBase> aul(*this);
-                if (writer->Transmit(reader->GetTag())) {
+                if (writer->Transmit(reader->GetPublicTag())) {
                     Detect(true);
                 }
             } else {

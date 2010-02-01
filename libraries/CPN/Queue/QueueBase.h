@@ -26,13 +26,14 @@
 
 #include "CPNCommon.h"
 #include "ReentrantLock.h"
+#include "D4RQueue.h"
 
 namespace CPN {
 
 	/**
 	 * \brief The base class for all queues in the CPN library.
 	 */
-	class CPN_LOCAL QueueBase {
+	class CPN_LOCAL QueueBase : public D4R::QueueBase {
 	public:
 
 		virtual ~QueueBase();
@@ -212,9 +213,16 @@ namespace CPN {
 		QueueBase(shared_ptr<Database> db, const SimpleQueueAttr &attr);
 
         virtual void WaitForData();
+        virtual bool ReadBlocked();
         void NotifyData();
         virtual void WaitForFreespace();
+        virtual bool WriteBlocked();
         void NotifyFreespace();
+
+        virtual void Wait() { cond.Wait(lock); }
+        virtual void Signal() { cond.Broadcast(); }
+
+        virtual void Detect(bool artificial);
 
         virtual void LogState();
         virtual const void *InternalGetRawDequeuePtr(unsigned thresh, unsigned chan) = 0;
@@ -233,6 +241,7 @@ namespace CPN {
         bool indequeue;
         bool inenqueue;
         shared_ptr<Database> database;
+        bool useD4R;
 	private:
         Sync::ReentrantLock lock;
         Sync::ReentrantCondition cond;

@@ -44,6 +44,7 @@ void StreamEndpointTest::setUp() {
     database = CPN::Database::Local();
 
     database->LogLevel(Logger::WARNING);
+    database->UseD4R(false);
 
     rfd = shared_ptr<FileFuture>(new FileFuture);
     wfd = shared_ptr<FileFuture>(new FileFuture);
@@ -139,7 +140,8 @@ void *StreamEndpointTest::EnqueueData() {
                 }
             }
         }
-    } catch (...) {
+    } catch (const std::exception &e) {
+        DEBUG("Exception on enqueue: %s\n", e.what());
     }
     PthreadMutexProtected al(lock);
     enqueuedead = true;
@@ -165,7 +167,8 @@ void *StreamEndpointTest::DequeueData() {
                 break;
             }
         }
-    } catch (...) {
+    } catch (const std::exception &e) {
+        DEBUG("Exception on dequeue: %s\n", e.what());
     }
     PthreadMutexProtected al(lock);
     dequeuedead = true;

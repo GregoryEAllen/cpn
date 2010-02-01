@@ -54,6 +54,7 @@ namespace CPN {
         PACKET_ENDOFWRITE,
         PACKET_ENDOFREAD,
         PACKET_GROW,
+        PACKET_D4RTAG,
 
         PACKET_ID_READER,
         PACKET_ID_WRITER
@@ -150,6 +151,7 @@ namespace CPN {
         virtual void EndOfWritePacket(const Packet &packet) = 0;
         virtual void EndOfReadPacket(const Packet &packet) = 0;
         virtual void GrowPacket(const Packet &packet) = 0;
+        virtual void D4RTagPacket(const Packet &packet) = 0;
         virtual void IDReaderPacket(const Packet &packet) = 0;
         virtual void IDWriterPacket(const Packet &packet) = 0;
     };

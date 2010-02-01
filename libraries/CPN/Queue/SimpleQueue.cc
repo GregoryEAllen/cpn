@@ -83,42 +83,42 @@ namespace CPN {
     }
 
     unsigned SimpleQueue::NumChannels() const {
-        Sync::AutoLock<QueueBase> al(*this);
+        Sync::AutoLock<const QueueBase> al(*this);
         return queue->NumChannels();
     }
 
     unsigned SimpleQueue::MaxThreshold() const {
-        Sync::AutoLock<QueueBase> al(*this);
+        Sync::AutoLock<const QueueBase> al(*this);
         return queue->MaxThreshold();
     }
 
     unsigned SimpleQueue::QueueLength() const {
-        Sync::AutoLock<QueueBase> al(*this);
+        Sync::AutoLock<const QueueBase> al(*this);
         return queue->QueueLength();
     }
 
     unsigned SimpleQueue::Freespace() const {
-        Sync::AutoLock<QueueBase> al(*this);
+        Sync::AutoLock<const QueueBase> al(*this);
         return queue->Freespace();
     }
 
     bool SimpleQueue::Full() const {
-        Sync::AutoLock<QueueBase> al(*this);
+        Sync::AutoLock<const QueueBase> al(*this);
         return queue->Full();
     }
 
     unsigned SimpleQueue::Count() const {
-        Sync::AutoLock<QueueBase> al(*this);
+        Sync::AutoLock<const QueueBase> al(*this);
         return queue->Count();
     }
 
     bool SimpleQueue::Empty() const {
-        Sync::AutoLock<QueueBase> al(*this);
+        Sync::AutoLock<const QueueBase> al(*this);
         return queue->Empty();
     }
 
     unsigned SimpleQueue::ChannelStride() const {
-        Sync::AutoLock<QueueBase> al(*this);
+        Sync::AutoLock<const QueueBase> al(*this);
         return queue->ChannelStride();
     }
 

@@ -26,6 +26,7 @@
 #include "Assert.h"
 #include <algorithm>
 #include <functional>
+#include <stdio.h>
 
 namespace D4R {
 
@@ -37,28 +38,54 @@ namespace D4R {
 
     Node::~Node() {}
 
-    Tag Node::GetTag() const {
-        Sync::AutoLock<Node> al(*this);
+    Tag Node::GetPublicTag() const {
+        Sync::AutoLock<PthreadMutex> al(taglock);
         return publicTag;
     }
 
+    void Node::SetPublicTag(Tag t) {
+        Sync::AutoLock<PthreadMutex> al(taglock);
+        publicTag = t;
+    }
+
+    Tag Node::GetPrivateTag() const {
+        Sync::AutoLock<PthreadMutex> al(taglock);
+        return privateTag;
+    }
+
+    void Node::SetPrivateTag(Tag t) {
+        Sync::AutoLock<PthreadMutex> al(taglock);
+        privateTag = t;
+    }
+
     void Node::Block(Tag t, unsigned qsize) {
-        Sync::AutoLock<Node> al(*this);
+        Sync::AutoLock<PthreadMutex> al(taglock);
         privateTag.QueueSize(qsize);
         privateTag.Count(std::max(privateTag.Count(), publicTag.Count()) + 1);
+        printf("Node %llu:%llu block %u\n", privateTag.Count(), privateTag.Key(), privateTag.QueueSize());
         publicTag = privateTag;
+        al.Unlock();
         SignalTagChanged();
     }
 
     bool Node::Transmit(Tag t) {
-        Sync::AutoLock<Node> al(*this);
+        Sync::AutoLock<PthreadMutex> al(taglock);
         if (publicTag < t) {
+            printf("Node %llu:%llu transfer %u : (%llu, %llu %u) < (%llu, %llu, %u)\n",
+                    privateTag.Count(), privateTag.Key(), privateTag.QueueSize(),
+                    publicTag.Count(), publicTag.Key(), publicTag.QueueSize(),
+                    t.Count(), t.Key(), t.QueueSize());
             unsigned qsize = std::min(publicTag.QueueSize(), t.QueueSize());
             publicTag = t;
             publicTag.QueueSize(qsize);
+            al.Unlock();
             SignalTagChanged();
         } else if (publicTag == t) {
-            return privateTag.QueueSize() == privateTag.QueueSize();
+            printf("Node %llu:%llu transfer %u : (%llu, %llu %u) == (%llu, %llu, %u)\n",
+                    privateTag.Count(), privateTag.Key(), privateTag.QueueSize(),
+                    publicTag.Count(), publicTag.Key(), publicTag.QueueSize(),
+                    t.Count(), t.Key(), t.QueueSize());
+            return privateTag.QueueSize() == publicTag.QueueSize();
         }
         return false;
     }

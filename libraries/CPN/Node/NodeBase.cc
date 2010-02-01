@@ -34,8 +34,12 @@
 namespace CPN {
 
     NodeBase::NodeBase(Kernel &ker, const NodeAttr &attr)
-    : kernel(ker), name(attr.GetName()), type(attr.GetTypeName()),
-    nodekey(attr.GetKey()), database(attr.GetDatabase())
+    :   D4R::Node(attr.GetKey()),
+        kernel(ker),
+        name(attr.GetName()),
+        type(attr.GetTypeName()),
+        nodekey(attr.GetKey()),
+        database(attr.GetDatabase())
     {
     }
 
@@ -43,8 +47,9 @@ namespace CPN {
     }
 
     void NodeBase::CreateReader(shared_ptr<QueueBase> q) {
-        Key_t readerkey = q->GetReaderKey();
         Sync::AutoReentrantLock arl(lock);
+        Key_t readerkey = q->GetReaderKey();
+        q->SetReaderNode(this);
         ASSERT(readermap.find(readerkey) == readermap.end(), "The reader already exists");
         shared_ptr<QueueReader> reader;
         reader = shared_ptr<QueueReader>(new QueueReader(this, q));
@@ -53,8 +58,9 @@ namespace CPN {
     }
 
     void NodeBase::CreateWriter(shared_ptr<QueueBase> q) {
-        Key_t writerkey = q->GetWriterKey();
         Sync::AutoReentrantLock arl(lock);
+        Key_t writerkey = q->GetWriterKey();
+        q->SetWriterNode(this);
         ASSERT(writermap.find(writerkey) == writermap.end(), "The writer already exists.");
         shared_ptr<QueueWriter> writer;
         writer = shared_ptr<QueueWriter>(new QueueWriter(this, q));
@@ -161,6 +167,14 @@ namespace CPN {
         while (witr != writermap.end()) { (witr++)->second->NotifyTerminate(); }
         ReaderMap::iterator ritr = readermap.begin();
         while (ritr != readermap.end()) { (ritr++)->second->NotifyTerminate(); }
+    }
+
+    void NodeBase::SignalTagChanged() {
+        Sync::AutoReentrantLock arl(lock);
+        WriterMap::iterator witr = writermap.begin();
+        while (witr != writermap.end()) { (witr++)->second->SignalTagChanged(); }
+        ReaderMap::iterator ritr = readermap.begin();
+        while (ritr != readermap.end()) { (ritr++)->second->SignalTagChanged(); }
     }
 }
 

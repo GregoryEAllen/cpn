@@ -255,6 +255,7 @@ void SieveTest::tearDown(void) {
 void SieveTest::RunTest(void) {
     DEBUG("%s\n",__PRETTY_FUNCTION__);
     CPN::Kernel kernel(CPN::KernelAttr("Testing"));
+    kernel.GetDatabase()->UseD4R(false);
     AutoBuffer buffer(NUMPRIMES*sizeof(SieveNumber));
     CPPUNIT_ASSERT(buffer.GetBuffer());
 
@@ -298,6 +299,7 @@ void SieveTest::RunTwoKernelTest() {
     CPPUNIT_ASSERT(buffer.GetBuffer());
     CPN::shared_ptr<CPN::Database> database = CPN::Database::Local();
     database->LogLevel(Logger::WARNING);
+    database->UseD4R(false);
     CPN::Kernel kone(CPN::KernelAttr("one").SetDatabase(database));
     CPN::Kernel ktwo(CPN::KernelAttr("two").SetDatabase(database));
     std::vector<std::string> hosts;

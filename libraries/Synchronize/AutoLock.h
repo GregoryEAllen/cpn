@@ -38,7 +38,7 @@ namespace Sync {
          * Create a new AutoLock and lock the mutex.
          * \param mutex_ the mutex
          */
-		AutoLock(const Lockable& mutex_) throw() : mutex(mutex_), count(0) {
+		AutoLock(Lockable& mutex_) throw() : mutex(mutex_), count(0) {
             Lock();
 		}
         /**
@@ -72,7 +72,7 @@ namespace Sync {
 		}
 
 	private:
-		const Lockable& mutex;
+		Lockable& mutex;
 		unsigned long count;
 	};
 }

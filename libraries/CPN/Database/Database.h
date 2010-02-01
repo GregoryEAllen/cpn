@@ -284,7 +284,8 @@ namespace CPN {
         /** \brief Whether or not D4R should be used.
          * \return true or false (default true)
          */
-        virtual bool UseD4R() { return true; }
+        virtual bool UseD4R();
+        virtual bool UseD4R(bool u);
 
         /** \brief Whether the queue should grow when
          * a threshold larger than the current max threshold is requested.
@@ -326,6 +327,8 @@ namespace CPN {
         virtual void RegisterNodeFactory(shared_ptr<NodeFactory> factory);
 
     protected:
+        Database();
+
         void InternalLoadLib(const std::string &lib);
         void InternalLoad(const std::string &sym);
 
@@ -334,6 +337,8 @@ namespace CPN {
         LibMap libmap;
         typedef std::map<std::string, shared_ptr<NodeFactory> > FactoryMap;
         FactoryMap factorymap;
+
+        bool useD4R;
     };
 
 }

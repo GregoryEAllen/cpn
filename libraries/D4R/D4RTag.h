@@ -32,6 +32,7 @@ namespace D4R {
     class Tag {
     public:
         Tag(unsigned long long k) : count(0), key(k), qsize(-1) {}
+        Tag() : count(0), key(0), qsize(-1) {}
         /**
          * Perform comparison as specified in "A Distributed Deadlock Detection And
          * Resolution Algorithm For Process Networks" by Allen, Zucknick and Evans

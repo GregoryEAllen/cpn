@@ -46,6 +46,7 @@ namespace CPN {
     SocketEndpoint::SocketEndpoint(shared_ptr<Database> db, Mode_t mode_,
             KernelBase *kmh_, const SimpleQueueAttr &attr)
         : QueueBase(db, attr),
+        mocknode(mode_ == READ ? attr.GetReaderNodeKey() : attr.GetWriterNodeKey()),
         logger(kmh_->GetLogger(), Logger::INFO),
         queue(0),
         oldqueue(0),
@@ -65,6 +66,11 @@ namespace CPN {
     {
         queue = new CircularQueue(attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
         Writeable(false);
+        if (mode == READ) {
+            SetWriterNode(&mocknode);
+        } else {
+            SetReaderNode(&mocknode);
+        }
         logger.Name(ToString("SocketEndpoint(m:%s, r:%llu, w: %llu)",
                     mode == READ ? "r" : "w", readerkey, writerkey));
     }
@@ -77,7 +83,7 @@ namespace CPN {
     }
 
     SocketEndpoint::Status_t SocketEndpoint::GetStatus() const {
-        Sync::AutoLock<QueueBase> arl(*this);
+        Sync::AutoLock<const QueueBase> arl(*this);
         return status;
     }
 
@@ -142,37 +148,37 @@ namespace CPN {
     }
 
     unsigned SocketEndpoint::NumChannels() const {
-        Sync::AutoLock<QueueBase> arl(*this);
+        Sync::AutoLock<const QueueBase> arl(*this);
         return queue->NumChannels();
     }
 
     unsigned SocketEndpoint::Count() const {
-        Sync::AutoLock<QueueBase> arl(*this);
+        Sync::AutoLock<const QueueBase> arl(*this);
         return queue->Count();
     }
 
     bool SocketEndpoint::Empty() const {
-        Sync::AutoLock<QueueBase> arl(*this);
+        Sync::AutoLock<const QueueBase> arl(*this);
         return queue->Empty();
     }
 
     unsigned SocketEndpoint::Freespace() const {
-        Sync::AutoLock<QueueBase> arl(*this);
+        Sync::AutoLock<const QueueBase> arl(*this);
         return queue->Freespace();
     }
 
     bool SocketEndpoint::Full() const {
-        Sync::AutoLock<QueueBase> arl(*this);
+        Sync::AutoLock<const QueueBase> arl(*this);
         return queue->Full();
     }
 
     unsigned SocketEndpoint::MaxThreshold() const {
-        Sync::AutoLock<QueueBase> arl(*this);
+        Sync::AutoLock<const QueueBase> arl(*this);
         return queue->MaxThreshold();
     }
 
     unsigned SocketEndpoint::QueueLength() const {
-        Sync::AutoLock<QueueBase> arl(*this);
+        Sync::AutoLock<const QueueBase> arl(*this);
         return queue->QueueLength();
     }
 
@@ -208,6 +214,13 @@ namespace CPN {
     void SocketEndpoint::ShutdownWriter() {
         Sync::AutoLock<QueueBase> al(*this);
         QueueBase::ShutdownWriter();
+        InternCheckStatus();
+    }
+
+    void SocketEndpoint::SignalTagChanged() {
+        Sync::AutoLock<QueueBase> al(*this);
+        pendingD4RTag = true;
+        QueueBase::SignalTagChanged();
         InternCheckStatus();
     }
 
@@ -288,7 +301,7 @@ namespace CPN {
     }
 
     bool SocketEndpoint::Readable() const {
-        Sync::AutoLock<QueueBase> arl(*this);
+        Sync::AutoLock<const QueueBase> arl(*this);
         return Good();
     }
 
@@ -344,6 +357,9 @@ namespace CPN {
         ASSERT(mode == WRITE);
         ASSERT(!readshutdown);
         readrequest = packet.Requested();
+        if (useD4R) {
+            pendingD4RTag = true;
+        }
         InternCheckStatus();
     }
 
@@ -356,6 +372,9 @@ namespace CPN {
         ASSERT(mode == READ);
         ASSERT(!writeshutdown);
         writerequest = packet.Requested();
+        if (useD4R) {
+            pendingD4RTag = true;
+        }
         InternCheckStatus();
     }
 
@@ -385,6 +404,15 @@ namespace CPN {
 
     void SocketEndpoint::GrowPacket(const Packet &packet) {
         InternalGrow(packet.QueueSize(), packet.MaxThreshold());
+    }
+
+    void SocketEndpoint::D4RTagPacket(const Packet &packet) {
+        ASSERT(packet.DataLength() == sizeof(D4R::Tag));
+        D4R::Tag tag;
+        unsigned numread = Read(&tag, sizeof(tag));
+        ASSERT(numread == sizeof(tag));
+        mocknode.SetPublicTag(tag);
+        QueueBase::SignalTagChanged();
     }
 
     void SocketEndpoint::IDReaderPacket(const Packet &packet) {
@@ -468,6 +496,12 @@ namespace CPN {
                     }
                 }
 
+                if (pendingD4RTag) {
+                    if (reader && !readshutdown) {
+                        SendD4RTag();
+                    }
+                }
+
                 // If we have a read shutdown we need to send the 
                 // end of read queue message and shutdown the write
                 // side of the socket.
@@ -500,6 +534,12 @@ namespace CPN {
                         SendWriteBlock();
                     } else {
                         pendingBlock = false;
+                    }
+                }
+
+                if (pendingD4RTag) {
+                    if (writer && !writeshutdown) {
+                        SendD4RTag();
                     }
                 }
 
@@ -617,6 +657,26 @@ namespace CPN {
         pendingGrow = false;
     }
 
+    void SocketEndpoint::SendD4RTag() {
+        FUNC_TRACE;
+        ASSERT(!Closed());
+        Packet packet(PACKET_D4RTAG);
+        SetupPacketDefaults(packet);
+        packet.QueueSize(queue->QueueLength());
+        packet.MaxThreshold(queue->MaxThreshold());
+        packet.DataLength(sizeof(D4R::Tag));
+        PacketEncoder::SendPacket(packet);
+        D4R::Tag tag;
+        if (mode == READ) {
+            tag = reader->GetPublicTag();
+        } else {
+            tag = writer->GetPublicTag();
+        }
+        unsigned numwritten = Write(&tag, sizeof(tag));
+        ASSERT(numwritten == sizeof(tag));
+        pendingD4RTag = false;
+    }
+
     void SocketEndpoint::LogState() {
         logger.Debug("Printing state (w:%llu r:%llu)", readerkey, writerkey);
         switch (status) {
@@ -681,6 +741,9 @@ namespace CPN {
         }
         if (pendingGrow) {
             logger.Debug("Pending grow (q: %u, t: %u)", queue->QueueLength(), queue->MaxThreshold());
+        }
+        if (pendingD4RTag) {
+            logger.Debug("Pending send of D4R tag");
         }
     }
 }
