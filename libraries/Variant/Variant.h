@@ -59,6 +59,11 @@ public:
     typedef std::vector<Variant> List;
     typedef std::map<std::string, Variant> Map;
 
+    typedef Map::iterator MapIterator;
+    typedef Map::const_iterator ConstMapIterator;
+    typedef List::iterator ListIterator;
+    typedef List::const_iterator ConstListIterator;
+
     enum Type_t {
         NullType,
         TrueType,
@@ -113,8 +118,18 @@ public:
     List &AsArray();
     const List &AsArray() const;
 
+    ListIterator ListBegin();
+    ConstListIterator ListBegin() const;
+    ListIterator ListEnd();
+    ConstListIterator ListEnd() const;
+
     Map &AsObject();
     const Map &AsObject() const;
+
+    MapIterator MapBegin();
+    ConstMapIterator MapBegin() const;
+    MapIterator MapEnd();
+    ConstMapIterator MapEnd() const;
 
     std::string AsJSON() const;
     int AsJSON(char *target, unsigned maxlen) const;
@@ -137,7 +152,9 @@ public:
     Variant Copy() const;
 
     // Only valid when of type ArrayType
-    void Append(const Variant &value);
+    // Returns *this, so you can do
+    // Variant().Append(v1).Append(v2)...
+    Variant &Append(const Variant &value);
 
     Variant &At(unsigned i);
     const Variant &At(unsigned i) const;

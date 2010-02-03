@@ -364,6 +364,27 @@ const Variant::List &Variant::AsArray() const {
     }
 }
 
+Variant::ListIterator Variant::ListBegin() {
+    ASSERT(type == ArrayType);
+    return array->begin();
+}
+
+Variant::ConstListIterator Variant::ListBegin() const {
+    ASSERT(type == ArrayType);
+    return array->begin();
+}
+
+Variant::ListIterator Variant::ListEnd() {
+    ASSERT(type == ArrayType);
+    return array->end();
+}
+
+Variant::ConstListIterator Variant::ListEnd() const {
+    ASSERT(type == ArrayType);
+    return array->end();
+}
+
+
 Variant::Map &Variant::AsObject() {
     switch (type) {
     case ObjectType:
@@ -380,6 +401,26 @@ const Variant::Map &Variant::AsObject() const {
     default:
         ASSERT(false, "Not an object");
     }
+}
+
+Variant::MapIterator Variant::MapBegin() {
+    ASSERT(type == ObjectType);
+    return object->begin();
+}
+
+Variant::ConstMapIterator Variant::MapBegin() const {
+    ASSERT(type == ObjectType);
+    return object->begin();
+}
+
+Variant::MapIterator Variant::MapEnd() {
+    ASSERT(type == ObjectType);
+    return object->end();
+}
+
+Variant::ConstMapIterator Variant::MapEnd() const {
+    ASSERT(type == ObjectType);
+    return object->end();
 }
 
 json_t *Variant::BuildJSONTree() const {
@@ -582,13 +623,14 @@ Variant Variant::Copy() const {
     return ret;
 }
 
-void Variant::Append(const Variant &value) {
+Variant &Variant::Append(const Variant &value) {
     if (NullType == type) {
         type = ArrayType;
         InitArray();
     }
     ASSERT(ArrayType == type);
     array->push_back(value);
+    return *this;
 }
 
 Variant &Variant::At(unsigned i) {
