@@ -1,0 +1,64 @@
+
+#pragma once
+
+#include "Variant.h"
+namespace D4R {
+
+    class TesterBase;
+
+    class TestNodeBase {
+    public:
+        // do an enqueue with the given queue
+        static const char OP_ENQUEUE[];
+        // do a dequeue with the given queue
+        static const char OP_DEQUEUE[];
+        // verify that the given queue is the specified size
+        static const char OP_VERIFY_SIZE[];
+        // tag instruction saying that a deadlock should have occured
+        // on the previous instruction
+        static const char OP_VERIFY_DEADLOCK[];
+        // done exit normally
+        static const char OP_EXIT[];
+
+        TestNodeBase(TesterBase *tb) : testerbase(tb) {}
+
+        virtual ~TestNodeBase();
+
+        void Run();
+
+        virtual const std::string &GetName() const = 0;
+        // all opcodes must be added before run starts.
+        void AddOp(const Variant &op);
+        void AddOp(const std::string &opcode, const std::string &qname, unsigned amount);
+
+        void AddDequeue(const std::string &qname, unsigned amount) {
+            AddOp(OP_DEQUEUE, qname, amount);
+        }
+
+        void AddEnqueue(const std::string &qname, unsigned amount) {
+            AddOp(OP_ENQUEUE, qname, amount);
+        }
+
+        void AddVerifySize(const std::string &qname, unsigned amount) {
+            AddOp(OP_VERIFY_SIZE, qname, amount);
+        }
+
+        void AddVerifyDeadlock() {
+            AddOp(OP_VERIFY_DEADLOCK, "", 0);
+        }
+
+        void AddExit() {
+            AddOp(OP_EXIT, "", 0);
+        }
+
+    protected:
+        virtual void Enqueue(const std::string &qname, unsigned amount) = 0;
+        virtual void Dequeue(const std::string &qname, unsigned amount) = 0;
+        virtual void VerifySize(const std::stirng &qname, unsigned amount) = 0;
+
+        typedef std::deque<Variant> OpcodeQueue;
+        OpcodeQueue opqueue;
+        TesterBase *testerbase;
+    };
+}
+

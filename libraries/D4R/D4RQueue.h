@@ -34,19 +34,33 @@ namespace D4R {
         void SetReaderNode(Node *n);
         void SetWriterNode(Node *n);
 
-        // reader ===> writer
-        virtual void ReadBlock();
-        virtual bool ReadBlocked() = 0;
+    protected:
+        /**
+         * reader ===> writer
+         * ReadBlock requires that you already hold the lock
+         * and if it is reentrant then a single unlock will
+         * release the lock.
+         */
+        void ReadBlock();
 
-        // writer ===> reader
-        virtual void WriteBlock(unsigned qsize);
+        /**
+         * writer ===> reader
+         * WriteBlock requires that you already hold the lock
+         * and if it is reentrant then a single unlock will
+         * release the lock.
+         */
+        void WriteBlock(unsigned qsize);
+
+        virtual bool ReadBlocked() = 0;
         virtual bool WriteBlocked() = 0;
 
+        virtual void Detect(bool artificial) = 0;
+
+    public:
         virtual void Lock() const = 0;
         virtual void Unlock() const = 0;
 
         virtual void SignalTagChanged();
-        virtual void Detect(bool artificial) = 0;
     private:
         QueueBase(const QueueBase&);
         QueueBase &operator=(const QueueBase&);

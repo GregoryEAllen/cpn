@@ -30,7 +30,7 @@
 
 namespace D4R {
 
-    Node::Node(unsigned long long key)
+    Node::Node(Key_t key)
         : publicTag(key),
         privateTag(key)
     {

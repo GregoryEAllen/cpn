@@ -1,0 +1,33 @@
+
+#include "D4RTesterBase.h"
+#include "D4RTestNodeBase.h"
+#include "Assert.h"
+
+namespace D4R {
+
+    TesterBase::TesterBase() {
+    }
+
+    TesterBase::~TesterBase() {
+    }
+
+    void TesterBase::Setup(const Variant &v) {
+        Variant nodes = v["nodes"];
+        Variant::ListIterator itr = nodes.ListBegin();
+        while (itr != nodes.ListEnd()) {
+            CreateNode(*itr);
+            ++itr;
+        }
+        Variant queues = v["queues"];
+        itr = queues.ListBegin();
+        while (itr != queues.ListEnd()) {
+            CreateQueue(*itr);
+            ++itr;
+        }
+    }
+
+    void TesterBase::Failure(TestNodeBase *tnb, const std::string &msg) {
+        ASSERT(false, msg);
+    }
+}
+

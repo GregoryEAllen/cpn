@@ -22,7 +22,9 @@
  */
 #include "D4RQueue.h"
 #include "D4RNode.h"
+#include "D4RDeadlockException.h"
 #include "AutoLock.h"
+#include "AutoUnlock.h"
 #include "Assert.h"
 
 namespace D4R {
@@ -56,12 +58,20 @@ namespace D4R {
         }
         if (!ReadBlocked()) { return; }
         readtagchanged = false;
-        reader->Block(writer->GetPublicTag(), -1);
+        {
+            AutoUnlock<QueueBase> au(*this);
+            reader->Block(writer->GetPublicTag(), -1);
+        }
         while (ReadBlocked()) {
             if (readtagchanged) {
                 readtagchanged = false;
-                if (reader->Transmit(writer->GetPublicTag())) {
-                    Detect(false);
+                bool detect;
+                {
+                    AutoUnlock<QueueBase> au(*this);
+                    detect = reader->Transmit(writer->GetPublicTag());
+                }
+                if (detect) {
+                    throw DeadlockException("True deadlock detected");
                 }
             } else {
                 Wait();
@@ -77,13 +87,19 @@ namespace D4R {
         }
         if (!WriteBlocked()) { return; }
         writetagchanged = false;
-        writer->Block(reader->GetPublicTag(), qsize);
+        {
+            AutoUnlock<QueueBase> au(*this);
+            writer->Block(reader->GetPublicTag(), qsize);
+        }
         while (WriteBlocked()) {
             if (writetagchanged) {
                 writetagchanged = false;
-                if (writer->Transmit(reader->GetPublicTag())) {
-                    Detect(true);
+                bool detect;
+                {
+                    AutoUnlock<QueueBase> au(*this);
+                    detect = writer->Transmit(reader->GetPublicTag()); 
                 }
+                if (detect) { Detect(true); }
             } else {
                 Wait();
             }

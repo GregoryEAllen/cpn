@@ -29,9 +29,12 @@
  */
 namespace D4R {
 
+    typedef unsigned long long Count_t;
+    typedef unsigned long long Key_t;
+
     class Tag {
     public:
-        Tag(unsigned long long k) : count(0), key(k), qsize(-1) {}
+        Tag(Key_t k) : count(0), key(k), qsize(-1) {}
         Tag() : count(0), key(0), qsize(-1) {}
         /**
          * Perform comparison as specified in "A Distributed Deadlock Detection And
@@ -46,15 +49,15 @@ namespace D4R {
 
         void Reset();
 
-        unsigned long long Count() const { return count; }
-        unsigned long long Count(unsigned long long c) { return count = c; }
-        unsigned long long Key() const { return key; }
-        unsigned long long Key(unsigned long long k) { return key = k; }
+        Count_t Count() const { return count; }
+        Count_t Count(Count_t c) { return count = c; }
+        Key_t Key() const { return key; }
+        Key_t Key(unsigned long long k) { return key = k; }
         unsigned QueueSize() const { return qsize; }
         unsigned QueueSize(unsigned qs) { return qsize = qs; }
     private:
-        unsigned long long count;
-        unsigned long long key;
+        Count_t count;
+        Key_t key;
         unsigned qsize;
     };
 
