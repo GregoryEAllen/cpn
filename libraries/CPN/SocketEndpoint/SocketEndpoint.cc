@@ -217,10 +217,17 @@ namespace CPN {
         InternCheckStatus();
     }
 
-    void SocketEndpoint::SignalTagChanged() {
+    void SocketEndpoint::SignalWriterTagChanged() {
         Sync::AutoLock<QueueBase> al(*this);
         pendingD4RTag = true;
-        QueueBase::SignalTagChanged();
+        QueueBase::SignalWriterTagChanged();
+        InternCheckStatus();
+    }
+
+    void SocketEndpoint::SignalReaderTagChanged() {
+        Sync::AutoLock<QueueBase> al(*this);
+        pendingD4RTag = true;
+        QueueBase::SignalReaderTagChanged();
         InternCheckStatus();
     }
 
@@ -412,7 +419,11 @@ namespace CPN {
         unsigned numread = Read(&tag, sizeof(tag));
         ASSERT(numread == sizeof(tag));
         mocknode.SetPublicTag(tag);
-        QueueBase::SignalTagChanged();
+        if (mode == WRITE) {
+            QueueBase::SignalReaderTagChanged();
+        } else {
+            QueueBase::SignalWriterTagChanged();
+        }
     }
 
     void SocketEndpoint::IDReaderPacket(const Packet &packet) {

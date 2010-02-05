@@ -57,14 +57,14 @@ namespace D4R {
             }
         }
         if (!ReadBlocked()) { return; }
-        readtagchanged = false;
+        writetagchanged = false;
         {
             AutoUnlock<QueueBase> au(*this);
             reader->Block(writer->GetPublicTag(), -1);
         }
         while (ReadBlocked()) {
-            if (readtagchanged) {
-                readtagchanged = false;
+            if (writetagchanged) {
+                writetagchanged = false;
                 bool detect;
                 {
                     AutoUnlock<QueueBase> au(*this);
@@ -86,30 +86,35 @@ namespace D4R {
             }
         }
         if (!WriteBlocked()) { return; }
-        writetagchanged = false;
+        readtagchanged = false;
         {
             AutoUnlock<QueueBase> au(*this);
             writer->Block(reader->GetPublicTag(), qsize);
         }
         while (WriteBlocked()) {
-            if (writetagchanged) {
-                writetagchanged = false;
+            if (readtagchanged) {
+                readtagchanged = false;
                 bool detect;
                 {
                     AutoUnlock<QueueBase> au(*this);
                     detect = writer->Transmit(reader->GetPublicTag()); 
                 }
-                if (detect) { Detect(true); }
+                if (detect) { Detect(); }
             } else {
                 Wait();
             }
         }
     }
 
-    void QueueBase::SignalTagChanged() {
+    void QueueBase::SignalReaderTagChanged() {
+        Sync::AutoLock<QueueBase> al(*this);
+        readtagchanged = true;
+        Signal();
+    }
+
+    void QueueBase::SignalWriterTagChanged() {
         Sync::AutoLock<QueueBase> al(*this);
         writetagchanged = true;
-        readtagchanged = true;
         Signal();
     }
 

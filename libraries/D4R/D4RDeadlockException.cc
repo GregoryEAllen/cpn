@@ -25,8 +25,9 @@
 
 namespace D4R {
 
-    DeadlockException::DeadlockException(const std::string &msg) : message(msg) {}
-    DeadlockException::~DeadlockException() {}
+    DeadlockException::DeadlockException(const std::string &msg) throw()
+        : message(msg) {}
+    DeadlockException::~DeadlockException() throw() {}
     const char *DeadlockException::what() const throw() { return message.c_str(); }
 }
 

@@ -54,13 +54,14 @@ namespace D4R {
         virtual bool ReadBlocked() = 0;
         virtual bool WriteBlocked() = 0;
 
-        virtual void Detect(bool artificial) = 0;
+        virtual void Detect() = 0;
 
     public:
         virtual void Lock() const = 0;
         virtual void Unlock() const = 0;
 
-        virtual void SignalTagChanged();
+        virtual void SignalReaderTagChanged();
+        virtual void SignalWriterTagChanged();
     private:
         QueueBase(const QueueBase&);
         QueueBase &operator=(const QueueBase&);

@@ -222,7 +222,7 @@ namespace CPN {
         virtual void Wait() { cond.Wait(lock); }
         virtual void Signal() { cond.Broadcast(); }
 
-        virtual void Detect(bool artificial);
+        virtual void Detect();
 
         virtual void LogState();
         virtual const void *InternalGetRawDequeuePtr(unsigned thresh, unsigned chan) = 0;

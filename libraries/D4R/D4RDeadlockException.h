@@ -22,6 +22,7 @@
  * \author John Bridgman
  */
 
+#include <string>
 #include <exception>
 
 namespace D4R {

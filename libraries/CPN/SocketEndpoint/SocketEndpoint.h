@@ -94,7 +94,8 @@ namespace CPN {
         virtual void WaitForData();
         virtual void WaitForFreespace();
 
-        virtual void SignalTagChanged();
+        virtual void SignalReaderTagChanged();
+        virtual void SignalWriterTagChanged();
 
         // FileHandler
         virtual void OnRead();

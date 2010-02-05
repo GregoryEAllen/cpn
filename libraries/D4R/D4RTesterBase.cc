@@ -1,6 +1,7 @@
 
 #include "D4RTesterBase.h"
 #include "D4RTestNodeBase.h"
+#include "Variant.h"
 #include "Assert.h"
 
 namespace D4R {
@@ -27,6 +28,7 @@ namespace D4R {
     }
 
     void TesterBase::Failure(TestNodeBase *tnb, const std::string &msg) {
+        Error(msg.c_str());
         ASSERT(false, msg);
     }
 }

@@ -2,6 +2,7 @@
 #include "D4RTestNodeBase.h"
 #include "D4RTesterBase.h"
 #include "D4RDeadlockException.h"
+#include "Assert.h"
 
 namespace D4R {
 
@@ -11,12 +12,14 @@ namespace D4R {
     const char TestNodeBase::OP_VERIFY_DEADLOCK[] = "verify deadlock";
     const char TestNodeBase::OP_EXIT[] = "exit";
 
+    TestNodeBase::TestNodeBase(Key_t k, TesterBase *tb)
+        : Node(k), Logger(), testerbase(tb)
+    {}
+
     TestNodeBase::~TestNodeBase() {}
 
     void TestNodeBase::AddOp(const Variant &op) {
-        PthreadMutexProtected al(lock);
         opqueue.push_back(op);
-        cond.Signal();
     }
 
     void TestNodeBase::AddOp(const std::string &opcode, const std::string &qname, unsigned amount) {
@@ -36,7 +39,7 @@ namespace D4R {
                     Enqueue(op[1].AsString(), op[2].AsUnsigned());
                 } else if (opname == OP_DEQUEUE) {
                     Dequeue(op[1].AsString(), op[2].AsUnsigned());
-                } else if (opname == OP_VERIFY) {
+                } else if (opname == OP_VERIFY_SIZE) {
                     VerifySize(op[1].AsString(), op[2].AsUnsigned());
                 } else if (opname == OP_EXIT) {
                     loop = false;
@@ -54,6 +57,7 @@ namespace D4R {
                 opqueue.pop_front();
                 std::string opname = op[0].AsString();
                 if (opname == OP_VERIFY_DEADLOCK) {
+                    Debug("Deadlock detected");
                     testerbase->Deadlock(this);
                 } else {
                     testerbase->Failure(this, "Deadlock exception but no deadlock expected");

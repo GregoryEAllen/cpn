@@ -2,12 +2,13 @@
 #pragma once
 
 #include "Variant.h"
+#include "Logger.h"
 
 namespace D4R {
 
     class TestNodeBase;
 
-    class TesterBase {
+    class TesterBase : public Logger {
     public:
         TesterBase();
         virtual ~TesterBase();

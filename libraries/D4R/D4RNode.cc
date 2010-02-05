@@ -26,7 +26,13 @@
 #include "Assert.h"
 #include <algorithm>
 #include <functional>
+
+#if 1
 #include <stdio.h>
+#define DEBUG(fmt, ...) printf(fmt, ## __VA_ARGS__)
+#else
+#define DEBUG(fmt, ...)
+#endif
 
 namespace D4R {
 
@@ -61,8 +67,8 @@ namespace D4R {
     void Node::Block(Tag t, unsigned qsize) {
         Sync::AutoLock<PthreadMutex> al(taglock);
         privateTag.QueueSize(qsize);
-        privateTag.Count(std::max(privateTag.Count(), publicTag.Count()) + 1);
-        printf("Node %llu:%llu block %u\n", privateTag.Count(), privateTag.Key(), privateTag.QueueSize());
+        privateTag.Count(std::max(privateTag.Count(), t.Count()) + 1);
+        DEBUG("Node %llu:%llu block %u\n", privateTag.Count(), privateTag.Key(), privateTag.QueueSize());
         publicTag = privateTag;
         al.Unlock();
         SignalTagChanged();
@@ -71,7 +77,7 @@ namespace D4R {
     bool Node::Transmit(Tag t) {
         Sync::AutoLock<PthreadMutex> al(taglock);
         if (publicTag < t) {
-            printf("Node %llu:%llu transfer %u : (%llu, %llu %u) < (%llu, %llu, %u)\n",
+            DEBUG("Node %llu:%llu transfer %u : (%llu, %llu %u) < (%llu, %llu, %u)\n",
                     privateTag.Count(), privateTag.Key(), privateTag.QueueSize(),
                     publicTag.Count(), publicTag.Key(), publicTag.QueueSize(),
                     t.Count(), t.Key(), t.QueueSize());
@@ -81,11 +87,16 @@ namespace D4R {
             al.Unlock();
             SignalTagChanged();
         } else if (publicTag == t) {
-            printf("Node %llu:%llu transfer %u : (%llu, %llu %u) == (%llu, %llu, %u)\n",
+            DEBUG("Node %llu:%llu transfer %u : (%llu, %llu %u) == (%llu, %llu, %u)\n",
                     privateTag.Count(), privateTag.Key(), privateTag.QueueSize(),
                     publicTag.Count(), publicTag.Key(), publicTag.QueueSize(),
                     t.Count(), t.Key(), t.QueueSize());
             return privateTag.QueueSize() == publicTag.QueueSize();
+        } else {
+            DEBUG("Node %llu:%llu transfer nop %u : (%llu, %llu %u) > (%llu, %llu, %u)\n",
+                    privateTag.Count(), privateTag.Key(), privateTag.QueueSize(),
+                    publicTag.Count(), publicTag.Key(), publicTag.QueueSize(),
+                    t.Count(), t.Key(), t.QueueSize());
         }
         return false;
     }

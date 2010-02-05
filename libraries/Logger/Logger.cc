@@ -39,6 +39,8 @@ Logger::Logger(int dfltlvl)
     : logout(0), loglevel(WARNING), defaultlevel(dfltlvl), adjust(0)
 {}
 
+Logger::~Logger() {}
+
 Logger::Logger(LoggerOutput *lo, int dfltlvl)
     : logout(lo), loglevel(WARNING), defaultlevel(dfltlvl), adjust(0)
 {

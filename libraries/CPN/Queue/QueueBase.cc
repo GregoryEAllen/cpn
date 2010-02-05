@@ -203,14 +203,11 @@ namespace CPN {
         cond.Broadcast();
     }
 
-    void QueueBase::Detect(bool artificial) {
+    void QueueBase::Detect() {
         Sync::AutoLock<QueueBase> al(*this);
-        printf("Detect called\n");
-        if (artificial) {
-            printf("Artificial deadlock\n");
-        } else {
-            printf("True deadlock\n");
-        }
+        unsigned size = writerequest + Count();
+        printf("Grow(%u, %u)\n", size, writerequest);
+        Grow(size, writerequest);
     }
 
     unsigned QueueBase::ReadRequest() {

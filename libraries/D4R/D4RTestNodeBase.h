@@ -1,12 +1,14 @@
 
 #pragma once
 
+#include "D4RNode.h"
+#include "Logger.h"
 #include "Variant.h"
 namespace D4R {
 
     class TesterBase;
 
-    class TestNodeBase {
+    class TestNodeBase : public Node, public Logger {
     public:
         // do an enqueue with the given queue
         static const char OP_ENQUEUE[];
@@ -20,7 +22,7 @@ namespace D4R {
         // done exit normally
         static const char OP_EXIT[];
 
-        TestNodeBase(TesterBase *tb) : testerbase(tb) {}
+        TestNodeBase(Key_t k, TesterBase *tb);
 
         virtual ~TestNodeBase();
 
@@ -54,7 +56,7 @@ namespace D4R {
     protected:
         virtual void Enqueue(const std::string &qname, unsigned amount) = 0;
         virtual void Dequeue(const std::string &qname, unsigned amount) = 0;
-        virtual void VerifySize(const std::stirng &qname, unsigned amount) = 0;
+        virtual void VerifySize(const std::string &qname, unsigned amount) = 0;
 
         typedef std::deque<Variant> OpcodeQueue;
         OpcodeQueue opqueue;

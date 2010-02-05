@@ -66,6 +66,7 @@ public:
     Logger(int dfltlvl);
     Logger(LoggerOutput *lo, int dfltlvl);
     Logger(LoggerOutput *lo, int dfltlevel, const std::string &nm);
+    virtual ~Logger();
 
     int LogLevel() const;
     int LogLevel(int level);
@@ -98,9 +99,9 @@ public:
     void Debug(const char *fmt, ...);
     void Trace(const char *fmt, ...);
 protected:
-private:
     Logger(const Logger&);
     Logger &operator=(const Logger&);
+private:
 
     Sync::ReentrantLock lock;
     LoggerOutput *logout;
