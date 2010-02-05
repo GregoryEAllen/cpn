@@ -28,6 +28,7 @@
 #include "Database.h"
 #include "QueueReader.h"
 #include "QueueWriter.h"
+#include "D4RDeadlockException.h"
 
 #include <vector>
 
@@ -91,6 +92,9 @@ namespace CPN {
             if (!database->SwallowBrokenQueueExceptions()) {
                 throw;
             }
+        } catch (const D4R::DeadlockException &e) {
+            // A true deadlock was detected, die
+            printf("DEADLOCK detected at %s\n", name.c_str());
         }
         database->SignalNodeEnd(nodekey);
         arl.Lock();

@@ -1,0 +1,71 @@
+{
+    "nodes" : [
+        {
+            "name" : "A",
+            "key" : 1,
+            "instructions" : [
+                [ "enqueue", "Q", 1],
+                [ "enqueue", "Q", 1],
+                [ "verify size", "Q", 2],
+                [ "enqueue", "P", 1],
+                [ "enqueue", "Q", 1],
+                [ "enqueue", "Q", 1],
+                [ "enqueue", "P", 1],
+                [ "enqueue", "Q", 1],
+                [ "enqueue", "Q", 1],
+                [ "enqueue", "P", 1],
+                [ "exit" ]
+            ]
+        },
+        {
+            "name" : "B",
+            "key" : 2,
+            "instructions" : [
+                [ "dequeue", "P", 1],
+                [ "enqueue", "R", 1],
+                [ "dequeue", "P", 1],
+                [ "enqueue", "R", 1],
+                [ "dequeue", "P", 1],
+                [ "enqueue", "R", 1],
+                [ "exit" ]
+            ]
+        },
+        {
+            "name" : "C",
+            "key" : 3,
+            "instructions" : [
+                [ "dequeue", "R", 1],
+                [ "dequeue", "Q", 1],
+                [ "dequeue", "Q", 1],
+                [ "verify size", "Q", 2],
+                [ "dequeue", "R", 1],
+                [ "dequeue", "Q", 1],
+                [ "dequeue", "Q", 1],
+                [ "dequeue", "R", 1],
+                [ "dequeue", "Q", 1],
+                [ "dequeue", "Q", 1],
+                [ "exit" ]
+            ]
+        }
+    ],
+    "queues" : [
+        {
+            "name" : "Q",
+            "size" : 1,
+            "reader" : "C",
+            "writer" : "A"
+        },
+        {
+            "name" : "P",
+            "size" : 1,
+            "reader" : "B",
+            "writer" : "A"
+        },
+        {
+            "name" : "R",
+            "size" : 1,
+            "reader" : "C",
+            "writer" : "B"
+        }
+    ]
+}

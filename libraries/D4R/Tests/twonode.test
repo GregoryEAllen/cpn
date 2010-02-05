@@ -1,0 +1,32 @@
+{
+    "nodes" : [
+        {
+            "name" : "A",
+            "key" : 1,
+            "instructions" : [
+                [ "enqueue", "Q", 2],
+                [ "enqueue", "Q", 2],
+                [ "verify size", "Q", 2],
+                [ "exit" ]
+            ]
+        },
+        {
+            "name" : "B",
+            "key" : 2,
+            "instructions" : [
+                [ "dequeue", "Q", 2],
+                [ "verify size", "Q", 2],
+                [ "dequeue", "Q", 2],
+                [ "exit" ]
+            ]
+        }
+    ],
+    "queues" : [
+        {
+            "name" : "Q",
+            "size" : 1,
+            "reader" : "B",
+            "writer" : "A"
+        }
+    ]
+}
