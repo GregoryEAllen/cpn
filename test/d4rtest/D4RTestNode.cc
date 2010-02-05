@@ -1,0 +1,98 @@
+
+#include "D4RTestNode.h"
+#include "D4RTestQueue.h"
+#include "D4RTester.h"
+#include "Assert.h"
+
+namespace D4R {
+
+
+    TestNode::TestNode(const std::string &name_, Key_t k, TesterBase *tb)
+        : D4R::TestNodeBase(k, tb), name(name_)
+    {
+        Logger::Name(name);
+    }
+
+    TestNode::TestNode(const Variant &noded, TesterBase *tb)
+        : D4R::TestNodeBase(noded["key"].AsNumber<Key_t>(), tb),
+        name(noded["name"].AsString())
+    {
+        Logger::Name(name);
+        Variant::ConstListIterator itr = noded["instructions"].ListBegin();
+        while (itr != noded["instructions"].ListEnd()) {
+            AddOp(*itr);
+            ++itr;
+        }
+    }
+
+    void TestNode::SignalTagChanged() {
+        PthreadMutexProtected al(lock);
+        QueueMap::iterator itr = readermap.begin();
+        while (itr != readermap.end()) {
+            (itr++)->second->SignalReaderTagChanged();
+        }
+        itr = writermap.begin();
+        while (itr != writermap.end()) {
+            (itr++)->second->SignalWriterTagChanged();
+        }
+    }
+
+    void TestNode::AddReadQueue(TestQueue *q) {
+        PthreadMutexProtected al(lock);
+        q->SetReaderNode(this);
+        readermap.insert(std::make_pair(q->GetName(), q));
+    }
+
+    void TestNode::AddWriteQueue(TestQueue *q) {
+        PthreadMutexProtected al(lock);
+        q->SetWriterNode(this);
+        writermap.insert(std::make_pair(q->GetName(), q));
+    }
+
+    void *TestNode::EntryPoint() {
+        try {
+            Run();
+        } catch (const TestQueueAbortException &e) {
+        }
+        return 0;
+    }
+
+    void TestNode::Enqueue(const std::string &qname, unsigned amount) {
+        TestQueue *q;
+        {
+            PthreadMutexProtected al(lock);
+            q  = writermap[qname];
+        }
+        q->Enqueue(amount);
+    }
+
+    void TestNode::Dequeue(const std::string &qname, unsigned amount) {
+        TestQueue *q;
+        {
+            PthreadMutexProtected al(lock);
+            q  = readermap[qname];
+        }
+        q->Dequeue(amount);
+    }
+
+    void TestNode::VerifySize(const std::string &qname, unsigned amount) {
+        TestQueue *q;
+        {
+            PthreadMutexProtected al(lock);
+            QueueMap::iterator entry = readermap.find(qname);
+            if (entry == readermap.end()) {
+                entry = writermap.find(qname);
+                ASSERT(entry != writermap.end());
+            }
+            q  = entry->second;
+        }
+        if (amount != q->QueueSize()) {
+            testerbase->Failure(this, "Queue " + qname + " not expected size!");
+        }
+    }
+
+    void TestNode::PrintNode() {
+        Info("Public tag: (%llu, %llu, %u)", publicTag.Count(), publicTag.Key(), publicTag.QueueSize());
+        Info("Private tag: (%llu, %llu, %u)", privateTag.Count(), privateTag.Key(), privateTag.QueueSize());
+    }
+}

@@ -36,13 +36,13 @@ int main(int argc, char **argv) {
     for ( Directory dir(dirname); !dir.End() ; dir.Next() ) {
         try {
             if (!dir.IsRegularFile()) continue;
-            std::string fpath = dir.Name();
+            std::string fpath = dir.BaseName();
             if (fpath[0] == '.' || fpath[0] == '_') continue;
             if (fpath.size() < ext.size() ||
                     fpath.substr(fpath.size() - ext.size(), ext.size()) != ext) {
                 continue; 
             }
-            fpath = dirname + "/" + fpath;
+            fpath = dir.FullName();
             std::vector<char> buf(dir.Size());
 
             printf("Processing %s\n", fpath.c_str());
