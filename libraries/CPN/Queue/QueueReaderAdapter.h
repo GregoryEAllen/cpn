@@ -91,6 +91,7 @@ namespace CPN {
         unsigned NumChannels() const { return queue->NumChannels(); }
         /// \return the maximum threshold in bytes
         unsigned MaxThreshold() const { return queue->MaxThreshold()/GetTypeSize<T>(); }
+        unsigned QueueLength() const { return queue->QueueLength()/GetTypeSize<T>(); }
         /// \return the number of bytes in the channel
         unsigned Count() const { return queue->Count()/GetTypeSize<T>(); }
         /// \return true if empty, false otherwise

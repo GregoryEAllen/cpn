@@ -14,7 +14,9 @@ namespace D4R {
 
     class TestNode
         : public Pthread,
-        public TestNodeBase {
+        public TestNodeBase,
+        public Node
+    {
     public:
 
         TestNode(const std::string &name_, Key_t k, TesterBase *tb);
@@ -33,7 +35,8 @@ namespace D4R {
 
         void Enqueue(const std::string &qname, unsigned amount);
         void Dequeue(const std::string &qname, unsigned amount);
-        void VerifySize(const std::string &qname, unsigned amount);
+        void VerifyReaderSize(const std::string &qname, unsigned amount);
+        void VerifyWriterSize(const std::string &qname, unsigned amount);
 
         PthreadMutex lock;
         const std::string name;

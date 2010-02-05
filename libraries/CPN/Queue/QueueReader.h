@@ -105,6 +105,7 @@ namespace CPN {
          */
          unsigned MaxThreshold() const { return queue->MaxThreshold(); }
 
+         unsigned QueueLength() const { return queue->QueueLength(); }
         /**
          * An accessor method for the number of elements currently in
          * the queue.

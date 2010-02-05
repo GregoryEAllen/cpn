@@ -6,7 +6,7 @@
             "instructions" : [
                 [ "enqueue", "Q", 1],
                 [ "enqueue", "Q", 1],
-                [ "verify size", "Q", 2],
+                [ "verify writer size", "Q", 2],
                 [ "enqueue", "P", 1],
                 [ "enqueue", "Q", 1],
                 [ "enqueue", "Q", 1],
@@ -37,7 +37,7 @@
                 [ "dequeue", "R", 1],
                 [ "dequeue", "Q", 1],
                 [ "dequeue", "Q", 1],
-                [ "verify size", "Q", 2],
+                [ "verify reader size", "Q", 2],
                 [ "dequeue", "R", 1],
                 [ "dequeue", "Q", 1],
                 [ "dequeue", "Q", 1],

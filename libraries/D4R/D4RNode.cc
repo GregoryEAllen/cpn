@@ -27,7 +27,7 @@
 #include <algorithm>
 #include <functional>
 
-#if 1
+#if 0
 #include <stdio.h>
 #define DEBUG(fmt, ...) printf(fmt, ## __VA_ARGS__)
 #else

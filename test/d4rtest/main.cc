@@ -25,12 +25,12 @@ int main(int argc, char **argv) {
         }
     }
 
-    std::string dirname = ".";
+    std::string dirname = "D4R/Tests";
     if (argc > optind) {
         dirname = argv[optind];
     }
-    std::string ext = ".test";
 
+    std::string ext = ".test";
     LoggerStdOutput loggerout(Logger::TRACE);
 
     for ( Directory dir(dirname); !dir.End() ; dir.Next() ) {

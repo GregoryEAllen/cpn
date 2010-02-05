@@ -8,13 +8,14 @@ namespace D4R {
 
 
     TestNode::TestNode(const std::string &name_, Key_t k, TesterBase *tb)
-        : D4R::TestNodeBase(k, tb), name(name_)
+        : TestNodeBase(tb), Node(k), name(name_)
     {
         Logger::Name(name);
     }
 
     TestNode::TestNode(const Variant &noded, TesterBase *tb)
-        : D4R::TestNodeBase(noded["key"].AsNumber<Key_t>(), tb),
+        : TestNodeBase(tb),
+        Node(noded["key"].AsNumber<Key_t>()),
         name(noded["name"].AsString())
     {
         Logger::Name(name);
@@ -75,16 +76,22 @@ namespace D4R {
         q->Dequeue(amount);
     }
 
-    void TestNode::VerifySize(const std::string &qname, unsigned amount) {
+    void TestNode::VerifyReaderSize(const std::string &qname, unsigned amount) {
         TestQueue *q;
         {
             PthreadMutexProtected al(lock);
-            QueueMap::iterator entry = readermap.find(qname);
-            if (entry == readermap.end()) {
-                entry = writermap.find(qname);
-                ASSERT(entry != writermap.end());
-            }
-            q  = entry->second;
+            q  = readermap[qname];
+        }
+        if (amount != q->QueueSize()) {
+            testerbase->Failure(this, "Queue " + qname + " not expected size!");
+        }
+    }
+
+    void TestNode::VerifyWriterSize(const std::string &qname, unsigned amount) {
+        TestQueue *q;
+        {
+            PthreadMutexProtected al(lock);
+            q  = writermap[qname];
         }
         if (amount != q->QueueSize()) {
             testerbase->Failure(this, "Queue " + qname + " not expected size!");

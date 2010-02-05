@@ -113,6 +113,7 @@ namespace CPN {
          */
         unsigned MaxThreshold() const { return queue->MaxThreshold(); }
 
+        unsigned QueueLength() const { return queue->QueueLength(); }
 		/**
 		 * Get the space available in elements.
 		 * \warning This function violates the rules of CPN.

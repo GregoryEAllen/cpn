@@ -297,7 +297,8 @@ namespace CPN {
          * or let them propigate as an error.
          * \return true or false
          */
-        virtual bool SwallowBrokenQueueExceptions() { return false; }
+        virtual bool SwallowBrokenQueueExceptions();
+        virtual bool SwallowBrokenQueueExceptions(bool sbqe);
 
         /** \brief Attempts to load the given dynamic library
          * and make the symbols inside available to be searched for
@@ -339,6 +340,7 @@ namespace CPN {
         FactoryMap factorymap;
 
         bool useD4R;
+        bool swallowbrokenqueue;
     };
 
 }

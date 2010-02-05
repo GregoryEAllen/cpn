@@ -8,12 +8,13 @@ namespace D4R {
 
     const char TestNodeBase::OP_ENQUEUE[] = "enqueue";
     const char TestNodeBase::OP_DEQUEUE[] = "dequeue";
-    const char TestNodeBase::OP_VERIFY_SIZE[] = "verify size";
+    const char TestNodeBase::OP_VERIFY_READER_SIZE[] = "verify reader size";
+    const char TestNodeBase::OP_VERIFY_WRITER_SIZE[] = "verify writer size";
     const char TestNodeBase::OP_VERIFY_DEADLOCK[] = "verify deadlock";
     const char TestNodeBase::OP_EXIT[] = "exit";
 
-    TestNodeBase::TestNodeBase(Key_t k, TesterBase *tb)
-        : Node(k), Logger(), testerbase(tb)
+    TestNodeBase::TestNodeBase(TesterBase *tb)
+        : Logger(), testerbase(tb)
     {}
 
     TestNodeBase::~TestNodeBase() {}
@@ -39,8 +40,10 @@ namespace D4R {
                     Enqueue(op[1].AsString(), op[2].AsUnsigned());
                 } else if (opname == OP_DEQUEUE) {
                     Dequeue(op[1].AsString(), op[2].AsUnsigned());
-                } else if (opname == OP_VERIFY_SIZE) {
-                    VerifySize(op[1].AsString(), op[2].AsUnsigned());
+                } else if (opname == OP_VERIFY_READER_SIZE) {
+                    VerifyReaderSize(op[1].AsString(), op[2].AsUnsigned());
+                } else if (opname == OP_VERIFY_WRITER_SIZE) {
+                    VerifyWriterSize(op[1].AsString(), op[2].AsUnsigned());
                 } else if (opname == OP_EXIT) {
                     loop = false;
                 } else if (opname == OP_VERIFY_DEADLOCK) {
@@ -62,6 +65,7 @@ namespace D4R {
                 } else {
                     testerbase->Failure(this, "Deadlock exception but no deadlock expected");
                 }
+                throw;
         } catch (const AssertException &e) {
             testerbase->Failure(this, e.what());
             throw;

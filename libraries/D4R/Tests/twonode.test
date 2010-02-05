@@ -4,9 +4,16 @@
             "name" : "A",
             "key" : 1,
             "instructions" : [
-                [ "enqueue", "Q", 2],
-                [ "enqueue", "Q", 2],
-                [ "verify size", "Q", 2],
+                [ "enqueue", "Q", 1],
+                [ "enqueue", "Q", 1],
+                [ "verify writer size", "Q", 2],
+                [ "enqueue", "P", 1],
+                [ "enqueue", "Q", 1],
+                [ "enqueue", "Q", 1],
+                [ "enqueue", "P", 1],
+                [ "enqueue", "Q", 1],
+                [ "enqueue", "Q", 1],
+                [ "enqueue", "P", 1],
                 [ "exit" ]
             ]
         },
@@ -14,9 +21,16 @@
             "name" : "B",
             "key" : 2,
             "instructions" : [
-                [ "dequeue", "Q", 2],
-                [ "verify size", "Q", 2],
-                [ "dequeue", "Q", 2],
+                [ "dequeue", "P", 1],
+                [ "dequeue", "Q", 1],
+                [ "verify reader size", "Q", 2],
+                [ "dequeue", "Q", 1],
+                [ "dequeue", "P", 1],
+                [ "dequeue", "Q", 1],
+                [ "dequeue", "Q", 1],
+                [ "dequeue", "P", 1],
+                [ "dequeue", "Q", 1],
+                [ "dequeue", "Q", 1],
                 [ "exit" ]
             ]
         }
@@ -24,6 +38,12 @@
     "queues" : [
         {
             "name" : "Q",
+            "size" : 1,
+            "reader" : "B",
+            "writer" : "A"
+        },
+        {
+            "name" : "P",
             "size" : 1,
             "reader" : "B",
             "writer" : "A"

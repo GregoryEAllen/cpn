@@ -90,6 +90,7 @@ namespace CPN {
         unsigned NumChannels() const { return queue->NumChannels(); }
         /// \return the maximum threshold in bytes
         unsigned MaxThreshold() const { return queue->MaxThreshold()/GetTypeSize<T>(); }
+        unsigned QueueLength() const { return queue->QueueLength()/GetTypeSize<T>(); }
         /// \return the amount of freespace in bytes
         unsigned Freespace() const { return queue->Freespace()/GetTypeSize<T>(); }
         /// \return true if full

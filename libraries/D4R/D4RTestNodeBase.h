@@ -8,21 +8,22 @@ namespace D4R {
 
     class TesterBase;
 
-    class TestNodeBase : public Node, public Logger {
+    class TestNodeBase : public Logger {
     public:
         // do an enqueue with the given queue
         static const char OP_ENQUEUE[];
         // do a dequeue with the given queue
         static const char OP_DEQUEUE[];
         // verify that the given queue is the specified size
-        static const char OP_VERIFY_SIZE[];
+        static const char OP_VERIFY_READER_SIZE[];
+        static const char OP_VERIFY_WRITER_SIZE[];
         // tag instruction saying that a deadlock should have occured
         // on the previous instruction
         static const char OP_VERIFY_DEADLOCK[];
         // done exit normally
         static const char OP_EXIT[];
 
-        TestNodeBase(Key_t k, TesterBase *tb);
+        TestNodeBase(TesterBase *tb);
 
         virtual ~TestNodeBase();
 
@@ -41,8 +42,12 @@ namespace D4R {
             AddOp(OP_ENQUEUE, qname, amount);
         }
 
-        void AddVerifySize(const std::string &qname, unsigned amount) {
-            AddOp(OP_VERIFY_SIZE, qname, amount);
+        void AddVerifyReaderSize(const std::string &qname, unsigned amount) {
+            AddOp(OP_VERIFY_READER_SIZE, qname, amount);
+        }
+
+        void AddVerifyWriterSize(const std::string &qname, unsigned amount) {
+            AddOp(OP_VERIFY_WRITER_SIZE, qname, amount);
         }
 
         void AddVerifyDeadlock() {
@@ -56,7 +61,8 @@ namespace D4R {
     protected:
         virtual void Enqueue(const std::string &qname, unsigned amount) = 0;
         virtual void Dequeue(const std::string &qname, unsigned amount) = 0;
-        virtual void VerifySize(const std::string &qname, unsigned amount) = 0;
+        virtual void VerifyReaderSize(const std::string &qname, unsigned amount) = 0;
+        virtual void VerifyWriterSize(const std::string &qname, unsigned amount) = 0;
 
         typedef std::deque<Variant> OpcodeQueue;
         OpcodeQueue opqueue;

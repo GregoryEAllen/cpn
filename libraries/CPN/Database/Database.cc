@@ -56,6 +56,16 @@ namespace CPN {
         return useD4R = u;
     }
 
+    bool Database::SwallowBrokenQueueExceptions() {
+        PthreadMutexProtected al(lock);
+        return swallowbrokenqueue;
+    }
+
+    bool Database::SwallowBrokenQueueExceptions(bool sbqe) {
+        PthreadMutexProtected al(lock);
+        return swallowbrokenqueue = sbqe;
+    }
+
     void Database::CheckTerminated() {
         if (IsTerminated()) {
             throw ShutdownException();
