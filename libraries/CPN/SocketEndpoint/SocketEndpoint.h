@@ -34,6 +34,7 @@
 #include "PacketDecoder.h"
 #include "PacketEncoder.h"
 #include "D4RNode.h"
+#include "LogicalClock.h"
 
 namespace CPN {
     
@@ -130,6 +131,8 @@ namespace CPN {
          * we received an enqueue.
          */
         void InternCheckStatus();
+        void CheckEnqueue();
+        void CheckDequeue();
         bool EnqueueBlocked();
 
         void SetupPacketDefaults(Packet &packet);
@@ -163,6 +166,8 @@ namespace CPN {
         KernelBase *kmh;
 
         shared_ptr<Future<int> > connection;
+
+        LogicalClock clock;
 
         unsigned writecount;
         unsigned readcount;

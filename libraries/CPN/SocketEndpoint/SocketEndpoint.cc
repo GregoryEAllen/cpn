@@ -27,8 +27,8 @@
 #include "ToString.h"
 #include "ErrnoException.h"
 
-#if 0
-#define FUNC_TRACE logger.Trace("%s", __PRETTY_FUNCTION__)
+#if 1
+#define FUNC_TRACE logger.Trace("%s (c: %llu)", __PRETTY_FUNCTION__, clock.Get())
 #else
 #define FUNC_TRACE
 #endif
@@ -233,7 +233,8 @@ namespace CPN {
 
     void SocketEndpoint::InternalGrow(unsigned queueLen, unsigned maxThresh) {
         if (queueLen <= queue->QueueLength() && maxThresh <= queue->MaxThreshold()) { return; }
-        ASSERT(!(inenqueue && indequeue), "Unhandled grow case of having an outstanding dequeue and enqueue");
+        ASSERT(!(inenqueue && indequeue),
+                "Unhandled grow case of having an outstanding dequeue and enqueue (c: %llu)", clock.Get());
         if (oldqueue) {
             // If the old queue is still around we have to still be in the same state
             ASSERT(enqueueUseOld == inenqueue);
@@ -278,32 +279,34 @@ namespace CPN {
                 }
             }
         } catch (const ErrnoException &e) {
-            logger.Error("Exception on read (%d): %s", e.Error(), e.what());
+            logger.Error("Exception on read (c: %llu e: %d): %s", clock.Get(), e.Error(), e.what());
         }
     }
 
     void SocketEndpoint::OnWrite() {
         Sync::AutoLock<QueueBase> arl(*this);
-        logger.Error("%s", __PRETTY_FUNCTION__);
+        logger.Error("%s (c: %llu)", __PRETTY_FUNCTION__, clock.Get());
     }
 
     void SocketEndpoint::OnError() {
         Sync::AutoLock<QueueBase> arl(*this);
         // Error on socket.
-        logger.Error("%s", __PRETTY_FUNCTION__);
+        logger.Error("%s (c: %llu)", __PRETTY_FUNCTION__, clock.Get());
     }
 
     void SocketEndpoint::OnHup() {
         Sync::AutoLock<QueueBase> arl(*this);
         // If I understand correctly this will be called if
         // poll detects that if we try to write we would get EPIPE
-        logger.Debug("Hangup received");
+        // This only seems to be the case on linux systems, others
+        // will call this when a read would give eof as well
+        logger.Debug("Hangup received (c: %llu)", clock.Get());
     }
 
     void SocketEndpoint::OnInval() {
         Sync::AutoLock<QueueBase> arl(*this);
         // Our file descriptor is invalid
-        logger.Debug("%s", __PRETTY_FUNCTION__);
+        logger.Debug("%s (c: %llu)", __PRETTY_FUNCTION__, clock.Get());
         ASSERT(Closed());
     }
 
@@ -313,6 +316,7 @@ namespace CPN {
     }
 
     void SocketEndpoint::EnqueuePacket(const Packet &packet) {
+        clock.Update(packet.Clock());
         FUNC_TRACE;
         ASSERT( (packet.Mode() == WRITE) &&
         (packet.SourceKey() == writerkey) &&
@@ -329,7 +333,7 @@ namespace CPN {
         for (unsigned i = 0; i < packet.NumChannels(); ++i) {
             iovec iov;
             iov.iov_base = queue->GetRawEnqueuePtr(count, i);
-            ASSERT(iov.iov_base, "Internal throttle failed!");
+            ASSERT(iov.iov_base, "Internal throttle failed! (c: %llu)", clock.Get());
             iov.iov_len = count;
             iovs.push_back(iov);
         }
@@ -343,6 +347,7 @@ namespace CPN {
     }
 
     void SocketEndpoint::DequeuePacket(const Packet &packet) {
+        clock.Update(packet.Clock());
         FUNC_TRACE;
         ASSERT( (packet.Mode() == READ) &&
         (packet.SourceKey() == readerkey) &&
@@ -352,10 +357,12 @@ namespace CPN {
         ASSERT(!readshutdown);
         readrequest = 0;
         writecount -= packet.Count();
+        CheckEnqueue();
         InternCheckStatus();
     }
 
     void SocketEndpoint::ReadBlockPacket(const Packet &packet) {
+        clock.Update(packet.Clock());
         FUNC_TRACE;
         ASSERT( (packet.Mode() == READ) &&
         (packet.SourceKey() == readerkey) &&
@@ -367,10 +374,12 @@ namespace CPN {
         if (useD4R) {
             pendingD4RTag = true;
         }
+        CheckEnqueue();
         InternCheckStatus();
     }
 
     void SocketEndpoint::WriteBlockPacket(const Packet &packet) {
+        clock.Update(packet.Clock());
         FUNC_TRACE;
         ASSERT( (packet.Mode() == WRITE) &&
         (packet.SourceKey() == writerkey) &&
@@ -386,6 +395,7 @@ namespace CPN {
     }
 
     void SocketEndpoint::EndOfWritePacket(const Packet &packet) {
+        clock.Update(packet.Clock());
         FUNC_TRACE;
         ASSERT( (packet.Mode() == WRITE) &&
         (packet.SourceKey() == writerkey) &&
@@ -398,6 +408,7 @@ namespace CPN {
     }
 
     void SocketEndpoint::EndOfReadPacket(const Packet &packet) {
+        clock.Update(packet.Clock());
         FUNC_TRACE;
         ASSERT( (packet.Mode() == READ) &&
         (packet.SourceKey() == readerkey) &&
@@ -410,10 +421,14 @@ namespace CPN {
     }
 
     void SocketEndpoint::GrowPacket(const Packet &packet) {
+        clock.Update(packet.Clock());
+        FUNC_TRACE;
         InternalGrow(packet.QueueSize(), packet.MaxThreshold());
     }
 
     void SocketEndpoint::D4RTagPacket(const Packet &packet) {
+        clock.Update(packet.Clock());
+        FUNC_TRACE;
         ASSERT(packet.DataLength() == sizeof(D4R::Tag));
         D4R::Tag tag;
         unsigned numread = Read(&tag, sizeof(tag));
@@ -427,11 +442,13 @@ namespace CPN {
     }
 
     void SocketEndpoint::IDReaderPacket(const Packet &packet) {
+        clock.Update(packet.Clock());
         FUNC_TRACE;
         ASSERT(false, "Shouldn't receive an ID packet once the connection is successful");
     }
 
     void SocketEndpoint::IDWriterPacket(const Packet &packet) {
+        clock.Update(packet.Clock());
         FUNC_TRACE;
         ASSERT(false, "Shouldn't receive an ID packet once the connection is successful");
     }
@@ -443,7 +460,7 @@ namespace CPN {
         for (unsigned i = 0; i < iovcnt; ++i) {
             total += iov[i].iov_len;
         }
-        ASSERT(numwritten == total, "Writev did not completely write data.");
+        ASSERT(numwritten == total, "Writev did not completely write data. (c: %llu)", clock.Get());
 #endif
     }
 
@@ -452,12 +469,13 @@ namespace CPN {
         if (incheckstatus) { return; }
         BoolGuard guard(incheckstatus);
         if (status == DEAD) { return; }
+        clock.Tick();
 
         try {
 
             if (Eof() && !(readshutdown || writeshutdown)) {
-                logger.Error("Eof detected but not shutdown!");
-                ASSERT(false, "EOF detected but not shutdown!");
+                logger.Error("Eof detected but not shutdown! (c: %llu)", clock.Get());
+                ASSERT(false, "EOF detected but not shutdown! (c: %llu)", clock.Get());
             }
 
             if (Closed()) {
@@ -473,10 +491,10 @@ namespace CPN {
                                 FileHandler::Reset();
                                 FileHandler::FD(connection->Get());
                                 connection.reset();
-                                logger.Debug("Connection established");
+                                logger.Debug("Connection established (c: %llu)", clock.Get());
                             } else { return; }
                         } else if (Closed()) {
-                            logger.Debug("Getting new connection");
+                            logger.Debug("Getting new connection (c: %llu)", clock.Get());
                             if (mode == READ) {
                                 connection = kmh->GetReaderDescriptor(readerkey, writerkey);
                             } else {
@@ -494,9 +512,7 @@ namespace CPN {
             if (mode == READ) {
                 // In read mode
      
-                if (pendingDequeue) {
-                    SendDequeue();
-                }
+                CheckDequeue();
 
                 if (pendingBlock) {
                     OnRead();
@@ -527,7 +543,7 @@ namespace CPN {
                 if (writeshutdown) {
                     if (!sentEnd) { SendEndOfRead(); }
                     status = DEAD;
-                    logger.Debug("Closing connection");
+                    logger.Debug("Closing connection (c: %llu)", clock.Get());
                     Close();
                 }
 
@@ -535,9 +551,7 @@ namespace CPN {
                 ASSERT(mode == WRITE);
 
                 // In write mode
-                while (!queue->Empty() && !EnqueueBlocked()) {
-                    SendEnqueue();
-                }
+                CheckEnqueue();
 
                 if (pendingBlock) {
                     OnRead();
@@ -560,7 +574,7 @@ namespace CPN {
                 if (readshutdown) {
                     if (!sentEnd) { SendEndOfWrite(); }
                     status = DEAD;
-                    logger.Debug("Closing connection");
+                    logger.Debug("Closing connection (c: %llu)", clock.Get());
                     Close();
                 }
 
@@ -574,7 +588,19 @@ namespace CPN {
                 }
             }
         } catch (const ErrnoException &e) {
-            logger.Error("Exception (%d): %s", e.Error(), e.what());
+            logger.Error("Exception (c: %llu, e: %d): %s", clock.Get(), e.Error(), e.what());
+        }
+    }
+
+    void SocketEndpoint::CheckDequeue() {
+        if (pendingDequeue || readcount - queue->Count() > 0) {
+            SendDequeue();
+        }
+    }
+
+    void SocketEndpoint::CheckEnqueue() {
+        while (!queue->Empty() && !EnqueueBlocked()) {
+            SendEnqueue();
         }
     }
 
@@ -586,6 +612,7 @@ namespace CPN {
         if (mode == WRITE) { packet.SourceKey(writerkey).DestinationKey(readerkey); }
         else { packet.SourceKey(readerkey).DestinationKey(writerkey); }
         packet.Mode(mode).Status(status).NumChannels(queue->NumChannels());
+        packet.Clock(clock.Tick());
     }
 
     void SocketEndpoint::SendEnqueue() {
@@ -689,7 +716,7 @@ namespace CPN {
     }
 
     void SocketEndpoint::LogState() {
-        logger.Debug("Printing state (w:%llu r:%llu)", readerkey, writerkey);
+        logger.Debug("Printing state (w:%llu r:%llu c:%llu)", readerkey, writerkey, clock.Get());
         switch (status) {
             case LIVE:
                 logger.Debug("State live");
