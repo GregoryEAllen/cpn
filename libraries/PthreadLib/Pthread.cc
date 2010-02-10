@@ -35,9 +35,12 @@ Pthread::Pthread(void)
 //-----------------------------------------------------------------------------
 {
 	PthreadMutexProtected p(mutex);
+    returnResult = 0;
+    inJoin = false;
 	state = uninitialized;
 	TrapError( pthread_create( &theThread, 0, PthreadEntryPoint, this) );
 	state = created;
+    cond.Broadcast();
 }
 
 
@@ -46,6 +49,8 @@ Pthread::Pthread(const PthreadAttr& attr)
 //-----------------------------------------------------------------------------
 {
 	PthreadMutexProtected p(mutex);
+    returnResult = 0;
+    inJoin = false;
 	state = uninitialized;
 
 	//	It should simply be:
@@ -57,6 +62,7 @@ Pthread::Pthread(const PthreadAttr& attr)
 	TrapError( pthread_create(&theThread, myAttr, PthreadEntryPoint, this) );
 
 	state = created;
+    cond.Broadcast();
 }
 
 
@@ -67,20 +73,60 @@ Pthread::~Pthread(void)
 	// Force the thread to terminate if it has not already done so.
 	// Is it safe to do this to a thread that has already terminated?
 
+    bool need_start = false;
 	// valgrind's memcheck tool claims this allocates a block of 
 	// memory that is never freed.
 	{
 		PthreadMutexProtected p(mutex);
-		if (state != done)
-			Cancel();
+        switch (state) {
+            case uninitialized:
+                // should be impossible
+            case created:
+                need_start = true;
+            case started:
+            case running:
+                Cancel();
+            case done:
+            case joined:
+                break;
+        }
 	}
 
-	Start();
+    if (need_start) { Start(); }
 	// Now wait.
 	Join();
 //	Detach();
 }
 
+void Pthread::Start(void) {
+    PthreadMutexProtected p(mutex);
+    if (state == created) {
+        state = started;
+        cond.Broadcast();
+    }
+}
+
+void *Pthread::Join(void) {
+    void *result = 0;
+    {
+        PthreadMutexProtected p(mutex);
+        if (inJoin) {
+            while (state != joined) {
+                cond.Wait(mutex);
+            }
+            return returnResult;
+        }
+        inJoin = true;
+    }
+    TrapError( pthread_join(theThread, &result) );
+    {
+        PthreadMutexProtected p(mutex);
+        returnResult = result;
+        state = joined;
+        cond.Broadcast();
+        return returnResult;
+    }
+}
 
 //-----------------------------------------------------------------------------
 void* Pthread::PthreadEntryPoint(void* arg)
@@ -91,9 +137,10 @@ void* Pthread::PthreadEntryPoint(void* arg)
 	{
 		PthreadMutexProtected p(ptr->mutex);
 		while (ptr->state == created) {
-			ptr->startCond.Wait(ptr->mutex);
+			ptr->cond.Wait(ptr->mutex);
 		}
 		ptr->state = running;
+        ptr->cond.Broadcast();
 	}
 	TestCancel();
 	pthread_cleanup_push( PthreadCleanup, ptr);
@@ -111,6 +158,7 @@ void Pthread::PthreadCleanup(void* arg)
 	PthreadMutexProtected p(ptr->mutex);
 //	ptr->Cleanup();		// the sub-classes have already been destructed
 	ptr->state = done;
+    ptr->cond.Broadcast();
 }
 
 
