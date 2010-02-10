@@ -1,34 +1,15 @@
+This is a Mercurial repository.
 
-To build the unit tests cppunit must be installed and pkg-config must know how
-to get its compiler flags.  All the tests are in the test directory.  All tests
-dealing with the CPN library are in cpntest. Some of the other libraries have a test directory.
-To build the xmlcpntest requires libxml++.
+http://www.selenic.com/mercurial/wiki/
+Mercurial: a fast, lightweight Source Control Management system designed for
+efficient handling of very large distributed projects.
 
-Seive of Eratosthenes
+The command-line utility for Mercurial is "hg".
 
-There are two versions of this the first is called SimpleSieve and the second
-is called ThresholdSieve.  To run these go either
-apps/SieveOfEratosthenes/SimpleSeive or /ThresholdSieve and execute jmake. Then run
-the resulting executable with the -h option to get specific options.
+On machines mounting /v/repositories, you should be able to check out with:
+$ hg clone /v/repositories/cpn
 
-Random Instruction
+Otherwise:
+$ hg clone ssh://gallen@syrinx//v/repositories/cpn
 
-There are two ways to run the random instruction test.
-The first is all in one process. Go to apps/RandomInstruction and jmake.
-Then run with -h to get a list of options.
-
-The second one is on multiple processes and requires more setup.
-First build apps/RemoteRandomInstruction then build apps/RemoteDatabase.
-Then create a config file for the RemoteRandomInstruction, (the -h
-option prints out a description of what the config is supposed to look like.
-As well, there is an example config file in that directory).
-Now run the RemoteDatabase with the listening host and port set in the config.
-Then run each of the RemoteRandomInstruction with parameters of config then
-the name, database host and database port.
-
-For the given example config it would be:
-Run on zeus: RemoteDatabase zeus 12345
-Run: RemoteRandomInstruction configk2n100i100 kone zeus 12345
-Run: RemoteRandomInstruction configk2n100i100 ktwo zeus 12345
-
-
+(Any machine with hg installed will work in place of syrinx.)
