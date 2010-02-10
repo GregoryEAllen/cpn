@@ -126,6 +126,8 @@ namespace CPN {
          * we received an enqueue.
          */
         void InternCheckStatus();
+        void CheckEnqueue();
+        void CheckDequeue();
         bool EnqueueBlocked();
 
         void SetupPacketDefaults(Packet &packet);

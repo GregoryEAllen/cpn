@@ -285,6 +285,7 @@ namespace CPN {
         ASSERT(!readshutdown);
         readrequest = 0;
         writecount -= packet.Count();
+        CheckEnqueue();
         InternCheckStatus();
     }
 
@@ -297,6 +298,7 @@ namespace CPN {
         ASSERT(mode == WRITE);
         ASSERT(!readshutdown);
         readrequest = packet.Requested();
+        CheckEnqueue();
         InternCheckStatus();
     }
 
@@ -400,9 +402,7 @@ namespace CPN {
             if (mode == READ) {
                 // In read mode
      
-                if (pendingDequeue) {
-                    SendDequeue();
-                }
+                CheckDequeue();
 
                 if (pendingBlock) {
                     OnRead();
@@ -435,9 +435,7 @@ namespace CPN {
                 ASSERT(mode == WRITE);
 
                 // In write mode
-                while (!queue.Empty() && !EnqueueBlocked()) {
-                    SendEnqueue();
-                }
+                CheckEnqueue();
 
                 if (pendingBlock) {
                     OnRead();
@@ -469,6 +467,18 @@ namespace CPN {
             }
         } catch (const ErrnoException &e) {
             logger.Error("Exception (%d): %s", e.Error(), e.what());
+        }
+    }
+
+    void SocketEndpoint::CheckDequeue() {
+        if (pendingDequeue || readcount - queue.Count() > 0) {
+            SendDequeue();
+        }
+    }
+
+    void SocketEndpoint::CheckEnqueue() {
+        while (!queue.Empty() && !EnqueueBlocked()) {
+            SendEnqueue();
         }
     }
 
