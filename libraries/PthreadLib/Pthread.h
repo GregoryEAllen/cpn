@@ -43,13 +43,8 @@ class Pthread : public PthreadBase {
 	Pthread(const PthreadAttr& attr);
 	virtual ~Pthread(void);
 
-	void Start(void) {
-		PthreadMutexProtected p(mutex);
-		if (state == created) {
-			state = started;
-			startCond.Signal();
-		}
-	}
+	void Start(void);
+
 	int Running(void) {
 		PthreadMutexProtected p(mutex);
 		return state == running;
@@ -59,15 +54,19 @@ class Pthread : public PthreadBase {
 		return state == done;
 	}
 
+    void *Join(void);
+
   protected:
 	virtual void* EntryPoint(void) = 0;
 //	virtual void  Cleanup(void)		{ }
 
   private:
 	PthreadMutex	mutex;
-	PthreadCondition startCond;
+	PthreadCondition cond;
+    void *returnResult;
+    bool inJoin;
 
-	enum PthreadState { uninitialized = 0, created, started, running, done };
+	enum PthreadState { uninitialized = 0, created, started, running, done, joined };
 	PthreadState	state;
 
 	static void*	PthreadEntryPoint(void* arg);

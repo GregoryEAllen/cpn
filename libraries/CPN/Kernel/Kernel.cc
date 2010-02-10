@@ -95,10 +95,6 @@ namespace CPN {
         FUNCBEGIN;
         Terminate();
         Wait();
-        Sync::AutoReentrantLock arlock(lock);
-        assert(status.Get() == DONE);
-        assert(nodemap.empty());
-        assert(garbagenodes.empty());
         FUNCEND;
     }
 
@@ -253,10 +249,9 @@ namespace CPN {
 
         endpoints.push_back(endp);
 
-        shared_ptr<NodeBase> readernode = nodemap[attr.GetReaderNodeKey()];
-        ASSERT(readernode);
-
-        readernode->CreateReader(endp);
+        NodeMap::iterator entry = nodemap.find(attr.GetReaderNodeKey());
+        ASSERT(entry != nodemap.end());
+        entry->second->CreateReader(endp);
 
         SendWakeup();
     }
@@ -274,10 +269,9 @@ namespace CPN {
 
         endpoints.push_back(endp);
 
-        shared_ptr<NodeBase> writernode = nodemap[attr.GetWriterNodeKey()];
-        ASSERT(writernode);
-
-        writernode->CreateWriter(endp);
+        NodeMap::iterator entry = nodemap.find(attr.GetWriterNodeKey());
+        ASSERT(entry != nodemap.end());
+        entry->second->CreateWriter(endp);
 
         SendWakeup();
     }
@@ -287,13 +281,13 @@ namespace CPN {
 
         shared_ptr<QueueBase> queue = MakeQueue(attr);
 
-        shared_ptr<NodeBase> readernode = nodemap[attr.GetReaderNodeKey()];
-        ASSERT(readernode, "Tried to connect a queue to a node that doesn't exist.");
-        readernode->CreateReader(queue);
+        NodeMap::iterator entry = nodemap.find(attr.GetReaderNodeKey());
+        ASSERT(entry != nodemap.end(), "Tried to connect a queue to a node that doesn't exist.");
+        entry->second->CreateReader(queue);
 
-        shared_ptr<NodeBase> writernode = nodemap[attr.GetWriterNodeKey()];
-        ASSERT(writernode, "Tried to connect a queue to a node that doesn't exist.");
-        writernode->CreateWriter(queue);
+        entry = nodemap.find(attr.GetWriterNodeKey());
+        ASSERT(entry != nodemap.end(), "Tried to connect a queue to a node that doesn't exist.");
+        entry->second->CreateWriter(queue);
     }
 
     shared_ptr<QueueBase> Kernel::MakeQueue(const SimpleQueueAttr &attr) {
@@ -330,8 +324,10 @@ namespace CPN {
         if (status.Get() == DONE) {
             logger.Warn("Nodes running after shutdown");
         } else {
-            shared_ptr<NodeBase> node = nodemap[key];
-            nodemap.erase(key);
+            NodeMap::iterator entry = nodemap.find(key);
+            ASSERT(entry != nodemap.end());
+            shared_ptr<NodeBase> node = entry->second;
+            nodemap.erase(entry);
             garbagenodes.push_back(node);
             wakeuphandler.SendWakeup();
         }
@@ -368,6 +364,7 @@ namespace CPN {
             }
             arlock.Unlock();
         } catch (const ShutdownException &e) {
+            logger.Warn("Kernel forced shutdown");
         }
         ClearGarbage();
         database->DestroyHostKey(hostkey);
