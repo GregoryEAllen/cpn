@@ -40,6 +40,6 @@ int main(int argc, char **argv) {
     CppUnit::Test* suite = registry.makeTest();
     runner.addTest(suite);
     bool wasSuccessful = runner.run("", false);
-    return wasSuccessful;
+    return !wasSuccessful;
 }
 
