@@ -18,6 +18,7 @@ namespace D4R {
         virtual void Deadlock(TestNodeBase *tnb) = 0;
         virtual void Failure(TestNodeBase *tnb, const std::string &msg);
         virtual void Complete(TestNodeBase *tnb) = 0;
+        virtual void Abort() = 0;
 
         bool Success() const { return success; }
     protected:

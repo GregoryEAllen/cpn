@@ -11,6 +11,7 @@ namespace D4R {
 
     Tester::~Tester() {
         Abort();
+        PthreadMutexProtected al(lock);
         NodeMap::iterator nodeitr = nodemap.begin();
         while (nodeitr != nodemap.end()) {
             TestNode *n = nodeitr->second;
@@ -27,6 +28,7 @@ namespace D4R {
     }
 
     void Tester::Abort() {
+        PthreadMutexProtected al(lock);
         QueueMap::iterator qitr = queuemap.begin();
         while (qitr != queuemap.end()) {
             qitr->second.queue->Abort();
@@ -35,15 +37,20 @@ namespace D4R {
     }
 
     void Tester::Run() {
-        NodeMap::iterator nodeitr = nodemap.begin();
-        while (nodeitr != nodemap.end()) {
-            nodeitr->second->Start();
-            ++nodeitr;
+        std::vector<TestNode*> joiners;
+        {
+            PthreadMutexProtected al(lock);
+            NodeMap::iterator nodeitr = nodemap.begin();
+            while (nodeitr != nodemap.end()) {
+                nodeitr->second->Start();
+                joiners.push_back(nodeitr->second);
+                ++nodeitr;
+            }
         }
-        nodeitr = nodemap.begin();
-        while (nodeitr != nodemap.end()) {
-            nodeitr->second->Join();
-            ++nodeitr;
+        std::vector<TestNode*>::iterator itr = joiners.begin();
+        while (itr != joiners.end()) {
+            (*itr)->Join();
+            ++itr;
         }
     }
 
@@ -73,6 +80,7 @@ namespace D4R {
 
 
     void Tester::Report() {
+        PthreadMutexProtected al(lock);
         nmap_t nmap;
         qmap_t qmap;
 
@@ -90,8 +98,7 @@ namespace D4R {
                 }
                 queue->blockee = queue->qinfo.writer;
                 queue->blocker = queue->qinfo.reader;
-            }
-            if (q->DequeueAmount() > 0) {
+            } else if (q->DequeueAmount() > 0) {
                 if (q->EnqueueAmount() > 0) {
                     printf("Queue \"%s\" is blocked on both sides.\n", queue->name.c_str());
                     delete queue;
@@ -99,6 +106,9 @@ namespace D4R {
                 }
                 queue->blockee = queue->qinfo.reader;
                 queue->blocker = queue->qinfo.writer;
+            } else {
+                delete queue;
+                continue;
             }
 
             nmap_t::iterator nm_itr = nmap.find(queue->blockee->GetName());
@@ -173,6 +183,7 @@ namespace D4R {
         TestNode *tn = new TestNode(noded, this);
         tn->Output(this);
         tn->LogLevel(LogLevel());
+        PthreadMutexProtected al(lock);
         nodemap.insert(std::make_pair(tn->GetName(), tn));
     }
 
@@ -184,9 +195,10 @@ namespace D4R {
         qinfo.queue = tq;
         qinfo.reader = nodemap[queued["reader"].AsString()];
         qinfo.writer = nodemap[queued["writer"].AsString()];
-        queuemap.insert(std::make_pair(tq->GetName(), qinfo));
         qinfo.reader->AddReadQueue(tq);
         qinfo.writer->AddWriteQueue(tq);
+        PthreadMutexProtected al(lock);
+        queuemap.insert(std::make_pair(tq->GetName(), qinfo));
     }
 
     void Tester::PrintNodes() {
@@ -195,5 +207,10 @@ namespace D4R {
             nodeitr->second->PrintNode();
             ++nodeitr;
         }
+    }
+
+    void Tester::Failure(TestNodeBase *tnb, const std::string &msg) {
+        Report();
+        TesterBase::Failure(tnb, msg);
     }
 }

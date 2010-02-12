@@ -69,11 +69,13 @@ int main(int argc, char **argv) {
                 printf("Success!\n");
             } else {
                 printf("****************** Failure! *******************\n");
+                return 1;
             }
         } catch (const std::exception &e) {
             printf("Error: %s\n", e.what());
         }
     }
 
+    return 0;
 }
 

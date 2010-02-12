@@ -27,7 +27,7 @@
 #include <algorithm>
 #include <functional>
 
-#if 1
+#if 0
 #include <stdio.h>
 #define DEBUG(fmt, ...) printf(fmt, ## __VA_ARGS__)
 #else
@@ -77,26 +77,29 @@ namespace D4R {
     bool Node::Transmit(Tag t) {
         Sync::AutoLock<PthreadMutex> al(taglock);
         if (publicTag < t) {
+
             DEBUG("Node %llu:%llu transfer %d : (%llu, %llu %d) < (%llu, %llu, %d)\n",
                     privateTag.Count(), privateTag.Key(), (int)privateTag.QueueSize(),
                     publicTag.Count(), publicTag.Key(), (int)publicTag.QueueSize(),
                     t.Count(), t.Key(), (int)t.QueueSize());
-            unsigned qsize = std::min(publicTag.QueueSize(), t.QueueSize());
+
+            unsigned qsize = std::min(privateTag.QueueSize(), t.QueueSize());
             publicTag = t;
             publicTag.QueueSize(qsize);
             al.Unlock();
             SignalTagChanged();
         } else if (publicTag == t) {
+
             DEBUG("Node %llu:%llu transfer %d : (%llu, %llu %d) == (%llu, %llu, %d)\n",
                     privateTag.Count(), privateTag.Key(), (int)privateTag.QueueSize(),
                     publicTag.Count(), publicTag.Key(), (int)publicTag.QueueSize(),
                     t.Count(), t.Key(), (int)t.QueueSize());
-            bool detected = privateTag.QueueSize() == publicTag.QueueSize();
-            al.Unlock();
-            if (!detected) {
-                SignalTagChanged();
+
+            if (privateTag.QueueSize() == unsigned(-1)) {
+                return privateTag == publicTag;
+            } else {
+                return privateTag.QueueSize() == publicTag.QueueSize();
             }
-            return detected;
         } else {
             DEBUG("Node %llu:%llu transfer nop %d : (%llu, %llu %d) > (%llu, %llu, %d)\n",
                     privateTag.Count(), privateTag.Key(), (int)privateTag.QueueSize(),

@@ -6,6 +6,7 @@
 #include "D4RTesterBase.h"
 #include "D4RTestQueue.h"
 #include "D4RTestNode.h"
+#include "PthreadMutex.h"
 #include <map>
 
 namespace D4R {
@@ -17,6 +18,7 @@ namespace D4R {
         void Deadlock(TestNodeBase *tnb) { Abort(); }
 
         void Complete(TestNodeBase *tnb) {}
+        void Failure(TestNodeBase *tnb, const std::string &msg);
 
         void Abort();
 
@@ -37,6 +39,7 @@ namespace D4R {
             TestNode *writer;
         };
     private:
+        PthreadMutex lock;
         typedef std::map<std::string, QueueInfo> QueueMap;
         NodeMap nodemap;
         QueueMap queuemap;
