@@ -27,7 +27,7 @@
 #include <algorithm>
 #include <functional>
 
-#if 0
+#if 1
 #include <stdio.h>
 #define DEBUG(fmt, ...) printf(fmt, ## __VA_ARGS__)
 #else
@@ -68,7 +68,7 @@ namespace D4R {
         Sync::AutoLock<PthreadMutex> al(taglock);
         privateTag.QueueSize(qsize);
         privateTag.Count(std::max(privateTag.Count(), t.Count()) + 1);
-        DEBUG("Node %llu:%llu block %u\n", privateTag.Count(), privateTag.Key(), privateTag.QueueSize());
+        DEBUG("Node %llu:%llu block %d\n", privateTag.Count(), privateTag.Key(), (int)privateTag.QueueSize());
         publicTag = privateTag;
         al.Unlock();
         SignalTagChanged();
@@ -77,26 +77,31 @@ namespace D4R {
     bool Node::Transmit(Tag t) {
         Sync::AutoLock<PthreadMutex> al(taglock);
         if (publicTag < t) {
-            DEBUG("Node %llu:%llu transfer %u : (%llu, %llu %u) < (%llu, %llu, %u)\n",
-                    privateTag.Count(), privateTag.Key(), privateTag.QueueSize(),
-                    publicTag.Count(), publicTag.Key(), publicTag.QueueSize(),
-                    t.Count(), t.Key(), t.QueueSize());
+            DEBUG("Node %llu:%llu transfer %d : (%llu, %llu %d) < (%llu, %llu, %d)\n",
+                    privateTag.Count(), privateTag.Key(), (int)privateTag.QueueSize(),
+                    publicTag.Count(), publicTag.Key(), (int)publicTag.QueueSize(),
+                    t.Count(), t.Key(), (int)t.QueueSize());
             unsigned qsize = std::min(publicTag.QueueSize(), t.QueueSize());
             publicTag = t;
             publicTag.QueueSize(qsize);
             al.Unlock();
             SignalTagChanged();
         } else if (publicTag == t) {
-            DEBUG("Node %llu:%llu transfer %u : (%llu, %llu %u) == (%llu, %llu, %u)\n",
-                    privateTag.Count(), privateTag.Key(), privateTag.QueueSize(),
-                    publicTag.Count(), publicTag.Key(), publicTag.QueueSize(),
-                    t.Count(), t.Key(), t.QueueSize());
-            return privateTag.QueueSize() == publicTag.QueueSize();
+            DEBUG("Node %llu:%llu transfer %d : (%llu, %llu %d) == (%llu, %llu, %d)\n",
+                    privateTag.Count(), privateTag.Key(), (int)privateTag.QueueSize(),
+                    publicTag.Count(), publicTag.Key(), (int)publicTag.QueueSize(),
+                    t.Count(), t.Key(), (int)t.QueueSize());
+            bool detected = privateTag.QueueSize() == publicTag.QueueSize();
+            al.Unlock();
+            if (!detected) {
+                SignalTagChanged();
+            }
+            return detected;
         } else {
-            DEBUG("Node %llu:%llu transfer nop %u : (%llu, %llu %u) > (%llu, %llu, %u)\n",
-                    privateTag.Count(), privateTag.Key(), privateTag.QueueSize(),
-                    publicTag.Count(), publicTag.Key(), publicTag.QueueSize(),
-                    t.Count(), t.Key(), t.QueueSize());
+            DEBUG("Node %llu:%llu transfer nop %d : (%llu, %llu %d) > (%llu, %llu, %d)\n",
+                    privateTag.Count(), privateTag.Key(), (int)privateTag.QueueSize(),
+                    publicTag.Count(), publicTag.Key(), (int)publicTag.QueueSize(),
+                    t.Count(), t.Key(), (int)t.QueueSize());
         }
         return false;
     }

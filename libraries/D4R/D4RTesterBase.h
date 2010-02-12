@@ -19,8 +19,11 @@ namespace D4R {
         virtual void Failure(TestNodeBase *tnb, const std::string &msg);
         virtual void Complete(TestNodeBase *tnb) = 0;
 
+        bool Success() const { return success; }
     protected:
         virtual void CreateNode(const Variant &noded) = 0;
         virtual void CreateQueue(const Variant &queued) = 0;
+
+        bool success;
     };
 }

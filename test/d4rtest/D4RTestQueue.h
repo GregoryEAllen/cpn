@@ -18,24 +18,33 @@ namespace D4R {
         void Dequeue(unsigned amount);
 
         void Abort();
-    protected:
+
         bool WriteBlocked();
 
         bool ReadBlocked();
 
-    public:
-        unsigned Freespace() {
+        unsigned Freespace() const {
             PthreadMutexProtected al(lock);
             return queuesize - count;
         }
 
-        unsigned Count() {
+        unsigned Count() const {
             PthreadMutexProtected al(lock);
             return count;
         }
-        unsigned QueueSize() {
+        unsigned QueueSize() const {
             PthreadMutexProtected al(lock);
             return queuesize;
+        }
+
+        unsigned EnqueueAmount() const {
+            PthreadMutexProtected al(lock);
+            return enqueue_amount;
+        }
+
+        unsigned DequeueAmount() const {
+            PthreadMutexProtected al(lock);
+            return dequeue_amount;
         }
 
         const std::string &GetName() const { return name; }

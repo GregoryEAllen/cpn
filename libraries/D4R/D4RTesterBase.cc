@@ -6,7 +6,9 @@
 
 namespace D4R {
 
-    TesterBase::TesterBase() {
+    TesterBase::TesterBase()
+        : success(true)
+    {
     }
 
     TesterBase::~TesterBase() {
@@ -29,7 +31,7 @@ namespace D4R {
 
     void TesterBase::Failure(TestNodeBase *tnb, const std::string &msg) {
         Error(msg.c_str());
-        ASSERT(false, msg);
+        success = false;
     }
 }
 

@@ -21,6 +21,8 @@ namespace D4R {
         void Abort();
 
         void Run();
+
+        void Report();
     protected:
         virtual void CreateNode(const Variant &noded);
         virtual void CreateQueue(const Variant &queued);
@@ -28,7 +30,14 @@ namespace D4R {
     private:
         void PrintNodes();
         typedef std::map<std::string, TestNode*> NodeMap;
-        typedef std::map<std::string, TestQueue*> QueueMap;
+    public:
+        struct QueueInfo {
+            TestQueue *queue;
+            TestNode *reader;
+            TestNode *writer;
+        };
+    private:
+        typedef std::map<std::string, QueueInfo> QueueMap;
         NodeMap nodemap;
         QueueMap queuemap;
     };

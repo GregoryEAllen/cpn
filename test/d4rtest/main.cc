@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
     }
 
     std::string ext = ".test";
-    LoggerStdOutput loggerout(Logger::TRACE);
+    LoggerStdOutput loggerout(Logger::DEBUG);
 
     for ( Directory dir(dirname); !dir.End() ; dir.Next() ) {
         try {
@@ -65,7 +65,11 @@ int main(int argc, char **argv) {
             tester.Setup(conf);
             tester.Run();
 
-            printf("Done\n");
+            if (tester.Success()) {
+                printf("Success!\n");
+            } else {
+                printf("****************** Failure! *******************\n");
+            }
         } catch (const std::exception &e) {
             printf("Error: %s\n", e.what());
         }

@@ -2,6 +2,7 @@
 #include "D4RTestNode.h"
 #include "D4RTestQueue.h"
 #include "D4RTester.h"
+#include "D4RDeadlockException.h"
 #include "Assert.h"
 
 namespace D4R {
@@ -54,6 +55,7 @@ namespace D4R {
         try {
             Run();
         } catch (const TestQueueAbortException &e) {
+        } catch (const DeadlockException &e) {
         }
         return 0;
     }
