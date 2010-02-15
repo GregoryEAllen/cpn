@@ -70,12 +70,18 @@ public:
 
     void VerifyReaderSize(const std::string &qname, unsigned amount) {
         QueueReaderAdapter<unsigned> in = GetReader(qname);
-        ASSERT(in.QueueLength() == amount, "%u != %u", in.QueueLength(), amount);
+        Trace("%s %u ?= %u", qname.c_str(), in.QueueLength(), amount);
+        if (in.QueueLength() != amount) {
+            testerbase->Failure(this, "Queuesize is not expected size");
+        }
     }
 
     void VerifyWriterSize(const std::string &qname, unsigned amount) {
         QueueWriterAdapter<unsigned> out = GetWriter(qname);
-        ASSERT(out.QueueLength() == amount, "%u != %u", out.QueueLength(), amount);
+        Trace("%s %u ?= %u", qname.c_str(), out.QueueLength(), amount);
+        if (out.QueueLength() != amount) {
+            testerbase->Failure(this, "Queuesize is not expected size");
+        }
     }
 };
 
@@ -135,12 +141,13 @@ void D4RTest::RunTest() {
         database->LogLevel(Logger::WARNING);
         database->UseD4R(true);
         database->SwallowBrokenQueueExceptions(true);
+        database->GrowQueueMaxThreshold(false);
         Output(database.get());
         LogLevel(database->LogLevel());
         kernel = new Kernel(KernelAttr("testkernel").SetDatabase(database));
 
         Debug("Starting test %s", dir.BaseName().c_str());
-        success = false;
+        success = true;
         Setup(conf);
 
         database->WaitForAllNodeEnd();
@@ -156,20 +163,19 @@ void D4RTest::Deadlock(TestNodeBase *tnb) {
     NodeBase *n = dynamic_cast<NodeBase*>(tnb);
     Info("%s detected deadlock correctly", n->GetName().c_str());
     successes++;
-    success = true;
     kernel->Terminate();
 }
 
 void D4RTest::Failure(TestNodeBase *tnb, const std::string &msg) {
     NodeBase *n = dynamic_cast<NodeBase*>(tnb);
     Error("%s: %s", n->GetName().c_str(), msg.c_str());
+    D4R::TesterBase::Failure(tnb, msg);
 }
 
 void D4RTest::Complete(TestNodeBase *tnb) {
     NodeBase *n = dynamic_cast<NodeBase*>(tnb);
     Info("%s completed correctly", n->GetName().c_str());
     successes++;
-    success = true;
 }
 
 void D4RTest::CreateNode(const Variant &noded) {
@@ -181,11 +187,14 @@ void D4RTest::CreateNode(const Variant &noded) {
 }
 
 void D4RTest::CreateQueue(const Variant &queued) {
-    QueueAttr attr(queued["size"].AsUnsigned() * sizeof(unsigned), sizeof(unsigned));
+    QueueAttr attr(queued["size"].AsUnsigned() * sizeof(unsigned), queued["size"].AsUnsigned()*sizeof(unsigned));
     attr.SetDatatype<unsigned>();
     attr.SetReader(queued["reader"].AsString(), queued["name"].AsString());
     attr.SetWriter(queued["writer"].AsString(), queued["name"].AsString());
     kernel->CreateQueue(attr);
 }
 
+void D4RTest::Abort() {
+    kernel->Terminate();
+}
 

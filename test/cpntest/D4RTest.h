@@ -35,8 +35,9 @@ public:
     void CreateNode(const Variant &noded);
     void CreateQueue(const Variant &queued);
 
+    void Abort();
+
     unsigned successes;
-    bool success;
     CPN::shared_ptr<CPN::Database> database;
     CPN::Kernel *kernel;
 };

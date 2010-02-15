@@ -59,6 +59,7 @@ namespace CPN {
             }
             if (readshutdown) { throw BrokenQueueException(readerkey); }
             if (thresh > MaxThreshold() && database->GrowQueueMaxThreshold()) {
+                //printf("Grow(%u, %u)\n", 2*thresh, thresh);
                 Grow(2*thresh, thresh);
             } else {
                 readrequest = thresh;
@@ -109,6 +110,7 @@ namespace CPN {
             }
             if (readshutdown || writeshutdown) { throw BrokenQueueException(writerkey); }
             if (thresh > MaxThreshold() && database->GrowQueueMaxThreshold()) {
+                //printf("Grow(%u, %u)\n", 2*thresh, thresh);
                 Grow(2*thresh, thresh);
             } else {
                 writerequest = thresh;
@@ -206,7 +208,7 @@ namespace CPN {
     void QueueBase::Detect() {
         Sync::AutoLock<QueueBase> al(*this);
         unsigned size = writerequest + Count();
-        printf("Grow(%u, %u)\n", size, writerequest);
+        //printf("Grow(%u, %u)\n", size, writerequest);
         Grow(size, writerequest);
     }
 

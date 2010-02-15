@@ -291,7 +291,8 @@ namespace CPN {
          * a threshold larger than the current max threshold is requested.
          * \return true or false (default true)
          */
-        virtual bool GrowQueueMaxThreshold() { return true; }
+        virtual bool GrowQueueMaxThreshold();
+        virtual bool GrowQueueMaxThreshold(bool grow);
 
         /** \brief Whether the node should by default swallow the broken queue exceptions
          * or let them propigate as an error.
@@ -341,6 +342,7 @@ namespace CPN {
 
         bool useD4R;
         bool swallowbrokenqueue;
+        bool growmaxthresh;
     };
 
 }

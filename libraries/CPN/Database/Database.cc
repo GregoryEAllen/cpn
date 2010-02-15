@@ -34,7 +34,8 @@ namespace CPN {
     }
 
     Database::Database()
-        : useD4R(true)
+        : useD4R(true), swallowbrokenqueue(false),
+        growmaxthresh(true)
     {
     }
 
@@ -64,6 +65,16 @@ namespace CPN {
     bool Database::SwallowBrokenQueueExceptions(bool sbqe) {
         PthreadMutexProtected al(lock);
         return swallowbrokenqueue = sbqe;
+    }
+
+    bool Database::GrowQueueMaxThreshold() {
+        PthreadMutexProtected al(lock);
+        return growmaxthresh;
+    }
+
+    bool Database::GrowQueueMaxThreshold(bool grow) {
+        PthreadMutexProtected al(lock);
+        return growmaxthresh = grow;
     }
 
     void Database::CheckTerminated() {
