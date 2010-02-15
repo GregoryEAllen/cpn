@@ -18,6 +18,7 @@ struct ThresholdSieveOptions {
     CPN::QueueHint_t queuehint;
     std::vector<NumberT> *results;
     CPN::Key_t consumerkey;
+    bool report;
 };
 
 const char* const PRODUCER_NAME = "Producer";

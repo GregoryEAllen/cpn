@@ -10,7 +10,7 @@
 #include <cstdio>
 #include <string.h>
 
-const char* const VALID_OPTS = "Mm:q:t:hf:i:p:vw:";
+const char* const VALID_OPTS = "Mm:q:t:hf:i:p:vw:r";
 const char* const HELP_OPTS = "Usage: %s -hv -m maxprime -q queuesize -t threshold -f filename -p primes per filter -i iterations\n"
 "\t-h\tPrint out this message\n"
 "\t-v\tBe verbose, print out the primes found\n"
@@ -21,6 +21,7 @@ const char* const HELP_OPTS = "Usage: %s -hv -m maxprime -q queuesize -t thresho
 "\t-pa,b,c,...\tSpecify the number of primes per filter as a polynomial (default 1)\n"
 "\t-w\tSpecify the number of primes in the producer prime wheel (default 0)\n"
 "\t-i\tRerun the given number of times\n"
+"\t-r\tReport per filter statistics\n"
 "\n"
 "Note that when the number of primes in the prime wheel is not zero the maximum\n"
 "number to consider for primes is not exact.\n"
@@ -45,6 +46,7 @@ int main(int argc, char **argv) {
     options.numPrimesSource = 0;
     options.queuehint = CPN::QUEUEHINT_THRESHOLD;
     options.results = &results;
+    options.report = false;
     int numIterations = 1;
     bool multitest = false;
     bool verbose = false;
@@ -72,6 +74,9 @@ int main(int argc, char **argv) {
         case 't':
             options.threshold = atoi(optarg);
             if (options.threshold < 2) options.threshold = 2;
+            break;
+        case 'r':
+            options.report = true;
             break;
         case 'p':
             {

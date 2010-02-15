@@ -20,6 +20,12 @@
 #define DEBUG(frmt, ...)
 #endif
 
+#if 0
+#define REPORT(fmt, ...) printf(fmt, ## __VA_ARGS)
+#else
+#define REPORT(fmt, ...)
+#endif
+
 using CPN::shared_ptr;
 
 typedef ThresholdSieveOptions::NumberT NumberT;
@@ -55,13 +61,13 @@ void ThresholdSieveController::Process(void) {
                 ++filterCount;
                 in.Release();
                 in = GetReader(ToString(FILTER_FORMAT, filterCount));
-                DEBUG("Consumer swapped input to %llu\n", filterCount);
+                REPORT("Consumer swapped input to %llu\n", filterCount);
                 continue;
             } else {
                 inBuff = in.GetDequeuePtr(inCount);
             }
         }
-        DEBUG("Consumer Reading %u values\n", inCount);
+        REPORT("Consumer Reading %u values\n", inCount);
         ASSERT(inBuff);
         results->insert(results->end(), inBuff, inBuff + inCount);
         in.Dequeue(inCount);

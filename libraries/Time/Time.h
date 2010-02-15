@@ -91,13 +91,16 @@ public:
         : seconds(seconds_), microseconds(microseconds_) {}
     Time(const Time& other)
         : seconds(other.seconds), microseconds(other.microseconds) {}
-    const Time operator=(const Time& other) const { return Time(other); }
+    Time(const timeval &tv) : seconds(tv.tv_sec), microseconds(tv.tv_usec) { }
+    Time &operator=(const Time& other) { seconds = other.seconds; microseconds = other.microseconds; return *this; }
+    Time &operator=(const timeval& tv) { seconds = tv.tv_sec; microseconds = tv.tv_usec; return *this; }
     const Time Add(const TimeInterval& tmv) const;
     const Time Diff(const TimeInterval& tmv) const;
     const TimeInterval Diff(const Time& other) const;
     const TimeInterval Elapsed(void) const { return Diff(Time()); }
     unsigned long Seconds(void) const { return seconds; }
     long Microseconds(void) const { return microseconds; }
+    double ToDouble(void) const { return static_cast<double>(seconds) + (static_cast<double>(microseconds)/1e6); }
     bool operator<(const Time& other) const { return (seconds < other.seconds)
             || (seconds == other.seconds && microseconds < other.microseconds); } 
     bool operator==(const Time& other) const { return (seconds == other.seconds)

@@ -11,9 +11,9 @@
 #include <cmath>
 #include <stdexcept>
 #include <sstream>
+#include <cstdio>
 
 #if _DEBUG
-#include <cstdio>
 #define DEBUG(frmt, ...) printf(frmt, __VA_ARGS__)
 #else
 #define DEBUG(frmt, ...)
@@ -81,6 +81,8 @@ void ThresholdSieveFilter::Process() {
     CPN::QueueWriterAdapter<NumberT> out = GetWriter(CONTROL_PORT);
     const unsigned long threshold = opts.threshold;
     const NumberT cutoff = (NumberT)(ceil(sqrt(opts.maxprime)));
+    unsigned long long tot_processed = 0;
+    unsigned long long tot_passed = 0;
     NumberT buffer[threshold];
     PrimeSieve sieve(PrimesPerFilter());
     unsigned numPrimes = 0;
@@ -93,11 +95,13 @@ void ThresholdSieveFilter::Process() {
         if (!inbuff) {
             loop = false;
         } else {
+            tot_processed += incount;
             NumberT *outbuff = out.GetEnqueuePtr(incount);
             sieve.TryCandidates(inbuff, incount, outbuff, numPrimes, buffer, numPassed);
 #if _DEBUG
             ReportCandidates(inbuff, incount, outbuff, numPrimes, buffer, numPassed);
 #endif
+            tot_passed += numPrimes;
             out.Enqueue(numPrimes);
             in.Dequeue(incount);
             REPORT("%s processed primes %u -> %u (%u)\n", GetName().c_str(), incount, numPrimes, numPassed);
@@ -110,6 +114,7 @@ void ThresholdSieveFilter::Process() {
             DEBUG("%s created new filter\n", GetName().c_str());
             out = GetWriter(OUT_PORT);
         }
+        tot_passed += numPassed;
         out.Enqueue(buffer, numPassed);
     }
     while (loop) {
@@ -126,11 +131,17 @@ void ThresholdSieveFilter::Process() {
             ASSERT(numPrimes == 0);
             out.Enqueue(numPassed);
             in.Dequeue(incount);
+            tot_processed += incount;
+            tot_passed += numPassed;
             REPORT("%s processed candidates %u -> %u (%u)\n", GetName().c_str(), incount, numPassed, numPrimes);
         }
     }
     out.Release();
     in.Release();
+    if (opts.report) {
+        printf("%s statistics:\n\tProcessed:\t%llu\n\tPassed:  \t%llu\n\tStopped:\t%llu\n",
+            GetName().c_str(), tot_processed, tot_passed, tot_processed - tot_passed);
+    }
     DEBUG("%s stopped\n", GetName().c_str());
 }
 
