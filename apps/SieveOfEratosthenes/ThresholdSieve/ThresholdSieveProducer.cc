@@ -19,6 +19,13 @@
 #define DEBUG(frmt, ...)
 #endif
 
+#if 0
+#define REPORT(fmt, ...) printf(fmt, ## __VA_ARGS)
+#else
+#define REPORT(fmt, ...)
+#endif
+
+
 using CPN::shared_ptr;
 
 typedef ThresholdSieveOptions::NumberT NumberT;
@@ -57,7 +64,7 @@ void ThresholdSieveProducer::Process(void) {
             std::ostringstream oss;
             oss << GetName() << " primes: ";
             PrintArray(oss, primes, opts.numPrimesSource, ", ");
-            puts(oss.str().c_str());
+            REPORT(oss.str().c_str());
         }
 #endif
 
@@ -82,7 +89,7 @@ void ThresholdSieveProducer::Process(void) {
             std::ostringstream oss;
             oss << GetName() << " candidates: ";
             PrintArray(oss, outbuff, len, ", ");
-            puts(oss.str().c_str());
+            REPORT(oss.str().c_str());
         }
 #endif
                 out.Enqueue(len);

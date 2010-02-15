@@ -19,6 +19,12 @@
 #define DEBUG(frmt, ...)
 #endif
 
+#if 0
+#define REPORT(fmt, ...) printf(fmt, ## __VA_ARGS)
+#else
+#define REPORT(fmt, ...)
+#endif
+
 using CPN::shared_ptr;
 
 typedef ThresholdSieveOptions::NumberT NumberT;
@@ -66,7 +72,7 @@ void ThresholdSieveFilter::ReportCandidates(
             oss << passed[i] << " ";
         }
     }
-    puts(oss.str().c_str());
+    REPORT(oss.str().c_str());
 }
 
 void ThresholdSieveFilter::Process() {
@@ -76,7 +82,7 @@ void ThresholdSieveFilter::Process() {
     const unsigned long threshold = opts.threshold;
     const NumberT cutoff = (NumberT)(ceil(sqrt(opts.maxprime)));
     NumberT buffer[threshold];
-    PrimeSieve sieve(opts.primesPerFilter);
+    PrimeSieve sieve(PrimesPerFilter());
     unsigned numPrimes = 0;
     unsigned numPassed = 0;
     unsigned incount = threshold;
@@ -94,7 +100,7 @@ void ThresholdSieveFilter::Process() {
 #endif
             out.Enqueue(numPrimes);
             in.Dequeue(incount);
-            DEBUG("%s processed primes %u -> %u (%u)\n", GetName().c_str(), incount, numPrimes, numPassed);
+            REPORT("%s processed primes %u -> %u (%u)\n", GetName().c_str(), incount, numPrimes, numPassed);
         }
     }
     if (loop) {
@@ -120,12 +126,28 @@ void ThresholdSieveFilter::Process() {
             ASSERT(numPrimes == 0);
             out.Enqueue(numPassed);
             in.Dequeue(incount);
-            DEBUG("%s processed candidates %u -> %u (%u)\n", GetName().c_str(), incount, numPassed, numPrimes);
+            REPORT("%s processed candidates %u -> %u (%u)\n", GetName().c_str(), incount, numPassed, numPrimes);
         }
     }
     out.Release();
     in.Release();
     DEBUG("%s stopped\n", GetName().c_str());
+}
+
+NumberT ThresholdSieveFilter::PrimesPerFilter() {
+    double filter = opts.filtercount;
+    double power = 1;
+    double ppf = 0;
+    std::vector<double>::iterator itr = opts.primesPerFilter.begin();
+    while (opts.primesPerFilter.end() != itr) {
+        ppf += *itr * power;
+        power *= filter;
+        ++itr;
+    }
+    ppf = floor(ppf);
+    if (ppf < 1) { ppf = 1; }
+    DEBUG("%s filtering primes %f\n", GetName().c_str(), ppf);
+    return (NumberT)ppf;
 }
 
 extern "C" shared_ptr<CPN::NodeFactory> cpninitThresholdSieveFilterType(void);

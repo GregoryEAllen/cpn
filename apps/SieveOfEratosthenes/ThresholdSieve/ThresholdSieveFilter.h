@@ -17,6 +17,7 @@ public:
     void Process();
 
 private:
+    ThresholdSieveOptions::NumberT PrimesPerFilter();
     void CreateNewFilter() { ::CreateNewFilter(kernel, opts, GetKey()); }
     void ReportCandidates(
         const ThresholdSieveOptions::NumberT *inbuff, unsigned incount,

@@ -8,6 +8,7 @@
 #include <sys/times.h>
 #include <unistd.h>
 #include <cstdio>
+#include <string.h>
 
 const char* const VALID_OPTS = "Mm:q:t:hf:i:p:vw:";
 const char* const HELP_OPTS = "Usage: %s -hv -m maxprime -q queuesize -t threshold -f filename -p primes per filter -i iterations\n"
@@ -17,7 +18,7 @@ const char* const HELP_OPTS = "Usage: %s -hv -m maxprime -q queuesize -t thresho
 "\t-q\tSpecify the queue size to use (default 100)\n"
 "\t-t\tSpecify the threshold to use (default 2)\n"
 "\t-f\tSpecify a file to use instead of stdout (appends)\n"
-"\t-p\tSpecify the number of primes per filter (default 1)\n"
+"\t-pa,b,c,...\tSpecify the number of primes per filter as a polynomial (default 1)\n"
 "\t-w\tSpecify the number of primes in the producer prime wheel (default 0)\n"
 "\t-i\tRerun the given number of times\n"
 "\n"
@@ -36,11 +37,11 @@ TestResults SieveTest(ThresholdSieveOptions options);
 
 int main(int argc, char **argv) {
     std::vector<ThresholdSieveOptions::NumberT> results;
+    std::vector<double> primesPerFilter;
     ThresholdSieveOptions options;
     options.maxprime = 100;
     options.queuesize = 100;
     options.threshold = 2;
-    options.primesPerFilter = 1;
     options.numPrimesSource = 0;
     options.queuehint = CPN::QUEUEHINT_THRESHOLD;
     options.results = &results;
@@ -73,8 +74,13 @@ int main(int argc, char **argv) {
             if (options.threshold < 2) options.threshold = 2;
             break;
         case 'p':
-            options.primesPerFilter = atoi(optarg);
-            if (options.primesPerFilter < 1) options.primesPerFilter = 1;
+            {
+                char *num = strtok(optarg, ", ");
+                while (num != 0) {
+                    primesPerFilter.push_back(atof(num));
+                    num = strtok(0, ", ");
+                }
+            }
             break;
         case 'v':
             verbose = true;
@@ -99,10 +105,10 @@ int main(int argc, char **argv) {
             return 0;
         }
     }
+    options.primesPerFilter = primesPerFilter;
     const char STDOUT_FORMAT[] = "    \"maxprime\"        : %lu,\n"
         "    \"queuesize\"       : %lu,\n"
         "    \"threshold\"       : %lu,\n"
-        "    \"primesperfilter\" : %lu,\n"
         "    \"primewheel\"      : %lu,\n"
         "    \"realtime\"        : %f,\n"
         "    \"usertime\"        : %f,\n"
@@ -121,7 +127,6 @@ int main(int argc, char **argv) {
                 (unsigned long)options.maxprime,
                 options.queuesize,
                 options.threshold,
-                options.primesPerFilter,
                 options.numPrimesSource,
                 timeresults.realtime,
                 timeresults.usertime,

@@ -13,7 +13,7 @@ struct ThresholdSieveOptions {
     NumberT filtercount;
     unsigned long queuesize;
     unsigned long threshold;
-    unsigned long primesPerFilter;
+    std::vector<double> primesPerFilter;
     unsigned long numPrimesSource;
     CPN::QueueHint_t queuehint;
     std::vector<NumberT> *results;
