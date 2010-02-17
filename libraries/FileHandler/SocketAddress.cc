@@ -128,12 +128,14 @@ SocketAddress::SocketAddress(addrinfo *info) {
 SocketAddress::SocketAddress(addrinfo *info, unsigned portnum) {
     length = info->ai_addrlen;
     memcpy(&address, info->ai_addr, length);
+    uint16_t port = (uint16_t)portnum;
+    port = htons(port);
     switch (Family()) {
     case AF_INET:
-        address.in.sin_port = portnum;
+        address.in.sin_port = port;
         break;
     case AF_INET6:
-        address.in6.sin6_port = portnum;
+        address.in6.sin6_port = port;
         break;
     default:
         break;
@@ -216,7 +218,7 @@ std::string SocketAddress::GetServName() const {
 }
 
 unsigned SocketAddress::GetServ() const {
-    unsigned retval = 0;
+    uint16_t retval = 0;
     switch (Family()) {
     case AF_INET:
         retval = address.in.sin_port;
@@ -227,7 +229,7 @@ unsigned SocketAddress::GetServ() const {
     default:
         break;
     }
-    return retval;
+    return (unsigned)ntohs(retval);
 }
 
 SocketAddress::Type_t SocketAddress::GetType() const {
