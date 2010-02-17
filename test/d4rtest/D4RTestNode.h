@@ -19,7 +19,7 @@ namespace D4R {
     {
     public:
 
-        TestNode(const std::string &name_, Key_t k, TesterBase *tb);
+        TestNode(const std::string &name_, uint64_t k, TesterBase *tb);
         TestNode(const Variant &noded, TesterBase *tb);
 
         void SignalTagChanged();

@@ -19,20 +19,28 @@
 //=============================================================================
 /** \file
  * \author John Bridgman
+ * \brief This is a very simple implementation of a 128 bit number
  */
-#include "D4RTag.h"
+#ifndef UINT128_T_H
+#define UINT128_T_H
+#pragma once
+#include <stdint.h>
+struct uint128_t {
+    uint128_t(uint64_t h, uint64_t l) : high(h), low(l) {}
+    uint128_t(uint64_t v) : high(0), low(v) {}
+    uint128_t() : high(0), low(0) {}
+    uint64_t high, low;
+};
 
-namespace D4R {
-
-    bool Tag::operator<(const Tag &t) const {
-        if (label == t.label) {
-            return priority > t.priority;
-        } else {
-            return label < t.label;
-        }
-    }
-
-    bool Tag::operator==(const Tag &t) const {
-        return (label == t.label && priority == t.priority);
-    }
+inline bool operator<(const uint128_t &l, const uint128_t &r) {
+    if (l.high == r.high) { return l.low < r.low; }
+    else { return l.high < r.high; }
 }
+inline bool operator>=(const uint128_t &l, const uint128_t &r) { return !(l < r); }
+inline bool operator<=(const uint128_t &l, const uint128_t &r) { return !(r < l); }
+inline bool operator>(const uint128_t &l, const uint128_t &r) { return (r < l); }
+inline bool operator==(const uint128_t &l, const uint128_t &r) {
+    return (l.high == r.high && l.low == r.low);
+}
+inline bool operator!=(const uint128_t &l, const uint128_t &r) { return !(r == l); }
+#endif

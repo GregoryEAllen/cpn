@@ -23,19 +23,17 @@
 #ifndef D4R_TAG_H
 #define D4R_TAG_H
 #pragma once
+#include "uint128_t.h"
 /** 
  * \brief D4R algorithm as described in "A Distributed Deadlock Detection And
  * Resolution Algorithm For Process Networks" by Allen, Zucknick and Evans
  */
 namespace D4R {
 
-    typedef unsigned long long Count_t;
-    typedef unsigned long long Key_t;
-
     class Tag {
     public:
-        Tag(Key_t k) : count(0), key(k), qsize(-1) {}
-        Tag() : count(0), key(0), qsize(-1) {}
+        Tag(uint64_t k) : label(0, k), priority(-1, k) {}
+        Tag() : label(), priority() {}
         /**
          * Perform comparison as specified in "A Distributed Deadlock Detection And
          * Resolution Algorithm For Process Networks" by Allen, Zucknick and Evans
@@ -47,18 +45,21 @@ namespace D4R {
         bool operator==(const Tag &t) const;
         bool operator!=(const Tag &t) const { return !(*this == t); }
 
-        void Reset();
-
-        Count_t Count() const { return count; }
-        Count_t Count(Count_t c) { return count = c; }
-        Key_t Key() const { return key; }
-        Key_t Key(unsigned long long k) { return key = k; }
-        unsigned QueueSize() const { return qsize; }
-        unsigned QueueSize(unsigned qs) { return qsize = qs; }
+        uint64_t Count() const { return label.high; }
+        uint64_t Count(uint64_t c) { return label.high = c; }
+        uint64_t Key() const { return label.low; }
+        uint64_t Key(uint64_t k) { return label.low = k; }
+        uint64_t QueueSize() const { return priority.high; }
+        uint64_t QueueSize(uint64_t qs) { return priority.high = qs; }
+        uint64_t QueueKey() const { return priority.low; }
+        uint64_t QueueKey(uint64_t k) { return priority.low = k; }
+        const uint128_t &Label() const { return label; }
+        const uint128_t &Label(const uint128_t &l) { return label = l; }
+        const uint128_t &Priority() const { return priority; }
+        const uint128_t &Priority(const uint128_t &p) { return priority = p; }
     private:
-        Count_t count;
-        Key_t key;
-        unsigned qsize;
+        uint128_t label;
+        uint128_t priority;
     };
 
 }

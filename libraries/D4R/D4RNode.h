@@ -72,7 +72,7 @@ namespace D4R {
     class Node {
     public:
 
-        Node(unsigned long long key);
+        Node(uint64_t key);
 
         virtual ~Node();
 

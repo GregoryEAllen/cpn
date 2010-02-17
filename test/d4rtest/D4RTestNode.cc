@@ -8,7 +8,7 @@
 namespace D4R {
 
 
-    TestNode::TestNode(const std::string &name_, Key_t k, TesterBase *tb)
+    TestNode::TestNode(const std::string &name_, uint64_t k, TesterBase *tb)
         : TestNodeBase(tb), Node(k), name(name_)
     {
         Logger::Name(name);
@@ -16,7 +16,7 @@ namespace D4R {
 
     TestNode::TestNode(const Variant &noded, TesterBase *tb)
         : TestNodeBase(tb),
-        Node(noded["key"].AsNumber<Key_t>()),
+        Node(noded["key"].AsNumber<uint64_t>()),
         name(noded["name"].AsString())
     {
         Logger::Name(name);

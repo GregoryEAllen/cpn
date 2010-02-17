@@ -36,7 +36,7 @@
 
 namespace D4R {
 
-    Node::Node(Key_t key)
+    Node::Node(uint64_t key)
         : publicTag(key),
         privateTag(key)
     {
@@ -83,9 +83,9 @@ namespace D4R {
                     publicTag.Count(), publicTag.Key(), (int)publicTag.QueueSize(),
                     t.Count(), t.Key(), (int)t.QueueSize());
 
-            unsigned qsize = std::min(privateTag.QueueSize(), t.QueueSize());
+            uint128_t priority = std::min(privateTag.Priority(), t.Priority());
             publicTag = t;
-            publicTag.QueueSize(qsize);
+            publicTag.Priority(priority);
             al.Unlock();
             SignalTagChanged();
         } else if (publicTag == t) {
@@ -95,11 +95,7 @@ namespace D4R {
                     publicTag.Count(), publicTag.Key(), (int)publicTag.QueueSize(),
                     t.Count(), t.Key(), (int)t.QueueSize());
 
-            if (privateTag.QueueSize() == unsigned(-1)) {
-                return privateTag == publicTag;
-            } else {
-                return privateTag.QueueSize() == publicTag.QueueSize();
-            }
+            return publicTag.Priority() == privateTag.Priority();
         } else {
             DEBUG("Node %llu:%llu transfer nop %d : (%llu, %llu %d) > (%llu, %llu, %d)\n",
                     privateTag.Count(), privateTag.Key(), (int)privateTag.QueueSize(),
