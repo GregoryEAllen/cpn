@@ -4,6 +4,7 @@
 #include "D4RTester.h"
 #include "D4RDeadlockException.h"
 #include "Assert.h"
+#include <sstream>
 
 namespace D4R {
 
@@ -85,7 +86,10 @@ namespace D4R {
             q  = readermap[qname];
         }
         if (amount != q->QueueSize()) {
-            testerbase->Failure(this, "Queue " + qname + " not expected size!");
+            std::ostringstream oss;
+            oss << "Queue " << qname << " not expected size! was: " << q->QueueSize()
+                << " expected: " << amount;
+            testerbase->Failure(this, oss.str());
         }
     }
 
@@ -96,7 +100,10 @@ namespace D4R {
             q  = writermap[qname];
         }
         if (amount != q->QueueSize()) {
-            testerbase->Failure(this, "Queue " + qname + " not expected size!");
+            std::ostringstream oss;
+            oss << "Queue " << qname << " not expected size! was: " << q->QueueSize()
+                << " expected: " << amount;
+            testerbase->Failure(this, oss.str());
         }
     }
 

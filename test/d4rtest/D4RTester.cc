@@ -3,6 +3,7 @@
 #include "D4RTester.h"
 #include "D4RTestNode.h"
 #include <vector>
+#include <iostream>
 
 namespace D4R {
 
@@ -92,7 +93,7 @@ namespace D4R {
             queue->name = q->GetName();
             if (q->EnqueueAmount() > 0) {
                 if (q->DequeueAmount() > 0) {
-                    printf("Queue \"%s\" is blocked on both sides.\n", queue->name.c_str());
+                    std::cout << "Queue \"" << queue->name << "\" is blocked on both sides." << std::endl;
                     delete queue;
                     continue;
                 }
@@ -100,7 +101,7 @@ namespace D4R {
                 queue->blocker = queue->qinfo.reader;
             } else if (q->DequeueAmount() > 0) {
                 if (q->EnqueueAmount() > 0) {
-                    printf("Queue \"%s\" is blocked on both sides.\n", queue->name.c_str());
+                    std::cout << "Queue \"" << queue->name << "\" is blocked on both sides." << std::endl;
                     delete queue;
                     continue;
                 }
@@ -136,12 +137,12 @@ namespace D4R {
             qmap.insert(std::make_pair(queue->name, queue));
         }
 
-        printf("Printing chains\n");
+        std::cout << "Printing chains" << std::endl;
         nmap_t::iterator nm_itr = nmap.begin();
         for (;nm_itr != nmap.end(); nm_itr++) {
             node_t *n = nm_itr->second;
             if (n->blockees.empty()) {
-                printf("Blocked chain:\n");
+                std::cout << "Blocked chain:" << std::endl;
                 node_t *cur = n;
                 nlist_t nlist;
                 do {
@@ -150,25 +151,28 @@ namespace D4R {
 
                     Tag publicTag = q->blockee->GetPublicTag();
                     Tag privateTag = q->blockee->GetPrivateTag();
-                    printf("\"%s\", public: (%llu, %llu, %d) private: (%llu, %llu, %d)"
-                           "\t-> (\"%s\", s: %u, c: %u, e: %u, d: %u)\t-> \"%s\"\n",
-                            cur->name.c_str(),
-                            publicTag.Count(), publicTag.Key(), (int)publicTag.QueueSize(),
-                            privateTag.Count(), privateTag.Key(), (int)privateTag.QueueSize(),
+                    std::cout << "\"" << cur->name << ", public: ("
+                        << publicTag.Count() << ", "
+                        << publicTag.Key() << ", "
+                        << publicTag.QueueSize() << ", "
+                        << publicTag.QueueKey() << ") private: "
+                        << privateTag.Count() << ", "
+                        << privateTag.Key() << ", "
+                        << privateTag.QueueSize() << ", "
+                        << privateTag.QueueKey() << "\t-> (\""
+                        << q->name << ", s: "
+                        << q->qinfo.queue->QueueSize() << ", c: "
+                        << q->qinfo.queue->Count() << ", e: "
+                        << q->qinfo.queue->EnqueueAmount() << ", d: "
+                        << q->qinfo.queue->DequeueAmount() << ")\t-> \""
+                        << next->name << "\"" << std::endl;
 
-                            q->name.c_str(),
-                            q->qinfo.queue->QueueSize(),
-                            q->qinfo.queue->Count(),
-                            q->qinfo.queue->EnqueueAmount(),
-                            q->qinfo.queue->DequeueAmount(),
-                            next->name.c_str()
-                          );
                     nlist.push_back(cur);
                     cur = next;
                 } while (!(cur->blocker == 0 || std::find(nlist.begin(), nlist.end(), cur) != nlist.end()));
             }
         }
-        printf("Done printing chains\n");
+        std::cout << "Done printing chains" << std::endl;
 
         for (nm_itr = nmap.begin(); nm_itr != nmap.end(); ++nm_itr) {
             delete nm_itr->second;

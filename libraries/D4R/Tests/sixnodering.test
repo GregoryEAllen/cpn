@@ -1,0 +1,138 @@
+{
+    "nodes" : [
+        {
+            "name" : "1",
+            "key" : 1,
+            "instructions" : [
+                [ "enqueue", "1->2", 1],
+                [ "enqueue", "1->2", 1],
+                [ "verify writer size", "1->2", 2],
+                [ "dequeue", "5->1", 1],
+                [ "dequeue", "5->1", 1],
+                [ "enqueue", "1->2", 1],
+                [ "enqueue", "1->2", 1],
+                [ "dequeue", "5->1", 1],
+                [ "dequeue", "5->1", 1],
+                [ "exit" ]
+            ]
+        },
+        {
+            "name" : "2",
+            "key" : 2,
+            "instructions" : [
+                [ "enqueue", "2->6", 1],
+                [ "enqueue", "2->6", 1],
+                [ "verify writer size", "2->6", 1],
+                [ "dequeue", "1->2", 1],
+                [ "dequeue", "1->2", 1],
+                [ "enqueue", "2->6", 1],
+                [ "enqueue", "2->6", 1],
+                [ "dequeue", "1->2", 1],
+                [ "dequeue", "1->2", 1],
+                [ "exit" ]
+            ]
+        },
+        {
+            "name" : "3",
+            "key" : 3,
+            "instructions" : [
+                [ "enqueue", "3->5", 1],
+                [ "enqueue", "3->5", 1],
+                [ "verify writer size", "3->5", 1],
+                [ "dequeue", "4->3", 1],
+                [ "dequeue", "4->3", 1],
+                [ "enqueue", "3->5", 1],
+                [ "enqueue", "3->5", 1],
+                [ "dequeue", "4->3", 1],
+                [ "dequeue", "4->3", 1],
+                [ "exit" ]
+            ]
+        },
+        {
+            "name" : "4",
+            "key" : 4,
+            "instructions" : [
+                [ "enqueue", "4->3", 1],
+                [ "enqueue", "4->3", 1],
+                [ "verify writer size", "4->3", 1],
+                [ "dequeue", "6->4", 1],
+                [ "dequeue", "6->4", 1],
+                [ "enqueue", "4->3", 1],
+                [ "enqueue", "4->3", 1],
+                [ "dequeue", "6->4", 1],
+                [ "dequeue", "6->4", 1],
+                [ "exit" ]
+            ]
+        },
+        {
+            "name" : "5",
+            "key" : 5,
+            "instructions" : [
+                [ "enqueue", "5->1", 1],
+                [ "enqueue", "5->1", 1],
+                [ "verify writer size", "5->1", 1],
+                [ "dequeue", "3->5", 1],
+                [ "dequeue", "3->5", 1],
+                [ "enqueue", "5->1", 1],
+                [ "enqueue", "5->1", 1],
+                [ "dequeue", "3->5", 1],
+                [ "dequeue", "3->5", 1],
+                [ "exit" ]
+            ]
+        },
+        {
+            "name" : "6",
+            "key" : 6,
+            "instructions" : [
+                [ "enqueue", "6->4", 1],
+                [ "enqueue", "6->4", 1],
+                [ "verify writer size", "6->4", 1],
+                [ "dequeue", "2->6", 1],
+                [ "dequeue", "2->6", 1],
+                [ "enqueue", "6->4", 1],
+                [ "enqueue", "6->4", 1],
+                [ "dequeue", "2->6", 1],
+                [ "dequeue", "2->6", 1],
+                [ "exit" ]
+            ]
+        },
+    ],
+    "queues" : [
+        {
+            "name" : "1->2",
+            "size" : 1,
+            "reader" : "2",
+            "writer" : "1"
+        },
+        {
+            "name" : "2->6",
+            "size" : 1,
+            "reader" : "6",
+            "writer" : "2"
+        },
+        {
+            "name" : "6->4",
+            "size" : 1,
+            "reader" : "4",
+            "writer" : "6"
+        },
+        {
+            "name" : "4->3",
+            "size" : 1,
+            "reader" : "3",
+            "writer" : "4"
+        },
+        {
+            "name" : "3->5",
+            "size" : 1,
+            "reader" : "5",
+            "writer" : "3"
+        },
+        {
+            "name" : "5->1",
+            "size" : 1,
+            "reader" : "1",
+            "writer" : "5"
+        }
+    ]
+}

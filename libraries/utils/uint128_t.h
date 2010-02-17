@@ -20,6 +20,9 @@
 /** \file
  * \author John Bridgman
  * \brief This is a very simple implementation of a 128 bit number
+ *
+ * No arithmatic operators are provided as they aren't currently needed.
+ * Maybe if they are needed add them.
  */
 #ifndef UINT128_T_H
 #define UINT128_T_H
