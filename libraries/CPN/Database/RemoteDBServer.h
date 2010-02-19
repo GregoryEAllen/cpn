@@ -126,16 +126,16 @@ namespace CPN {
          * \param msg the message that the client sent
          */
         void DispatchMessage(const std::string &sender, const Variant &msg);
-        /** \breif Send the given message to the given client.
+        /** \brief Send the given message to the given client.
          * \param recipient the id (previously used in DispatchMessage sender)
          * \param msg the message to be sent to the client
          */
         virtual void SendMessage(const std::string &recipient, const Variant &msg) = 0;
-        /** \breif Broadcast a message to all clients
+        /** \brief Broadcast a message to all clients
          * \param msg the message to send to all clients
          */
         virtual void BroadcastMessage(const Variant &msg) = 0;
-        /** \breif Log a message
+        /** \brief Log a message
          * \param msg the message to be logged
          */
         virtual void LogMessage(const std::string &msg) = 0;

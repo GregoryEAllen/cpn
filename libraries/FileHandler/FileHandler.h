@@ -43,11 +43,11 @@ public:
     static int Poll(FileHandler **fileds, unsigned numfds, double timeout);
 
     /**
-     * \breif Construct a closed FileHandler.
+     * \brief Construct a closed FileHandler.
      */
     FileHandler();
     /**
-     * \breif Construct a FileHandler with filed as the open
+     * \brief Construct a FileHandler with filed as the open
      * file descriptor
      * \param filed the file descriptor to use
      */
@@ -98,7 +98,7 @@ public:
      */
     bool Readable(bool r) { return readable = r; }
     /**
-     * \breif Called by Poll to decide if poll should check for readability
+     * \brief Called by Poll to decide if poll should check for readability
      * \return the readable status
      */
     virtual bool Readable() const { return readable; }
@@ -179,7 +179,7 @@ public:
     void Close();
 
     /**
-     * \breif Read data from the file descriptor.
+     * \brief Read data from the file descriptor.
      *
      * Will set the end of file condition if read detects end of file.
      * \param ptr pointer to write data to
@@ -189,25 +189,25 @@ public:
      */
     unsigned Read(void *ptr, unsigned len);
     /**
-     * \breif scatter gather io version of Read
+     * \brief scatter gather io version of Read
      * \return see Read
      */
     unsigned Readv(const iovec *iov, int iovcnt);
     /**
-     * \breif Write data to the file descriptor.
+     * \brief Write data to the file descriptor.
      *
      * \param ptr pointer to beginning of data to write
      * \param len length of data to write
      * \return number of bytes written
      */
     unsigned Write(const void *ptr, unsigned len);
-    /** \breif scatter gather io version of Write
+    /** \brief scatter gather io version of Write
      * \return see Write
      */
     unsigned Writev(const iovec *iov, int iovcnt);
 
     /**
-     * \breif Tell the OS to flush any buffers it has.
+     * \brief Tell the OS to flush any buffers it has.
      * May not be supported for all file types.
      */
     void Flush();

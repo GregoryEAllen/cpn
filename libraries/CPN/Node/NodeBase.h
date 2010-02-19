@@ -101,7 +101,7 @@ namespace CPN {
         void CreateWriter(shared_ptr<QueueBase> q);
 
         /**
-         * \breif For use by the CPN::Kernel to start the node.
+         * \brief For use by the CPN::Kernel to start the node.
          */
         using Pthread::Start;
 
