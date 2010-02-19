@@ -1,0 +1,25 @@
+digraph G {
+    edge [arrowhead=open, labeldistance=1.5, labelangle=60]
+    a -> b [label="10", taillabel="w"]
+    b -> c [label="10", taillabel="w"]
+    c -> f [label="10", taillabel="w"]
+    f -> j [label="10", taillabel="w"]
+    j -> n [label="10", taillabel="w"]
+    n -> q [label="5", taillabel="w"]
+
+    b -> d [label="10"]
+    d -> g [label="10", taillabel="w"]
+    g -> k [label="10", taillabel="w"]
+    k -> o [label="10", taillabel="w"]
+
+    d -> h [label="10", headlabel="r"]
+    h -> l [label="10", headlabel="r"]
+    l -> p [label="10", headlabel="r"]
+    p -> q [label="10", headlabel="r"]
+
+    b -> e [label="10", headlabel="r"]
+    e -> i [label="10", headlabel="r"]
+    i -> m [label="10", headlabel="r"]
+    m -> o [label="10", headlabel="r"]
+    o -> q [label="10"]
+}

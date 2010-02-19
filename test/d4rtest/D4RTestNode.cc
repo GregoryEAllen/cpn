@@ -67,6 +67,7 @@ namespace D4R {
             PthreadMutexProtected al(lock);
             q  = writermap[qname];
         }
+        ASSERT(q, "%s Invalid queue %s", name.c_str(), qname.c_str());
         q->Enqueue(amount);
     }
 
@@ -76,6 +77,7 @@ namespace D4R {
             PthreadMutexProtected al(lock);
             q  = readermap[qname];
         }
+        ASSERT(q, "%s Invalid queue %s", name.c_str(), qname.c_str());
         q->Dequeue(amount);
     }
 
@@ -85,6 +87,7 @@ namespace D4R {
             PthreadMutexProtected al(lock);
             q  = readermap[qname];
         }
+        ASSERT(q, "%s Invalid queue %s", name.c_str(), qname.c_str());
         if (amount != q->QueueSize()) {
             std::ostringstream oss;
             oss << "Queue " << qname << " not expected size! was: " << q->QueueSize()
@@ -99,6 +102,7 @@ namespace D4R {
             PthreadMutexProtected al(lock);
             q  = writermap[qname];
         }
+        ASSERT(q, "%s Invalid queue %s", name.c_str(), qname.c_str());
         if (amount != q->QueueSize()) {
             std::ostringstream oss;
             oss << "Queue " << qname << " not expected size! was: " << q->QueueSize()
