@@ -49,7 +49,7 @@ namespace D4R {
         return publicTag;
     }
 
-    void Node::SetPublicTag(Tag t) {
+    void Node::SetPublicTag(const Tag &t) {
         Sync::AutoLock<PthreadMutex> al(taglock);
         publicTag = t;
     }
@@ -59,12 +59,12 @@ namespace D4R {
         return privateTag;
     }
 
-    void Node::SetPrivateTag(Tag t) {
+    void Node::SetPrivateTag(const Tag &t) {
         Sync::AutoLock<PthreadMutex> al(taglock);
         privateTag = t;
     }
 
-    void Node::Block(Tag t, unsigned qsize) {
+    void Node::Block(const Tag &t, unsigned qsize) {
         Sync::AutoLock<PthreadMutex> al(taglock);
         privateTag.QueueSize(qsize);
         privateTag.Count(std::max(privateTag.Count(), t.Count()) + 1);
@@ -74,14 +74,14 @@ namespace D4R {
         SignalTagChanged();
     }
 
-    bool Node::Transmit(Tag t) {
+    bool Node::Transmit(const Tag &t) {
         Sync::AutoLock<PthreadMutex> al(taglock);
         if (publicTag < t) {
 
-            DEBUG("Node %llu:%llu transfer %d : (%llu, %llu %d) < (%llu, %llu, %d)\n",
-                    privateTag.Count(), privateTag.Key(), (int)privateTag.QueueSize(),
-                    publicTag.Count(), publicTag.Key(), (int)publicTag.QueueSize(),
-                    t.Count(), t.Key(), (int)t.QueueSize());
+            DEBUG("Transfer: publicTag < t\n\tPrivate: (%llu, %llu, %d, %llu)\n\tPublic: (%llu, %llu, %d, %llu)\n\t     t: (%llu, %llu, %d, %llu)\n",
+                    privateTag.Count(), privateTag.Key(), (int)privateTag.QueueSize(), privateTag.QueueKey(),
+                    publicTag.Count(), publicTag.Key(), (int)publicTag.QueueSize(), publicTag.QueueKey(),
+                    t.Count(), t.Key(), (int)t.QueueSize(), t.QueueKey());
 
             uint128_t priority = std::min(privateTag.Priority(), t.Priority());
             publicTag = t;
@@ -90,17 +90,17 @@ namespace D4R {
             SignalTagChanged();
         } else if (publicTag == t) {
 
-            DEBUG("Node %llu:%llu transfer %d : (%llu, %llu %d) == (%llu, %llu, %d)\n",
-                    privateTag.Count(), privateTag.Key(), (int)privateTag.QueueSize(),
-                    publicTag.Count(), publicTag.Key(), (int)publicTag.QueueSize(),
-                    t.Count(), t.Key(), (int)t.QueueSize());
+            DEBUG("Transfer: publicTag == t\n\tPrivate: (%llu, %llu, %d, %llu)\n\tPublic: (%llu, %llu, %d, %llu)\n\t     t: (%llu, %llu, %d, %llu)\n",
+                    privateTag.Count(), privateTag.Key(), (int)privateTag.QueueSize(), privateTag.QueueKey(),
+                    publicTag.Count(), publicTag.Key(), (int)publicTag.QueueSize(), publicTag.QueueKey(),
+                    t.Count(), t.Key(), (int)t.QueueSize(), t.QueueKey());
 
             return publicTag.Priority() == privateTag.Priority();
         } else {
-            DEBUG("Node %llu:%llu transfer nop %d : (%llu, %llu %d) > (%llu, %llu, %d)\n",
-                    privateTag.Count(), privateTag.Key(), (int)privateTag.QueueSize(),
-                    publicTag.Count(), publicTag.Key(), (int)publicTag.QueueSize(),
-                    t.Count(), t.Key(), (int)t.QueueSize());
+            DEBUG("Transfer: publicTag > t NOP\n\tPrivate: (%llu, %llu, %d, %llu)\n\tPublic: (%llu, %llu, %d, %llu)\n\t     t: (%llu, %llu, %d, %llu)\n",
+                    privateTag.Count(), privateTag.Key(), (int)privateTag.QueueSize(), privateTag.QueueKey(),
+                    publicTag.Count(), publicTag.Key(), (int)publicTag.QueueSize(), publicTag.QueueKey(),
+                    t.Count(), t.Key(), (int)t.QueueSize(), t.QueueKey());
         }
         return false;
     }

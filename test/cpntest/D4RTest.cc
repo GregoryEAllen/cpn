@@ -9,6 +9,7 @@
 #include "QueueWriterAdapter.h"
 #include "Directory.h"
 #include "Variant.h"
+#include "ToString.h"
 
 #include <stdio.h>
 
@@ -107,7 +108,7 @@ void D4RTest::setUp() {
 void D4RTest::tearDown() {
 }
 
-void D4RTest::RunTest() {
+void D4RTest::RunTest(int numkernels) {
     std::string ext = ".test";
     Directory dir("D4R/Tests");
     unsigned runs = 0;
@@ -137,33 +138,48 @@ void D4RTest::RunTest() {
 
         Variant conf = Variant::FromJSON(buf);
 
-        shared_ptr<Database> database = Database::Local();
+        database = Database::Local();
         database->LogLevel(Logger::WARNING);
         database->UseD4R(true);
         database->SwallowBrokenQueueExceptions(true);
         database->GrowQueueMaxThreshold(false);
         Output(database.get());
         LogLevel(database->LogLevel());
-        kernel = new Kernel(KernelAttr("testkernel").SetDatabase(database));
+        for (int i = 0; i < numkernels; ++i) {
+            kernels.push_back(
+                    new Kernel(KernelAttr(ToString("K %d", i)).SetDatabase(database))
+                    );
+        }
 
-        Debug("Starting test %s", dir.BaseName().c_str());
+        Debug("Starting test %s with %d kernels", dir.BaseName().c_str(), numkernels);
         success = true;
         Setup(conf);
 
         database->WaitForAllNodeEnd();
-        delete kernel;
-        kernel = 0;
+        while (!kernels.empty()) {
+            delete kernels.back();
+            kernels.pop_back();
+        }
         runs++;
         Debug("Test %s : %s", dir.BaseName().c_str(), success ? "success" : "failure");
+        database.reset();
         CPPUNIT_ASSERT(success);
     }
+}
+
+void D4RTest::RunOneKernelTest() {
+    RunTest(1);
+}
+
+void D4RTest::RunTwoKernelTest() {
+    RunTest(2);
 }
 
 void D4RTest::Deadlock(TestNodeBase *tnb) {
     NodeBase *n = dynamic_cast<NodeBase*>(tnb);
     Info("%s detected deadlock correctly", n->GetName().c_str());
     successes++;
-    kernel->Terminate();
+    database->Terminate();
 }
 
 void D4RTest::Failure(TestNodeBase *tnb, const std::string &msg) {
@@ -183,7 +199,7 @@ void D4RTest::CreateNode(const Variant &noded) {
     attr.SetParam(noded.AsJSON());
     TesterBase *tb = this;
     attr.SetParam(StaticConstBuffer(&tb, sizeof(tb)));
-    kernel->CreateNode(attr);
+    kernels[noded["key"].AsInt() % kernels.size()]->CreateNode(attr);
 }
 
 void D4RTest::CreateQueue(const Variant &queued) {
@@ -191,10 +207,10 @@ void D4RTest::CreateQueue(const Variant &queued) {
     attr.SetDatatype<unsigned>();
     attr.SetReader(queued["reader"].AsString(), queued["name"].AsString());
     attr.SetWriter(queued["writer"].AsString(), queued["name"].AsString());
-    kernel->CreateQueue(attr);
+    kernels.front()->CreateQueue(attr);
 }
 
 void D4RTest::Abort() {
-    kernel->Terminate();
+    database->Terminate();
 }
 

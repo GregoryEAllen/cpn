@@ -27,7 +27,7 @@
 #include "ToString.h"
 #include "ErrnoException.h"
 
-#if 1
+#if 0
 #define FUNC_TRACE logger.Trace("%s (c: %llu)", __PRETTY_FUNCTION__, clock.Get())
 #else
 #define FUNC_TRACE

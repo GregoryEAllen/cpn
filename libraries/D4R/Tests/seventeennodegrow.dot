@@ -1,4 +1,5 @@
 digraph G {
+    graph [rankdir=LR]
     edge [arrowhead=open, labeldistance=1.5, labelangle=60]
     a -> b [label="10", taillabel="w"]
     b -> c [label="10", taillabel="w"]

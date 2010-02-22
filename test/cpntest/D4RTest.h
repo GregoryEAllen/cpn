@@ -17,6 +17,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION( D4RTest );
 #include "D4RTesterBase.h"
 #include "CPNCommon.h"
 #include <cppunit/extensions/HelperMacros.h>
+#include <vector>
 class D4RTest : public CppUnit::TestFixture, D4R::TesterBase {
 public:
 	void setUp();
@@ -24,10 +25,13 @@ public:
 	void tearDown();
 
 	CPPUNIT_TEST_SUITE( D4RTest );
-	CPPUNIT_TEST( RunTest );
+	CPPUNIT_TEST( RunOneKernelTest );
+	//CPPUNIT_TEST( RunTwoKernelTest );
 	CPPUNIT_TEST_SUITE_END();
 
-	void RunTest();
+	void RunTest(int numkernels);
+    void RunOneKernelTest();
+    void RunTwoKernelTest();
 
     void Deadlock(D4R::TestNodeBase *tnb);
     void Failure(D4R::TestNodeBase *tnb, const std::string &msg);
@@ -39,6 +43,6 @@ public:
 
     unsigned successes;
     CPN::shared_ptr<CPN::Database> database;
-    CPN::Kernel *kernel;
+    std::vector<CPN::Kernel*> kernels;
 };
 #endif

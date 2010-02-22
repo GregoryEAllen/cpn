@@ -77,12 +77,12 @@ namespace D4R {
         virtual ~Node();
 
         Tag GetPublicTag() const;
-        void SetPublicTag(Tag t);
+        void SetPublicTag(const Tag &t);
         Tag GetPrivateTag() const;
-        void SetPrivateTag(Tag t);
+        void SetPrivateTag(const Tag &t);
 
-        void Block(Tag t, unsigned qsize);
-        bool Transmit(Tag t);
+        void Block(const Tag &t, unsigned qsize);
+        bool Transmit(const Tag &t);
 
     protected:
         virtual void SignalTagChanged() = 0;
