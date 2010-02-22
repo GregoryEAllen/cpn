@@ -4,7 +4,6 @@
 #include "QueueBase.h"
 #include "QueueAttr.h"
 #include "ThresholdQueue.h"
-#include "SimpleQueue.h"
 
 #include "MockDatabase.h"
 
@@ -26,7 +25,6 @@ CPPUNIT_TEST_SUITE_REGISTRATION( QueueTest );
 using CPN::shared_ptr;
 using CPN::QueueBase;
 using CPN::ThresholdQueue;
-using CPN::SimpleQueue;
 using CPN::Database;
 using CPN::SimpleQueueAttr;
 using CPN::Key_t;
@@ -143,7 +141,7 @@ void QueueTest::SimpleQueueTest() {
     attr.SetLength(309).SetMaxThreshold(10).SetNumChannels(1)
         .SetReaderKey(RKEY).SetWriterKey(WKEY);
 	//DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
-    queue = new SimpleQueue(database, attr);
+    queue = new ThresholdQueue(database, attr);
     TestBulk();
     delete queue;
     queue = 0;
@@ -151,27 +149,27 @@ void QueueTest::SimpleQueueTest() {
     //TestDirect(queue.get());
     attr.SetNumChannels(10);
 	//DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
-    queue = new SimpleQueue(database, attr);
+    queue = new ThresholdQueue(database, attr);
     TestBulk();
     delete queue;
     queue = 0;
-    queue = new SimpleQueue(database, attr);
+    queue = new ThresholdQueue(database, attr);
     TestDirect();
     delete queue;
     queue = 0;
-    queue = new SimpleQueue(database, attr);
+    queue = new ThresholdQueue(database, attr);
     CommunicationTest();
     delete queue;
     queue = 0;
-    queue = new SimpleQueue(database, attr);
+    queue = new ThresholdQueue(database, attr);
     DequeueBlockTest();
     delete queue;
     queue = 0;
-    queue = new SimpleQueue(database, attr);
+    queue = new ThresholdQueue(database, attr);
     MaxThreshGrowTest();
     delete queue;
     queue = 0;
-    queue = new SimpleQueue(database, attr);
+    queue = new ThresholdQueue(database, attr);
     GrowTest();
 }
 
@@ -180,7 +178,8 @@ void QueueTest::ThresholdQueueTest() {
     shared_ptr<Database> database = shared_ptr<Database>(new MockDatabase);
     SimpleQueueAttr attr;
     attr.SetLength(30).SetMaxThreshold(10).SetNumChannels(1)
-        .SetReaderKey(RKEY).SetWriterKey(WKEY);
+        .SetReaderKey(RKEY).SetWriterKey(WKEY)
+        .SetHint(CPN::QUEUEHINT_THRESHOLD);
 	//DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
     queue = new ThresholdQueue(database, attr);
     TestBulk();

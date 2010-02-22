@@ -30,7 +30,7 @@
 #include "QueueBase.h"
 #include "SockHandler.h"
 #include "PacketHeader.h"
-#include "CircularQueue.h"
+#include "ThresholdQueue.h"
 #include "PacketDecoder.h"
 #include "PacketEncoder.h"
 #include "D4RNode.h"
@@ -39,7 +39,7 @@
 namespace CPN {
     
     class SocketEndpoint 
-        : public QueueBase, public SockHandler,
+        : public ThresholdQueue, public SockHandler,
         private PacketEncoder, private PacketDecoder
     {
     public:
@@ -72,18 +72,10 @@ namespace CPN {
 
         // QueueBase
     protected:
-        virtual const void *InternalGetRawDequeuePtr(unsigned thresh, unsigned chan);
         virtual void InternalDequeue(unsigned count);
-		virtual void *InternalGetRawEnqueuePtr(unsigned thresh, unsigned chan);
 		virtual void InternalEnqueue(unsigned count);
+
     public:
-        virtual unsigned NumChannels() const;
-        virtual unsigned Count() const;
-        virtual bool Empty() const;
-		virtual unsigned Freespace() const;
-		virtual bool Full() const;
-        virtual unsigned MaxThreshold() const;
-        virtual unsigned QueueLength() const;
         virtual void Grow(unsigned queueLen, unsigned maxThresh);
 
         // convenience function to print out state to the logger
@@ -123,7 +115,6 @@ namespace CPN {
         // PacketEncoder
         virtual void WriteBytes(const iovec *iov, unsigned iovcnt);
 
-        void InternalGrow(unsigned queueLen, unsigned maxThresh);
         /** 
          * InternCheckStatus will do things like check the pending variables
          * and write data out if it thinks it should go out. It will also do things
@@ -156,10 +147,6 @@ namespace CPN {
         MockNode mocknode;
 
         Logger logger;
-        CircularQueue *queue;
-        CircularQueue *oldqueue;
-        bool enqueueUseOld;
-        bool dequeueUseOld;
 
         Status_t status;
         const Mode_t mode;

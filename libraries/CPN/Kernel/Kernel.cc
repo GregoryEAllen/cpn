@@ -29,7 +29,6 @@
 #include "NodeFactory.h"
 #include "NodeBase.h"
 
-#include "SimpleQueue.h"
 #include "ThresholdQueue.h"
 
 #include "Database.h"
@@ -292,15 +291,7 @@ namespace CPN {
 
     shared_ptr<QueueBase> Kernel::MakeQueue(const SimpleQueueAttr &attr) {
         shared_ptr<QueueBase> queue;
-        switch (attr.GetHint()) {
-        case QUEUEHINT_THRESHOLD:
-            queue = shared_ptr<QueueBase>(new ThresholdQueue(database, attr));
-            break;
-        default:
-            queue = shared_ptr<QueueBase>(new SimpleQueue(database, attr));
-            break;
-        }
-
+        queue = shared_ptr<QueueBase>(new ThresholdQueue(database, attr));
         return queue;
     }
 

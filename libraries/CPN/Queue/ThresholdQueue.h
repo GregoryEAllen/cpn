@@ -49,33 +49,34 @@ namespace CPN {
         ~ThresholdQueue();
 
     protected:
-        void *InternalGetRawEnqueuePtr(unsigned thresh, unsigned chan);
-        void InternalEnqueue(unsigned count);
+        virtual void *InternalGetRawEnqueuePtr(unsigned thresh, unsigned chan);
+        virtual void InternalEnqueue(unsigned count);
 
 
-        const void *InternalGetRawDequeuePtr(unsigned thresh, unsigned chan);
-        void InternalDequeue(unsigned count);
+        virtual const void *InternalGetRawDequeuePtr(unsigned thresh, unsigned chan);
+        virtual void InternalDequeue(unsigned count);
 
     public:
-        unsigned NumChannels() const;
-        unsigned MaxThreshold() const;
-        unsigned QueueLength() const;
-        unsigned Freespace() const;
-        bool Full() const;
-        unsigned Count() const;
-        bool Empty() const;
-        unsigned ChannelStride() const;
+        virtual unsigned NumChannels() const;
+        virtual unsigned MaxThreshold() const;
+        virtual unsigned QueueLength() const;
+        virtual unsigned Freespace() const;
+        virtual bool Full() const;
+        virtual unsigned Count() const;
+        virtual bool Empty() const;
+        virtual unsigned ChannelStride() const;
 
         unsigned ElementsEnqueued() const;
         unsigned ElementsDequeued() const;
 
-        void Grow(unsigned queueLen, unsigned maxThresh);
+        virtual void Grow(unsigned queueLen, unsigned maxThresh);
 
-    private:
+    protected:
         class TQImpl : public ThresholdQueueBase {
         public:
             typedef ThresholdQueueBase::ulong ulong;
             TQImpl(unsigned length, unsigned maxthres, unsigned numchan);
+            TQImpl(const ThresholdQueueAttr &attr);
 
             TQImpl *Grow(unsigned queueLen, unsigned maxThresh, bool copy);
         };

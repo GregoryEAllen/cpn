@@ -45,13 +45,9 @@ namespace CPN {
 
     SocketEndpoint::SocketEndpoint(shared_ptr<Database> db, Mode_t mode_,
             KernelBase *kmh_, const SimpleQueueAttr &attr)
-        : QueueBase(db, attr),
+        : ThresholdQueue(db, attr),
         mocknode(mode_ == READ ? attr.GetReaderNodeKey() : attr.GetWriterNodeKey()),
         logger(kmh_->GetLogger(), Logger::INFO),
-        queue(0),
-        oldqueue(0),
-        enqueueUseOld(false),
-        dequeueUseOld(false),
         status(LIVE),
         mode(mode_),
         kmh(kmh_),
@@ -64,7 +60,6 @@ namespace CPN {
         inread(false),
         incheckstatus(false)
     {
-        queue = new CircularQueue(attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
         Writeable(false);
         if (mode == READ) {
             SetWriterNode(&mocknode);
@@ -76,10 +71,6 @@ namespace CPN {
     }
 
     SocketEndpoint::~SocketEndpoint() {
-        delete queue;
-        queue = 0;
-        delete oldqueue;
-        oldqueue = 0;
     }
 
     SocketEndpoint::Status_t SocketEndpoint::GetStatus() const {
@@ -103,88 +94,20 @@ namespace CPN {
         return -1;
     }
 
-    const void *SocketEndpoint::InternalGetRawDequeuePtr(unsigned thresh, unsigned chan) {
-        ASSERT(mode == READ);
-        if (dequeueUseOld) {
-            return oldqueue->GetRawDequeuePtr(thresh, chan);
-        } else {
-            return queue->GetRawDequeuePtr(thresh, chan);
-        }
-    }
-
     void SocketEndpoint::InternalDequeue(unsigned count) {
-        if (dequeueUseOld) {
-            dequeueUseOld = false;
-            delete oldqueue;
-            oldqueue = 0;
-        }
-        queue->Dequeue(count);
-        pendingDequeue = true;
+        ThresholdQueue::InternalDequeue(count);
         InternCheckStatus();
-    }
-
-    void *SocketEndpoint::InternalGetRawEnqueuePtr(unsigned thresh, unsigned chan) {
-        ASSERT(mode == WRITE);
-        if (enqueueUseOld) {
-            return oldqueue->GetRawEnqueuePtr(thresh, chan);
-        } else {
-            return queue->GetRawEnqueuePtr(thresh, chan);
-        }
     }
 
     void SocketEndpoint::InternalEnqueue(unsigned count) {
-        if (enqueueUseOld) {
-            oldqueue->Dequeue(oldqueue->Count());
-            oldqueue->Enqueue(count);
-            const void *ptr = oldqueue->GetRawDequeuePtr(count, 0);
-            queue->RawEnqueue(ptr, count, oldqueue->NumChannels(), oldqueue->ChannelStride());
-            enqueueUseOld = false;
-            delete oldqueue;
-            oldqueue = 0;
-        } else {
-            queue->Enqueue(count);
-        }
+        ThresholdQueue::InternalEnqueue(count);
         InternCheckStatus();
-    }
-
-    unsigned SocketEndpoint::NumChannels() const {
-        Sync::AutoLock<const QueueBase> arl(*this);
-        return queue->NumChannels();
-    }
-
-    unsigned SocketEndpoint::Count() const {
-        Sync::AutoLock<const QueueBase> arl(*this);
-        return queue->Count();
-    }
-
-    bool SocketEndpoint::Empty() const {
-        Sync::AutoLock<const QueueBase> arl(*this);
-        return queue->Empty();
-    }
-
-    unsigned SocketEndpoint::Freespace() const {
-        Sync::AutoLock<const QueueBase> arl(*this);
-        return queue->Freespace();
-    }
-
-    bool SocketEndpoint::Full() const {
-        Sync::AutoLock<const QueueBase> arl(*this);
-        return queue->Full();
-    }
-
-    unsigned SocketEndpoint::MaxThreshold() const {
-        Sync::AutoLock<const QueueBase> arl(*this);
-        return queue->MaxThreshold();
-    }
-
-    unsigned SocketEndpoint::QueueLength() const {
-        Sync::AutoLock<const QueueBase> arl(*this);
-        return queue->QueueLength();
     }
 
     void SocketEndpoint::Grow(unsigned queueLen, unsigned maxThresh) {
         Sync::AutoLock<QueueBase> arl(*this);
-        InternalGrow(queueLen, maxThresh);
+        ThresholdQueue::Grow(queueLen, maxThresh);
+        NotifyFreespace();
         pendingGrow = true;
         InternCheckStatus();
     }
@@ -229,29 +152,6 @@ namespace CPN {
         pendingD4RTag = true;
         QueueBase::SignalReaderTagChanged();
         InternCheckStatus();
-    }
-
-    void SocketEndpoint::InternalGrow(unsigned queueLen, unsigned maxThresh) {
-        if (queueLen <= queue->QueueLength() && maxThresh <= queue->MaxThreshold()) { return; }
-        ASSERT(!(inenqueue && indequeue),
-                "Unhandled grow case of having an outstanding dequeue and enqueue (c: %llu)", clock.Get());
-        if (oldqueue) {
-            // If the old queue is still around we have to still be in the same state
-            ASSERT(enqueueUseOld == inenqueue);
-            ASSERT(dequeueUseOld == indequeue);
-            queue->Grow(queueLen, maxThresh);
-        } else if (!inenqueue && !indequeue) {
-            queue->Grow(queueLen, maxThresh);
-        } else {
-            enqueueUseOld = inenqueue;
-            dequeueUseOld = indequeue;
-            oldqueue = queue;
-            // this should make a duplicate
-            // For CircularQueue this makes an actual copy
-            queue = new CircularQueue(*oldqueue);
-            queue->Grow(queueLen, maxThresh);
-        }
-        NotifyFreespace();
     }
 
     void SocketEndpoint::OnRead() {
@@ -326,7 +226,7 @@ namespace CPN {
         ASSERT(!writeshutdown);
         unsigned count = packet.Count();
         if (count > queue->Freespace() || count > queue->MaxThreshold()) {
-            InternalGrow(queue->Count() + count, count);
+            ThresholdQueue::Grow(queue->Count() + count, count);
             pendingGrow = true;
         }
         std::vector<iovec> iovs;
@@ -423,7 +323,8 @@ namespace CPN {
     void SocketEndpoint::GrowPacket(const Packet &packet) {
         clock.Update(packet.Clock());
         FUNC_TRACE;
-        InternalGrow(packet.QueueSize(), packet.MaxThreshold());
+        ThresholdQueue::Grow(packet.QueueSize(), packet.MaxThreshold());
+        NotifyFreespace();
     }
 
     void SocketEndpoint::D4RTagPacket(const Packet &packet) {
@@ -703,15 +604,13 @@ namespace CPN {
         packet.QueueSize(queue->QueueLength());
         packet.MaxThreshold(queue->MaxThreshold());
         packet.DataLength(sizeof(D4R::Tag));
-        PacketEncoder::SendPacket(packet);
         D4R::Tag tag;
         if (mode == READ) {
             tag = reader->GetPublicTag();
         } else {
             tag = writer->GetPublicTag();
         }
-        unsigned numwritten = Write(&tag, sizeof(tag));
-        ASSERT(numwritten == sizeof(tag));
+        PacketEncoder::SendPacket(packet, &tag);
         pendingD4RTag = false;
     }
 
