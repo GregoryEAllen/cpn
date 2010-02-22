@@ -350,7 +350,7 @@ namespace CPN {
             while (!nodemap.empty()) {
                 arlock.Unlock();
                 ClearGarbage();
-                Poll(0);
+                Poll(-1);
                 arlock.Lock();
             }
             arlock.Unlock();

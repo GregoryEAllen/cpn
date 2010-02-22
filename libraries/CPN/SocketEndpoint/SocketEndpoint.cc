@@ -506,7 +506,7 @@ namespace CPN {
     }
 
     bool SocketEndpoint::EnqueueBlocked() {
-        return (2 * writecount) > queue->QueueLength();
+        return writecount >= queue->QueueLength();
     }
 
     void SocketEndpoint::SetupPacketDefaults(Packet &packet) {
