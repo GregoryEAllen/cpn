@@ -57,7 +57,7 @@ namespace CPN {
         QueueAttr()
             : queuehint(QUEUEHINT_DEFAULT), datatype(TypeName<void>()),
             queueLength(0), maxThreshold(0),
-            numChannels(1),
+            numChannels(1), alpha(0.5),
             readerkey(0), writerkey(0), readernodekey(0), writernodekey(0)
         {}
 
@@ -65,9 +65,22 @@ namespace CPN {
                 const unsigned maxThreshold_)
             : queuehint(QUEUEHINT_DEFAULT), datatype(TypeName<void>()),
             queueLength(queueLength_), maxThreshold(maxThreshold_),
-            numChannels(1),
+            numChannels(1), alpha(0.5),
             readerkey(0), writerkey(0), readernodekey(0), writernodekey(0)
             {}
+
+        /** \brief alpha is used by the remote queue to decide how
+         * much of the queue should go on the read side and how much
+         * should go on the write side.
+         * \param a 0 means all on read 1 means all on write
+         * \return this
+         */
+        QueueAttr &SetAlpha(double a) {
+            if (a < 0) { a = 0; }
+            else if (a > 1) { a = 1; }
+            alpha = a;
+            return *this;
+        }
 
         QueueAttr &SetReader(const std::string &nodename,
                 const std::string &portname) {
@@ -161,6 +174,7 @@ namespace CPN {
         unsigned GetNumChannels() const { return numChannels; }
         QueueHint_t GetHint() const { return queuehint; }
         const std::string &GetDatatype() const { return datatype; }
+        double GetAlpha() const { return alpha; }
 
     private:
         QueueHint_t queuehint;
@@ -168,6 +182,7 @@ namespace CPN {
         unsigned queueLength;
         unsigned maxThreshold;
         unsigned numChannels;
+        double alpha;
         std::string readernodename;
         std::string readerportname;
         std::string writernodename;
@@ -184,18 +199,28 @@ namespace CPN {
      */
     class SimpleQueueAttr {
     public:
-        SimpleQueueAttr() {}
+        SimpleQueueAttr()
+            : queuehint(QUEUEHINT_DEFAULT),
+            queueLength(0), maxThreshold(0),
+            numChannels(0), alpha(0)
+        {}
         SimpleQueueAttr(const QueueAttr &attr)
             : queuehint(attr.GetHint()),
             datatype(attr.GetDatatype()),
             queueLength(attr.GetLength()),
             maxThreshold(attr.GetMaxThreshold()),
             numChannels(attr.GetNumChannels()),
+            alpha(attr.GetAlpha()),
             readerkey(attr.GetReaderKey()),
             writerkey(attr.GetWriterKey()),
             readernodekey(attr.GetReaderNodeKey()),
             writernodekey(attr.GetWriterNodeKey())
         {}
+
+        SimpleQueueAttr &SetAlpha(double a) {
+            alpha = a;
+            return *this;
+        }
 
         SimpleQueueAttr &SetHint(QueueHint_t hint) {
             queuehint = hint;
@@ -258,12 +283,14 @@ namespace CPN {
         unsigned GetNumChannels() const { return numChannels; }
         QueueHint_t GetHint() const { return queuehint; }
         const std::string &GetDatatype() const { return datatype; }
+        double GetAlpha() const { return alpha; }
     private:
         QueueHint_t queuehint;
         std::string datatype;
         unsigned queueLength;
         unsigned maxThreshold;
         unsigned numChannels;
+        double alpha;
         Key_t readerkey;
         Key_t writerkey;
         Key_t readernodekey;
