@@ -62,6 +62,7 @@ namespace Sync {
         void Unlock() const {
             Internal::ScopeMutex l(lock);
             --count;
+            ASSERT(count >= 0);
             if (count == 0) pthread_cond_signal(&cond);
         }
 
@@ -77,7 +78,7 @@ namespace Sync {
         void Wait(pthread_cond_t& c) const;
         mutable pthread_mutex_t lock;
         mutable pthread_cond_t cond;
-        mutable unsigned long count;
+        mutable long count;
         mutable pthread_t owner;
 
         template<class T> friend class StatusHandler;

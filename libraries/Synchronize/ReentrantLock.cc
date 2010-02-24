@@ -35,7 +35,7 @@ void Sync::ReentrantLock::Lock() const {
 }
 
 void Sync::ReentrantLock::Wait(pthread_cond_t& c) const {
-    unsigned long oldcount = count;
+    long oldcount = count;
     pthread_t oldowner = owner;
     count = 0;
     pthread_cond_signal(&cond);
