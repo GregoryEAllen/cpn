@@ -57,6 +57,7 @@ namespace CPN {
         pendingBlock(false),
         sentEnd(false),
         pendingGrow(false),
+        pendingD4RTag(false),
         inread(false),
         incheckstatus(false)
     {
