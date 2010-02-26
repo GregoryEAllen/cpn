@@ -20,27 +20,28 @@
 /** \file
  * \author John Bridgman
  */
-#ifndef SOCKETHANDLER_H
-#define SOCKETHANDLER_H
+#ifndef SOCKETHANDLE_H
+#define SOCKETHANDLE_H
 #pragma once
-#include "FileHandler.h"
+#include "FileHandle.h"
 #include "SocketAddress.h"
 
 /**
  * \brief A FileHandler customized with some socket specific functionality
  * and functions.
  */
-class SockHandler : public FileHandler {
+class SocketHandle : public FileHandler {
 public:
+    typedef FileHandler::AutoLock AutoLock;
 
-    SockHandler() {}
-    SockHandler(int nfd) : FileHandler(nfd) {}
+    SocketHandle() {}
+    SocketHandle(int nfd) : FileHandler(nfd) {}
 
     /** \brief Create a socket pair.
-     * \param sock1 SockHandler to fill with one of the created file descriptors
-     * \param sock2 SockHandler to fill with one of the created file descriptors
+     * \param sock1 SocketHandle to fill with one of the created file descriptors
+     * \param sock2 SocketHandle to fill with one of the created file descriptors
      */
-    static void CreatePair(SockHandler &sock1, SockHandler &sock2);
+    static void CreatePair(SocketHandle &sock1, SocketHandle &sock2);
     /** \brief Convenience function that returns actual file descriptors
      */
     static void CreatePair(int fd[2]);
@@ -104,6 +105,31 @@ public:
      * \return number of bytes written
      */
     unsigned Send(const void *ptr, unsigned len, const SendOpts &opts);
+
+    /** \brief Get and clear any pending error
+     * \return the pending error or 0 if none
+     */
+    int GetPendingError();
+
+    void SetKeepAlive(int ka);
+    int GetKeepAlive();
+    /** \brief Set the linger socket options.
+     * \param seconds number of seconds to linger, negative to turn off
+     */
+    void SetLingerTimeout(int seconds);
+    /** \return number of seconds socket will linger, negative means off
+     */
+    int GetLinkgerTimeout();
+
+    void SetReceiveBufferSize(int size);
+    int GetReceiveBufferSize();
+    void SetSendBufferSize(int size);
+    int GetReceiveBufferSize();
+
+    void SetReceiveTimeout(double timeout);
+    void SetSendTimeout(double timeout);
+    double GetReceiveTimeout();
+    double GetSendTimeout();
 private:
     bool Connect(const SocketAddress &addr, int &error);
 };

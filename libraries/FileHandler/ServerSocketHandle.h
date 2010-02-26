@@ -20,20 +20,20 @@
 /** \file
  * \author John Bridgman
  */
-#ifndef LISTENSOCKETHANDLER_H
-#define LISTENSOCKETHANDLER_H
+#ifndef SERVERSOCKETHANDLE_H
+#define SERVERSOCKETHANDLE_H
 #pragma once
 
-#include "FileHandler.h"
+#include "FileHandle.h"
 #include "SocketAddress.h"
 
-class ListenSockHandler : public FileHandler {
+class ServerSocketHandle : public FileHandler {
 public:
 
-    ListenSockHandler() {}
-    ListenSockHandler(int nfd) : FileHandler(nfd) {}
-    ListenSockHandler(const SocketAddress &addr, int queuelength = 256) { Listen(addr, queuelength); }
-    ListenSockHandler(const SockAddrList &addrs, int queuelength = 256) { Listen(addrs, queuelength); }
+    ServerSocketHandle() {}
+    ServerSocketHandle(int nfd) : FileHandler(nfd) {}
+    ServerSocketHandle(const SocketAddress &addr, int queuelength = 256) { Listen(addr, queuelength); }
+    ServerSocketHandle(const SockAddrList &addrs, int queuelength = 256) { Listen(addrs, queuelength); }
 
     /**
      * Open a new socket and try to listen on the given
@@ -59,18 +59,11 @@ public:
      */
     int Accept();
 
-    /**
-     * When a connection is ready OnRead will be called by Poll
+    /** \brief Turn on reuse of the address.
      */
-    virtual void OnRead() = 0;
-    virtual void OnError() = 0;
-    virtual void OnInval() = 0;
-
+    void SetReuseAddr(bool reuse = true);
+    bool GetReuseAddr();
 private:
-    // These can't happen to a listening socket
-    void OnWrite() {}
-    void OnHup() {}
-
     bool Listen(const SocketAddress &addr, int queuelength, int &error);
     int Accept(SocketAddress *addr);
 

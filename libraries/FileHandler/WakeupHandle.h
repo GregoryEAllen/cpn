@@ -21,33 +21,31 @@
  * \author John Bridgman
  */
 
-#ifndef WAKEUPHANDLER_H
-#define WAKEUPHANDLER_H
+#ifndef WAKEUPHANDLE_H
+#define WAKEUPHANDLE_H
 #pragma once
 
-#include "FileHandler.h"
+#include "FileHandle.h"
 
-/** \brief A convenience handler for even loops so that
+/** \brief A convenience handle for event loops so that
  * one can interrupt a Poll before it times out.
  *
  * SendWakeup my be called from any thread.
  */
-class WakeupHandler : public FileHandler {
+class WakeupHandle : public FileHandler {
 public:
-    WakeupHandler();
-    virtual ~WakeupHandler();
+    WakeupHandle();
+    virtual ~WakeupHandle();
 
     /** \brief Causes this handler to become readable
      * any Poll on this FileHandler will then return.
      */
     void SendWakeup();
 
+    /** \brief Read until not readable anymore
+     */
+    void Read();
 private:
-    void OnRead();
-    void OnWrite();
-    void OnError();
-    void OnHup();
-    void OnInval();
     int wfd;
 };
 #endif

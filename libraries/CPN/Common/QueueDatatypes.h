@@ -33,6 +33,15 @@
 
 namespace CPN {
 
+    // Have an idea to make this better.
+    // Have a base class with all pure virtual methods,
+    // then have a template class that enherits from it
+    // with methods like GetName and GetSize.
+    // What I want to be able to do is have a function
+    // that returns a type class where I hand it the
+    // name of the type.
+    // Maybe I should have the QueueAttr have enough information
+    // to construct a generic type class.
     template<class type>
     const char* TypeName() {
         return typeid(type).name();

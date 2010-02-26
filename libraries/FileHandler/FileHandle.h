@@ -21,38 +21,49 @@
  * \brief A class to make it easy to deal with file descriptors.
  * \author John Bridgman
  */
+#ifndef FILEHANDLE_H
+#define FILEHANDLE_H
 #pragma once
 
+#include "PthreadMutex.h"
+#include "AutoLock.h"
+#include "IteratorRef.h"
 // for the iovec struct
 #include <sys/uio.h>
 
 /**
- * \brief Generic file handler
+ * \brief Generic file handle
  * could be a file, or a socket or a device.
  *
  * If needed wouldn't be very hard to add an open
  * function here.
  */
-class FileHandler {
+class FileHandle {
+    typedef Sync::AutoLock<PthreadMutex> AutoLock;
 public:
 
     /**
-     * \brief poll a list of FileHandlers for any activity and call the
+     * \brief poll a list of FileHandles for any activity and call the
      * appropriate On method.
      */
-    static int Poll(FileHandler **fileds, unsigned numfds, double timeout);
+    static int Poll(IteratorRef<FileHandle*> begin, IteratorRef<FileHandle*> end, double timeout);
 
     /**
-     * \brief Construct a closed FileHandler.
+     * \brief Construct a closed FileHandle.
      */
-    FileHandler();
+    FileHandle();
+
     /**
-     * \brief Construct a FileHandler with filed as the open
+     * \brief Construct a FileHandle with filed as the open
      * file descriptor
      * \param filed the file descriptor to use
      */
-    FileHandler(int filed);
-    virtual ~FileHandler();
+    FileHandle(int filed);
+    
+    /** \brief Close the file descriptor. Use Reset if one wants to
+     * not close the file descriptor.
+     */
+    virtual ~FileHandle();
 
     /**
      * \brief Poll the current file descriptor for activity calling
@@ -66,79 +77,53 @@ public:
     int Poll(double timeout);
 
     /**
-     * \brief Called by the Poll functions when the file can be read from without blocking.
-     */
-    virtual void OnRead() = 0;
-    /**
-     * \brief Called by the Poll functions when the file can be written to without blocking.
-     */
-    virtual void OnWrite() = 0;
-    /**
-     * \brief Called by Poll when an error has been detected.
-     */
-    virtual void OnError() = 0;
-    /**
-     * \brief Called by Poll when a hangup has been detected.
-     * \note This means different things on different systems!! Be careful. For
-     * example as far as I can tell, on linux this means that any subsequent writes
-     * will result in a broken pipe error but on Mac OS X this appears to mean
-     * that the other side has hung up in some form or fashion (i.e. write may succeed
-     * and read returns eof).
-     */
-    virtual void OnHup() = 0;
-    /**
-     * \brief Called by Poll when the file descriptor is invalid.
-     */
-    virtual void OnInval() = 0;
-
-    /**
-     * \brief Set the readable status of this FileHandler
+     * \brief Set that the file is currently readable or not.
      * \param r true or false
      * \return the new readable status
      */
-    bool Readable(bool r) { return readable = r; }
+    bool Readable(bool r) { AutoLock al(file_lock); return readable = r; }
     /**
-     * \brief Called by Poll to decide if poll should check for readability
-     * \return the readable status
+     * \brief Gives the current readability status of the file.
+     * \return true if it is known that a read will not block
      */
-    virtual bool Readable() const { return readable; }
+    bool Readable() const { AutoLock al(file_lock); return readable; }
     /**
-     * \brief Set the writeable status of this FileHandler
+     * \brief Set that this file is currently writeable or not
      * \param w true or false
      * \return the new writeable status
      */
-    bool Writeable(bool w) { return writeable = w; }
+    bool Writeable(bool w) { AutoLock al(file_lock); return writeable = w; }
     /**
-     * \brief Called by Poll to decide if poll should check for writeability.
-     * \return the writeable status
+     * \brief Gives the current writability status of the file
+     * \return true if it is known that a write will not block
      */
-    virtual bool Writeable() const { return writeable; }
+    bool Writeable() const { AutoLock al(file_lock); return writeable; }
 
     /** \return the current set file descriptor
      */
-    int FD() const { return fd; }
+    int FD() const { AutoLock al(file_lock); return fd; }
     /** \brief Set the current file descriptor
      * \param filed the new file descriptor
      * \return the new file descriptor
      */
-    int FD(int filed) { return fd = filed; }
+    int FD(int filed) { AutoLock al(file_lock); return fd = filed; }
 
     /** \return the current end of file condition
      */
-    bool Eof() const { return eof; }
+    bool Eof() const { AutoLock al(file_lock); return eof; }
     /** \brief Set/reset the end of file condition.
      * \param e the new end of file condition
      * \return the new end of file condition
      */
-    bool Eof(bool e) { return eof = e; }
+    bool Eof(bool e) { AutoLock al(file_lock); return eof = e; }
     /** \brief Convenience method for testing if
-     * the file this FileHandler has is open and not at end of file
+     * the file this FileHandle has is open and not at end of file
      * \return true if open and not at end of file otherwise false
      */
-    bool Good() const { return !(eof || fd == -1); }
-    /** \return false if this FileHandler has an open file
+    bool Good() const { AutoLock al(file_lock); return !(eof || fd == -1); }
+    /** \return false if this FileHandle has an open file
      */
-    bool Closed() const { return fd == -1; }
+    bool Closed() const { AutoLock al(file_lock); return fd == -1; }
 
     /** \brief Manipulate how the current file handles blocking
      * \param blocking true to set to blocking mode (default)
@@ -150,7 +135,7 @@ public:
     void SetBlocking(bool blocking);
     /** \brief a convenience method that allows one to set the
      * same blocking parameters for a file descriptor without
-     * setting it inside a FileHandler.
+     * setting it inside a FileHandle.
      * \param fd the file descriptor
      * \param blocking true or false see SetBlock
      */
@@ -212,12 +197,13 @@ public:
      */
     void Flush();
 protected:
+    PthreadMutex file_lock;
     int fd;
     bool readable;
     bool writeable;
     bool eof;
 private:
-    FileHandler(const FileHandler&);
-    FileHandler &operator=(const FileHandler&);
+    FileHandle(const FileHandle&);
+    FileHandle &operator=(const FileHandle&);
 };
-
+#endif

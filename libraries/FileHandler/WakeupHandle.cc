@@ -21,13 +21,13 @@
  * \author John Bridgman
  */
 
-#include "WakeupHandler.h"
+#include "WakeupHandle.h"
 #include "ErrnoException.h"
 #include "Assert.h"
 #include <unistd.h>
 #include <errno.h>
 
-WakeupHandler::WakeupHandler()
+WakeupHandle::WakeupHandle()
     : wfd(-1)
 {
     int filedes[2];
@@ -36,22 +36,27 @@ WakeupHandler::WakeupHandler()
     }
     FD(filedes[0]);
     wfd = filedes[1];
-    Readable(true);
+    Readable(false);
     Writeable(false);
     SetBlocking(false);
     SetBlocking(wfd, false);
 }
 
-WakeupHandler::~WakeupHandler() {
+WakeupHandle::~WakeupHandle() {
     close(wfd);
     wfd = -1;
 }
 
-void WakeupHandler::SendWakeup() {
+void WakeupHandle::SendWakeup() {
+    int wfiled;
+    {
+        FileHandler::AutoLock al(file_lock);
+        wfiled = wfd;
+    }
     char c = 0;
     int ret = 0;
     do {
-        ret = write(wfd, &c, sizeof(c));
+        ret = write(wfiled, &c, sizeof(c));
         if (ret < 0) {
             if (errno == EAGAIN) {
                 // The buffer is full.
@@ -62,25 +67,10 @@ void WakeupHandler::SendWakeup() {
     } while (ret != sizeof(c));
 }
 
-void WakeupHandler::OnRead() {
+void WakeupHandle::Read() {
     char c[256];
-    while (Read(c, sizeof(c)) != 0);
-}
-
-void WakeupHandler::OnWrite() {
-    ASSERT(false, "Should be impossible on read end of pipes");
-}
-
-void WakeupHandler::OnError() {
-    // This should get the error.
-    Read(0,0);
-}
-
-void WakeupHandler::OnHup() {
-    ASSERT(false, "Corrupted state");
-}
-
-void WakeupHandler::OnInval() {
-    ASSERT(false, "Corrupted state");
+    while (Readable()) {
+        Read(c, sizeof(c));
+    }
 }
 
