@@ -26,27 +26,27 @@ template<typename T>
 class IteratorRef {
 private:
 
-    template<typename Type>
     class ItrRef {
     public:
+        virtual ~ItrRef() {}
         virtual void Increment() = 0;
         virtual void Decrement() = 0;
-        virtual Type &Dereference() = 0;
-        virtual ItrRef<Type> *Clone() const = 0;
-        virtual bool Equals(const ItrRef<Type> *rhs) const = 0;
+        virtual T &Dereference() = 0;
+        virtual ItrRef *Clone() const = 0;
+        virtual bool Equals(const ItrRef *rhs) const = 0;
 
     };
 
     template<typename iterator_type>
-    class ItrRefImpl : public ItrRef<typename std::iterator_traits<iterator_type>::value_type> {
+    class ItrRefImpl : public ItrRef {
     public:
         typedef typename std::iterator_traits<iterator_type>::value_type value_type;
         ItrRefImpl(iterator_type itr_) : itr(itr_) {}
         void Increment() { ++itr; }
         void Decrement() { --itr; }
         value_type &Dereference() { return *itr; }
-        ItrRef<value_type> *Clone() const { return new ItrRefImpl<iterator_type>(itr); }
-        bool Equals(const ItrRef<value_type> *rhs) const {
+        ItrRef *Clone() const { return new ItrRefImpl<iterator_type>(itr); }
+        bool Equals(const ItrRef *rhs) const {
             try {
                 const ItrRefImpl<iterator_type> *o = dynamic_cast<const ItrRefImpl<iterator_type> *>(rhs);
                 if (o) {
@@ -63,7 +63,7 @@ public:
 
     template<typename iter_type>
     IteratorRef(iter_type itr)
-    : itrref(std::auto_ptr<ItrRef<T> >(new ItrRefImpl<iter_type>(itr)))
+    : itrref(std::auto_ptr<ItrRef>(new ItrRefImpl<iter_type>(itr)))
     {}
 
     IteratorRef(const IteratorRef &itr)
@@ -71,7 +71,8 @@ public:
     {}
 
     IteratorRef &operator=(const IteratorRef &itr) {
-        itrref = itr.itrref->Clone();
+        itrref.reset(itr.itrref->Clone());
+        return *this;
     }
 
     T &operator*() {
@@ -113,7 +114,7 @@ public:
     }
 
 private:
-    std::auto_ptr<ItrRef<T> > itrref;
+    std::auto_ptr<ItrRef> itrref;
 };
 
 

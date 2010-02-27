@@ -39,8 +39,8 @@
  * function here.
  */
 class FileHandle {
-    typedef Sync::AutoLock<PthreadMutex> AutoLock;
 public:
+    typedef Sync::AutoLock<PthreadMutex> AutoLock;
 
     /**
      * \brief poll a list of FileHandles for any activity and call the
@@ -197,7 +197,7 @@ public:
      */
     void Flush();
 protected:
-    PthreadMutex file_lock;
+    mutable PthreadMutex file_lock;
     int fd;
     bool readable;
     bool writeable;

@@ -50,7 +50,7 @@ WakeupHandle::~WakeupHandle() {
 void WakeupHandle::SendWakeup() {
     int wfiled;
     {
-        FileHandler::AutoLock al(file_lock);
+        FileHandle::AutoLock al(file_lock);
         wfiled = wfd;
     }
     char c = 0;
@@ -70,7 +70,7 @@ void WakeupHandle::SendWakeup() {
 void WakeupHandle::Read() {
     char c[256];
     while (Readable()) {
-        Read(c, sizeof(c));
+        FileHandle::Read(c, sizeof(c));
     }
 }
 

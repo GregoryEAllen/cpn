@@ -27,15 +27,15 @@
 #include "SocketAddress.h"
 
 /**
- * \brief A FileHandler customized with some socket specific functionality
+ * \brief A FileHandle customized with some socket specific functionality
  * and functions.
  */
-class SocketHandle : public FileHandler {
+class SocketHandle : public FileHandle {
 public:
-    typedef FileHandler::AutoLock AutoLock;
+    typedef FileHandle::AutoLock AutoLock;
 
     SocketHandle() {}
-    SocketHandle(int nfd) : FileHandler(nfd) {}
+    SocketHandle(int nfd) : FileHandle(nfd) {}
 
     /** \brief Create a socket pair.
      * \param sock1 SocketHandle to fill with one of the created file descriptors
@@ -119,12 +119,12 @@ public:
     void SetLingerTimeout(int seconds);
     /** \return number of seconds socket will linger, negative means off
      */
-    int GetLinkgerTimeout();
+    int GetLingerTimeout();
 
     void SetReceiveBufferSize(int size);
     int GetReceiveBufferSize();
     void SetSendBufferSize(int size);
-    int GetReceiveBufferSize();
+    int GetSendBufferSize();
 
     void SetReceiveTimeout(double timeout);
     void SetSendTimeout(double timeout);

@@ -56,12 +56,12 @@ int FileHandle::Poll(IteratorRef<FileHandle*> begin, IteratorRef<FileHandle*> en
     }
     timeval tv;
     timeval *ptv = 0;
-    if (tiemout >= 0) {
+    if (timeout >= 0) {
         tv.tv_sec = (int)timeout;
         tv.tv_usec = (int)((timeout - tv.tv_sec) * 1e6);
         ptv = &tv;
     }
-    int ret = select(&rfd, &wfd, 0, ptv);
+    int ret = select(maxfd, &rfd, &wfd, 0, ptv);
     if (ret < 0) {
         if (errno == EINTR) {
             return 0;
@@ -101,7 +101,8 @@ FileHandle::~FileHandle() {
 }
 
 int FileHandle::Poll(double timeout) {
-    return Poll(this, this + 1, timeout);
+    FileHandle *fh = this;
+    return Poll(&fh, &fh + 1, timeout);
 }
 
 void FileHandle::SetBlocking(bool blocking) {
@@ -177,7 +178,7 @@ unsigned FileHandle::Read(void *ptr, unsigned len) {
         eof = true;
         readable = false;
     } else {
-        if (num < len) { Readable(false); }
+        if (unsigned(num) < len) { Readable(false); }
         bytesread = num;
     }
     return bytesread;
@@ -212,7 +213,7 @@ unsigned FileHandle::Readv(const iovec *iov, int iovcnt) {
         eof = true;
         readable = false;
     } else {
-        if (num < len) { Readable(false); }
+        if (unsigned(num) < len) { Readable(false); }
         bytesread = num;
     }
     return bytesread;
@@ -248,7 +249,7 @@ unsigned FileHandle::Write(const void *ptr, unsigned len) {
             throw ErrnoException(error);
         }
     } else {
-        if (num < len) { Writeable(false); }
+        if (unsigned(num) < len) { Writeable(false); }
         written = num;
     }
     return written;
@@ -280,7 +281,7 @@ unsigned FileHandle::Writev(const iovec *iov, int iovcnt) {
         for (int i = 0; i < iovcnt; ++i) {
             len += iov[i].iov_len;
         }
-        if (num < len) { Writeable(false); }
+        if (unsigned(num) < len) { Writeable(false); }
         written = num;
     }
     return written;

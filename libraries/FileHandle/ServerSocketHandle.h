@@ -27,11 +27,11 @@
 #include "FileHandle.h"
 #include "SocketAddress.h"
 
-class ServerSocketHandle : public FileHandler {
+class ServerSocketHandle : public FileHandle {
 public:
 
     ServerSocketHandle() {}
-    ServerSocketHandle(int nfd) : FileHandler(nfd) {}
+    ServerSocketHandle(int nfd) : FileHandle(nfd) {}
     ServerSocketHandle(const SocketAddress &addr, int queuelength = 256) { Listen(addr, queuelength); }
     ServerSocketHandle(const SockAddrList &addrs, int queuelength = 256) { Listen(addrs, queuelength); }
 

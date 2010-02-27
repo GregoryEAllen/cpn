@@ -128,7 +128,8 @@ void ServerSocketHandle::SetReuseAddr(bool reuse) {
 
 bool ServerSocketHandle::GetReuseAddr() {
     int opt;
-    if (getsockopt(FD(), SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+    socklen_t len = sizeof(opt);
+    if (getsockopt(FD(), SOL_SOCKET, SO_REUSEADDR, &opt, &len) < 0) {
         throw ErrnoException();
     }
     return opt == 1;

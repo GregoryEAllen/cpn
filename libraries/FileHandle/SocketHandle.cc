@@ -130,7 +130,7 @@ unsigned SocketHandle::Recv(void *ptr, unsigned len, bool block) {
     unsigned bytesread = 0;
     int num = recv(filed, ptr, len, flags);
     if (num > 0) {
-        if (num < len) { Readable(false); }
+        if (unsigned(num) < len) { Readable(false); }
         bytesread = num;
     } else if (num == 0 && len != 0) {
         AutoLock al(file_lock);
@@ -193,15 +193,16 @@ unsigned SocketHandle::Send(const void *ptr, unsigned len, const SendOpts &opts)
             throw ErrnoException(error);
         }
     } else {
-        if (num < len) { Writeable(false); }
+        if (unsigned(num) < len) { Writeable(false); }
         written = num;
     }
     return written;
 }
 
-int SocketHandle::PendingError() {
+int SocketHandle::GetPendingError() {
     int err = 0;
-    if (getsockopt(FD(), SOL_SOCKET, SO_ERROR, &err, sizeof(err)) < 0) {
+    socklen_t len = sizeof(err);
+    if (getsockopt(FD(), SOL_SOCKET, SO_ERROR, &err, &len) < 0) {
         throw ErrnoException();
     }
     return err;
@@ -215,7 +216,8 @@ void SocketHandle::SetKeepAlive(int ka) {
 
 int SocketHandle::GetKeepAlive() {
     int ka;
-    if (getsockopt(FD(), SOL_SOCKET, SO_KEEPALIVE, &ka, sizeof(ka)) < 0) {
+    socklen_t len = sizeof(ka);
+    if (getsockopt(FD(), SOL_SOCKET, SO_KEEPALIVE, &ka, &len) < 0) {
         throw ErrnoException();
     }
     return ka;
@@ -234,7 +236,8 @@ void SocketHandle::SetLingerTimeout(int seconds) {
 
 int SocketHandle::GetLingerTimeout() {
     linger l = {0};
-    if (getsockopt(FD(), SOL_SOCKET, SO_LINGER, &l, sizeof(l)) < 0) {
+    socklen_t len = sizeof(l);
+    if (getsockopt(FD(), SOL_SOCKET, SO_LINGER, &l, &len) < 0) {
         throw ErrnoException();
     }
     if (l.l_onoff) {
@@ -251,8 +254,9 @@ void SocketHandle::SetReceiveBufferSize(int size) {
 }
 
 int SocketHandle::GetReceiveBufferSize() {
-    int size
-    if (getsockopt(FD(), SOL_SOCKET, SO_RCVBUF, &size, sizeof(size)) < 0) {
+    int size;
+    socklen_t len = sizeof(size);
+    if (getsockopt(FD(), SOL_SOCKET, SO_RCVBUF, &size, &len) < 0) {
         throw ErrnoException();
     }
     return size;
@@ -264,9 +268,10 @@ void SocketHandle::SetSendBufferSize(int size) {
     }
 }
 
-int SocketHandle::GetReceiveBufferSize() {
+int SocketHandle::GetSendBufferSize() {
     int size;
-    if (getsockopt(FD(), SOL_SOCKET, SO_SNDBUF, &size, sizeof(size)) < 0) {
+    socklen_t len = sizeof(size);
+    if (getsockopt(FD(), SOL_SOCKET, SO_SNDBUF, &size, &len) < 0) {
         throw ErrnoException();
     }
     return size;
@@ -293,7 +298,8 @@ void SocketHandle::SetSendTimeout(double timeout) {
 
 double SocketHandle::GetReceiveTimeout() {
     timeval tv = {0};
-    if (getsockopt(FD(), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
+    socklen_t len = sizeof(tv);
+    if (getsockopt(FD(), SOL_SOCKET, SO_RCVTIMEO, &tv, &len) < 0) {
         throw ErrnoException();
     }
     return ((double)tv.tv_sec) + (((double)tv.tv_usec)*1e-6);
@@ -301,7 +307,8 @@ double SocketHandle::GetReceiveTimeout() {
 
 double SocketHandle::GetSendTimeout() {
     timeval tv = {0};
-    if (getsockopt(FD(), SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv)) < 0) {
+    socklen_t len = sizeof(tv);
+    if (getsockopt(FD(), SOL_SOCKET, SO_SNDTIMEO, &tv, &len) < 0) {
         throw ErrnoException();
     }
     return ((double)tv.tv_sec) + (((double)tv.tv_usec)*1e-6);

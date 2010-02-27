@@ -32,7 +32,7 @@
  *
  * SendWakeup my be called from any thread.
  */
-class WakeupHandle : public FileHandler {
+class WakeupHandle : public FileHandle {
 public:
     WakeupHandle();
     virtual ~WakeupHandle();
