@@ -23,26 +23,42 @@ int main(int argc, char **argv) {
 
     
     StreamForwarder sock;
-    sock.Connect(addresses);
+    sock.GetHandle().Connect(addresses);
     printf("Connected\n");
 
     StreamForwarder outside;
-    outside.FD(fileno(stdout));
+    outside.GetHandle().FD(fileno(stdout));
     sock.SetForward(&outside);
 
     StreamForwarder inside;
-    inside.FD(fileno(stdin));
+    inside.GetHandle().FD(fileno(stdin));
     inside.SetForward(&sock);
 
-    std::vector<FileHandler*> fds;
-    fds.push_back(&sock);
-    fds.push_back(&outside);
-    fds.push_back(&inside);
+    std::vector<FileHandle*> fds;
+    fds.push_back(&sock.GetHandle());
+    fds.push_back(&outside.GetHandle());
+    fds.push_back(&inside.GetHandle());
     try {
         while (sock.Good() && inside.Good()) {
-            FileHandler::Poll(&fds[0], fds.size(), -1);
+            FileHandle::Poll(fds.begin(), fds.end(), -1);
+            if (inside.GetHandle().Readable()) {
+                printf("stdin readable\n");
+            }
+            inside.Read();
+            if (sock.GetHandle().Writeable()) {
+                printf("sock writeable\n");
+            }
+            sock.Write();
+            if (sock.GetHandle().Readable()) {
+                printf("sock readable\n");
+            }
+            sock.Read();
+            if (outside.GetHandle().Writeable()) {
+                printf("stdout writeable\n");
+            }
+            outside.Write();
         }
-        sock.Close();
+        sock.GetHandle().Close();
     } catch (std::exception &e) {
         printf("Error: %s\n", e.what());
     }

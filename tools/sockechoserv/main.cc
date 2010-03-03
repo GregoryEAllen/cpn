@@ -1,7 +1,7 @@
 /** \file
  */
 
-#include "ListenSockHandler.h"
+#include "ServerSocketHandle.h"
 #include "StreamForwarder.h"
 #include "ErrnoException.h"
 
@@ -10,59 +10,65 @@
 
 using std::tr1::shared_ptr;
 
-class Controller : public ListenSockHandler {
+class Controller {
 public:
     typedef std::list<shared_ptr<StreamForwarder> > StreamList;
     Controller()
-    {
-        Readable(true);
-    }
+    {}
 
-    void OnRead() {
+    void Read() {
         printf("%s\n",__PRETTY_FUNCTION__);
+        if (!serv.Readable()) { return; }
         SocketAddress conaddr;
-        int newfd = Accept(conaddr);
+        int newfd = serv.Accept(conaddr);
         if (newfd >= 0) {
             printf("Accepted a connection from %s %s\n",
                     conaddr.GetHostName().c_str(),
                     conaddr.GetServName().c_str());
 
             sockets.push_back(shared_ptr<StreamForwarder>(new StreamForwarder()));
-            sockets.back()->FD(newfd);
+            sockets.back()->GetHandle().FD(newfd);
             sockets.back()->SetForward(sockets.back().get());
         }
+        serv.Readable(false);
     }
 
-    void OnError() {
-        printf("%s\n",__PRETTY_FUNCTION__);
-        running = false;
-    }
-
-    void OnInval() {
-        printf("%s\n",__PRETTY_FUNCTION__);
-        running = false;
-    }
-    
     void Run() {
+        printf("Started\n");
+        serv.Readable(false);
         running = true;
         while (running) {
-            std::vector<FileHandler*> polllist;
+            std::vector<FileHandle*> polllist;
             StreamList::iterator itr = sockets.begin();
             while (itr != sockets.end()) {
                 if (itr->get()->Good()) {
-                    polllist.push_back(itr->get());
+                    polllist.push_back(&itr->get()->GetHandle());
                     ++itr;
                 } else {
                     printf("A connection closed\n");
                     itr = sockets.erase(itr);
                 }
             }
-            polllist.push_back(this);
-            FileHandler::Poll(&polllist[0], polllist.size(), -1);
+            polllist.push_back(&serv);
+            FileHandle::Poll(polllist.begin(), polllist.end(), -1);
+            Read();
+            itr = sockets.begin();
+            while (itr != sockets.end()) {
+                itr->get()->Read();
+                itr->get()->Write();
+                ++itr;
+            }
+            printf("tick\n");
         }
+    }
+
+    void Listen(const SockAddrList &addresses) {
+        serv.Listen(addresses);
+        serv.SetReuseAddr();
     }
 private:
     StreamList sockets;
+    ServerSocketHandle serv;
     bool running;
 };
 

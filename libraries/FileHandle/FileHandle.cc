@@ -61,7 +61,7 @@ int FileHandle::Poll(IteratorRef<FileHandle*> begin, IteratorRef<FileHandle*> en
         tv.tv_usec = (int)((timeout - tv.tv_sec) * 1e6);
         ptv = &tv;
     }
-    int ret = select(maxfd, &rfd, &wfd, 0, ptv);
+    int ret = select(maxfd + 1, &rfd, &wfd, 0, ptv);
     if (ret < 0) {
         if (errno == EINTR) {
             return 0;
@@ -74,10 +74,10 @@ int FileHandle::Poll(IteratorRef<FileHandle*> begin, IteratorRef<FileHandle*> en
         if (!han->Closed()) {
             int fd = han->FD();
             if (FD_ISSET(fd, &rfd)) {
-                han->Readable(true);
+                han->OnReadable();
             }
             if (FD_ISSET(fd, &wfd)) {
-                han->Writeable(true);
+                han->OnWriteable();
             }
         }
         ++itr;
@@ -86,12 +86,12 @@ int FileHandle::Poll(IteratorRef<FileHandle*> begin, IteratorRef<FileHandle*> en
 }
 
 FileHandle::FileHandle()
-    : fd(-1), readable(false), writeable(false), eof(false)
+    : fd(-1), readable(false), writeable(true), eof(false)
 {
 }
 
 FileHandle::FileHandle(int filed)
-    : fd(filed), readable(false), writeable(false), eof(false)
+    : fd(filed), readable(false), writeable(true), eof(false)
 {
 }
 

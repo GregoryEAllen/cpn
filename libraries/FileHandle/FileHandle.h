@@ -66,8 +66,10 @@ public:
     virtual ~FileHandle();
 
     /**
-     * \brief Poll the current file descriptor for activity calling
-     * one of the On function if appropriate.
+     * Poll the current file descriptor for activity specified
+     * by the current readable or writeable status, if false poll that value,
+     * and call one of OnWriteable or OnReadable whos default action is to set
+     * Readable or Writeable to true.
      * \param timeout -1 to wait forever for activity
      * 0 to poll and return immediately or a time to wait
      * in seconds.
@@ -167,6 +169,9 @@ public:
      * \brief Read data from the file descriptor.
      *
      * Will set the end of file condition if read detects end of file.
+     * \note All the read functions will set readable to false if they
+     * read less than the requested amount or we are non blocking and
+     * a would block condition happened.
      * \param ptr pointer to write data to
      * \param len the maximum number of bytes to write to ptr
      * \return 0 if no bytes read (check Eof)
@@ -181,6 +186,10 @@ public:
     /**
      * \brief Write data to the file descriptor.
      *
+     * \note All write functions will set Writeable to false
+     * if they write less than the amount requested or if
+     * the file is in non blocking mode and the write returned
+     * would block.
      * \param ptr pointer to beginning of data to write
      * \param len length of data to write
      * \return number of bytes written
@@ -197,6 +206,10 @@ public:
      */
     void Flush();
 protected:
+    /** \brief Called by Poll when it detects that the file is readable. */
+    virtual void OnReadable() { Readable(true); }
+    /** \brief Called by Poll when it detects that the file is writeable. */
+    virtual void OnWriteable() { Writeable(true); }
     mutable PthreadMutex file_lock;
     int fd;
     bool readable;

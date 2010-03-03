@@ -2,23 +2,19 @@
 #pragma once
 
 #include "AutoCircleBuffer.h"
-#include "SockHandler.h"
+#include "SocketHandle.h"
 
 const int BUFF_SIZE = 1024;
 
-class StreamForwarder : public SockHandler {
+class StreamForwarder {
 public:
     StreamForwarder();
 
-    void OnRead();
-    void OnWrite();
-    void OnError();
-    void OnHup();
-    void OnInval();
+    void Read();
+    void Write();
 
     void SetForward(StreamForwarder *f) {
         forward = f;
-        if (forward) { Readable(true); }
     }
 
     char *AllocatePut(unsigned requested, unsigned &actual) {
@@ -27,13 +23,17 @@ public:
 
     void ReleasePut(unsigned num) {
         buff.ReleasePut(num);
-        if (Size() > 0) { Writeable(true); }
     }
 
     unsigned Size() const {
         return buff.Size();
     }
+
+    bool Good() { return handle.Good(); }
+
+    SocketHandle &GetHandle() { return handle; }
 private:
+    SocketHandle handle;
     StreamForwarder *forward;
     AutoCircleBuffer buff;
 };

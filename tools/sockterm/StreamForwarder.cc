@@ -6,45 +6,38 @@ StreamForwarder::StreamForwarder()
     : forward(0), buff(BUFF_SIZE)
 {
     printf("%s\n",__PRETTY_FUNCTION__);
+    handle.Writeable(true);
 }
 
-void StreamForwarder::OnRead() {
-    printf("%s\n",__PRETTY_FUNCTION__);
+void StreamForwarder::Read() {
     if (!forward) { return; }
-    unsigned numtoread = 0;
-    char* in = forward->AllocatePut(buff.MaxSize(), numtoread);
-    unsigned numread = Read(in, numtoread);
-    if (numread == 0) {
-        if (Eof()) {
-            printf("Read EOF\n");
-            Readable(false);
+    while (handle.Readable()) {
+        printf("%s\n",__PRETTY_FUNCTION__);
+        unsigned numtoread = 0;
+        char* in = forward->AllocatePut(buff.MaxSize(), numtoread);
+        if (numtoread == 0) { break; }
+        unsigned numread = handle.Read(in, numtoread);
+        if (numread == 0) {
+            if (handle.Eof()) {
+                printf("Read EOF\n");
+            } else {
+                printf("Read 0 bytes from input!\n");
+            }
         } else {
-            printf("Read 0 bytes from input!\n");
+            forward->ReleasePut(numread);
         }
-    } else {
-        forward->ReleasePut(numread);
     }
 }
 
-void StreamForwarder::OnWrite() {
-    printf("%s\n",__PRETTY_FUNCTION__);
-    unsigned numtowrite = 0;
-    char* out = buff.AllocateGet(buff.Size(), numtowrite);
-    if (numtowrite > 0) {
-        unsigned numwritten = Write(out, numtowrite);
-        buff.ReleaseGet(numwritten);
-    } else {
-        Writeable(false);
+void StreamForwarder::Write() {
+    while (handle.Writeable()) {
+        printf("%s\n",__PRETTY_FUNCTION__);
+        unsigned numtowrite = 0;
+        char* out = buff.AllocateGet(buff.Size(), numtowrite);
+        if (numtowrite > 0) {
+            unsigned numwritten = handle.Write(out, numtowrite);
+            buff.ReleaseGet(numwritten);
+        } else { break; }
     }
 }
 
-void StreamForwarder::OnError() {
-    printf("%s\n",__PRETTY_FUNCTION__);
-}
-
-void StreamForwarder::OnHup() {
-    printf("%s\n",__PRETTY_FUNCTION__);
-}
-void StreamForwarder::OnInval() {
-    printf("%s\n",__PRETTY_FUNCTION__);
-}
