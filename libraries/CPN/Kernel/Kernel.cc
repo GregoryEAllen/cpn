@@ -33,10 +33,9 @@
 
 #include "Database.h"
 
-#include "SocketEndpoint.h"
+#include "RemoteQueue.h"
 
 #include "SocketAddress.h"
-#include "FileHandler.h"
 
 #include "Assert.h"
 #include "Logger.h"
@@ -64,8 +63,7 @@ namespace CPN {
         status(INITIALIZED, &lock),
         kernelname(kattr.GetName()),
         hostkey(0),
-        database(kattr.GetDatabase()),
-        connhandler(this)
+        database(kattr.GetDatabase())
     {
         FUNCBEGIN;
         if (!database) {
@@ -74,14 +72,12 @@ namespace CPN {
         logger.Output(database.get());
         logger.LogLevel(database->LogLevel());
         logger.Name(kernelname);
-        connhandler.SetupLogger();
 
         SockAddrList addrlist = SocketAddress::CreateIP(kattr.GetHostName(),
                 kattr.GetServName());
-        connhandler.Listen(addrlist, database->ListenQueueLength());
+        server.reset(new ConnectionServer(addrlist, database));
 
-        SocketAddress addr;
-        addr.SetFromSockName(connhandler.FD());
+        SocketAddress addr = server->GetAddress();
         hostkey = database->SetupHost(kernelname, addr.GetHostName(), addr.GetServName(), this);
 
         logger.Info("New kernel, listening on %s:%s", addr.GetHostName().c_str(), addr.GetServName().c_str());
@@ -114,7 +110,7 @@ namespace CPN {
     void Kernel::NotifyTerminate() {
         FUNCBEGIN;
         if (status.CompareAndPost(RUNNING, TERMINATE)) {
-            wakeuphandler.SendWakeup();
+            server->Wakeup();
         }
     }
 
@@ -238,47 +234,43 @@ namespace CPN {
     void Kernel::CreateReaderEndpoint(const SimpleQueueAttr &attr) {
         Sync::AutoReentrantLock arlock(lock);
 
-        shared_ptr<SocketEndpoint> endp = shared_ptr<SocketEndpoint>(
-                new SocketEndpoint(
+        shared_ptr<RemoteQueue> endp;
+        endp = shared_ptr<RemoteQueue>(
+                new RemoteQueue(
                     database,
-                    SocketEndpoint::READ,
-                    this,
+                    RemoteQueue::READ,
+                    server.get(),
                     attr
                     ));
 
-        endpoints.push_back(endp);
 
         NodeMap::iterator entry = nodemap.find(attr.GetReaderNodeKey());
-        ASSERT(entry != nodemap.end());
+        ASSERT(entry != nodemap.end(), "Node not found!?");
         entry->second->CreateReader(endp);
-
-        SendWakeup();
     }
 
     void Kernel::CreateWriterEndpoint(const SimpleQueueAttr &attr) {
         Sync::AutoReentrantLock arlock(lock);
 
-        shared_ptr<SocketEndpoint> endp = shared_ptr<SocketEndpoint>(
-                new SocketEndpoint(
+        shared_ptr<RemoteQueue> endp;
+        endp = shared_ptr<RemoteQueue>(
+                new RemoteQueue(
                     database,
-                    SocketEndpoint::WRITE,
-                    this,
+                    RemoteQueue::WRITE,
+                    server.get(),
                     attr
                     ));
 
-        endpoints.push_back(endp);
-
         NodeMap::iterator entry = nodemap.find(attr.GetWriterNodeKey());
-        ASSERT(entry != nodemap.end());
+        ASSERT(entry != nodemap.end(), "Node not found!?");
         entry->second->CreateWriter(endp);
-
-        SendWakeup();
     }
 
     void Kernel::CreateLocalQueue(const SimpleQueueAttr &attr) {
         Sync::AutoReentrantLock arlock(lock);
 
-        shared_ptr<QueueBase> queue = MakeQueue(attr);
+        shared_ptr<QueueBase> queue;
+        queue = shared_ptr<QueueBase>(new ThresholdQueue(database, attr));
 
         NodeMap::iterator entry = nodemap.find(attr.GetReaderNodeKey());
         ASSERT(entry != nodemap.end(), "Tried to connect a queue to a node that doesn't exist.");
@@ -287,12 +279,6 @@ namespace CPN {
         entry = nodemap.find(attr.GetWriterNodeKey());
         ASSERT(entry != nodemap.end(), "Tried to connect a queue to a node that doesn't exist.");
         entry->second->CreateWriter(queue);
-    }
-
-    shared_ptr<QueueBase> Kernel::MakeQueue(const SimpleQueueAttr &attr) {
-        shared_ptr<QueueBase> queue;
-        queue = shared_ptr<QueueBase>(new ThresholdQueue(database, attr));
-        return queue;
     }
 
     void Kernel::InternalCreateNode(NodeAttr &nodeattr) {
@@ -320,8 +306,9 @@ namespace CPN {
             shared_ptr<NodeBase> node = entry->second;
             nodemap.erase(entry);
             garbagenodes.push_back(node);
-            wakeuphandler.SendWakeup();
+            SendWakeup();
         }
+        cond.Signal();
     }
 
     void Kernel::ClearGarbage() {
@@ -337,10 +324,9 @@ namespace CPN {
             database->SignalHostStart(hostkey);
             while (status.Get() == RUNNING) {
                 ClearGarbage();
-                Poll(-1);
+                server->Poll();
             }
-            // Close the listen port
-            connhandler.Shutdown();
+            server->Close();
             Sync::AutoReentrantLock arlock(lock);
             NodeMap::iterator nitr = nodemap.begin();
             while (nitr != nodemap.end()) {
@@ -348,12 +334,9 @@ namespace CPN {
             }
             // Wait for all nodes to end
             while (!nodemap.empty()) {
-                arlock.Unlock();
-                ClearGarbage();
-                Poll(-1);
-                arlock.Lock();
+                garbagenodes.clear();
+                cond.Wait(lock);
             }
-            arlock.Unlock();
         } catch (const ShutdownException &e) {
             logger.Warn("Kernel forced shutdown");
         }
@@ -362,32 +345,6 @@ namespace CPN {
         status.Post(DONE);
         FUNCEND;
         return 0;
-    }
-
-    void Kernel::Poll(double timeout) {
-        Sync::AutoReentrantLock arlock(lock, false);
-        std::vector<FileHandler*> filehandlers;
-        connhandler.Register(filehandlers);
-        if (!wakeuphandler.Closed()) { filehandlers.push_back(&wakeuphandler); }
-
-        arlock.Lock();
-        EndpointList::iterator endpitr = endpoints.begin();
-        while (endpitr != endpoints.end()) {
-            shared_ptr<SocketEndpoint> endp = *endpitr;
-            double time = endp->CheckStatus();
-            if (time > 0 && (time < timeout || timeout < 0)) { timeout = time; }
-            if (!endp->Closed()) {
-                filehandlers.push_back(endp.get());
-                endpitr++;
-            } else if (endp->GetStatus() == SocketEndpoint::DEAD) {
-                endpitr = endpoints.erase(endpitr);
-            } else {
-                endpitr++;
-            }
-        }
-        arlock.Unlock();
-
-        FileHandler::Poll(&filehandlers[0], filehandlers.size(), timeout);
     }
 
     void Kernel::CreateWriter(Key_t dst, const SimpleQueueAttr &attr) {
@@ -416,23 +373,5 @@ namespace CPN {
         InternalCreateNode(nodeattr);
     }
 
-    shared_ptr<Future<int> > Kernel::GetReaderDescriptor(Key_t readerkey, Key_t writerkey) {
-        FUNCBEGIN;
-        return connhandler.GetReaderDescriptor(readerkey, writerkey);
-    }
-
-    shared_ptr<Future<int> > Kernel::GetWriterDescriptor(Key_t readerkey, Key_t writerkey) {
-        FUNCBEGIN;
-        return connhandler.GetWriterDescriptor(readerkey, writerkey);
-    }
-
-    void Kernel::LogEndpoints() {
-        EndpointList::iterator endpitr = endpoints.begin();
-        while (endpitr != endpoints.end()) {
-            shared_ptr<SocketEndpoint> endp = *endpitr;
-            endp->LogState();
-            ++endpitr;
-        }
-    }
 }
 

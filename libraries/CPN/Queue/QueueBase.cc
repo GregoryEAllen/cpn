@@ -25,6 +25,7 @@
 #include "Exceptions.h"
 #include "QueueAttr.h"
 #include "Database.h"
+#include <sstream>
 
 namespace CPN {
     QueueBase::QueueBase(shared_ptr<Database> db, const SimpleQueueAttr &attr)
@@ -40,8 +41,12 @@ namespace CPN {
         inenqueue(false),
         database(db),
         useD4R(db->UseD4R()),
+        logger(db.get(), Logger::DEBUG),
         datatype(attr.GetDatatype())
     {
+        std::ostringstream oss;
+        oss << "Queue(" << writerkey << ", " << readerkey << ")";
+        logger.Name(oss.str());
     }
 
     QueueBase::~QueueBase() {}
@@ -233,7 +238,6 @@ namespace CPN {
     }
 
     void QueueBase::LogState() {
-        Logger logger(database.get(), Logger::DEBUG);
         logger.Debug("Printing state (w:%llu r:%llu)", readerkey, writerkey);
         logger.Debug("size: %u, maxthresh: %u count: %u free: %u",
                 QueueLength(), MaxThreshold(), Count(), Freespace());

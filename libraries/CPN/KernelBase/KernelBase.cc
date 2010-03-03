@@ -39,17 +39,6 @@ namespace CPN {
     void KernelBase::CreateNode(Key_t dst, const NodeAttr &attr) {
         ASSERT(false, "Unexpected message");
     }
-    shared_ptr<Future<int> > KernelBase::GetReaderDescriptor(Key_t readerkey, Key_t writerkey) {
-        ASSERT(false, "Unexpected message");
-        return shared_ptr<Future<int> >();
-    }
-    shared_ptr<Future<int> > KernelBase::GetWriterDescriptor(Key_t readerkey, Key_t writerkey) {
-        ASSERT(false, "Unexpected message");
-        return shared_ptr<Future<int> >();
-    }
-    void KernelBase::SendWakeup() {
-        ASSERT(false, "Unexpected message");
-    }
 
     void KernelBase::NotifyTerminate() {
         ASSERT(false, "Unexpected message");

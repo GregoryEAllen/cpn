@@ -46,6 +46,7 @@ namespace CPN {
     class CPN_LOCAL ThresholdQueue : public QueueBase {
     public:
         ThresholdQueue(shared_ptr<Database> db, const SimpleQueueAttr &attr);
+        ThresholdQueue(shared_ptr<Database> db, const SimpleQueueAttr &attr, unsigned length);
         ~ThresholdQueue();
 
     protected:

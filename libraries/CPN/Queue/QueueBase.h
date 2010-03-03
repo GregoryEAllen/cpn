@@ -27,6 +27,7 @@
 #include "CPNCommon.h"
 #include "ReentrantLock.h"
 #include "D4RQueue.h"
+#include "Logger.h"
 
 namespace CPN {
 
@@ -242,6 +243,7 @@ namespace CPN {
         bool inenqueue;
         shared_ptr<Database> database;
         bool useD4R;
+        Logger logger;
 	private:
         Sync::ReentrantLock lock;
         Sync::ReentrantCondition cond;

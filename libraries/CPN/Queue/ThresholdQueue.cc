@@ -37,6 +37,16 @@ namespace CPN {
         queue = new TQImpl(qattr);
     }
 
+    ThresholdQueue::ThresholdQueue(shared_ptr<Database> db, const SimpleQueueAttr &attr,
+            unsigned length)
+        : QueueBase(db, attr), queue(0), oldqueue(0), enqueueUseOld(false), dequeueUseOld(false)
+    {
+        ThresholdQueueAttr qattr(length, attr.GetMaxThreshold(),
+                attr.GetNumChannels(), attr.GetHint() == QUEUEHINT_THRESHOLD);
+        queue = new TQImpl(qattr);
+    }
+
+
     ThresholdQueue::~ThresholdQueue() {
         delete queue;
         queue = 0;

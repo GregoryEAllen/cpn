@@ -32,13 +32,10 @@
 #include "QueueAttr.h"
 
 #include "KernelBase.h"
+#include "ConnectionServer.h"
 
 #include "ReentrantLock.h"
 #include "StatusHandler.h"
-
-#include "ListenSockHandler.h"
-#include "WakeupHandler.h"
-#include "KernelConnectionHandler.h"
 
 #include "Logger.h"
 
@@ -149,14 +146,12 @@ namespace CPN {
         void CreateReaderEndpoint(const SimpleQueueAttr &attr);
         void CreateWriterEndpoint(const SimpleQueueAttr &attr);
         void CreateLocalQueue(const SimpleQueueAttr &attr);
-        shared_ptr<QueueBase> MakeQueue(const SimpleQueueAttr &attr);
         void InternalCreateNode(NodeAttr &nodeattr);
         void ClearGarbage();
 
         void *EntryPoint();
 
-        void Poll(double timeout);
-        void SendWakeup() { wakeuphandler.SendWakeup(); }
+        void SendWakeup() { server->Wakeup(); }
 
         void CreateWriter(Key_t dst, const SimpleQueueAttr &attr);
         void CreateReader(Key_t dst, const SimpleQueueAttr &attr);
@@ -168,25 +163,19 @@ namespace CPN {
 
         void NotifyTerminate();
 
-        void LogEndpoints();
-
         Sync::ReentrantLock lock;
         Sync::StatusHandler<KernelStatus_t> status;
+        Sync::ReentrantCondition cond;
         const std::string kernelname;
         Key_t hostkey;
         Logger logger;
         shared_ptr<Database> database;
-
-        WakeupHandler wakeuphandler;
-        KernelConnectionHandler connhandler;
+        auto_ptr<ConnectionServer> server;
 
         typedef std::map<Key_t, shared_ptr<NodeBase> > NodeMap;
         typedef std::vector< shared_ptr<NodeBase> > NodeList;
         NodeMap nodemap;
         NodeList garbagenodes;
-
-        typedef std::vector<shared_ptr<SocketEndpoint> > EndpointList;
-        EndpointList endpoints;
     };
 }
 #endif
