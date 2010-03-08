@@ -107,6 +107,9 @@ namespace CPN {
 
         /** \brief Called by the kernel when it is shutting down */
         void NotifyTerminate();
+
+        /// For debugging ONLY!
+        void LogState();
 	protected:
 
         /** \brief Override this method to implement a node */

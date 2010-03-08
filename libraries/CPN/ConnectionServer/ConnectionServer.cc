@@ -27,13 +27,14 @@
 #include "Assert.h"
 #include "ErrnoException.h"
 #include <deque>
+#include <cassert>
 
 namespace CPN {
 
     typedef Sync::AutoLock<PthreadMutex> AutoPLock;
 
     ConnectionServer::ConnectionServer(SockAddrList addrs, shared_ptr<Database> db)
-        : database(db)
+        : database(db), enabled(true)
     {
         server.Listen(addrs);
     }
@@ -60,17 +61,24 @@ namespace CPN {
                         || (packet.Type() == PACKET_ID_WRITER)) {
                     AutoPLock al(lock);
                     Key_t key = packet.DestinationKey();
-                    PendingMap::iterator entry = pendingconnections.find(key);
-                    if (entry == pendingconnections.end()) {
-                        shared_ptr<PendingConnection> conn
-                            = shared_ptr<PendingConnection>(new PendingConnection(key, this));
-                        conn->Set(sock.FD());
-                        sock.Reset();
-                        pendingconnections.insert(std::make_pair(key, conn));
-                    } else {
-                        entry->second->Set(sock.FD());
-                        sock.Reset();
+                    shared_ptr<PendingConnection> conn;
+                    std::pair<PendingMap::iterator, PendingMap::iterator> range;
+                    range = pendingconnections.equal_range(key);
+                    PendingMap::iterator entry = range.first;
+                    PendingMap::iterator end = range.second;
+                    while (entry != end) {
+                        if (!entry->second->Done()) {
+                            conn = entry->second;
+                            break;
+                        }
+                        ++entry;
                     }
+                    if (!conn) {
+                        conn = shared_ptr<PendingConnection>(new PendingConnection(key, this));
+                        pendingconnections.insert(std::make_pair(key, conn));
+                    }
+                    conn->Set(sock.FD());
+                    sock.Reset();
                 }
             } catch (const ErrnoException &e) {
                 // Ignore, if we had an error we closed the socket when we
@@ -93,23 +101,29 @@ namespace CPN {
         if (server.Closed()) {
             return shared_ptr<Future<int> >();
         }
-        shared_ptr<PendingConnection> conn = 
-            shared_ptr<PendingConnection>(new PendingConnection(writerkey, this));
-        Key_t readerkey = database->GetWritersReader(writerkey);
-        Key_t hostkey = database->GetReaderHost(readerkey);
-        std::string hostname;
-        std::string servname;
-        database->GetHostConnectionInfo(hostkey, hostname, servname);
-        SocketHandle sock;
-        sock.Connect(SocketAddress::CreateIP(hostname, servname));
-        Packet packet(PACKET_ID_WRITER);
-        packet.SourceKey(writerkey).DestinationKey(readerkey);
-        unsigned num = sock.Write(&packet.header, sizeof(packet.header));
-        if (num != sizeof(packet.header)) {
-            conn->Set(-1);
+        shared_ptr<PendingConnection> conn;
+        if (enabled) {
+            conn = shared_ptr<PendingConnection>(new PendingConnection(writerkey, this));
+            Key_t readerkey = database->GetWritersReader(writerkey);
+            Key_t hostkey = database->GetReaderHost(readerkey);
+            std::string hostname;
+            std::string servname;
+            database->GetHostConnectionInfo(hostkey, hostname, servname);
+            SocketHandle sock;
+            sock.Connect(SocketAddress::CreateIP(hostname, servname));
+            Packet packet(PACKET_ID_WRITER);
+            packet.SourceKey(writerkey).DestinationKey(readerkey);
+            unsigned num = sock.Write(&packet.header, sizeof(packet.header));
+            if (num != sizeof(packet.header)) {
+                conn->Cancel();
+            } else {
+                conn->Set(sock.FD());
+                sock.Reset();
+            }
         } else {
-            conn->Set(sock.FD());
-            sock.Reset();
+            AutoPLock al(lock);
+            conn = shared_ptr<PendingConnection>(new PendingConnection(writerkey, this));
+            pendingconnections.insert(std::make_pair(writerkey, conn));
         }
         return conn;
     }
@@ -136,17 +150,44 @@ namespace CPN {
         return addr;
     }
 
-    void ConnectionServer::PendingDone(Key_t key) {
+    void ConnectionServer::Disable() {
         AutoPLock al(lock);
-        PendingMap::iterator entry = pendingconnections.find(key);
-        if (entry != pendingconnections.end()) {
-            pendingconnections.erase(entry);
+        enabled = false;
+    }
+
+    void ConnectionServer::Enable() {
+        AutoPLock al(lock);
+        enabled = true;
+        PendingMap::iterator entry = pendingconnections.begin();
+        while (entry != pendingconnections.end()) {
+            entry->second->Cancel();
+            ++entry;
+        }
+    }
+
+    void ConnectionServer::PendingDone(Key_t key, PendingConnection *conn) {
+        AutoPLock al(lock);
+        std::pair<PendingMap::iterator, PendingMap::iterator> range;
+        range = pendingconnections.equal_range(key);
+        PendingMap::iterator entry = range.first;
+        PendingMap::iterator end = range.second;
+        while (entry != end) {
+            if (entry->second.get() == conn) {
+                pendingconnections.erase(entry);
+                break;
+            }
+            ++entry;
         }
     }
 
     ConnectionServer::PendingConnection::PendingConnection(Key_t k, ConnectionServer *serv)
         : key(k), fd(-1), done(false), server(serv)
     {}
+
+    ConnectionServer::PendingConnection::~PendingConnection() {
+        // Check for file descriptor leaks
+        assert(fd == -1);
+    }
 
     int ConnectionServer::PendingConnection::Get() {
         AutoPLock al(lock);
@@ -156,7 +197,7 @@ namespace CPN {
         int filed = fd;
         fd = -1;
         al.Unlock();
-        server->PendingDone(key);
+        server->PendingDone(key, this);
         return filed;
     }
 
@@ -178,6 +219,7 @@ namespace CPN {
         if (!done) {
             fd = -1;
             done = true;
+            cond.Signal();
         }
     }
 }

@@ -90,6 +90,7 @@ namespace CPN {
     class Database;
 
     class RemoteQueue;
+    class ConnectionServer;
 
     // Global enums
     enum QueueHint_t { QUEUEHINT_DEFAULT, QUEUEHINT_THRESHOLD };

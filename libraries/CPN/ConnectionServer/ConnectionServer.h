@@ -41,12 +41,18 @@ namespace CPN {
         shared_ptr<Future<int> > ConnectWriter(Key_t writerkey);
         shared_ptr<Future<int> > ConnectReader(Key_t readerkey);
         SocketAddress GetAddress();
+
+        // For testing
+        void Disable();
+        void Enable();
     private:
         class PendingConnection : public Future<int> {
         public:
             PendingConnection(Key_t k, ConnectionServer *serv);
+            ~PendingConnection();
             int Get();
             void Set(int filed);
+            void Reset(int filed);
             bool Done();
             void Cancel();
             Key_t GetKey() const { return key; }
@@ -59,14 +65,15 @@ namespace CPN {
             ConnectionServer *server;
         };
 
-        void PendingDone(Key_t key);
+        void PendingDone(Key_t key, PendingConnection *conn);
 
-        typedef std::map<Key_t, shared_ptr<PendingConnection> > PendingMap;
+        typedef std::multimap<Key_t, shared_ptr<PendingConnection> > PendingMap;
         PthreadMutex lock;
         shared_ptr<Database> database;
         ServerSocketHandle server;
         WakeupHandle wakeup;
         PendingMap pendingconnections;
+        bool enabled;
     };
 }
 #endif

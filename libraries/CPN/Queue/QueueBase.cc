@@ -238,21 +238,21 @@ namespace CPN {
     }
 
     void QueueBase::LogState() {
-        logger.Debug("Printing state (w:%llu r:%llu)", readerkey, writerkey);
-        logger.Debug("size: %u, maxthresh: %u count: %u free: %u",
+        logger.Error("Printing state (w:%llu r:%llu)", readerkey, writerkey);
+        logger.Error("size: %u, maxthresh: %u count: %u free: %u",
                 QueueLength(), MaxThreshold(), Count(), Freespace());
-        logger.Debug("readrequest: %u, writerequest: %u", readrequest, writerequest);
+        logger.Error("readrequest: %u, writerequest: %u", readrequest, writerequest);
         if (indequeue) {
-            logger.Debug("Indequeue (thresh: %u)", dequeuethresh);
+            logger.Error("Indequeue (thresh: %u)", dequeuethresh);
         }
         if (inenqueue) {
-            logger.Debug("Inenqueue (thresh: %u)", enqueuethresh);
+            logger.Error("Inenqueue (thresh: %u)", enqueuethresh);
         }
         if (readshutdown) {
-            logger.Debug("Reader shutdown");
+            logger.Error("Reader shutdown");
         }
         if (writeshutdown) {
-            logger.Debug("Writer shutdown");
+            logger.Error("Writer shutdown");
         }
     }
 

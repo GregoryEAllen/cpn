@@ -38,9 +38,6 @@ namespace CPN {
         virtual void CreateQueue(Key_t dst, const SimpleQueueAttr &attr);
         virtual void CreateNode(Key_t dst, const NodeAttr &attr);
         virtual void NotifyTerminate();
-
-        virtual LoggerOutput *GetLogger() = 0;
-        virtual shared_ptr<Database> GetDatabase() const = 0;
     };
 }
 

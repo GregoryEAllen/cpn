@@ -50,13 +50,13 @@ namespace CPN {
         RemoteQueue(shared_ptr<Database> db, Mode_t mode,
                 ConnectionServer *s, const SimpleQueueAttr &attr);
 
+        ~RemoteQueue();
+
         Mode_t GetMode() const { return mode; }
 
 
         unsigned Count() const;
         bool Empty() const;
-		unsigned Freespace() const;
-		bool Full() const;
         unsigned QueueLength() const;
         void Grow(unsigned queueLen, unsigned maxThresh);
         void ShutdownReader();
@@ -95,7 +95,8 @@ namespace CPN {
         void *EntryPoint();
         void InternalCheckStatus();
 
-        static unsigned QueueLength(unsigned length, double alpha, Mode_t mode);
+        void HandleError(int error);
+        static unsigned QueueLength(unsigned length, unsigned maxthresh, double alpha, Mode_t mode);
 
         class MockNode : public D4R::Node {
         public:
@@ -126,7 +127,7 @@ namespace CPN {
         bool pendingGrow;
         bool pendingD4RTag;
 
-        bool incheckstatus;
+        bool dead;
     };
 }
 #endif

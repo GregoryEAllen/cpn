@@ -45,6 +45,7 @@ namespace CPN {
     }
 
     NodeBase::~NodeBase() {
+        Join();
     }
 
     void NodeBase::CreateReader(shared_ptr<QueueBase> q) {
@@ -97,8 +98,10 @@ namespace CPN {
             printf("DEADLOCK detected at %s\n", name.c_str());
         }
         database->SignalNodeEnd(nodekey);
+        kernel.NodeTerminated(nodekey);
         arl.Lock();
         // force release of all readers and writers
+        /*
         ReaderMap readers;
         readers.swap(readermap);
         WriterMap writers;
@@ -106,7 +109,7 @@ namespace CPN {
         arl.Unlock();
         readers.clear();
         writers.clear();
-        kernel.NodeTerminated(nodekey);
+        */
         return 0;
     }
 
@@ -179,6 +182,22 @@ namespace CPN {
         while (witr != writermap.end()) { (witr++)->second->SignalTagChanged(); }
         ReaderMap::iterator ritr = readermap.begin();
         while (ritr != readermap.end()) { (ritr++)->second->SignalTagChanged(); }
+    }
+
+    void NodeBase::LogState() {
+        Logger logger(database.get(), Logger::ERROR);
+        logger.Name(name.c_str());
+        logger.Log("Logging %llu, %u readers, %u writers", nodekey, readermap.size(), writermap.size());
+        ReaderMap::iterator r = readermap.begin();
+        while (r != readermap.end()) {
+            r->second->LogState();
+            ++r;
+        }
+        WriterMap::iterator w = writermap.begin();
+        while (w != writermap.end()) {
+            w->second->LogState();
+            ++w;
+        }
     }
 }
 

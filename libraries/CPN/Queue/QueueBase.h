@@ -210,6 +210,8 @@ namespace CPN {
         bool IsReaderShutdown();
         bool IsWriterShutdown();
 
+        /// For debugging ONLY!! Otherwise non deterministic output
+        virtual void LogState();
 	protected:
 		QueueBase(shared_ptr<Database> db, const SimpleQueueAttr &attr);
 
@@ -225,7 +227,6 @@ namespace CPN {
 
         virtual void Detect();
 
-        virtual void LogState();
         virtual const void *InternalGetRawDequeuePtr(unsigned thresh, unsigned chan) = 0;
         virtual void InternalDequeue(unsigned count) = 0;
         virtual void *InternalGetRawEnqueuePtr(unsigned thresh, unsigned chan) = 0;

@@ -373,5 +373,33 @@ namespace CPN {
         InternalCreateNode(nodeattr);
     }
 
+    void Kernel::LogState() {
+        // Note that this function does not aquire the lock...
+        // this is because it is meant to be called from the debugger while
+        // the application is halted and may already be in the lock or not.
+        std::string statename;
+        switch (status.Get()) {
+        case INITIALIZED:
+            statename = "initialized";
+            break;
+        case RUNNING:
+            statename = "running";
+            break;
+        case TERMINATE:
+            statename = "terminated";
+            break;
+        case DONE:
+            statename = "done";
+            break;
+        }
+        logger.Error("Kernel %s (%llu) in state %s", kernelname.c_str(), hostkey, statename.c_str());
+        logger.Error("Active nodes: %u, Garbage nodes: %u", nodemap.size(), garbagenodes.size());
+        server->LogState();
+        NodeMap::iterator node = nodemap.begin();
+        while (node != nodemap.end()) {
+            node->second->LogState();
+            ++node;
+        }
+    }
 }
 

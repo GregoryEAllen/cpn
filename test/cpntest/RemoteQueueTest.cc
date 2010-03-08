@@ -1,22 +1,19 @@
 
-
-#include "StreamEndpointTest.h"
+#include "RemoteQueueTest.h"
 #include <cppunit/TestAssert.h>
-
 #include "QueueAttr.h"
 #include "Database.h"
-
+#include "RemoteQueue.h"
 #include "PthreadFunctional.h"
+CPPUNIT_TEST_SUITE_REGISTRATION( RemoteQueueTest );
 
-#include <tr1/memory>
-#include <vector>
-#include <algorithm>
-
-CPPUNIT_TEST_SUITE_REGISTRATION( StreamEndpointTest );
-
-using std::tr1::shared_ptr;
-using std::tr1::dynamic_pointer_cast;
-using namespace CPN;
+using CPN::shared_ptr;
+using CPN::Database;
+using CPN::SimpleQueueAttr;
+using CPN::RemoteQueue;
+using CPN::QueueBase;
+using CPN::auto_ptr;
+using CPN::ConnectionServer;
 
 #if _DEBUG
 #define DEBUG(frmt, ...) printf(frmt, ## __VA_ARGS__)
@@ -26,11 +23,9 @@ using namespace CPN;
 
 const unsigned QUEUESIZE = 5;
 const char data[] = { 'a', 'b', 'c', 'd', 'e' };
-const Key_t RKEY = 1;
-const Key_t WKEY = 2;
 
 
-void StreamEndpointTest::setUp() {
+void RemoteQueueTest::setUp() {
 
     fail = false;
     stopenqueue = false;
@@ -44,97 +39,119 @@ void StreamEndpointTest::setUp() {
     database = CPN::Database::Local();
 
     database->LogLevel(Logger::WARNING);
+    // We don't have any nodes so we must have D4R off.
     database->UseD4R(false);
 
-    rfd = shared_ptr<FileFuture>(new FileFuture);
-    wfd = shared_ptr<FileFuture>(new FileFuture);
+
+    SockAddrList addrs = SocketAddress::CreateIP("0.0.0.0", "");
+    server = shared_ptr<ConnectionServer>(new ConnectionServer(addrs, database));
+    server->Disable();
+    servert = shared_ptr<Pthread>(CreatePthreadFunctional(this, &RemoteQueueTest::PollServer));
+    servert->Start();
+
+
+    SocketAddress addr = server->GetAddress();
+    hostkey = database->SetupHost("bogus", addr.GetHostName(), addr.GetServName(), this);
+
+    nodekey = database->CreateNodeKey(hostkey, "Bogus");
+ 
+    writerkey = database->GetCreateWriterKey(nodekey, "writer");
+    readerkey = database->GetCreateReaderKey(nodekey, "reader");
+    database->ConnectEndpoints(writerkey, readerkey);
 
     SimpleQueueAttr attr;
     attr.SetLength(QUEUESIZE*2).SetMaxThreshold(QUEUESIZE).SetNumChannels(1);
-    attr.SetReaderKey(RKEY).SetWriterKey(WKEY);
+    attr.SetReaderKey(readerkey).SetWriterKey(writerkey);
+    attr.SetReaderNodeKey(nodekey).SetWriterNodeKey(nodekey);
+    attr.SetAlpha(0.5);
 
-    wendp = shared_ptr<SocketEndpoint>(new SocketEndpoint(
-        database,
-        SocketEndpoint::WRITE,
-        this, attr
-        ));
+    rendp = shared_ptr<RemoteQueue>(
+            new RemoteQueue(
+                database,
+                RemoteQueue::READ,
+                server.get(),
+                attr
+                )
+            );
+    wendp = shared_ptr<RemoteQueue>(
+            new RemoteQueue(
+                database,
+                RemoteQueue::WRITE,
+                server.get(),
+                attr
+                )
+            );
 
     wqueue = wendp;
-
-    rendp = shared_ptr<SocketEndpoint>(new SocketEndpoint(
-                database,
-                SocketEndpoint::READ,
-                this,
-                attr));
-
     rqueue = rendp;
 }
 
-void StreamEndpointTest::tearDown() {
+void RemoteQueueTest::tearDown() {
+    database->Terminate();
+    server->Close();
+
+    servert.reset();
+    rendp.reset();
+    wendp.reset();
     wqueue.reset();
     rqueue.reset();
-    wendp.reset();
-    rendp.reset();
+    server.reset();
     database.reset();
 }
 
-void StreamEndpointTest::CommunicationTest() {
+void RemoteQueueTest::CommunicationTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
     // Send data across and wait for it at the other end.
     // Then verify that reading more blocks.
     // then verify that filling up the queue and then some will block the writer.
-    SetupDescriptors();
-    std::auto_ptr<Pthread> enqueuer = std::auto_ptr<Pthread>(
-            CreatePthreadFunctional(this, &StreamEndpointTest::EnqueueData));
-    std::auto_ptr<Pthread> dequeuer = std::auto_ptr<Pthread>(
-            CreatePthreadFunctional(this, &StreamEndpointTest::DequeueData));
+    server->Enable();
+    auto_ptr<Pthread> enqueuer = auto_ptr<Pthread>(
+            CreatePthreadFunctional(this, &RemoteQueueTest::EnqueueData));
+    auto_ptr<Pthread> dequeuer = auto_ptr<Pthread>(
+            CreatePthreadFunctional(this, &RemoteQueueTest::DequeueData));
 
     dequeuer->Start();
     while (wqueue->ReadRequest() == 0) {
-        Poll(0);
+        Pthread::Yield();
     }
     CPPUNIT_ASSERT(wqueue->ReadRequest() == sizeof(data));
     enqueuer->Start();
 
-    while (true) {
-        {
-            PthreadMutexProtected al(lock);
+    {
+        PthreadMutexProtected al(lock);
+        while (true) {
             CPPUNIT_ASSERT(!fail);
             if (numdequeued > sizeof(data)) {
                 break;
             }
+            cond.Wait(lock);
         }
-        Poll(0);
-    }
 
-    {
-        PthreadMutexProtected al(lock);
         stopdequeue = true;
-    }
-    while (true) {
-        Poll(0);
-        {
-            PthreadMutexProtected al(lock);
+
+        while (true) {
             if (dequeuedead) { break; }
+            cond.Wait(lock);
         }
     }
     dequeuer->Join();
 
     rqueue->ShutdownReader();
     while (wqueue->IsReaderShutdown() == false) {
-        Poll(0);
+        Pthread::Yield();
     }
     enqueuer->Join();
     CPPUNIT_ASSERT(!fail);
 }
 
-void *StreamEndpointTest::EnqueueData() {
+void *RemoteQueueTest::EnqueueData() {
     try {
         while (true) {
             wqueue->RawEnqueue(data, sizeof(data));
             {
                 PthreadMutexProtected al(lock);
                 numenqueued += sizeof(data);
+                cond.Signal();
                 if (stopenqueue) {
                     break;
                 }
@@ -145,15 +162,17 @@ void *StreamEndpointTest::EnqueueData() {
     }
     PthreadMutexProtected al(lock);
     enqueuedead = true;
+    cond.Signal();
     return 0;
 }
 
-void *StreamEndpointTest::DequeueData() {
+void *RemoteQueueTest::DequeueData() {
     try {
         while (true) {
             const void *ptr = rqueue->GetRawDequeuePtr(sizeof(data), 0);
             if (ptr) {
                 PthreadMutexProtected al(lock);
+                cond.Signal();
                 if (memcmp(ptr, data, sizeof(data)) != 0) {
                     fail = true;
                     break;
@@ -172,33 +191,34 @@ void *StreamEndpointTest::DequeueData() {
     }
     PthreadMutexProtected al(lock);
     dequeuedead = true;
+    cond.Signal();
     return 0;
 }
 
 // Test what happens when we write a bunch of stuff then
 // shutdown
-void StreamEndpointTest::EndOfWriteQueueTest() {
+void RemoteQueueTest::EndOfWriteQueueTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
-    SetupDescriptors();
 
-    std::auto_ptr<Pthread> enqueuer = std::auto_ptr<Pthread>(
-            CreatePthreadFunctional(this, &StreamEndpointTest::EnqueueData));
-    std::auto_ptr<Pthread> dequeuer = std::auto_ptr<Pthread>(
-            CreatePthreadFunctional(this, &StreamEndpointTest::DequeueData));
+    server->Enable();
+    auto_ptr<Pthread> enqueuer = auto_ptr<Pthread>(
+            CreatePthreadFunctional(this, &RemoteQueueTest::EnqueueData));
+    auto_ptr<Pthread> dequeuer = auto_ptr<Pthread>(
+            CreatePthreadFunctional(this, &RemoteQueueTest::DequeueData));
     enqueuer->Start();
     while (rqueue->WriteRequest() == 0) {
-        Poll(0);
+        Pthread::Yield();
     }
     wqueue->ShutdownWriter();
     enqueuer->Join();
     dequeuer->Start();
-    while (true) {
-        Poll(0);
-        {
-            PthreadMutexProtected al(lock);
+    {
+        PthreadMutexProtected al(lock);
+        while (true) {
             if (dequeuedead) {
                 break;
             }
+            cond.Wait(lock);
         }
     }
     dequeuer->Join();
@@ -207,13 +227,13 @@ void StreamEndpointTest::EndOfWriteQueueTest() {
     CPPUNIT_ASSERT(numdequeued == numenqueued);
 }
 
-void StreamEndpointTest::EndOfReadQueueTest() {
+void RemoteQueueTest::EndOfReadQueueTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
-    SetupDescriptors();
 
+    server->Enable();
     rqueue->ShutdownReader();
     while (wqueue->IsReaderShutdown() == false) {
-        Poll(0);
+        Pthread::Yield();
     }
     CPPUNIT_ASSERT(rqueue->IsReaderShutdown());
     CPPUNIT_ASSERT(wqueue->IsReaderShutdown());
@@ -221,85 +241,86 @@ void StreamEndpointTest::EndOfReadQueueTest() {
 
 // Test that the connection aborts correctly for end of read
 // with data in the queue
-void StreamEndpointTest::EndOfReadQueueTest2() {
+void RemoteQueueTest::EndOfReadQueueTest2() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
-    SetupDescriptors();
 
-    std::auto_ptr<Pthread> enqueuer = std::auto_ptr<Pthread>(
-            CreatePthreadFunctional(this, &StreamEndpointTest::EnqueueData));
+    server->Enable();
+    auto_ptr<Pthread> enqueuer = auto_ptr<Pthread>(
+            CreatePthreadFunctional(this, &RemoteQueueTest::EnqueueData));
     enqueuer->Start();
     while (rqueue->WriteRequest() == 0) {
-        Poll(0);
+        Pthread::Yield();
     }
     rqueue->ShutdownReader();
     while (wqueue->IsReaderShutdown() == false) {
-        Poll(0);
+        Pthread::Yield();
     }
     enqueuer->Join();
     CPPUNIT_ASSERT(rqueue->IsReaderShutdown());
     CPPUNIT_ASSERT(wqueue->IsReaderShutdown());
 }
 
-void StreamEndpointTest::WriteBlockWithNoFDTest() {
+void RemoteQueueTest::WriteBlockWithNoFDTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
-    std::auto_ptr<Pthread> enqueuer = std::auto_ptr<Pthread>(
-            CreatePthreadFunctional(this, &StreamEndpointTest::EnqueueData));
+    auto_ptr<Pthread> enqueuer = auto_ptr<Pthread>(
+            CreatePthreadFunctional(this, &RemoteQueueTest::EnqueueData));
     enqueuer->Start();
     // Wait for the enqueuer to block
     while (wqueue->WriteRequest() == 0) {
-        Poll(0);
+        Pthread::Yield();
     }
 
-    SetupDescriptors();
+    server->Enable();
 
     // Now wait for the reader side to recieve the block
     while (rqueue->WriteRequest() == 0) {
-        Poll(0);
+        Pthread::Yield();
     }
     wqueue->ShutdownWriter();
-    while (true) {
-        Poll(0);
-        {
-            PthreadMutexProtected al(lock);
+    {
+        PthreadMutexProtected al(lock);
+        while (true) {
             if (enqueuedead) { break; }
+            cond.Wait(lock);
         }
     }
     CPPUNIT_ASSERT(!rqueue->IsWriterShutdown());
     CPPUNIT_ASSERT(wqueue->IsWriterShutdown());
     CPPUNIT_ASSERT(rqueue->Full());
     CPPUNIT_ASSERT(wqueue->Full());
+    rqueue->ShutdownReader();
 }
 
-void StreamEndpointTest::WriteEndWithNoFDTest() {
+void RemoteQueueTest::WriteEndWithNoFDTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
-    std::auto_ptr<Pthread> enqueuer = std::auto_ptr<Pthread>(
-            CreatePthreadFunctional(this, &StreamEndpointTest::EnqueueData));
+    auto_ptr<Pthread> enqueuer = auto_ptr<Pthread>(
+            CreatePthreadFunctional(this, &RemoteQueueTest::EnqueueData));
     enqueuer->Start();
     // Wait for the enqueuer to block
     while (wqueue->WriteRequest() == 0) {
-        Poll(0);
+        Pthread::Yield();
     }
 
     wqueue->ShutdownWriter();
-    while (true) {
-        Poll(0);
-        {
-            PthreadMutexProtected al(lock);
+    {
+        PthreadMutexProtected al(lock);
+        while (true) {
             if (enqueuedead) { break; }
+            cond.Wait(lock);
         }
     }
     enqueuer->Join();
 
-    SetupDescriptors();
+    server->Enable();
 
     std::auto_ptr<Pthread> dequeuer = std::auto_ptr<Pthread>(
-            CreatePthreadFunctional(this, &StreamEndpointTest::DequeueData));
+            CreatePthreadFunctional(this, &RemoteQueueTest::DequeueData));
     dequeuer->Start();
-    while (true) {
-        Poll(0);
-        {
-            PthreadMutexProtected al(lock);
+    {
+        PthreadMutexProtected al(lock);
+        while (true) {
             if (dequeuedead) { break; }
+            cond.Wait(lock);
         }
     }
     dequeuer->Join();
@@ -308,9 +329,9 @@ void StreamEndpointTest::WriteEndWithNoFDTest() {
     CPPUNIT_ASSERT(numenqueued == numdequeued);
 }
 
-void StreamEndpointTest::MaxThreshGrowTest() {
+void RemoteQueueTest::MaxThreshGrowTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
-    SetupDescriptors();
+    server->Enable();
     unsigned maxthresh = wqueue->MaxThreshold();
     unsigned numchan = wqueue->NumChannels();
     char *ptr = 0;
@@ -330,14 +351,14 @@ void StreamEndpointTest::MaxThreshGrowTest() {
     CPPUNIT_ASSERT(wqueue->MaxThreshold() >= maxthresh);
     wqueue->Enqueue(maxthresh);
     while (rqueue->MaxThreshold() != wqueue->MaxThreshold()) {
-        Poll(0);
+        Pthread::Yield();
     }
 
     // Test that growth works
     unsigned len = rqueue->QueueLength() * 2;
     rqueue->Grow(len, maxthresh);
     while (rqueue->QueueLength() != wqueue->QueueLength()) {
-        Poll(0);
+        Pthread::Yield();
     }
     CPPUNIT_ASSERT(wqueue->QueueLength() >= len);
     CPPUNIT_ASSERT(wqueue->MaxThreshold() >= maxthresh);
@@ -351,7 +372,7 @@ void StreamEndpointTest::MaxThreshGrowTest() {
 
     maxthresh *= 2;
     while (rqueue->Count() < maxthresh) {
-        Poll(0);
+        Pthread::Yield();
     }
     for (unsigned i = 0; i < numchan; ++i) {
         cptr = (const char*)rqueue->GetRawDequeuePtr(maxthresh, i);
@@ -359,14 +380,16 @@ void StreamEndpointTest::MaxThreshGrowTest() {
         CPPUNIT_ASSERT(memcmp(cptr, &buff[maxthresh * i], maxthresh) == 0);
     }
     while (rqueue->MaxThreshold() != wqueue->MaxThreshold()) {
-        Poll(0);
+        Pthread::Yield();
     }
     CPPUNIT_ASSERT(wqueue->MaxThreshold() >= maxthresh);
+    wqueue->ShutdownWriter();
+    rqueue->ShutdownReader();
 }
 
-void StreamEndpointTest::GrowTest() {
+void RemoteQueueTest::GrowTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
-    SetupDescriptors();
+    server->Enable();
     unsigned maxthresh = wqueue->MaxThreshold();
     unsigned numchan = wqueue->NumChannels();
     char *ptr = 0;
@@ -386,14 +409,14 @@ void StreamEndpointTest::GrowTest() {
     CPPUNIT_ASSERT(wqueue->MaxThreshold() >= maxthresh);
     wqueue->Enqueue(maxthresh);
     while (rqueue->MaxThreshold() != wqueue->MaxThreshold()) {
-        Poll(0);
+        Pthread::Yield();
     }
 
     cptr = (const char*)rqueue->GetRawDequeuePtr(maxthresh, 0);
     unsigned len = wqueue->QueueLength() * 2;
     wqueue->Grow(len, maxthresh);
     while (rqueue->QueueLength() != wqueue->QueueLength()) {
-        Poll(0);
+        Pthread::Yield();
     }
     CPPUNIT_ASSERT(rqueue->QueueLength() >= len);
     CPPUNIT_ASSERT(rqueue->MaxThreshold() >= maxthresh);
@@ -408,7 +431,7 @@ void StreamEndpointTest::GrowTest() {
     ptr = (char*)wqueue->GetRawEnqueuePtr(1, 0);
     maxthresh *= 2;
     while (rqueue->Count() < maxthresh) {
-        Poll(0);
+        Pthread::Yield();
     }
     for (unsigned i = 0; i < numchan; ++i) {
         cptr = (const char*)rqueue->GetRawDequeuePtr(maxthresh, i);
@@ -416,54 +439,27 @@ void StreamEndpointTest::GrowTest() {
         CPPUNIT_ASSERT(memcmp(cptr, &buff[maxthresh * i], maxthresh) == 0);
     }
     while (rqueue->MaxThreshold() != wqueue->MaxThreshold()) {
-        Poll(0);
+        Pthread::Yield();
     }
     CPPUNIT_ASSERT(wqueue->MaxThreshold() >= maxthresh);
     wqueue->Enqueue(0);
     rqueue->Dequeue(maxthresh);
     CPPUNIT_ASSERT(rqueue->Count() == 0);
+    wqueue->ShutdownWriter();
+    rqueue->ShutdownReader();
 }
 
 
-int StreamEndpointTest::Poll(double timeout) {
-    std::vector<FileHandler*> filehandlers;
-    wendp->CheckStatus();
-    if (!wendp->Closed()) {
-        filehandlers.push_back(wendp.get());
+
+void RemoteQueueTest::NotifyTerminate() {
+    wqueue->NotifyTerminate();
+    rqueue->NotifyTerminate();
+    server->Wakeup();
+}
+
+void *RemoteQueueTest::PollServer() {
+    while (!database->IsTerminated()) {
+        server->Poll();
     }
-    rendp->CheckStatus();
-    if (!rendp->Closed()) {
-        filehandlers.push_back(rendp.get());
-    }
-    if (filehandlers.size() > 0) {
-        return FileHandler::Poll(&filehandlers[0], filehandlers.size(), timeout);
-    } else { return 0; }
-}
-
-void StreamEndpointTest::SetupDescriptors() {
-    int fds[2];
-    SockHandler::CreatePair(fds);
-    rfd->Set(fds[0]);
-    rfd->SetDone();
-    wfd->Set(fds[1]);
-    wfd->SetDone();
-}
-
-
-void StreamEndpointTest::SendWakeup() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
-}
-
-LoggerOutput *StreamEndpointTest::GetLogger() {
-    return database.get();
-}
-
-CPN::shared_ptr<Future<int> > StreamEndpointTest::GetReaderDescriptor(CPN::Key_t readerkey, CPN::Key_t writerkey)
-{
-    return rfd;
-}
-
-CPN::shared_ptr<Future<int> > StreamEndpointTest::GetWriterDescriptor(CPN::Key_t readerkey, CPN::Key_t writerkey)
-{
-    return wfd;
+    return 0;
 }

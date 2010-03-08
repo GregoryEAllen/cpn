@@ -25,34 +25,34 @@
 #include "Database.h"
 #include "ErrnoException.h"
 #include "AutoLock.h"
+#include <errno.h>
 #include <algorithm>
 #include <sstream>
 
-struct BoolGuard {
-public:
-    BoolGuard(bool &v) : val(v) { val = true; }
-    ~BoolGuard() { val = false; }
-private:
-    bool &val;
-};
+#if 1
+#define FUNC_TRACE(logger) logger.Trace("%s (c: %llu)", __PRETTY_FUNCTION__, clock.Get())
+#else
+#define FUNC_TRACE(logger)
+#endif
+
 
 namespace CPN {
 
     RemoteQueue::RemoteQueue(shared_ptr<Database> db, Mode_t mode_,
                 ConnectionServer *s, const SimpleQueueAttr &attr)
-        : ThresholdQueue(db, attr, QueueLength(attr.GetLength(), attr.GetAlpha(), mode_)),
+        : ThresholdQueue(db, attr, QueueLength(attr.GetLength(), attr.GetMaxThreshold(), attr.GetAlpha(), mode_)),
         mode(mode_),
         alpha(attr.GetAlpha()),
         server(s),
         mocknode(mode_ == READ ? attr.GetReaderNodeKey() : attr.GetWriterNodeKey()),
-        readerlength(QueueLength(attr.GetLength(), attr.GetAlpha(), READ)),
-        writerlength(QueueLength(attr.GetLength(), attr.GetAlpha(), WRITE)),
+        readerlength(QueueLength(attr.GetLength(), attr.GetMaxThreshold(), attr.GetAlpha(), READ)),
+        writerlength(QueueLength(attr.GetLength(), attr.GetMaxThreshold(), attr.GetAlpha(), WRITE)),
         bytecount(0),
         pendingBlock(false),
         sentEnd(false),
         pendingGrow(false),
         pendingD4RTag(false),
-        incheckstatus(false)
+        dead(false)
     {
         if (mode == READ) {
             SetWriterNode(&mocknode);
@@ -65,7 +65,25 @@ namespace CPN {
         else { oss << "w"; }
         oss << ", r:" << readerkey << ", w:" << writerkey << ")";
         logger.Name(oss.str());
+        logger.Trace("Constructed (c: %llu)", clock.Get());
         Start();
+    }
+
+    RemoteQueue::~RemoteQueue() {
+        /*
+        Sync::AutoLock<const QueueBase> al(*this);
+        if (mode == WRITE) {
+            ThresholdQueue::ShutdownWriter();
+        } else {
+            ThresholdQueue::ShutdownReader();
+        }
+        InternalCheckStatus();
+        sock.Close();
+        dead = true;
+        al.Unlock();
+        */
+        logger.Trace("Destructed (c: %llu)", clock.Get());
+        Join();
     }
 
     unsigned RemoteQueue::Count() const {
@@ -86,24 +104,6 @@ namespace CPN {
         }
     }
 
-    unsigned RemoteQueue::Freespace() const {
-        Sync::AutoLock<const QueueBase> al(*this);
-        if (mode == READ) {
-            return queue->Freespace();
-        } else {
-            return (readerlength + writerlength) - (queue->Count() + bytecount);
-        }
-    }
-
-    bool RemoteQueue::Full() const {
-        Sync::AutoLock<const QueueBase> al(*this);
-        if (mode == READ) {
-            return queue->Full();
-        } else {
-            return (readerlength + writerlength) <= (queue->Count() + bytecount);
-        }
-    }
-
     unsigned RemoteQueue::QueueLength() const {
         Sync::AutoLock<const QueueBase> al(*this);
         return readerlength + writerlength;
@@ -111,20 +111,23 @@ namespace CPN {
 
     void RemoteQueue::Grow(unsigned queueLen, unsigned maxThresh) {
         Sync::AutoLock<QueueBase> al(*this);
-        readerlength = QueueLength(queueLen, alpha, READ);
-        writerlength = QueueLength(queueLen, alpha, WRITE);
+        const unsigned maxthresh = std::max<unsigned>(queue->MaxThreshold(), maxThresh);
+        readerlength = QueueLength(queueLen, maxthresh, alpha, READ);
+        writerlength = QueueLength(queueLen, maxthresh, alpha, WRITE);
         const unsigned newlen = (mode == WRITE ? writerlength : readerlength);
-        ThresholdQueue::Grow(newlen, maxThresh);
+        ThresholdQueue::Grow(newlen, maxthresh);
         pendingGrow = true;
         InternalCheckStatus();
     }
 
     void RemoteQueue::ShutdownReader() {
+        ASSERT(mode == READ);
         ThresholdQueue::ShutdownReader();
         InternalCheckStatus();
     }
 
     void RemoteQueue::ShutdownWriter() {
+        ASSERT(mode == WRITE);
         ThresholdQueue::ShutdownWriter();
         InternalCheckStatus();
     }
@@ -145,17 +148,20 @@ namespace CPN {
     }
 
     void RemoteQueue::InternalDequeue(unsigned count) {
+        ASSERT(mode == READ);
         ThresholdQueue::InternalDequeue(count);
         InternalCheckStatus();
     }
 
     void RemoteQueue::InternalEnqueue(unsigned count) {
+        ASSERT(mode == WRITE);
         ThresholdQueue::InternalEnqueue(count);
         InternalCheckStatus();
     }
 
     void RemoteQueue::SignalReaderTagChanged() {
         Sync::AutoLock<QueueBase> al(*this);
+        ASSERT(mode == READ);
         pendingD4RTag = true;
         ThresholdQueue::SignalReaderTagChanged();
         InternalCheckStatus();
@@ -163,6 +169,7 @@ namespace CPN {
 
     void RemoteQueue::SignalWriterTagChanged() {
         Sync::AutoLock<QueueBase> al(*this);
+        ASSERT(mode == WRITE);
         pendingD4RTag = true;
         ThresholdQueue::SignalWriterTagChanged();
         InternalCheckStatus();
@@ -175,6 +182,7 @@ namespace CPN {
 
     void RemoteQueue::EnqueuePacket(const Packet &packet) {
         clock.Update(packet.Clock());
+        FUNC_TRACE(logger);
         ASSERT(mode == READ);
         ASSERT(!writeshutdown);
         unsigned count = packet.Count();
@@ -199,11 +207,13 @@ namespace CPN {
     }
 
     void RemoteQueue::SendEnqueuePacket() {
+        FUNC_TRACE(logger);
         unsigned count = queue->Count();
         const unsigned maxthresh = queue->MaxThreshold();
-        const unsigned expectedfree = readerlength - bytecount;
+        const unsigned expectedfree = std::max(readerlength, maxthresh) - bytecount;
         if (count > maxthresh) { count = maxthresh; }
         if (count > expectedfree) { count = expectedfree; }
+        if (count == 0) { return; }
         const unsigned datalength = count * queue->NumChannels();
         Packet packet(datalength, PACKET_ENQUEUE);
         SetupPacket(packet);
@@ -215,6 +225,7 @@ namespace CPN {
 
     void RemoteQueue::DequeuePacket(const Packet &packet) {
         clock.Update(packet.Clock());
+        FUNC_TRACE(logger);
         ASSERT(mode == WRITE);
         ASSERT(!readshutdown);
         readrequest = 0;
@@ -222,6 +233,7 @@ namespace CPN {
     }
 
     void RemoteQueue::SendDequeuePacket() {
+        FUNC_TRACE(logger);
         Packet packet(PACKET_DEQUEUE);
         SetupPacket(packet);
         const unsigned count = bytecount - queue->Count();
@@ -232,6 +244,7 @@ namespace CPN {
 
     void RemoteQueue::ReadBlockPacket(const Packet &packet) {
         clock.Update(packet.Clock());
+        FUNC_TRACE(logger);
         ASSERT(mode == WRITE);
         ASSERT(!readshutdown);
         readrequest = packet.Requested();
@@ -241,6 +254,7 @@ namespace CPN {
     }
 
     void RemoteQueue::SendReadBlockPacket() {
+        FUNC_TRACE(logger);
         Packet packet(PACKET_READBLOCK);
         SetupPacket(packet);
         packet.Requested(readrequest);
@@ -249,6 +263,7 @@ namespace CPN {
 
     void RemoteQueue::WriteBlockPacket(const Packet &packet) {
         clock.Update(packet.Clock());
+        FUNC_TRACE(logger);
         ASSERT(mode == READ);
         ASSERT(!writeshutdown);
         writerequest = packet.Requested();
@@ -258,6 +273,7 @@ namespace CPN {
     }
 
     void RemoteQueue::SendWriteBlockPacket() {
+        FUNC_TRACE(logger);
         Packet packet(PACKET_WRITEBLOCK);
         SetupPacket(packet);
         packet.Requested(writerequest);
@@ -266,12 +282,14 @@ namespace CPN {
 
     void RemoteQueue::EndOfWritePacket(const Packet &packet) {
         clock.Update(packet.Clock());
+        FUNC_TRACE(logger);
         ASSERT(mode == READ);
         ASSERT(!writeshutdown);
         QueueBase::ShutdownWriter();
     }
 
     void RemoteQueue::SendEndOfWritePacket() {
+        FUNC_TRACE(logger);
         Packet packet(PACKET_ENDOFWRITE);
         SetupPacket(packet);
         PacketEncoder::SendPacket(packet);
@@ -280,12 +298,14 @@ namespace CPN {
 
     void RemoteQueue::EndOfReadPacket(const Packet &packet) {
         clock.Update(packet.Clock());
+        FUNC_TRACE(logger);
         ASSERT(mode == WRITE);
         ASSERT(!readshutdown);
         QueueBase::ShutdownReader();
     }
 
     void RemoteQueue::SendEndOfReadPacket() {
+        FUNC_TRACE(logger);
         Packet packet(PACKET_ENDOFREAD);
         SetupPacket(packet);
         PacketEncoder::SendPacket(packet);
@@ -294,14 +314,17 @@ namespace CPN {
 
     void RemoteQueue::GrowPacket(const Packet &packet) {
         clock.Update(packet.Clock());
+        FUNC_TRACE(logger);
         const unsigned queueLen = packet.QueueSize();
-        readerlength = QueueLength(queueLen, alpha, READ);
-        writerlength = QueueLength(queueLen, alpha, WRITE);
+        const unsigned maxthresh = std::max<unsigned>(queue->MaxThreshold(), packet.MaxThreshold());
+        readerlength = QueueLength(queueLen, maxthresh, alpha, READ);
+        writerlength = QueueLength(queueLen, maxthresh, alpha, WRITE);
         const unsigned newlen = (mode == WRITE ? writerlength : readerlength);
-        ThresholdQueue::Grow(newlen, packet.MaxThreshold());
+        ThresholdQueue::Grow(newlen, maxthresh);
     }
 
     void RemoteQueue::SendGrowPacket() {
+        FUNC_TRACE(logger);
         Packet packet(PACKET_GROW);
         SetupPacket(packet);
         packet.QueueSize(readerlength + writerlength);
@@ -311,6 +334,7 @@ namespace CPN {
 
     void RemoteQueue::D4RTagPacket(const Packet &packet) {
         clock.Update(packet.Clock());
+        FUNC_TRACE(logger);
         ASSERT(packet.DataLength() == sizeof(D4R::Tag));
         D4R::Tag tag;
         unsigned numread = sock.Read(&tag, sizeof(tag));
@@ -324,6 +348,7 @@ namespace CPN {
     }
 
     void RemoteQueue::SendD4RTagPacket() {
+        FUNC_TRACE(logger);
         Packet packet(PACKET_D4RTAG);
         SetupPacket(packet);
         packet.DataLength(sizeof(D4R::Tag));
@@ -373,9 +398,18 @@ namespace CPN {
         while (true) {
             try {
                 if (sock.Closed()) {
-                    if (IsReaderShutdown() || IsWriterShutdown() || database->IsTerminated()) {
+                    if (database->IsTerminated()) {
+                        logger.Debug("Forced Shutdown (c: %llu)", clock.Get());
                         return 0;
                     }
+                    if (IsReaderShutdown() || IsWriterShutdown()) {
+                        Sync::AutoLock<QueueBase> al(*this);
+                        if (dead) {
+                            logger.Debug("Shutdown (c: %llu)", clock.Get());
+                            return 0;
+                        }
+                    }
+                    logger.Debug("Connecting (c: %llu)", clock.Get());
                     shared_ptr<Future<int> > conn;
                     if (mode == WRITE) {
                         conn = server->ConnectWriter(GetWriterKey());
@@ -386,6 +420,11 @@ namespace CPN {
                         sock.Reset();
                         sock.FD(conn->Get());
                     }
+                    if (sock.Closed()) {
+                        logger.Debug("Connection Failed (c: %llu)", clock.Get());
+                    } else {
+                        logger.Debug("Connected (c: %llu)", clock.Get());
+                    }
                 } else {
                     sock.Poll(-1);
                     InternalCheckStatus();
@@ -393,14 +432,24 @@ namespace CPN {
             } catch (const ErrnoException &e) {
                 logger.Error("Exception in RemoteQueue main loop (c: %llu e: %d): %s",
                         clock.Get(), e.Error(), e.what());
+                HandleError(e.Error());
             }
         }
     }
 
     void RemoteQueue::InternalCheckStatus() {
         Sync::AutoLock<QueueBase> al(*this);
-        if (incheckstatus) { return; }
-        BoolGuard guard(incheckstatus);
+        if (sock.Closed()) {
+            return;
+        }
+        if (database->IsTerminated()) {
+            if (mode == WRITE) {
+                ThresholdQueue::ShutdownWriter();
+            } else {
+                ThresholdQueue::ShutdownReader();
+            }
+        }
+
         clock.Tick();
 
         if (sock.Eof() && !(readshutdown || writeshutdown)) {
@@ -408,93 +457,123 @@ namespace CPN {
             ASSERT(false, "EOF detected but not shutdown! (c: %llu)", clock.Get());
         }
 
-        Read();
+        try {
+            Read();
 
-        if (pendingGrow) {
-            SendGrowPacket();
-            pendingGrow = false;
-        }
-
-        if (mode == WRITE) {
-            // If we can write more try to write more
-            if (bytecount < readerlength) {
-                SendEnqueuePacket();
-            }
-            // If we can still write more, have the next call to Poll
-            // check writeability
-            if (bytecount < readerlength) {
-                sock.Writeable(false);
-            }
-            // A pending block is present
-            if (pendingBlock) {
-                // If we have received dequeue packets
-                // sense the block happened don't bother sending anything
-                if (writerequest > queue->Freespace()) {
-                    SendWriteBlockPacket();
-                }
-                pendingBlock = false;
+            if (pendingGrow) {
+                SendGrowPacket();
+                pendingGrow = false;
             }
 
-            if (pendingD4RTag) {
-                if (writer && !writeshutdown) {
-                    SendD4RTagPacket();
+            if (mode == WRITE) {
+                if (!queue->Empty()) {
+                    // If we can write more try to write more
+                    if (bytecount < readerlength) {
+                        SendEnqueuePacket();
+                    }
+                    // If we can still write more, have the next call to Poll
+                    // check writeability
+                    if (bytecount < readerlength) {
+                        sock.Writeable(false);
+                    }
                 }
-            }
+                // A pending block is present
+                if (pendingBlock) {
+                    // If we have received dequeue packets
+                    // sense the block happened don't bother sending anything
+                    if (writerequest > queue->Freespace()) {
+                        SendWriteBlockPacket();
+                    }
+                    pendingBlock = false;
+                }
 
-            if (writeshutdown) {
-                if (!sentEnd && queue->Empty()) {
-                    SendEndOfWritePacket();
-                    sentEnd = true;
+                if (pendingD4RTag) {
+                    if (writer && !writeshutdown) {
+                        SendD4RTagPacket();
+                        pendingD4RTag = false;
+                    }
                 }
-            }
 
-            if (readshutdown) {
-                if (!sentEnd) {
-                    SendEndOfWritePacket();
-                    sentEnd = true;
+                if (writeshutdown) {
+                    if (!sentEnd && queue->Empty()) {
+                        SendEndOfWritePacket();
+                        sentEnd = true;
+                    }
                 }
-                sock.Close();
-            }
-        } else {
-            // If some bytes have been read from the queue
-            if (bytecount > queue->Count()) {
-                SendDequeuePacket();
-            }
 
-            if (pendingBlock) {
-                // May have received enqueue packets...
-                if (readrequest > queue->Count()) {
-                    SendReadBlockPacket();
+                if (readshutdown) {
+                    if (!sentEnd) {
+                        SendEndOfWritePacket();
+                        sentEnd = true;
+                    }
+                    logger.Debug("Closing the socket (c: %llu)", clock.Get());
+                    sock.Close();
+                    dead = true;
                 }
-                pendingBlock = false;
-            }
-            if (pendingD4RTag) {
-                if (reader && !readshutdown) {
-                    SendD4RTagPacket();
+            } else {
+                // If some bytes have been read from the queue
+                if (bytecount > queue->Count()) {
+                    SendDequeuePacket();
+                }
+
+                if (pendingBlock) {
+                    // May have received enqueue packets...
+                    if (readrequest > queue->Count()) {
+                        SendReadBlockPacket();
+                    }
+                    pendingBlock = false;
+                }
+                if (pendingD4RTag) {
+                    if (reader && !readshutdown) {
+                        SendD4RTagPacket();
+                        pendingD4RTag = false;
+                    }
+                }
+                if (readshutdown) {
+                    if (!sentEnd) {
+                        SendEndOfReadPacket();
+                        sentEnd = true;
+                    }
+                }
+                if (writeshutdown) {
+                    if (!sentEnd) {
+                        SendEndOfReadPacket();
+                        sentEnd = true;
+                    }
+                    logger.Debug("Closing the socket (c: %llu)", clock.Get());
+                    sock.Close();
+                    dead = true;
                 }
             }
-            if (readshutdown) {
-                if (!sentEnd) {
-                    SendEndOfReadPacket();
-                    sentEnd = true;
-                }
-            }
-            if (writeshutdown) {
-                if (!sentEnd) {
-                    SendEndOfReadPacket();
-                    sentEnd = true;
-                }
-                sock.Close();
-            }
+        } catch (const ErrnoException &e) {
+            logger.Error("Exception in RemoteQueue check status (c: %llu e: %d): %s",
+                    clock.Get(), e.Error(), e.what());
+            HandleError(e.Error());
         }
     }
 
-    unsigned RemoteQueue::QueueLength(unsigned length, double alpha, Mode_t mode) {
+    void RemoteQueue::HandleError(int error) {
+        Sync::AutoLock<QueueBase> al(*this);
+        if (readshutdown || writeshutdown) {
+            readshutdown = writeshutdown = true;
+            Signal();
+        }
+        switch (error) {
+        case EPIPE:
+        case EBADF:
+            sock.Close();
+            break;
+        default:
+            break;
+        }
+    }
+
+    unsigned RemoteQueue::QueueLength(unsigned length, unsigned maxthresh, double alpha, Mode_t mode) {
         unsigned writerlen = unsigned(((double)length)*alpha);
         if (mode == READ) {
-            return std::min<unsigned>(length - writerlen, 1);
+            return std::max<unsigned>(length - writerlen, maxthresh);
         } else {
-            return std::min<unsigned>(length, 1);
+            return std::max<unsigned>(writerlen, maxthresh);
         }
     }
 }

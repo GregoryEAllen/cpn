@@ -157,11 +157,10 @@ namespace CPN {
         void CreateReader(Key_t dst, const SimpleQueueAttr &attr);
         void CreateQueue(Key_t dst, const SimpleQueueAttr &attr);
         void CreateNode(Key_t dst, const NodeAttr &attr);
-
-        shared_ptr<Future<int> > GetReaderDescriptor(Key_t readerkey, Key_t writerkey);
-        shared_ptr<Future<int> > GetWriterDescriptor(Key_t readerkey, Key_t writerkey);
-
         void NotifyTerminate();
+
+        // Function to be called from gdb
+        void LogState();
 
         Sync::ReentrantLock lock;
         Sync::StatusHandler<KernelStatus_t> status;
