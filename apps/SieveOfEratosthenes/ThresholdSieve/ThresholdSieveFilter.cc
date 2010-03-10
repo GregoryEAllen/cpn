@@ -79,11 +79,17 @@ void ThresholdSieveFilter::Process() {
     DEBUG("%s started\n", GetName().c_str());
     CPN::QueueReaderAdapter<NumberT> in = GetReader(IN_PORT);
     CPN::QueueWriterAdapter<NumberT> out = GetWriter(CONTROL_PORT);
+    const bool zerocopy = opts.zerocopy;
     const unsigned long threshold = opts.threshold;
     const NumberT cutoff = (NumberT)(ceil(sqrt(opts.maxprime)));
     unsigned long long tot_processed = 0;
     unsigned long long tot_passed = 0;
     NumberT buffer[threshold];
+    NumberT buffer2[threshold];
+    NumberT *outbuff = 0;
+    if (!zerocopy) {
+        outbuff = buffer2;
+    }
     PrimeSieve sieve(PrimesPerFilter());
     unsigned numPrimes = 0;
     unsigned numPassed = 0;
@@ -96,13 +102,19 @@ void ThresholdSieveFilter::Process() {
             loop = false;
         } else {
             tot_processed += incount;
-            NumberT *outbuff = out.GetEnqueuePtr(incount);
+            if (zerocopy) {
+                outbuff = out.GetEnqueuePtr(incount);
+            }
             sieve.TryCandidates(inbuff, incount, outbuff, numPrimes, buffer, numPassed);
 #if _DEBUG
             ReportCandidates(inbuff, incount, outbuff, numPrimes, buffer, numPassed);
 #endif
             tot_passed += numPrimes;
-            out.Enqueue(numPrimes);
+            if (zerocopy) {
+                out.Enqueue(numPrimes);
+            } else {
+                out.Enqueue(outbuff, numPrimes);
+            }
             in.Dequeue(incount);
             REPORT("%s processed primes %u -> %u (%u)\n", GetName().c_str(), incount, numPrimes, numPassed);
         }
@@ -123,13 +135,19 @@ void ThresholdSieveFilter::Process() {
         if (!inbuff) {
             loop = false;
         } else {
-            NumberT *outbuff = out.GetEnqueuePtr(incount);
+            if (zerocopy) {
+                outbuff = out.GetEnqueuePtr(incount);
+            }
             sieve.TryCandidates(inbuff, incount, buffer, numPrimes, outbuff, numPassed);
 #if _DEBUG
             ReportCandidates(inbuff, incount, buffer, numPrimes, outbuff, numPassed);
 #endif
             ASSERT(numPrimes == 0);
-            out.Enqueue(numPassed);
+            if (zerocopy) {
+                out.Enqueue(numPassed);
+            } else {
+                out.Enqueue(outbuff, numPassed);
+            }
             in.Dequeue(incount);
             tot_processed += incount;
             tot_passed += numPassed;

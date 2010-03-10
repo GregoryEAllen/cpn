@@ -10,7 +10,7 @@
 #include <cstdio>
 #include <string.h>
 
-const char* const VALID_OPTS = "Mm:q:t:hf:i:p:vw:r";
+const char* const VALID_OPTS = "Mm:q:t:hf:i:p:vw:rz:s";
 const char* const HELP_OPTS = "Usage: %s -hv -m maxprime -q queuesize -t threshold -f filename -p primes per filter -i iterations\n"
 "\t-h\tPrint out this message\n"
 "\t-v\tBe verbose, print out the primes found\n"
@@ -47,10 +47,12 @@ int main(int argc, char **argv) {
     options.queuehint = CPN::QUEUEHINT_THRESHOLD;
     options.results = &results;
     options.report = false;
+    options.zerocopy = true;
     int numIterations = 1;
     bool multitest = false;
     bool verbose = false;
     bool tofile = false;
+    bool simpleoutput = false;
     std::string filename = "";
     bool procOpts = true;
     while (procOpts) {
@@ -77,6 +79,15 @@ int main(int argc, char **argv) {
             break;
         case 'r':
             options.report = true;
+            break;
+        case 's':
+            simpleoutput = true;
+            break;
+        case 'z':
+            {
+                int z = atoi(optarg);
+                options.zerocopy = !!z;
+            }
             break;
         case 'p':
             {
@@ -111,7 +122,7 @@ int main(int argc, char **argv) {
         }
     }
     options.primesPerFilter = primesPerFilter;
-    const char STDOUT_FORMAT[] = "    \"maxprime\"        : %lu,\n"
+    const char STDOUT_FORMAT[] = "{\n    \"maxprime\"        : %lu,\n"
         "    \"queuesize\"       : %lu,\n"
         "    \"threshold\"       : %lu,\n"
         "    \"primewheel\"      : %lu,\n"
@@ -119,15 +130,20 @@ int main(int argc, char **argv) {
         "    \"usertime\"        : %f,\n"
         "    \"systime\"         : %f,\n"
         "    \"numprimes\"       : %u";
+    const char SIMPLE_FORMAT[] = "%lu, %lu, %lu, %f, %f, %f, %u";
+    const char *format_str;
     FILE *f = stdout;
-    const char *format_str = STDOUT_FORMAT;
+    if (simpleoutput) {
+        format_str = SIMPLE_FORMAT;
+    } else {
+        format_str = STDOUT_FORMAT;
+    }
     if (tofile) {
         f = fopen(filename.c_str(), "a");
         if (!f) f = stdout;
     }
     for (int i = 0; i < numIterations; ++i) {
         TestResults timeresults = SieveTest(options);
-        fprintf(f,"{\n");
         fprintf(f, format_str,
                 (unsigned long)options.maxprime,
                 options.queuesize,
@@ -138,7 +154,9 @@ int main(int argc, char **argv) {
                 timeresults.systime,
                 (unsigned)results.size());
         if (verbose) {
-            fprintf(f, ",\n    \"primes\"          : [");
+            if (!simpleoutput) {
+                fprintf(f, ",\n    \"primes\"          : [");
+            }
             for (size_t j = 0; j < results.size(); ++j) {
                 if (j < results.size() -1) {
                     fprintf(f, "%lu, ", (unsigned long)results[j]);
@@ -146,12 +164,18 @@ int main(int argc, char **argv) {
                     fprintf(f, "%lu", (unsigned long)results[j]);
                 }
             }
-            fprintf(f, "]\n");
+            if (!simpleoutput) {
+                fprintf(f, "]\n");
+            } else {
+                fprintf(f, "\n");
+            }
         } else { fprintf(f, "\n"); }
-        if (i == numIterations - 1) {
-            fprintf(f, "}\n");
-        } else {
-            fprintf(f, "},\n");
+        if (!simpleoutput) {
+            if (i == numIterations - 1) {
+                fprintf(f, "}\n");
+            } else {
+                fprintf(f, "},\n");
+            }
         }
         results.clear();
     }
