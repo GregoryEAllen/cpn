@@ -38,7 +38,7 @@ namespace Sync {
          * Create a new AutoLock and lock the mutex.
          * \param mutex_ the mutex
          */
-		AutoLock(Lockable& mutex_) throw() : mutex(mutex_), count(0) {
+		AutoLock(Lockable& mutex_) : mutex(mutex_), count(0) {
             Lock();
 		}
         /**
@@ -46,11 +46,11 @@ namespace Sync {
          * \param mutex_ the mutex
          * \param lock true to lock or false to not
          */
-        AutoLock(Lockable& mutex_, bool lock) throw() : mutex(mutex_), count(0) {
+        AutoLock(Lockable& mutex_, bool lock) : mutex(mutex_), count(0) {
             if (lock) { Lock(); }
         }
         
-		~AutoLock() throw() {
+		~AutoLock() {
 			while (count != 0)
                 Unlock();
 		}
@@ -58,7 +58,7 @@ namespace Sync {
         /**
          * Lock the mutex
          */
-		void Unlock() throw() {
+		void Unlock() {
 			--count;
 			mutex.Unlock();
 		}
@@ -66,7 +66,7 @@ namespace Sync {
         /**
          * Unlock the mutex
          */
-		void Lock() throw() {
+		void Lock() {
 			mutex.Lock();
 			++count;
 		}

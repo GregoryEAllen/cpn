@@ -40,7 +40,7 @@ namespace Sync {
         class ScopeMutex {
         public:
             ScopeMutex(pthread_mutex_t &l) : lock(l) { ENSURE(!pthread_mutex_lock(&lock)); }
-            ~ScopeMutex() { ENSURE(!pthread_mutex_unlock(&lock)); }
+            ~ScopeMutex() { ENSURE_ABORT(!pthread_mutex_unlock(&lock)); }
             pthread_mutex_t &lock;
         };
     }
@@ -55,8 +55,8 @@ namespace Sync {
             ENSURE(!pthread_cond_init(&cond, 0));
         }
         ~ReentrantLock() {
-            ENSURE(!pthread_mutex_destroy(&lock));
-            ENSURE(!pthread_cond_destroy(&cond));
+            ENSURE_ABORT(!pthread_mutex_destroy(&lock));
+            ENSURE_ABORT(!pthread_cond_destroy(&cond));
         }
 
         void Unlock() const {
