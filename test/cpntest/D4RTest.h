@@ -16,6 +16,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION( D4RTest );
 
 #include "D4RTesterBase.h"
 #include "CPNCommon.h"
+#include "PthreadMutex.h"
 #include <cppunit/extensions/HelperMacros.h>
 #include <vector>
 class D4RTest : public CppUnit::TestFixture, D4R::TesterBase {
@@ -41,6 +42,7 @@ public:
 
     void Abort();
 
+    PthreadMutex lock;
     unsigned successes;
     CPN::shared_ptr<CPN::Database> database;
     std::vector<CPN::Kernel*> kernels;

@@ -102,6 +102,7 @@ shared_ptr<CPN::NodeFactory> cpninitD4RTestNodeType(void) {
 
 
 void D4RTest::setUp() {
+    PthreadMutexProtected al(lock);
     successes = 0;
 }
 
@@ -178,7 +179,10 @@ void D4RTest::RunTwoKernelTest() {
 void D4RTest::Deadlock(TestNodeBase *tnb) {
     NodeBase *n = dynamic_cast<NodeBase*>(tnb);
     Info("%s detected deadlock correctly", n->GetName().c_str());
-    successes++;
+    {
+        PthreadMutexProtected al(lock);
+        successes++;
+    }
     database->Terminate();
 }
 
@@ -191,6 +195,7 @@ void D4RTest::Failure(TestNodeBase *tnb, const std::string &msg) {
 void D4RTest::Complete(TestNodeBase *tnb) {
     NodeBase *n = dynamic_cast<NodeBase*>(tnb);
     Info("%s completed correctly", n->GetName().c_str());
+    PthreadMutexProtected al(lock);
     successes++;
 }
 
