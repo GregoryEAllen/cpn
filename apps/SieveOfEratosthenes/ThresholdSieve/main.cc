@@ -130,7 +130,7 @@ int main(int argc, char **argv) {
         "    \"usertime\"        : %f,\n"
         "    \"systime\"         : %f,\n"
         "    \"numprimes\"       : %u";
-    const char SIMPLE_FORMAT[] = "%lu, %lu, %lu, %f, %f, %f, %u";
+    const char SIMPLE_FORMAT[] = "%lu, %lu, %lu, %lu, %f, %f, %f, %u";
     const char *format_str;
     FILE *f = stdout;
     if (simpleoutput) {
