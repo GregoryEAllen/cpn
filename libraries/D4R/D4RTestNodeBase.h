@@ -4,6 +4,8 @@
 #include "D4RNode.h"
 #include "Logger.h"
 #include "Variant.h"
+#include "PthreadMutex.h"
+#include "PthreadCondition.h"
 namespace D4R {
 
     class TesterBase;
@@ -67,6 +69,8 @@ namespace D4R {
         typedef std::deque<Variant> OpcodeQueue;
         OpcodeQueue opqueue;
         TesterBase *testerbase;
+        PthreadMutex lock;
+        PthreadCondition cond;
     };
 }
 

@@ -32,7 +32,7 @@ namespace D4R {
 
     class Tag {
     public:
-        Tag(uint64_t k) : label(0, k), priority(-1, k) {}
+        Tag(uint64_t k) : label(0, k), priority(uint64_t(-1), k) {}
         Tag() : label(), priority() {}
         /**
          * Perform comparison as specified in "A Distributed Deadlock Detection And

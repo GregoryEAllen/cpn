@@ -20,7 +20,9 @@ namespace D4R {
     TestNodeBase::~TestNodeBase() {}
 
     void TestNodeBase::AddOp(const Variant &op) {
+        PthreadMutexProtected al(lock);
         opqueue.push_back(op);
+        cond.Signal();
     }
 
     void TestNodeBase::AddOp(const std::string &opcode, const std::string &qname, unsigned amount) {
@@ -31,10 +33,15 @@ namespace D4R {
         try {
             bool loop = true;
             while (loop) {
-                ASSERT(!opqueue.empty());
                 Variant op;
-                op = opqueue.front();
-                opqueue.pop_front();
+                {
+                    PthreadMutexProtected al(lock);
+                    while (opqueue.empty()) {
+                        cond.Wait(lock);
+                    }
+                    op = opqueue.front();
+                    opqueue.pop_front();
+                }
                 std::string opname = op[0].AsString();
                 if (opname == OP_ENQUEUE) {
                     Enqueue(op[1].AsString(), op[2].AsUnsigned());
