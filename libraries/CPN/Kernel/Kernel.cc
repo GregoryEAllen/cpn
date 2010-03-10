@@ -240,6 +240,7 @@ namespace CPN {
                     database,
                     RemoteQueue::READ,
                     server.get(),
+                    &remotequeueholder,
                     attr
                     ));
 
@@ -247,6 +248,8 @@ namespace CPN {
         NodeMap::iterator entry = nodemap.find(attr.GetReaderNodeKey());
         ASSERT(entry != nodemap.end(), "Node not found!?");
         entry->second->CreateReader(endp);
+        remotequeueholder.AddQueue(endp);
+        endp->Start();
     }
 
     void Kernel::CreateWriterEndpoint(const SimpleQueueAttr &attr) {
@@ -258,12 +261,15 @@ namespace CPN {
                     database,
                     RemoteQueue::WRITE,
                     server.get(),
+                    &remotequeueholder,
                     attr
                     ));
 
         NodeMap::iterator entry = nodemap.find(attr.GetWriterNodeKey());
         ASSERT(entry != nodemap.end(), "Node not found!?");
         entry->second->CreateWriter(endp);
+        remotequeueholder.AddQueue(endp);
+        endp->Start();
     }
 
     void Kernel::CreateLocalQueue(const SimpleQueueAttr &attr) {
@@ -324,9 +330,11 @@ namespace CPN {
             database->SignalHostStart(hostkey);
             while (status.Get() == RUNNING) {
                 ClearGarbage();
+                remotequeueholder.Cleanup();
                 server->Poll();
             }
             server->Close();
+            remotequeueholder.Shutdown();
             Sync::AutoReentrantLock arlock(lock);
             NodeMap::iterator nitr = nodemap.begin();
             while (nitr != nodemap.end()) {

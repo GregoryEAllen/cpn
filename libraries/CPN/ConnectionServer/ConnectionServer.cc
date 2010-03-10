@@ -34,7 +34,7 @@ namespace CPN {
     typedef Sync::AutoLock<PthreadMutex> AutoPLock;
 
     ConnectionServer::ConnectionServer(SockAddrList addrs, shared_ptr<Database> db)
-        : database(db), enabled(true)
+        : database(db), logger(db.get(), Logger::INFO), enabled(true)
     {
         server.Listen(addrs);
     }
@@ -83,6 +83,7 @@ namespace CPN {
             } catch (const ErrnoException &e) {
                 // Ignore, if we had an error we closed the socket when we
                 // left the scope, will try again later
+                logger.Error("Exception in ConnectionServer main loop (e: %d): %s", e.Error(), e.what());
             }
         }
     }
@@ -101,8 +102,10 @@ namespace CPN {
         if (server.Closed()) {
             return shared_ptr<Future<int> >();
         }
+        AutoPLock al(lock);
         shared_ptr<PendingConnection> conn;
         if (enabled) {
+            al.Unlock();
             conn = shared_ptr<PendingConnection>(new PendingConnection(writerkey, this));
             Key_t readerkey = database->GetWritersReader(writerkey);
             Key_t hostkey = database->GetReaderHost(readerkey);
@@ -121,7 +124,6 @@ namespace CPN {
                 sock.Reset();
             }
         } else {
-            AutoPLock al(lock);
             conn = shared_ptr<PendingConnection>(new PendingConnection(writerkey, this));
             pendingconnections.insert(std::make_pair(writerkey, conn));
         }
@@ -165,6 +167,16 @@ namespace CPN {
         }
     }
 
+    void ConnectionServer::LogState() {
+        if (server.Closed()) {
+            logger.Error("Server socket closed");
+        }
+        if (!enabled) {
+            logger.Error("Connection handler disabled??");
+        }
+        logger.Error("%u pending connections", pendingconnections.size());
+    }
+
     void ConnectionServer::PendingDone(Key_t key, PendingConnection *conn) {
         AutoPLock al(lock);
         std::pair<PendingMap::iterator, PendingMap::iterator> range;
@@ -181,18 +193,16 @@ namespace CPN {
     }
 
     ConnectionServer::PendingConnection::PendingConnection(Key_t k, ConnectionServer *serv)
-        : key(k), fd(-1), done(false), server(serv)
+        : key(k), done(false), server(serv)
     {}
 
     ConnectionServer::PendingConnection::~PendingConnection() {
-        // Check for file descriptor leaks
-        assert(fd == -1);
     }
 
     int ConnectionServer::PendingConnection::Get() {
-        AutoPLock al(lock);
+        AutoPLock al(file_lock);
         while (!done) {
-            cond.Wait(lock);
+            cond.Wait(file_lock);
         }
         int filed = fd;
         fd = -1;
@@ -202,7 +212,7 @@ namespace CPN {
     }
 
     void ConnectionServer::PendingConnection::Set(int filed) {
-        AutoPLock al(lock);
+        AutoPLock al(file_lock);
         ASSERT(!done);
         fd = filed;
         done = true;
@@ -210,14 +220,13 @@ namespace CPN {
     }
 
     bool ConnectionServer::PendingConnection::Done() {
-        AutoPLock al(lock);
+        AutoPLock al(file_lock);
         return done;
     }
 
     void ConnectionServer::PendingConnection::Cancel() {
-        AutoPLock al(lock);
+        AutoPLock al(file_lock);
         if (!done) {
-            fd = -1;
             done = true;
             cond.Signal();
         }

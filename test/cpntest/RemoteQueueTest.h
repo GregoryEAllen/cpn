@@ -5,6 +5,7 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include "CPNCommon.h"
 #include "KernelBase.h"
+#include "RemoteQueueHolder.h"
 #include "PthreadMutex.h"
 #include "PthreadCondition.h"
 #include "Pthread.h"
@@ -53,6 +54,8 @@ public:
     CPN::Key_t nodekey;
     CPN::Key_t writerkey;
     CPN::Key_t readerkey;
+
+    CPN::RemoteQueueHolder remotequeueholder;
 
     bool fail;
     bool stopenqueue;

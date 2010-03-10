@@ -33,6 +33,7 @@
 
 #include "KernelBase.h"
 #include "ConnectionServer.h"
+#include "RemoteQueueHolder.h"
 
 #include "ReentrantLock.h"
 #include "StatusHandler.h"
@@ -170,6 +171,7 @@ namespace CPN {
         Logger logger;
         shared_ptr<Database> database;
         auto_ptr<ConnectionServer> server;
+        RemoteQueueHolder remotequeueholder;
 
         typedef std::map<Key_t, shared_ptr<NodeBase> > NodeMap;
         typedef std::vector< shared_ptr<NodeBase> > NodeList;

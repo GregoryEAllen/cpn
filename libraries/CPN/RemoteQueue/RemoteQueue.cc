@@ -21,6 +21,7 @@
  * \author John Bridgman
  */
 #include "RemoteQueue.h"
+#include "RemoteQueueHolder.h"
 #include "QueueAttr.h"
 #include "Database.h"
 #include "ErrnoException.h"
@@ -29,7 +30,7 @@
 #include <algorithm>
 #include <sstream>
 
-#if 1
+#if 0
 #define FUNC_TRACE(logger) logger.Trace("%s (c: %llu)", __PRETTY_FUNCTION__, clock.Get())
 #else
 #define FUNC_TRACE(logger)
@@ -39,11 +40,12 @@
 namespace CPN {
 
     RemoteQueue::RemoteQueue(shared_ptr<Database> db, Mode_t mode_,
-                ConnectionServer *s, const SimpleQueueAttr &attr)
+                ConnectionServer *s, RemoteQueueHolder *h, const SimpleQueueAttr &attr)
         : ThresholdQueue(db, attr, QueueLength(attr.GetLength(), attr.GetMaxThreshold(), attr.GetAlpha(), mode_)),
         mode(mode_),
         alpha(attr.GetAlpha()),
         server(s),
+        holder(h),
         mocknode(mode_ == READ ? attr.GetReaderNodeKey() : attr.GetWriterNodeKey()),
         readerlength(QueueLength(attr.GetLength(), attr.GetMaxThreshold(), attr.GetAlpha(), READ)),
         writerlength(QueueLength(attr.GetLength(), attr.GetMaxThreshold(), attr.GetAlpha(), WRITE)),
@@ -66,24 +68,16 @@ namespace CPN {
         oss << ", r:" << readerkey << ", w:" << writerkey << ")";
         logger.Name(oss.str());
         logger.Trace("Constructed (c: %llu)", clock.Get());
-        Start();
     }
 
     RemoteQueue::~RemoteQueue() {
-        /*
-        Sync::AutoLock<const QueueBase> al(*this);
-        if (mode == WRITE) {
-            ThresholdQueue::ShutdownWriter();
-        } else {
-            ThresholdQueue::ShutdownReader();
-        }
-        InternalCheckStatus();
-        sock.Close();
-        dead = true;
-        al.Unlock();
-        */
         logger.Trace("Destructed (c: %llu)", clock.Get());
-        Join();
+    }
+
+    void RemoteQueue::Shutdown() {
+        Sync::AutoLock<const QueueBase> al(*this);
+        dead = true;
+        sock.Close();
     }
 
     unsigned RemoteQueue::Count() const {
@@ -395,46 +389,57 @@ namespace CPN {
     }
 
     void *RemoteQueue::EntryPoint() {
-        while (true) {
-            try {
-                if (sock.Closed()) {
+        try {
+            while (true) {
+                try {
                     if (database->IsTerminated()) {
                         logger.Debug("Forced Shutdown (c: %llu)", clock.Get());
-                        return 0;
+                        break;
                     }
-                    if (IsReaderShutdown() || IsWriterShutdown()) {
+                    {
                         Sync::AutoLock<QueueBase> al(*this);
                         if (dead) {
                             logger.Debug("Shutdown (c: %llu)", clock.Get());
-                            return 0;
+                            break;
                         }
                     }
-                    logger.Debug("Connecting (c: %llu)", clock.Get());
-                    shared_ptr<Future<int> > conn;
-                    if (mode == WRITE) {
-                        conn = server->ConnectWriter(GetWriterKey());
-                    } else {
-                        conn = server->ConnectReader(GetReaderKey());
-                    }
-                    if (conn) {
-                        sock.Reset();
-                        sock.FD(conn->Get());
-                    }
                     if (sock.Closed()) {
-                        logger.Debug("Connection Failed (c: %llu)", clock.Get());
+                        logger.Debug("Connecting (c: %llu)", clock.Get());
+                        shared_ptr<Future<int> > conn;
+                        if (mode == WRITE) {
+                            conn = server->ConnectWriter(GetKey());
+                        } else {
+                            conn = server->ConnectReader(GetKey());
+                        }
+                        if (conn) {
+                            sock.Reset();
+                            sock.FD(conn->Get());
+                        }
+                        if (sock.Closed()) {
+                            logger.Debug("Connection Failed (c: %llu)", clock.Get());
+                        } else {
+                            logger.Debug("Connected (c: %llu)", clock.Get());
+                        }
                     } else {
-                        logger.Debug("Connected (c: %llu)", clock.Get());
+                        FileHandle *fds[2];
+                        fds[0] = &sock;
+                        fds[1] = holder->GetWakeup();
+                        FileHandle::Poll(fds, fds+2, -1);
+                        InternalCheckStatus();
                     }
-                } else {
-                    sock.Poll(-1);
-                    InternalCheckStatus();
+                } catch (const ErrnoException &e) {
+                    logger.Error("Exception in RemoteQueue main loop (c: %llu e: %d): %s",
+                            clock.Get(), e.Error(), e.what());
+                    HandleError(e.Error());
                 }
-            } catch (const ErrnoException &e) {
-                logger.Error("Exception in RemoteQueue main loop (c: %llu e: %d): %s",
-                        clock.Get(), e.Error(), e.what());
-                HandleError(e.Error());
             }
+        } catch (...) {
+            holder->CleanupQueue(GetKey());
+            throw;
         }
+        holder->CleanupQueue(GetKey());
+        server->Wakeup();
+        return 0;
     }
 
     void RemoteQueue::InternalCheckStatus() {
@@ -576,4 +581,26 @@ namespace CPN {
             return std::max<unsigned>(writerlen, maxthresh);
         }
     }
+
+    const char *BoolString(bool tf) {
+        if (tf) {
+            return "true";
+        } else {
+            return "false";
+        }
+    }
+
+    void RemoteQueue::LogState() {
+        ThresholdQueue::LogState();
+        logger.Error("Mode: %s, Readerlength: %u, Writerlength %u, Clock: %llu, bytecount: %u",
+                mode == READ ? "read" : "write", readerlength, writerlength, clock.Get(), bytecount);
+        logger.Error("PendingBlock: %s, SentEnd: %s, PendingGrow: %s, PendingD4R: %s, Dead: %s, Running: %s",
+                BoolString(pendingBlock), BoolString(sentEnd), BoolString(pendingGrow),
+                BoolString(pendingD4RTag), BoolString(dead), BoolString(Running()));
+        logger.Error("Thread id: %llu", (unsigned long long)((pthread_t)(*this)));
+        if (sock.Closed()) {
+            logger.Error("Socket closed");
+        }
+    }
 }
+

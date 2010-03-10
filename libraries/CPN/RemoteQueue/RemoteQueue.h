@@ -34,9 +34,11 @@
 #include "D4RNode.h"
 #include "Assert.h"
 namespace CPN {
+    class RemoteQueueHolder;
+
     class RemoteQueue
         : public ThresholdQueue,
-        private Pthread,
+        public Pthread,
         private PacketEncoder,
         private PacketDecoder
     {
@@ -48,12 +50,13 @@ namespace CPN {
         };
 
         RemoteQueue(shared_ptr<Database> db, Mode_t mode,
-                ConnectionServer *s, const SimpleQueueAttr &attr);
+                ConnectionServer *s, RemoteQueueHolder *h, const SimpleQueueAttr &attr);
 
         ~RemoteQueue();
 
         Mode_t GetMode() const { return mode; }
-
+        Key_t GetKey() const { return mode == READ ? readerkey : writerkey; }
+        void Shutdown();
 
         unsigned Count() const;
         bool Empty() const;
@@ -61,6 +64,9 @@ namespace CPN {
         void Grow(unsigned queueLen, unsigned maxThresh);
         void ShutdownReader();
         void ShutdownWriter();
+
+        /// For debug ONLY!
+        void LogState();
     private:
         void WaitForData();
         void WaitForFreespace();
@@ -107,6 +113,7 @@ namespace CPN {
         const Mode_t mode;
         const double alpha;
         ConnectionServer *const server;
+        RemoteQueueHolder *const holder;
         SocketHandle sock;
         MockNode mocknode;
         LogicalClock clock;

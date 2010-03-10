@@ -45,7 +45,6 @@ namespace CPN {
     }
 
     NodeBase::~NodeBase() {
-        Join();
     }
 
     void NodeBase::CreateReader(shared_ptr<QueueBase> q) {
@@ -99,9 +98,9 @@ namespace CPN {
         }
         database->SignalNodeEnd(nodekey);
         kernel.NodeTerminated(nodekey);
-        arl.Lock();
-        // force release of all readers and writers
         /*
+        // force release of all readers and writers
+        arl.Lock();
         ReaderMap readers;
         readers.swap(readermap);
         WriterMap writers;
@@ -187,15 +186,17 @@ namespace CPN {
     void NodeBase::LogState() {
         Logger logger(database.get(), Logger::ERROR);
         logger.Name(name.c_str());
-        logger.Log("Logging %llu, %u readers, %u writers", nodekey, readermap.size(), writermap.size());
+        logger.Error("Logging (key: %llu), %u readers, %u writers, %s",
+                nodekey, readermap.size(), writermap.size(), Running() ? "Running" : "done");
+        logger.Error("Thread id: %llu", (unsigned long long)((pthread_t)(*this)));
         ReaderMap::iterator r = readermap.begin();
         while (r != readermap.end()) {
-            r->second->LogState();
+            r->second->GetQueue()->LogState();
             ++r;
         }
         WriterMap::iterator w = writermap.begin();
         while (w != writermap.end()) {
-            w->second->LogState();
+            w->second->GetQueue()->LogState();
             ++w;
         }
     }

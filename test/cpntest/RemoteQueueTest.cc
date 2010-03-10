@@ -5,6 +5,7 @@
 #include "Database.h"
 #include "RemoteQueue.h"
 #include "PthreadFunctional.h"
+#include "ErrnoException.h"
 CPPUNIT_TEST_SUITE_REGISTRATION( RemoteQueueTest );
 
 using CPN::shared_ptr;
@@ -70,17 +71,23 @@ void RemoteQueueTest::setUp() {
                 database,
                 RemoteQueue::READ,
                 server.get(),
+                &remotequeueholder,
                 attr
                 )
             );
+    remotequeueholder.AddQueue(rendp);
+    rendp->Start();
     wendp = shared_ptr<RemoteQueue>(
             new RemoteQueue(
                 database,
                 RemoteQueue::WRITE,
                 server.get(),
+                &remotequeueholder,
                 attr
                 )
             );
+    remotequeueholder.AddQueue(wendp);
+    wendp->Start();
 
     wqueue = wendp;
     rqueue = rendp;
@@ -89,6 +96,7 @@ void RemoteQueueTest::setUp() {
 void RemoteQueueTest::tearDown() {
     database->Terminate();
     server->Close();
+    remotequeueholder.Shutdown();
 
     servert.reset();
     rendp.reset();
@@ -458,8 +466,12 @@ void RemoteQueueTest::NotifyTerminate() {
 }
 
 void *RemoteQueueTest::PollServer() {
-    while (!database->IsTerminated()) {
-        server->Poll();
+    try {
+        while (!database->IsTerminated()) {
+            server->Poll();
+        }
+    } catch (const ErrnoException &e) {
+        // server was closed...
     }
     return 0;
 }

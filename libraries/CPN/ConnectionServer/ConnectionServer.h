@@ -27,6 +27,7 @@
 #include "ServerSocketHandle.h"
 #include "SocketHandle.h"
 #include "WakeupHandle.h"
+#include "Logger.h"
 #include "Future.h"
 #include "PthreadMutex.h"
 #include "PthreadCondition.h"
@@ -45,8 +46,11 @@ namespace CPN {
         // For testing
         void Disable();
         void Enable();
+
+        /// For debug ONLY!
+        void LogState();
     private:
-        class PendingConnection : public Future<int> {
+        class PendingConnection : public Future<int>, public SocketHandle {
         public:
             PendingConnection(Key_t k, ConnectionServer *serv);
             ~PendingConnection();
@@ -57,10 +61,8 @@ namespace CPN {
             void Cancel();
             Key_t GetKey() const { return key; }
         private:
-            PthreadMutex lock;
             PthreadCondition cond;
             const Key_t key;
-            int fd;
             bool done;
             ConnectionServer *server;
         };
@@ -70,6 +72,7 @@ namespace CPN {
         typedef std::multimap<Key_t, shared_ptr<PendingConnection> > PendingMap;
         PthreadMutex lock;
         shared_ptr<Database> database;
+        Logger logger;
         ServerSocketHandle server;
         WakeupHandle wakeup;
         PendingMap pendingconnections;
