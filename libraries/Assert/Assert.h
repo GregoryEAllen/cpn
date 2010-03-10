@@ -53,18 +53,22 @@ private:
     std::string message;
 };
 
-bool __ASSERT(const char *exp, const char *file, int line, const char *func) __attribute__((noreturn));
+bool __ASSERT(const char *exp, const char *file, int line, const char *func, bool die) __attribute__((noreturn));
 
-bool __ASSERT(const char *exp, const char *file, int line, const char *func, const std::string &msg) __attribute__((noreturn));
+bool __ASSERT(const char *exp, const char *file, int line, const char *func, bool die, const std::string &msg) __attribute__((noreturn));
 
-bool __ASSERT(const char *exp, const char *file, int line, const char *func, const char *fmt, ...) __attribute__((noreturn));
+bool __ASSERT(const char *exp, const char *file, int line, const char *func, bool die, const char *fmt, ...) __attribute__((noreturn));
 
 #ifndef NDEBUG
-#define ASSERT(exp, ...) (exp ? true : __ASSERT(#exp, __FILE__, __LINE__, __PRETTY_FUNCTION__, ## __VA_ARGS__))
-#define ENSURE(exp, ...) (exp ? true : __ASSERT(#exp, __FILE__, __LINE__, __PRETTY_FUNCTION__, ## __VA_ARGS__))
+#define ASSERT(exp, ...) (exp ? true : __ASSERT(#exp, __FILE__, __LINE__, __PRETTY_FUNCTION__, false, ## __VA_ARGS__))
+#define ASSERT_ABORT(exp, ...) (exp ? true : __ASSERT(#exp, __FILE__, __LINE__, __PRETTY_FUNCTION__, true, ## __VA_ARGS__))
+#define ENSURE(exp, ...) (exp ? true : __ASSERT(#exp, __FILE__, __LINE__, __PRETTY_FUNCTION__, false, ## __VA_ARGS__))
+#define ENSURE_ABORT(exp, ...) (exp ? true : __ASSERT(#exp, __FILE__, __LINE__, __PRETTY_FUNCTION__, true, ## __VA_ARGS__))
 #else
 #define ASSERT(exp, ...)
+#define ASSERT_ABORT(exp, ...)
 #define ENSURE(exp, ...) exp
+#define ENSURE_ABORT(exp, ...) exp
 #endif
 
 #endif
