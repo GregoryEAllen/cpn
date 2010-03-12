@@ -39,13 +39,16 @@ public:
     {
     }
     ~LocalRDBServ() {
-        PthreadMutexProtected al(lock);
-        die = true;
-        cond.Signal();
+        {
+            PthreadMutexProtected al(lock);
+            die = true;
+            cond.Signal();
+        }
+        Join();
     }
     void EnqueueMessage(const std::string &name, const Variant &msg) {
         PthreadMutexProtected al(lock);
-        msgqueue.push_back(std::make_pair(name, msg));
+        msgqueue.push_back(std::make_pair(name, msg.Copy()));
         cond.Signal();
     }
 
@@ -60,7 +63,7 @@ public:
 
     void SendMessage(const std::string &recipient, const Variant &msg) {
         DBPRINT("Reply %s -> %s\n", recipient.c_str(), msg.AsJSON().c_str());
-        replymap[recipient]->DispatchMessage(msg);
+        replymap[recipient]->DispatchMessage(msg.Copy());
     }
 
     void BroadcastMessage(const Variant &msg) {
@@ -68,7 +71,7 @@ public:
         for(std::map<std::string, CPN::RemoteDBClient *>::iterator entry = replymap.begin();
                 entry != replymap.end(); ++entry)
         {
-            (entry->second)->DispatchMessage(msg);
+            (entry->second)->DispatchMessage(msg.Copy());
         }
     }
 
@@ -85,7 +88,7 @@ public:
                 std::pair<std::string, Variant> entry = msgqueue.front();
                 msgqueue.pop_front();
                 DBPRINT("Processing %s -> %s\n", entry.first.c_str(), entry.second.AsJSON().c_str());
-                DispatchMessage(entry.first, entry.second);
+                DispatchMessage(entry.first, entry.second.Copy());
             }
         }
         return 0;

@@ -13,6 +13,7 @@
 #pragma once
 #include <iterator>
 #include <typeinfo>
+#include <memory>
 /**
  * \brief A reference to an iterator.
  *

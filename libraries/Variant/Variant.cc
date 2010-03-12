@@ -604,10 +604,14 @@ Variant Variant::Copy() const {
     Variant ret(type);
     switch (type) {
     case ArrayType:
-        ret.AsArray() = AsArray();
+        for (ConstListIterator itr = ListBegin(); itr != ListEnd(); ++itr) {
+            ret.Append(itr->Copy());
+        }
         break;
     case ObjectType:
-        ret.AsObject() = AsObject();
+        for (ConstMapIterator itr = MapBegin(); itr != MapEnd(); ++itr) {
+            ret.At(itr->first) = itr->second.Copy();
+        }
         break;
     case StringType:
         ret.stringval = stringval;

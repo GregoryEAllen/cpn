@@ -72,6 +72,7 @@ namespace CPN {
 
     RemoteQueue::~RemoteQueue() {
         logger.Trace("Destructed (c: %llu)", clock.Get());
+        Join();
     }
 
     void RemoteQueue::Shutdown() {

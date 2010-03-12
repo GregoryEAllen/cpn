@@ -21,7 +21,7 @@ namespace D4R {
 
     void TestNodeBase::AddOp(const Variant &op) {
         PthreadMutexProtected al(lock);
-        opqueue.push_back(op);
+        opqueue.push_back(op.Copy());
         cond.Signal();
     }
 

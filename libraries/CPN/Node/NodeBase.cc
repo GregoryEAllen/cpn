@@ -94,7 +94,9 @@ namespace CPN {
             }
         } catch (const D4R::DeadlockException &e) {
             // A true deadlock was detected, die
-            printf("DEADLOCK detected at %s\n", name.c_str());
+            Logger logger(database.get(), Logger::ERROR);
+            logger.Name(name.c_str());
+            logger.Info("DEADLOCK detected at %s\n", name.c_str());
         }
         database->SignalNodeEnd(nodekey);
         kernel.NodeTerminated(nodekey);

@@ -6,6 +6,7 @@
 #include "RemoteQueue.h"
 #include "PthreadFunctional.h"
 #include "ErrnoException.h"
+#include <stdlib.h>
 CPPUNIT_TEST_SUITE_REGISTRATION( RemoteQueueTest );
 
 using CPN::shared_ptr;

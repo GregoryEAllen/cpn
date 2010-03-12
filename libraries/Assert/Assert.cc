@@ -28,7 +28,7 @@
 #include <vector>
 #include <stdio.h>
 #include <stdarg.h>
-
+#include <stdlib.h>
 
 
 std::string CreateMessage(const char *exp, const char *file,
