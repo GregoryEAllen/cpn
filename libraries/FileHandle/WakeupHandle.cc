@@ -69,8 +69,10 @@ void WakeupHandle::SendWakeup() {
 
 void WakeupHandle::Read() {
     char c[256];
-    while (Readable()) {
-        FileHandle::Read(c, sizeof(c));
-    }
+    unsigned ret = 0;
+    // If we didn't read all the buffer there isn't more to read
+    do {
+        ret = FileHandle::Read(c, sizeof(c));
+    } while (ret == sizeof(c));
 }
 

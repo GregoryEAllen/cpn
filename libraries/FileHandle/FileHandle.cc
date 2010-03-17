@@ -39,8 +39,10 @@ int FileHandle::Poll(IteratorRef<FileHandle*> begin, IteratorRef<FileHandle*> en
     IteratorRef<FileHandle*> itr = begin;
     while (itr != end) {
         FileHandle *han = *itr;
-        if (!han->Closed()) {
-            int fd = han->FD();
+        int fd = han->FD();
+        if (fd < 0) {
+            return -1;
+        } else {
             bool set = false;
             if (!han->Readable()) {
                 FD_SET(fd, &rfd);
@@ -71,8 +73,8 @@ int FileHandle::Poll(IteratorRef<FileHandle*> begin, IteratorRef<FileHandle*> en
     itr = begin;
     while (itr != end) {
         FileHandle *han = *itr;
-        if (!han->Closed()) {
-            int fd = han->FD();
+        int fd = han->FD();
+        if (fd >= 0) {
             if (FD_ISSET(fd, &rfd)) {
                 han->OnReadable();
             }

@@ -46,6 +46,8 @@ public:
      */
     void Read();
 private:
+    // Always stay not readable
+    void OnReadable() {}
     int wfd;
 };
 #endif

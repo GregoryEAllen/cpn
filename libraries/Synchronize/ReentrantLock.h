@@ -39,7 +39,7 @@ namespace Sync {
     namespace Internal {
         class ScopeMutex {
         public:
-            ScopeMutex(pthread_mutex_t &l) : lock(l) { ENSURE(!pthread_mutex_lock(&lock)); }
+            ScopeMutex(pthread_mutex_t &l) : lock(l) { ENSURE_ABORT(!pthread_mutex_lock(&lock)); }
             ~ScopeMutex() { ENSURE_ABORT(!pthread_mutex_unlock(&lock)); }
             pthread_mutex_t &lock;
         };
@@ -50,7 +50,7 @@ namespace Sync {
      */
     class ReentrantLock {
     public:
-        ReentrantLock() : count(0) {
+        ReentrantLock() : count(0), owner(0) {
             ENSURE(!pthread_mutex_init(&lock, 0));
             ENSURE(!pthread_cond_init(&cond, 0));
         }
@@ -61,8 +61,11 @@ namespace Sync {
 
         void Unlock() const {
             Internal::ScopeMutex l(lock);
+            ASSERT_ABORT(pthread_equal(owner, pthread_self()),
+                    "%llu trying to unlock a mutex owned by %llu",
+                    (unsigned long long)pthread_self(), (unsigned long long) owner);
+            ASSERT_ABORT(count > 0, "Unlocking a mutex that is not locked.");
             --count;
-            ASSERT(count >= 0);
             if (count == 0) pthread_cond_signal(&cond);
         }
 

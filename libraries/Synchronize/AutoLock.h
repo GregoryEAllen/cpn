@@ -25,6 +25,7 @@
 #ifndef SYNC_AUTOLOCK_H
 #define SYNC_AUTOLOCK_H
 #pragma once
+#include "Assert.h"
 
 namespace Sync {
     /**
@@ -51,7 +52,7 @@ namespace Sync {
         }
         
 		~AutoLock() {
-			while (count != 0)
+			while (count > 0)
                 Unlock();
 		}
 
@@ -59,6 +60,7 @@ namespace Sync {
          * Lock the mutex
          */
 		void Unlock() {
+            ASSERT_ABORT(count > 0, "Unlocking a non owned lock");
 			--count;
 			mutex.Unlock();
 		}
@@ -69,11 +71,12 @@ namespace Sync {
 		void Lock() {
 			mutex.Lock();
 			++count;
+            ASSERT_ABORT(count > 0, "Overflow");
 		}
 
 	private:
 		Lockable& mutex;
-		unsigned long count;
+		int count;
 	};
 }
 #endif

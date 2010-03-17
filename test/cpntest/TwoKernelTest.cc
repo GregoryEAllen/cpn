@@ -31,6 +31,7 @@ void TwoKernelTest::setUp() {
     database = Database::Local();
     database->LogLevel(Logger::WARNING);
     database->UseD4R(false);
+    database->SwallowBrokenQueueExceptions(true);
     KernelAttr kattrone("one");
     kattrone.SetDatabase(database);
     KernelAttr kattrtwo("two");
