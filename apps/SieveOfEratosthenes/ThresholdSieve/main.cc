@@ -145,6 +145,9 @@ int main(int argc, char **argv) {
         f = fopen(filename.c_str(), "a");
         if (!f) f = stdout;
     }
+    if (!simpleoutput) {
+        fprintf(f, "[\n");
+    }
     for (int i = 0; i < numIterations; ++i) {
         TestResults timeresults = SieveTest(options);
         fprintf(f, format_str,
@@ -183,6 +186,9 @@ int main(int argc, char **argv) {
             }
         }
         results.clear();
+    }
+    if (!simpleoutput) {
+        fprintf(f, "]\n");
     }
     if (f != stdout) {
         fclose(f);
