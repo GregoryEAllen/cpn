@@ -333,8 +333,12 @@ namespace CPN {
                 remotequeueholder.Cleanup();
                 server->Poll();
             }
-            server->Close();
-            remotequeueholder.Shutdown();
+        } catch (const ShutdownException &e) {
+            logger.Warn("Kernel forced shutdown");
+        }
+        server->Close();
+        remotequeueholder.Shutdown();
+        {
             Sync::AutoReentrantLock arlock(lock);
             NodeMap::iterator nitr = nodemap.begin();
             while (nitr != nodemap.end()) {
@@ -345,10 +349,7 @@ namespace CPN {
                 garbagenodes.clear();
                 cond.Wait(lock);
             }
-        } catch (const ShutdownException &e) {
-            logger.Warn("Kernel forced shutdown");
         }
-        ClearGarbage();
         database->DestroyHostKey(hostkey);
         status.Post(DONE);
         FUNCEND;

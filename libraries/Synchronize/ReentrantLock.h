@@ -55,6 +55,7 @@ namespace Sync {
             ENSURE(!pthread_cond_init(&cond, 0));
         }
         ~ReentrantLock() {
+            ASSERT_ABORT(count == 0, "Mutex still owned by %llu", (unsigned long long) owner);
             ENSURE_ABORT(!pthread_mutex_destroy(&lock));
             ENSURE_ABORT(!pthread_cond_destroy(&cond));
         }
