@@ -47,7 +47,8 @@ int main(int argc, char **argv) {
     options.queuehint = CPN::QUEUEHINT_THRESHOLD;
     options.results = &results;
     options.report = false;
-    options.zerocopy = true;
+    options.zerocopy = 0;
+    std::string ppf = "1";
     int numIterations = 1;
     bool multitest = false;
     bool verbose = false;
@@ -85,12 +86,12 @@ int main(int argc, char **argv) {
             break;
         case 'z':
             {
-                int z = atoi(optarg);
-                options.zerocopy = !!z;
+                options.zerocopy = atoi(optarg);
             }
             break;
         case 'p':
             {
+                ppf = optarg;
                 char *num = strtok(optarg, ", ");
                 while (num != 0) {
                     primesPerFilter.push_back(atof(num));
@@ -126,11 +127,13 @@ int main(int argc, char **argv) {
         "    \"queuesize\"       : %lu,\n"
         "    \"threshold\"       : %lu,\n"
         "    \"primewheel\"      : %lu,\n"
+        "    \"ppf\"             : [%s],\n"
+        "    \"zerocopy\"        : %d,\n"
         "    \"realtime\"        : %f,\n"
         "    \"usertime\"        : %f,\n"
         "    \"systime\"         : %f,\n"
         "    \"numprimes\"       : %u";
-    const char SIMPLE_FORMAT[] = "%lu, %lu, %lu, %lu, %f, %f, %f, %u";
+    const char SIMPLE_FORMAT[] = "%lu, %lu, %lu, %lu, [%s], %d, %f, %f, %f, %u";
     const char *format_str;
     FILE *f = stdout;
     if (simpleoutput) {
@@ -149,6 +152,8 @@ int main(int argc, char **argv) {
                 options.queuesize,
                 options.threshold,
                 options.numPrimesSource,
+                ppf.c_str(),
+                options.zerocopy,
                 timeresults.realtime,
                 timeresults.usertime,
                 timeresults.systime,

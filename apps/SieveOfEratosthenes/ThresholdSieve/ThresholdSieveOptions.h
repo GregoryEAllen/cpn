@@ -19,9 +19,11 @@ struct ThresholdSieveOptions {
     std::vector<NumberT> *results;
     CPN::Key_t consumerkey;
     bool report;
-    bool zerocopy;
+    int zerocopy;
 };
 
+const int WRITE_COPY = 1;
+const int READ_COPY = 2;
 const char* const PRODUCER_NAME = "Producer";
 const char* const FILTER_FORMAT = "Filter: %lu";
 const char* const QUEUE_FORMAT = "Queue: %lu";
