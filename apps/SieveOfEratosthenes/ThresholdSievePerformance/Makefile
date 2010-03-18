@@ -2,7 +2,7 @@
 PROG = ../ThresholdSieve/ThresholdSieve
 SHUFFLE = ./ShufflePerf/ShufflePerf
 
-all: results.data.txt results.legend.txt
+all: results.data.txt results.legend.txt results.pdf
 
 -include results.mk
 
@@ -11,6 +11,9 @@ results.txt: $(TARGETS) $(SHUFFLE)
 
 results.data.txt results.legend.txt: results.txt $(SHUFFLE)
 	$(SHUFFLE) -s results.txt results.data.txt results.legend.txt
+
+results.pdf : results.data.txt results.legend.txt plotresults.py
+	python plotresults.py
 
 results.mk: test.tcl
 	tclsh test.tcl
