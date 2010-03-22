@@ -27,13 +27,26 @@
 #include "AutoUnlock.h"
 #include "Assert.h"
 
+template <typename T>
+class ScopeSetter {
+public:
+    ScopeSetter(T &val_, T set) : val(val_), old(val)
+    {
+        val = set;
+    }
+    ~ScopeSetter() { val = old; }
+    T &val;
+    T old;
+};
+
 namespace D4R {
 
     QueueBase::QueueBase()
         : reader(0),
         writer(0),
         readtagchanged(false),
-        writetagchanged(false)
+        writetagchanged(false),
+        incomm(false)
     {}
 
     QueueBase::~QueueBase() {}
@@ -58,18 +71,24 @@ namespace D4R {
         }
         if (!ReadBlocked()) { return; }
         writetagchanged = false;
-        {
+        try {
+            while (incomm) { Wait(); }
+            ScopeSetter<bool> ss(incomm, true);
             AutoUnlock<QueueBase> au(*this);
             reader->Block(writer->GetPublicTag(), -1);
-        }
+        } catch (...) { Signal(); throw; }
+        Signal();
         while (ReadBlocked()) {
             if (writetagchanged) {
                 writetagchanged = false;
                 bool detect;
-                {
+                try {
+                    while (incomm) { Wait(); }
+                    ScopeSetter<bool> ss(incomm, true);
                     AutoUnlock<QueueBase> au(*this);
                     detect = reader->Transmit(writer->GetPublicTag());
-                }
+                } catch (...) { Signal(); throw; }
+                Signal();
                 if (detect) {
                     throw DeadlockException("True deadlock detected");
                 }
@@ -87,18 +106,24 @@ namespace D4R {
         }
         if (!WriteBlocked()) { return; }
         readtagchanged = false;
-        {
+        try {
+            while (incomm) { Wait(); }
+            ScopeSetter<bool> ss(incomm, true);
             AutoUnlock<QueueBase> au(*this);
             writer->Block(reader->GetPublicTag(), qsize);
-        }
+        } catch (...) { Signal(); throw; }
+        Signal();
         while (WriteBlocked()) {
             if (readtagchanged) {
                 readtagchanged = false;
                 bool detect;
-                {
+                try {
+                    while (incomm) { Wait(); }
+                    ScopeSetter<bool> ss(incomm, true);
                     AutoUnlock<QueueBase> au(*this);
                     detect = writer->Transmit(reader->GetPublicTag()); 
-                }
+                } catch (...) { Signal(); throw; }
+                Signal();
                 if (detect) { Detect(); }
             } else {
                 Wait();

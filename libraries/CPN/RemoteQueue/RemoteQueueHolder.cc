@@ -57,7 +57,6 @@ namespace CPN {
 
     void RemoteQueueHolder::Shutdown() {
         Sync::AutoLock<PthreadMutex> al(lock);
-        wakeup.SendWakeup();
         QueueMap::iterator q = queuemap.begin();
         while (q != queuemap.end()) {
             /*
@@ -72,6 +71,7 @@ namespace CPN {
                 ++q;
             //}
         }
+        wakeup.SendWakeup();
         while (!queuemap.empty()) {
             cond.Wait(lock);
         }

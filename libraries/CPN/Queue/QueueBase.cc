@@ -213,8 +213,9 @@ namespace CPN {
     void QueueBase::Detect() {
         Sync::AutoLock<QueueBase> al(*this);
         unsigned size = writerequest + Count();
-        //printf("Grow(%u, %u)\n", size, writerequest);
+        logger.Debug("Detect: Grow(%u, %u)", size, writerequest);
         Grow(size, writerequest);
+        logger.Debug("New size: (%u, %u)", QueueLength(), MaxThreshold());
     }
 
     unsigned QueueBase::ReadRequest() {

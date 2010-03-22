@@ -74,6 +74,7 @@ namespace D4R {
         Node *writer;
         bool readtagchanged;
         bool writetagchanged;
+        bool incomm;
     };
 
 }

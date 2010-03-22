@@ -24,6 +24,7 @@
 #include "RemoteQueueHolder.h"
 #include "QueueAttr.h"
 #include "Database.h"
+#include "Exceptions.h"
 #include "ErrnoException.h"
 #include "AutoLock.h"
 #include <errno.h>
@@ -78,7 +79,6 @@ namespace CPN {
     void RemoteQueue::Shutdown() {
         Sync::AutoLock<const QueueBase> al(*this);
         dead = true;
-        sock.Close();
     }
 
     unsigned RemoteQueue::Count() const {
@@ -285,6 +285,7 @@ namespace CPN {
 
     void RemoteQueue::SendEndOfWritePacket() {
         FUNC_TRACE(logger);
+        ASSERT(!sentEnd);
         Packet packet(PACKET_ENDOFWRITE);
         SetupPacket(packet);
         PacketEncoder::SendPacket(packet);
@@ -301,6 +302,7 @@ namespace CPN {
 
     void RemoteQueue::SendEndOfReadPacket() {
         FUNC_TRACE(logger);
+        ASSERT(!sentEnd);
         Packet packet(PACKET_ENDOFREAD);
         SetupPacket(packet);
         PacketEncoder::SendPacket(packet);
@@ -434,6 +436,10 @@ namespace CPN {
                     HandleError(e.Error());
                 }
             }
+        } catch (const ShutdownException &e) {
+            logger.Debug("Forced Shutdown (c: %llu)", clock.Get());
+            // Do nothing, this just breaks us out of the loop
+            // Can be thrown from ConnectWriter or ConnectReader
         } catch (...) {
             holder->CleanupQueue(GetKey());
             throw;
@@ -472,34 +478,35 @@ namespace CPN {
             }
 
             if (mode == WRITE) {
-                if (!queue->Empty()) {
-                    // If we can write more try to write more
-                    if (bytecount < readerlength) {
-                        SendEnqueuePacket();
+                if (!sentEnd) {
+                    if (!queue->Empty()) {
+                        // If we can write more try to write more
+                        if (bytecount < readerlength) {
+                            SendEnqueuePacket();
+                        }
+                        // If we can still write more, have the next call to Poll
+                        // check writeability
+                        if (bytecount < readerlength) {
+                            sock.Writeable(false);
+                        }
                     }
-                    // If we can still write more, have the next call to Poll
-                    // check writeability
-                    if (bytecount < readerlength) {
-                        sock.Writeable(false);
+                    // A pending block is present
+                    if (pendingBlock) {
+                        // If we have received dequeue packets
+                        // sense the block happened don't bother sending anything
+                        if (writerequest > queue->Freespace()) {
+                            SendWriteBlockPacket();
+                        }
+                        pendingBlock = false;
                     }
-                }
-                // A pending block is present
-                if (pendingBlock) {
-                    // If we have received dequeue packets
-                    // sense the block happened don't bother sending anything
-                    if (writerequest > queue->Freespace()) {
-                        SendWriteBlockPacket();
-                    }
-                    pendingBlock = false;
-                }
 
-                if (pendingD4RTag) {
-                    if (writer && !writeshutdown) {
-                        SendD4RTagPacket();
-                        pendingD4RTag = false;
+                    if (pendingD4RTag) {
+                        if (writer && !writeshutdown) {
+                            SendD4RTagPacket();
+                            pendingD4RTag = false;
+                        }
                     }
                 }
-
                 if (writeshutdown) {
                     if (!sentEnd && queue->Empty()) {
                         SendEndOfWritePacket();
@@ -517,26 +524,26 @@ namespace CPN {
                     dead = true;
                 }
             } else {
-                // If some bytes have been read from the queue
-                if (bytecount > queue->Count()) {
-                    SendDequeuePacket();
-                }
+                if (!sentEnd) {
+                    // If some bytes have been read from the queue
+                    if (bytecount > queue->Count()) {
+                        SendDequeuePacket();
+                    }
 
-                if (pendingBlock) {
-                    // May have received enqueue packets...
-                    if (readrequest > queue->Count()) {
-                        SendReadBlockPacket();
+                    if (pendingBlock) {
+                        // May have received enqueue packets...
+                        if (readrequest > queue->Count()) {
+                            SendReadBlockPacket();
+                        }
+                        pendingBlock = false;
                     }
-                    pendingBlock = false;
-                }
-                if (pendingD4RTag) {
-                    if (reader && !readshutdown) {
-                        SendD4RTagPacket();
-                        pendingD4RTag = false;
+                    if (pendingD4RTag) {
+                        if (reader && !readshutdown) {
+                            SendD4RTagPacket();
+                            pendingD4RTag = false;
+                        }
                     }
-                }
-                if (readshutdown) {
-                    if (!sentEnd) {
+                    if (readshutdown) {
                         SendEndOfReadPacket();
                         sentEnd = true;
                     }
@@ -561,7 +568,6 @@ namespace CPN {
     void RemoteQueue::HandleError(int error) {
         Sync::AutoLock<QueueBase> al(*this);
         if (readshutdown || writeshutdown) {
-            readshutdown = writeshutdown = true;
             Signal();
         }
         switch (error) {
