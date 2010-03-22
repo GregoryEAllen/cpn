@@ -96,6 +96,7 @@ void RemoteQueueTest::setUp() {
 
 void RemoteQueueTest::tearDown() {
     database->Terminate();
+    server->Wakeup();
     server->Close();
     remotequeueholder.Shutdown();
 
