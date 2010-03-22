@@ -97,10 +97,10 @@ void RemoteQueueTest::setUp() {
 void RemoteQueueTest::tearDown() {
     database->Terminate();
     server->Wakeup();
+    servert.reset();
     server->Close();
     remotequeueholder.Shutdown();
 
-    servert.reset();
     rendp.reset();
     wendp.reset();
     wqueue.reset();
