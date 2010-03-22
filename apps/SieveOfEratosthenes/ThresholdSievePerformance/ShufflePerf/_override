@@ -1,0 +1,9 @@
+
+OS_LIBS += -ldl
+#OS_LIBS += `pkg-config --libs sigc++-2.0`
+#OS_INCDIR += `pkg-config --cflags sigc++-2.0`
+CC_OTHER += -Wall
+#CXX_OTHER += -Wall
+LD_OTHER += -Wall -rdynamic
+
+#OS_DEFS += -D_DEBUG

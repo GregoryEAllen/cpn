@@ -19,6 +19,8 @@ _Linux-x86_64
 documentation
 # individual executables
 
+apps/SieveOfEratosthenes/ThresholdSievePerformance/result*
+
 # use regexp syntax
 syntax: regexp
 # Ignore all files/directories that have the exact same
