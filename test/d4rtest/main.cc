@@ -6,14 +6,18 @@
 #include "Logger.h"
 #include <vector>
 
-const char VALID_OPS[] = "";
+const char VALID_OPS[] = "l:";
 
 
 int main(int argc, char **argv) {
     bool procOpts = true;
+    int loglevel = Logger::DEBUG;
     while (procOpts) {
         int opt = getopt(argc, argv, VALID_OPS);
         switch (opt) {
+        case 'l':
+            loglevel = atoi(optarg);
+            break;
         case -1:
             procOpts = false;
             break;
@@ -31,7 +35,7 @@ int main(int argc, char **argv) {
     }
 
     std::string ext = ".test";
-    LoggerStdOutput loggerout(Logger::DEBUG);
+    LoggerStdOutput loggerout(loglevel);
 
     for ( Directory dir(dirname); !dir.End() ; dir.Next() ) {
         try {

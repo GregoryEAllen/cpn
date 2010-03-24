@@ -53,20 +53,33 @@ public:
     }
 
     void Enqueue(const std::string &qname, unsigned amount) {
-        Trace("Enqueue %s: %u", qname.c_str(), amount);
         QueueWriterAdapter<unsigned> out = GetWriter(qname);
+        Trace("Enqueue %s(%llu): %u", qname.c_str(), out.GetKey(), amount);
+#if 0
         std::vector<unsigned> buf;
         for (unsigned i = 0; i < amount; ++i) {
             buf.push_back(i);
         }
         out.Enqueue(&buf[0], amount);
+#else
+        for (unsigned i = 0; i < amount; ++i) {
+            out.Enqueue(&i, 1);
+        }
+#endif
     }
 
     void Dequeue(const std::string &qname, unsigned amount) {
-        Trace("Dequeue %s: %u", qname.c_str(), amount);
         QueueReaderAdapter<unsigned> in = GetReader(qname);
+        Trace("Dequeue %s(%llu): %u", qname.c_str(), in.GetKey(), amount);
+#if 0
         std::vector<unsigned> buf(amount);
         in.Dequeue(&buf[0], amount);
+#else
+        unsigned bogus;
+        for (unsigned i = 0; i < amount; ++i) {
+            in.Dequeue(&bogus, 1);
+        }
+#endif
     }
 
     void VerifyReaderSize(const std::string &qname, unsigned amount) {
@@ -113,6 +126,7 @@ void D4RTest::RunTest(int numkernels) {
     std::string ext = ".test";
     Directory dir("D4R/Tests");
     unsigned runs = 0;
+    unsigned failures = 0;
 
     for (;!dir.End(); dir.Next()) {
         if (!dir.IsRegularFile()) continue;
@@ -140,7 +154,7 @@ void D4RTest::RunTest(int numkernels) {
         Variant conf = Variant::FromJSON(buf);
 
         database = Database::Local();
-        database->LogLevel(Logger::WARNING);
+        database->LogLevel(Logger::TRACE);
         database->UseD4R(true);
         database->SwallowBrokenQueueExceptions(true);
         database->GrowQueueMaxThreshold(false);
@@ -152,9 +166,12 @@ void D4RTest::RunTest(int numkernels) {
                     );
         }
 
-        Debug("Starting test %s with %d kernels", dir.BaseName().c_str(), numkernels);
+        printf("Starting test %s with %d kernels\n", dir.BaseName().c_str(), numkernels);
         success = true;
-        Setup(conf);
+        try {
+            Setup(conf);
+        } catch (const CPN::ShutdownException &e) {
+        }
 
         database->WaitForAllNodeEnd();
         while (!kernels.empty()) {
@@ -162,10 +179,13 @@ void D4RTest::RunTest(int numkernels) {
             kernels.pop_back();
         }
         runs++;
-        Debug("Test %s : %s", dir.BaseName().c_str(), success ? "success" : "failure");
+        printf("Test %s : %s\n", dir.BaseName().c_str(), success ? "success" : "failure");
         database.reset();
-        CPPUNIT_ASSERT(success);
+        if (!success) {
+            failures++;
+        }
     }
+    CPPUNIT_ASSERT(failures == 0);
 }
 
 void D4RTest::RunOneKernelTest() {
@@ -208,7 +228,7 @@ void D4RTest::CreateNode(const Variant &noded) {
 }
 
 void D4RTest::CreateQueue(const Variant &queued) {
-    QueueAttr attr(queued["size"].AsUnsigned() * sizeof(unsigned), queued["size"].AsUnsigned()*sizeof(unsigned));
+    QueueAttr attr(queued["size"].AsUnsigned() * sizeof(unsigned), sizeof(unsigned));
     attr.SetDatatype<unsigned>();
     attr.SetReader(queued["reader"].AsString(), queued["name"].AsString());
     attr.SetWriter(queued["writer"].AsString(), queued["name"].AsString());

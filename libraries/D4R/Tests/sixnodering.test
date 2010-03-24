@@ -6,11 +6,15 @@
             "instructions" : [
                 [ "enqueue", "1->2", 1],
                 [ "enqueue", "1->2", 1],
-                [ "verify writer size", "1->2", 2],
+                [ "enqueue", "1->2", 1],
+                [ "verify writer size", "1->2", 3],
+                [ "dequeue", "5->1", 1],
                 [ "dequeue", "5->1", 1],
                 [ "dequeue", "5->1", 1],
                 [ "enqueue", "1->2", 1],
                 [ "enqueue", "1->2", 1],
+                [ "enqueue", "1->2", 1],
+                [ "dequeue", "5->1", 1],
                 [ "dequeue", "5->1", 1],
                 [ "dequeue", "5->1", 1],
                 [ "exit" ]
@@ -22,11 +26,15 @@
             "instructions" : [
                 [ "enqueue", "2->6", 1],
                 [ "enqueue", "2->6", 1],
-                [ "verify writer size", "2->6", 1],
+                [ "enqueue", "2->6", 1],
+                [ "verify writer size", "2->6", 2],
+                [ "dequeue", "1->2", 1],
                 [ "dequeue", "1->2", 1],
                 [ "dequeue", "1->2", 1],
                 [ "enqueue", "2->6", 1],
                 [ "enqueue", "2->6", 1],
+                [ "enqueue", "2->6", 1],
+                [ "dequeue", "1->2", 1],
                 [ "dequeue", "1->2", 1],
                 [ "dequeue", "1->2", 1],
                 [ "exit" ]
@@ -38,11 +46,15 @@
             "instructions" : [
                 [ "enqueue", "3->5", 1],
                 [ "enqueue", "3->5", 1],
-                [ "verify writer size", "3->5", 1],
+                [ "enqueue", "3->5", 1],
+                [ "verify writer size", "3->5", 2],
+                [ "dequeue", "4->3", 1],
                 [ "dequeue", "4->3", 1],
                 [ "dequeue", "4->3", 1],
                 [ "enqueue", "3->5", 1],
                 [ "enqueue", "3->5", 1],
+                [ "enqueue", "3->5", 1],
+                [ "dequeue", "4->3", 1],
                 [ "dequeue", "4->3", 1],
                 [ "dequeue", "4->3", 1],
                 [ "exit" ]
@@ -54,11 +66,15 @@
             "instructions" : [
                 [ "enqueue", "4->3", 1],
                 [ "enqueue", "4->3", 1],
-                [ "verify writer size", "4->3", 1],
+                [ "enqueue", "4->3", 1],
+                [ "verify writer size", "4->3", 2],
+                [ "dequeue", "6->4", 1],
                 [ "dequeue", "6->4", 1],
                 [ "dequeue", "6->4", 1],
                 [ "enqueue", "4->3", 1],
                 [ "enqueue", "4->3", 1],
+                [ "enqueue", "4->3", 1],
+                [ "dequeue", "6->4", 1],
                 [ "dequeue", "6->4", 1],
                 [ "dequeue", "6->4", 1],
                 [ "exit" ]
@@ -70,11 +86,15 @@
             "instructions" : [
                 [ "enqueue", "5->1", 1],
                 [ "enqueue", "5->1", 1],
-                [ "verify writer size", "5->1", 1],
+                [ "enqueue", "5->1", 1],
+                [ "verify writer size", "5->1", 2],
+                [ "dequeue", "3->5", 1],
                 [ "dequeue", "3->5", 1],
                 [ "dequeue", "3->5", 1],
                 [ "enqueue", "5->1", 1],
                 [ "enqueue", "5->1", 1],
+                [ "enqueue", "5->1", 1],
+                [ "dequeue", "3->5", 1],
                 [ "dequeue", "3->5", 1],
                 [ "dequeue", "3->5", 1],
                 [ "exit" ]
@@ -86,11 +106,15 @@
             "instructions" : [
                 [ "enqueue", "6->4", 1],
                 [ "enqueue", "6->4", 1],
-                [ "verify writer size", "6->4", 1],
+                [ "enqueue", "6->4", 1],
+                [ "verify writer size", "6->4", 2],
+                [ "dequeue", "2->6", 1],
                 [ "dequeue", "2->6", 1],
                 [ "dequeue", "2->6", 1],
                 [ "enqueue", "6->4", 1],
                 [ "enqueue", "6->4", 1],
+                [ "enqueue", "6->4", 1],
+                [ "dequeue", "2->6", 1],
                 [ "dequeue", "2->6", 1],
                 [ "dequeue", "2->6", 1],
                 [ "exit" ]
@@ -100,37 +124,37 @@
     "queues" : [
         {
             "name" : "1->2",
-            "size" : 1,
+            "size" : 2,
             "reader" : "2",
             "writer" : "1"
         },
         {
             "name" : "2->6",
-            "size" : 1,
+            "size" : 2,
             "reader" : "6",
             "writer" : "2"
         },
         {
             "name" : "6->4",
-            "size" : 1,
+            "size" : 2,
             "reader" : "4",
             "writer" : "6"
         },
         {
             "name" : "4->3",
-            "size" : 1,
+            "size" : 2,
             "reader" : "3",
             "writer" : "4"
         },
         {
             "name" : "3->5",
-            "size" : 1,
+            "size" : 2,
             "reader" : "5",
             "writer" : "3"
         },
         {
             "name" : "5->1",
-            "size" : 1,
+            "size" : 2,
             "reader" : "1",
             "writer" : "5"
         }

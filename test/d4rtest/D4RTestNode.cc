@@ -68,7 +68,9 @@ namespace D4R {
             q  = writermap[qname];
         }
         ASSERT(q, "%s Invalid queue %s", name.c_str(), qname.c_str());
-        q->Enqueue(amount);
+        for (unsigned i = 0; i < amount; ++i) {
+            q->Enqueue(1);
+        }
     }
 
     void TestNode::Dequeue(const std::string &qname, unsigned amount) {
@@ -78,7 +80,9 @@ namespace D4R {
             q  = readermap[qname];
         }
         ASSERT(q, "%s Invalid queue %s", name.c_str(), qname.c_str());
-        q->Dequeue(amount);
+        for (unsigned i = 0; i < amount; ++i) {
+            q->Dequeue(1);
+        }
     }
 
     void TestNode::VerifyReaderSize(const std::string &qname, unsigned amount) {
