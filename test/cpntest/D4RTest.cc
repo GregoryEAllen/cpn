@@ -154,7 +154,7 @@ void D4RTest::RunTest(int numkernels) {
         Variant conf = Variant::FromJSON(buf);
 
         database = Database::Local();
-        database->LogLevel(Logger::TRACE);
+        database->LogLevel(Logger::WARNING);
         database->UseD4R(true);
         database->SwallowBrokenQueueExceptions(true);
         database->GrowQueueMaxThreshold(false);

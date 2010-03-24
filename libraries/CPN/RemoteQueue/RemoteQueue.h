@@ -133,6 +133,7 @@ namespace CPN {
         bool sentEnd;
         bool pendingGrow;
         bool pendingD4RTag;
+        bool tagUpdated;
 
         bool dead;
     };

@@ -55,6 +55,7 @@ namespace CPN {
         sentEnd(false),
         pendingGrow(false),
         pendingD4RTag(false),
+        tagUpdated(false),
         dead(false)
     {
         if (mode == READ) {
@@ -130,16 +131,29 @@ namespace CPN {
     void RemoteQueue::WaitForData() {
         ASSERT(mode == READ);
         pendingBlock = true;
+        tagUpdated = false;
         InternalCheckStatus();
-        sock.Writeable(false);
-        ThresholdQueue::WaitForData();
+        while (ReadBlocked() && !tagUpdated) {
+            Wait();
+            InternalCheckStatus();
+        }
+        if (ReadBlocked() && tagUpdated) {
+            ThresholdQueue::WaitForData();
+        }
     }
 
     void RemoteQueue::WaitForFreespace() {
         ASSERT(mode == WRITE);
         pendingBlock = true;
+        tagUpdated = false;
         InternalCheckStatus();
-        ThresholdQueue::WaitForFreespace();
+        while (WriteBlocked() && !tagUpdated) {
+            Wait();
+            InternalCheckStatus();
+        }
+        if (WriteBlocked() && tagUpdated) {
+            ThresholdQueue::WaitForFreespace();
+        }
     }
 
     void RemoteQueue::InternalDequeue(unsigned count) {
@@ -243,8 +257,10 @@ namespace CPN {
         ASSERT(mode == WRITE);
         ASSERT(!readshutdown);
         readrequest = packet.Requested();
-        if (useD4R) {
-            pendingD4RTag = true;
+        if (readrequest > queue->Count() + bytecount) {
+            if (useD4R) {
+                pendingD4RTag = true;
+            }
         }
     }
 
@@ -262,8 +278,10 @@ namespace CPN {
         ASSERT(mode == READ);
         ASSERT(!writeshutdown);
         writerequest = packet.Requested();
-        if (useD4R) {
-            pendingD4RTag = true;
+        if (writerequest > queue->Freespace()) {
+            if (useD4R) {
+                pendingD4RTag = true;
+            }
         }
     }
 
@@ -336,6 +354,8 @@ namespace CPN {
         D4R::Tag tag;
         unsigned numread = sock.Read(&tag, sizeof(tag));
         ASSERT(numread == sizeof(tag));
+        tagUpdated = true;
+        Signal();
         mocknode.SetPublicTag(tag);
         if (mode == WRITE) {
             QueueBase::SignalReaderTagChanged();

@@ -27,7 +27,7 @@ public:
 
 	CPPUNIT_TEST_SUITE( D4RTest );
 	CPPUNIT_TEST( RunOneKernelTest );
-	//CPPUNIT_TEST( RunTwoKernelTest );
+	CPPUNIT_TEST( RunTwoKernelTest );
 	CPPUNIT_TEST_SUITE_END();
 
 	void RunTest(int numkernels);
