@@ -4,7 +4,7 @@ proc command {maxprime queuesize threshold ppn iterations wheel zerocopy filenam
     return "\$(PROG) -m $maxprime -q $queuesize -t $threshold -p $ppn -i $iterations -w $wheel -z $zerocopy -f $filename"
 }
 proc mkfilename {maxprime queuesize threshold ppn iterations wheel zerocopy} {
-    return "result.$maxprime.$queuesize.threshold.[join [split $ppn {,}] {-}].$iterations.$wheel.$zerocopy"
+    return "result.$maxprime.$queuesize.threshold.[join [split $ppn {,}] {-}].$iterations.$wheel.$zerocopy-\$(OS)"
 }
 
 set resultdec {}

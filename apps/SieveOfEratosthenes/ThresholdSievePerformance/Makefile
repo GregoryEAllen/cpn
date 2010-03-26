@@ -1,6 +1,7 @@
 
 PROG = ../ThresholdSieve/ThresholdSieve
-SHUFFLE = ./ShufflePerf/ShufflePerf
+OS := $(shell uname -s)-$(shell uname -p)
+SHUFFLE = ./ShufflePerf/_$(OS)/ShufflePerf
 
 all: results.data.txt results.legend.txt results.pdf
 
@@ -19,9 +20,12 @@ results.mk: test.tcl
 	tclsh test.tcl
 
 $(SHUFFLE):
-	bash -c "pushd ShufflePerf; jmake; popd"
+	pushd ShufflePerf; jmake; popd
 
 clean:
-	rm -f $(TARGETS)
 	rm -f results.txt results.data.txt results.legend.txt results.mk
+
+real-clean:
+	rm -f results.txt results.data.txt results.legend.txt results.mk
+	rm -f $(TARGETS)
 
