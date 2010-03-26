@@ -11,7 +11,7 @@
 
 #include <unistd.h>
 
-#if defined(_POSIX_SHARED_MEMORY_OBJECTS) && !defined(OS_DARWIN)
+#if defined(_POSIX_SHARED_MEMORY_OBJECTS)
     #define MBS_USE_POSIX_SHM 1
 #if !defined(OS_LINUX)
     #define _POSIX_C_SOURCE 199309
@@ -117,20 +117,21 @@ MirrorBufferSet::MirrorBufferSet(ulong bufferSz, ulong mirrorSz, int nBuffers)
     int fd = GetFileDescriptor();
 
     // make the file large enough
-    if ( ftruncate(fd, bufferSize*numBuffers) ) {
+    ulong numBytes = (bufferSize+mirrorSize) * numBuffers;
+    if ( ftruncate(fd, numBytes) ) {
         perror("ftruncate");
         close(fd);
         return;
     }
 
     // map the entire buffer space, so there will be enough space reserved
-    ulong numBytes = (bufferSize+mirrorSize) * numBuffers;
     fprintf1((stderr,"MirrorBufferSet: reserving %d bytes for mapping ", numBytes));
     caddr_t baseAddr = (caddr_t) mmap(0, numBytes, PROT_READ|PROT_WRITE, 
-            MAP_SHARED|MAP_NORESERVE, fd, 0);
+            MAP_SHARED|MAP_NORESERVE, fd, (off_t)0);
     if (baseAddr == MAP_FAILED) {
         fprintf1((stderr,"failed\n"));
         perror("mmap");
+        close(fd);
         return;
     }
     bufferBase = baseAddr;
@@ -143,19 +144,21 @@ MirrorBufferSet::MirrorBufferSet(ulong bufferSz, ulong mirrorSz, int nBuffers)
         // once for the buffer
         caddr_t theAddr     = baseAddr+buf*(bufferSize+mirrorSize);
         size_t  theSize     = bufferSize;
-        size_t  theOffset   = buf*bufferSize;
+        off_t  theOffset   = buf*bufferSize;
         fprintf2((stderr,"mapping 0x%06lX bytes @ offset 0x%06lX ", theSize, theOffset));
         caddr_t addr = (caddr_t) mmap(theAddr, theSize, PROT_READ|PROT_WRITE,
             MAP_SHARED|MAP_FIXED|MAP_NORESERVE, fd, theOffset);
         if (addr == MAP_FAILED) {
             fprintf2((stderr,"failed\n"));
             perror("mmap");
+            close(fd);
             return;
         }
         fprintf2((stderr,"to [0x%08X - 0x%08X)\n", theAddr, theAddr+theSize));
         if (addr!=theAddr) {
             fprintf(stderr, "### Error: mapped to 0x%p instead of 0x%p\n",
                 addr, theAddr );
+            close(fd);
             return;
         }
 
@@ -168,11 +171,13 @@ MirrorBufferSet::MirrorBufferSet(ulong bufferSz, ulong mirrorSz, int nBuffers)
         if (addr == MAP_FAILED) {
             fprintf2((stderr,"failed\n"));
             perror("mmap");
+            close(fd);
             return;
         }
         fprintf2((stderr,"to [0x%08X - 0x%08X)\n", theAddr, theAddr+theSize));
         if (addr!=theAddr) {
             fprintf(stderr, "### Error: mapped to 0x%p instead of 0x%p\n", addr, theAddr );
+            close(fd);
             return;
         }
     }
