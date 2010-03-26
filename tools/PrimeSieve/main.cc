@@ -1,5 +1,6 @@
 #include "PrimeSieve.h"
 #include "PrimeSieveSource.h"
+#include <stdio.h>
 
 #define main5 main
 

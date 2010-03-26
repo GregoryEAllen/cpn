@@ -6,8 +6,9 @@
 #include "ThresholdSieveController.h"
 #include "Time.h"
 #include <sys/times.h>
+#include <stdlib.h>
 #include <unistd.h>
-#include <cstdio>
+#include <stdio.h>
 #include <string.h>
 
 const char* const VALID_OPTS = "Mm:q:t:hf:i:p:vw:rz:s";
