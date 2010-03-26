@@ -8,6 +8,7 @@
 #include "Kernel.h"
 #include "Variant.h"
 #include "ToString.h"
+#include <stdio.h>
 #include <stdexcept>
 #include <stdarg.h>
 

@@ -11,6 +11,7 @@
 #include "ToString.h"
 
 #include <unistd.h>
+#include <stdio.h>
 #include <vector>
 #include <signal.h>
 
@@ -24,7 +25,7 @@ using CPN::KernelAttr;
 
 const char* const VALID_OPTS = "h";
 
-const char* const HELP_OPTS = "Usage: %s <config> <name> <datbase hostname> <database port>\n"
+const char* const HELP_OPTS = "Usage: %s <config> <name> <database hostname> <database port>\n"
 "\t-h\tPrint out this message\n"
 "\n"
 "The config file should be of the format:\n"

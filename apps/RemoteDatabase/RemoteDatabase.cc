@@ -37,9 +37,10 @@ void RemoteDatabase::SendMessage(const Variant &msg) {
 
 void *RemoteDatabase::EntryPoint() {
     try {
-        Readable(true);
+        Readable(false);
         while (Good()) {
             Poll(-1);
+            Read();
         }
     } catch (const ErrnoException &e) {
         printf("RemoteDatabase: Uncaught errno exception (%d): %s\n", e.Error(), e.what());
@@ -48,7 +49,7 @@ void *RemoteDatabase::EntryPoint() {
     return 0;
 }
 
-void RemoteDatabase::OnRead() {
+void RemoteDatabase::Read() {
     const unsigned BUF_SIZE = 4*1024;
     char buf[BUF_SIZE];
     while (Good()) {
@@ -72,22 +73,5 @@ void RemoteDatabase::OnRead() {
             }
         }
     }
-}
-
-void RemoteDatabase::OnWrite() {
-}
-
-void RemoteDatabase::OnError() {
-    Terminate();
-    Close();
-}
-
-void RemoteDatabase::OnHup() {
-    Terminate();
-    Close();
-}
-
-void RemoteDatabase::OnInval() {
-    Terminate();
 }
 

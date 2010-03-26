@@ -23,8 +23,8 @@
 #ifndef REMOTEDATABASEDAEMON_H
 #define REMOTEDATABASEDAEMON_H
 #pragma once
-#include "ListenSockHandler.h"
-#include "SockHandler.h"
+#include "ServerSocketHandle.h"
+#include "SocketHandle.h"
 #include "RemoteDBServer.h"
 #include <list>
 #include <vector>
@@ -35,7 +35,7 @@
  * the RemoteDatabaseDaemon is an implementation of RemoteDBServer that uses
  * simple tcp/ip and listens on an address you specify.
  */
-class RemoteDatabaseDaemon : public CPN::RemoteDBServer, public ListenSockHandler {
+class RemoteDatabaseDaemon : public CPN::RemoteDBServer, public ServerSocketHandle {
 public:
     RemoteDatabaseDaemon(const SocketAddress &addr);
     RemoteDatabaseDaemon(const SockAddrList &addrs);
@@ -51,21 +51,15 @@ public:
     void Terminate();
     void Terminate(const std::string &name);
 private:
-    void OnRead();
-    void OnError();
-    void OnInval();
+    void Read();
     void SendMessage(const std::string &recipient, const Variant &msg);
     void BroadcastMessage(const Variant &msg);
     void LogMessage(const std::string &msg);
 
-    class Client : public SockHandler {
+    class Client : public SocketHandle {
     public:
         Client(RemoteDatabaseDaemon *d, int nfd);
-        void OnRead();
-        void OnWrite();
-        void OnError();
-        void OnHup();
-        void OnInval();
+        void Read();
         void Send(const Variant &msg);
         const std::string &GetName() const { return name; }
     private:

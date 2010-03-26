@@ -8,6 +8,8 @@
 #include "ToString.h"
 
 #include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <vector>
 
 using CPN::shared_ptr;
