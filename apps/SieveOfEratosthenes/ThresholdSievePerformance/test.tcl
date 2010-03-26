@@ -6,6 +6,9 @@ proc command {maxprime queuesize threshold ppn iterations wheel zerocopy filenam
 proc mkfilename {maxprime queuesize threshold ppn iterations wheel zerocopy} {
     return "result.$maxprime.$queuesize.threshold.[join [split $ppn {,}] {-}].$iterations.$wheel.$zerocopy-\$(OS)"
 }
+proc mkrule {maxprime queuesize threshold ppn iterations wheel zerocopy filename} {
+    return "$filename: \$(PROG)\n\t[command $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy $filename]\n"
+}
 
 set resultdec {}
 set resultrules {}
@@ -24,7 +27,7 @@ set maximumprime 1000000
 
 for {set maxprime $minimumprime} {$maxprime <= $maximumprime} {set maxprime [expr $maxprime * 10]} {
     set filename [mkfilename $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy]
-    lappend resultrules "$filename:\n\t[command $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy $filename]\n"
+    lappend resultrules [mkrule $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy $filename]
     lappend resultdec $filename
     incr num
 }
@@ -33,7 +36,7 @@ set wheel 5
 
 for {set maxprime $minimumprime} {$maxprime <= $maximumprime} {set maxprime [expr $maxprime * 10]} {
     set filename [mkfilename $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy]
-    lappend resultrules "$filename:\n\t[command $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy $filename]\n"
+    lappend resultrules [mkrule $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy $filename]
     lappend resultdec $filename
     incr num
 }
@@ -43,7 +46,7 @@ set ppn "5,0,0"
 
 for {set maxprime $minimumprime} {$maxprime <= $maximumprime} {set maxprime [expr $maxprime * 10]} {
     set filename [mkfilename $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy]
-    lappend resultrules "$filename:\n\t[command $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy $filename]\n"
+    lappend resultrules [mkrule $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy $filename]
     lappend resultdec $filename
     incr num
 }
@@ -52,7 +55,7 @@ set ppn "0.5,0.5,0.5"
 
 for {set maxprime $minimumprime} {$maxprime <= $maximumprime} {set maxprime [expr $maxprime * 10]} {
     set filename [mkfilename $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy]
-    lappend resultrules "$filename:\n\t[command $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy $filename]\n"
+    lappend resultrules [mkrule $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy $filename]
     lappend resultdec $filename
     incr num
 }
@@ -61,7 +64,7 @@ set zerocopy 1
 
 for {set maxprime $minimumprime} {$maxprime <= $maximumprime} {set maxprime [expr $maxprime * 10]} {
     set filename [mkfilename $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy]
-    lappend resultrules "$filename:\n\t[command $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy $filename]\n"
+    lappend resultrules [mkrule $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy $filename]
     lappend resultdec $filename
     incr num
 }
@@ -70,7 +73,7 @@ set zerocopy 2
 
 for {set maxprime $minimumprime} {$maxprime <= $maximumprime} {set maxprime [expr $maxprime * 10]} {
     set filename [mkfilename $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy]
-    lappend resultrules "$filename:\n\t[command $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy $filename]\n"
+    lappend resultrules [mkrule $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy $filename]
     lappend resultdec $filename
     incr num
 }
@@ -79,7 +82,7 @@ set zerocopy 3
 
 for {set maxprime $minimumprime} {$maxprime <= $maximumprime} {set maxprime [expr $maxprime * 10]} {
     set filename [mkfilename $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy]
-    lappend resultrules "$filename:\n\t[command $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy $filename]\n"
+    lappend resultrules [mkrule $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy $filename]
     lappend resultdec $filename
     incr num
 }
