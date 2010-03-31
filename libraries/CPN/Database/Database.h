@@ -294,6 +294,11 @@ namespace CPN {
         virtual bool GrowQueueMaxThreshold();
         virtual bool GrowQueueMaxThreshold(bool grow);
 
+        /** \brief Calculate the new queue size when a queue needs to grow.
+         * \return the new queue size
+         */
+        virtual unsigned CalculateGrowSize(unsigned currentsize, unsigned request) { return currentsize + request; }
+
         /** \brief Whether the node should by default swallow the broken queue exceptions
          * or let them propigate as an error.
          * \return true or false
