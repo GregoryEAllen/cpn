@@ -18,7 +18,7 @@ const char* const HELP_OPTS = "Usage: %s -hv -m maxprime -q queuesize -t thresho
 "\t-m\tSpecify the maximum number to consider for primes (default 100)\n"
 "\t-q\tSpecify the queue size to use (default 100)\n"
 "\t-t\tSpecify the threshold to use (default 2)\n"
-"\t-f\tSpecify a file to use instead of stdout (appends)\n"
+"\t-f\tSpecify a file to use instead of stdout (clobbers)\n"
 "\t-pa,b,c,...\tSpecify the number of primes per filter as a polynomial (default 1)\n"
 "\t-w\tSpecify the number of primes in the producer prime wheel (default 0)\n"
 "\t-i\tRerun the given number of times\n"
@@ -143,7 +143,7 @@ int main(int argc, char **argv) {
         format_str = STDOUT_FORMAT;
     }
     if (tofile) {
-        f = fopen(filename.c_str(), "a");
+        f = fopen(filename.c_str(), "w");
         if (!f) f = stdout;
     }
     if (!simpleoutput) {

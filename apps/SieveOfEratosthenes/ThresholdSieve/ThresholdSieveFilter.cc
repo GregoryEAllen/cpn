@@ -107,7 +107,8 @@ void ThresholdSieveFilter::Process() {
     if (zerocopy & WRITE_COPY) {
         outbuff = buffer2;
     }
-    PrimeSieve sieve(PrimesPerFilter());
+    const NumberT ppf = PrimesPerFilter();
+    PrimeSieve sieve(ppf);
     unsigned numPrimes = 0;
     unsigned numPassed = 0;
     unsigned incount = threshold;
@@ -178,8 +179,8 @@ void ThresholdSieveFilter::Process() {
     out.Release();
     in.Release();
     if (opts.report) {
-        printf("%s statistics:\n\tProcessed:\t%llu\n\tPassed:  \t%llu\n\tStopped:\t%llu\n",
-            GetName().c_str(), tot_processed, tot_passed, tot_processed - tot_passed);
+        printf("%s statistics: PPF: %llu\n\tProcessed:\t%llu\n\tPassed:  \t%llu\n\tStopped:\t%llu\n",
+            GetName().c_str(), ppf, tot_processed, tot_passed, tot_processed - tot_passed);
     }
     DEBUG("%s stopped\n", GetName().c_str());
 }

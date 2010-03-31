@@ -150,6 +150,8 @@ int main(int argc, char **argv) {
             if (!f) {
                 fprintf(stderr, "Couldn't open %s\n", argv[i]);
                 exit(1);
+            } else {
+                fprintf(stderr, "Processing: %s\n", argv[i]);
             }
             Variant val = ReadValues(f);
             fclose(f);

@@ -1,7 +1,8 @@
 
-OS := $(shell uname -s)-$(shell uname -p)
-PROG = ../ThresholdSieve/_$(OS)/ThresholdSieve
-SHUFFLE = ./ShufflePerf/_$(OS)/ShufflePerf
+OS_PROG := $(shell uname -s)-$(shell uname -p)
+OS := $(OS_PROG)
+PROG = ../ThresholdSieve/_$(OS_PROG)/ThresholdSieve
+SHUFFLE = ./ShufflePerf/_$(OS_PROG)/ShufflePerf
 
 all: results.data.txt results.legend.txt results.pdf
 
