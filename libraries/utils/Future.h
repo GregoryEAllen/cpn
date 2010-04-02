@@ -1,0 +1,57 @@
+//=============================================================================
+//	Computational Process Networks class library
+//	Copyright (C) 1997-2006  Gregory E. Allen and The University of Texas
+//
+//	This library is free software; you can redistribute it and/or modify it
+//	under the terms of the GNU Library General Public License as published
+//	by the Free Software Foundation; either version 2 of the License, or
+//	(at your option) any later version.
+//
+//	This library is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//	Library General Public License for more details.
+//
+//	The GNU Public License is available in the file LICENSE, or you
+//	can write to the Free Software Foundation, Inc., 59 Temple Place -
+//	Suite 330, Boston, MA 02111-1307, USA, or you can find it on the
+//	World Wide Web at http://www.fsf.org.
+//=============================================================================
+/** \file
+ * \author John Bridgman
+ */
+
+#ifndef FUTURE_H
+#define FUTURE_H
+
+/** 
+ * A Future represents a returned result of a computation that will be
+ * completed asynchroniously.
+ */
+template<typename Value>
+class Future {
+public:
+    virtual ~Future() {}
+    /**
+     * Poll if the result is ready.
+     */
+    virtual bool Done() = 0;
+
+    /**
+     * Cancel the operation.
+     */
+    virtual void Cancel() = 0;
+
+    /**
+     * Get the result, implementation dependent behavior if not ready.
+     * One implementation may throw an exception another may block
+     * and a third may return a default value, etc.
+     *
+     * Subsequent calls to Get are implementation defined. 
+     * one implementation may throw an execption another may block
+     * forever, another may return a default value, etc.
+     */
+    virtual Value Get() = 0;
+};
+
+#endif
