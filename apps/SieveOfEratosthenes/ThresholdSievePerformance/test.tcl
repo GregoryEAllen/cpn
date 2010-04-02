@@ -7,7 +7,7 @@ proc mkfilename {maxprime queuesize threshold ppn iterations wheel zerocopy} {
     return "result.$maxprime.$queuesize.threshold.[join [split $ppn {,}] {-}].$iterations.$wheel.$zerocopy-\$(OS)"
 }
 proc mkrule {maxprime queuesize threshold ppn iterations wheel zerocopy filename} {
-    return "$filename: \$(PROG)\n\t[command $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy $filename]\n"
+    return "$filename:\n\t[command $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy $filename]\n"
 }
 
 set resultdec {}
@@ -60,6 +60,27 @@ for {set maxprime $minimumprime} {$maxprime <= $maximumprime} {set maxprime [exp
     incr num
 }
 
+set ppn "0,0,0.05"
+
+for {set maxprime $minimumprime} {$maxprime <= $maximumprime} {set maxprime [expr $maxprime * 10]} {
+    set filename [mkfilename $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy]
+    lappend resultrules [mkrule $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy $filename]
+    lappend resultdec $filename
+    incr num
+}
+
+set ppn "0,0,0,0.005"
+
+for {set maxprime $minimumprime} {$maxprime <= $maximumprime} {set maxprime [expr $maxprime * 10]} {
+    set filename [mkfilename $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy]
+    lappend resultrules [mkrule $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy $filename]
+    lappend resultdec $filename
+    incr num
+}
+
+
+
+if 1 {
 set zerocopy 1
 
 for {set maxprime $minimumprime} {$maxprime <= $maximumprime} {set maxprime [expr $maxprime * 10]} {
@@ -87,6 +108,7 @@ for {set maxprime $minimumprime} {$maxprime <= $maximumprime} {set maxprime [exp
     incr num
 }
 
+}
 set fd [open {results.mk} w]
 
 puts $fd "TARGETS = [join $resultdec]"
