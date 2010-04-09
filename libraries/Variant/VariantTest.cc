@@ -2,9 +2,9 @@
 #include "Variant.h"
 #include <cassert>
 #include <iostream>
-#include "VariantJSON.h"
-#include "JSONVariant.h"
 #include <sstream>
+#include "JSONToVariant.h"
+#include "VariantToJSON.h"
 
 void VariantTest();
 
@@ -36,7 +36,7 @@ void VariantTest() {
     std::cout << v << std::endl;
     std::string text = "[1,2,3,4,{\"A\":2}, \"text\"]";
     std::istringstream iss(text);
-    JSONVariant jv;
+    JSONToVariant jv;
     iss >> jv;
     v = jv.Get();
     //v = Variant::FromJSON(text);
@@ -61,7 +61,7 @@ void VariantTest() {
     std::string failtext = "[\"garbage\" \n    [";
     std::cout << "Testing parser failure: " << failtext << std::endl;
 
-    JSONVariant p;
+    JSONToVariant p;
     std::istringstream iss2(failtext);
     iss2 >> p;
     assert(p.GetStatus() == JSON::Parser::ERROR);
