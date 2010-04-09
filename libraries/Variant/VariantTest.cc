@@ -2,6 +2,9 @@
 #include "Variant.h"
 #include <cassert>
 #include <iostream>
+#include "VariantJSON.h"
+#include "JSONVariant.h"
+#include <sstream>
 
 void VariantTest();
 
@@ -29,11 +32,16 @@ void VariantTest() {
     list[2] = "two";
     list[5] = map;
     list[4] = 123u;
-    std::cout << list.AsJSON() << std::endl;
-    std::cout << v.AsJSON() << std::endl;
+    std::cout << list << std::endl;
+    std::cout << v << std::endl;
     std::string text = "[1,2,3,4,{\"A\":2}, \"text\"]";
-    v = Variant::FromJSON(text);
-    std::cout << v.AsJSON() << std::endl;
+    std::istringstream iss(text);
+    JSONVariant jv;
+    iss >> jv;
+    v = jv.Get();
+    //v = Variant::FromJSON(text);
+    std::cout << v << std::endl;
+    std::cout << PrettyJSON(v) << std::endl;
     assert(v.IsArray());
     assert(v[4].IsObject());
     assert(v[5].IsString());
@@ -47,5 +55,7 @@ void VariantTest() {
     assert(cv[4]["A"].IsNumber());
     assert(cv[4]["b"].IsNull());
     assert(cv[10].IsNull());
+    v = "\n";
+    std::cout << v;
 }
 

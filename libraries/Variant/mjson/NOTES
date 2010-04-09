@@ -1,7 +1,0 @@
-This copy of the mjson library is just lacking the make files, test suites, and
-a pretty printer helper function.
-
-This library was obtained from http://sourceforge.net/projects/mjson/
-
-The full source code etc. can be obtained from that link.
-
