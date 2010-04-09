@@ -246,7 +246,7 @@ namespace CPN {
         nodeattr["name"] = attr.GetName();
         nodeattr["nodetype"] = attr.GetTypeName();
         nodeattr["param"] = attr.GetParam();
-        Base64Encoder encode;
+        Base64Encoder encode(0);
         encode.EncodeBlock(attr.GetArg().GetBuffer(), attr.GetArg().GetSize());
         nodeattr["arg"] = encode.BlockEnd();
         nodeattr["key"] = attr.GetKey();
