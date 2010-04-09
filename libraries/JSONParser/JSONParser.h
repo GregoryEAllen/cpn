@@ -22,6 +22,9 @@ namespace JSON {
         unsigned Parse(const char *c, unsigned len);
 
         Status_t GetStatus() const { return status; }
+        bool Done() const { return status == DONE; }
+        bool Error() const { return status == ERROR; }
+        bool Ok() const { return status == OK; }
         unsigned GetLine() const { return line; }
         unsigned GetColumn() const { return column; }
         unsigned GetByteCount() const { return charcount; }
