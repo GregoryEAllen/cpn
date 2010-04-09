@@ -1,4 +1,5 @@
-
+#ifndef VARIANTTOJSON_H
+#define VARIANTTOJSON_H
 #pragma once
 #include <iosfwd>
 #include "Variant.h"
@@ -22,4 +23,4 @@ inline std::ostream &operator<<(std::ostream &os, const PrettyJSON &v) {
     return VariantToJSON(os, v.value, v.pretty);
 }
 
-
+#endif

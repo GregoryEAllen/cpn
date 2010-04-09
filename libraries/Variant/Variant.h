@@ -72,8 +72,6 @@ public:
         ObjectType
     };
 
-    static const Variant null;
-
     Variant();
     Variant(Type_t type_);
     Variant(bool v);

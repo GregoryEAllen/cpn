@@ -1,9 +1,10 @@
-
+#ifndef JSONTOVARIANT_H
+#define JSONTOVARIANT_H
 #pragma once
 #include "JSONParser.h"
 #include "Variant.h"
 #include <stack>
-class JSONVariant : public JSON::Parser {
+class JSONToVariant : public JSON::Parser {
 public:
     Variant Get() const { return stack.top(); }
 protected:
@@ -27,4 +28,4 @@ protected:
     typedef std::stack<Variant> Stack;
     Stack stack;
 };
-
+#endif

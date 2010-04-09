@@ -33,7 +33,7 @@
 
 using std::tr1::shared_ptr;
 
-const Variant Variant::null;
+static const Variant null;
 
 Variant::Variant() : type(NullType) {}
 

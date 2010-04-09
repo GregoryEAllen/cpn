@@ -1,58 +1,58 @@
 
-#include "JSONVariant.h"
+#include "JSONToVariant.h"
 
-bool JSONVariant::ArrayBegin() {
+bool JSONToVariant::ArrayBegin() {
     stack.push(Variant(Variant::ArrayType));
     return true;
 }
 
-bool JSONVariant::ArrayEnd() {
+bool JSONToVariant::ArrayEnd() {
     Variant v = stack.top();
     if (!v.IsArray()) return false;
     stack.pop();
     return AddValue(v);
 }
 
-bool JSONVariant::ObjectBegin() {
+bool JSONToVariant::ObjectBegin() {
     stack.push(Variant(Variant::ObjectType));
     return true;
 }
 
-bool JSONVariant::ObjectEnd() {
+bool JSONToVariant::ObjectEnd() {
     Variant v = stack.top();
     if (!v.IsObject()) return false;
     stack.pop();
     return AddValue(v);
 }
 
-bool JSONVariant::Integer(int64_t value) {
+bool JSONToVariant::Integer(int64_t value) {
     Variant val = value;
     return AddValue(val);
 }
 
-bool JSONVariant::Float(double value) {
+bool JSONToVariant::Float(double value) {
     Variant val = value;
     return AddValue(val);
 }
 
-bool JSONVariant::String(const std::string &str) {
+bool JSONToVariant::String(const std::string &str) {
     Variant val = str;
     return AddValue(val);
 }
 
-bool JSONVariant::Null() {
+bool JSONToVariant::Null() {
     return AddValue(Variant(Variant::NullType));
 }
 
-bool JSONVariant::True() {
+bool JSONToVariant::True() {
     return AddValue(Variant(Variant::TrueType));
 }
 
-bool JSONVariant::False() {
+bool JSONToVariant::False() {
     return AddValue(Variant(Variant::FalseType));
 }
 
-bool JSONVariant::Key(const std::string &str) {
+bool JSONToVariant::Key(const std::string &str) {
     if (InObject()) {
         keystack.push(str);
         return true;
@@ -60,7 +60,7 @@ bool JSONVariant::Key(const std::string &str) {
     return false;
 }
 
-bool JSONVariant::AddValue(Variant val) {
+bool JSONToVariant::AddValue(Variant val) {
     if (InObject()) {
         if (keystack.empty()) return false;
         stack.top().At(keystack.top()) = val;
@@ -73,12 +73,12 @@ bool JSONVariant::AddValue(Variant val) {
     return true;
 }
 
-bool JSONVariant::InObject() {
+bool JSONToVariant::InObject() {
     if (stack.empty()) return false;
     return stack.top().IsObject();
 }
 
-bool JSONVariant::InArray() {
+bool JSONToVariant::InArray() {
     if (stack.empty()) return false;
     return stack.top().IsArray();
 }
