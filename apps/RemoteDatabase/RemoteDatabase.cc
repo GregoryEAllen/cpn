@@ -22,16 +22,19 @@
  */
 #include "RemoteDatabase.h"
 #include "ErrnoException.h"
+#include "VariantToJSON.h"
 #include <stdio.h>
+
+using std::auto_ptr;
 
 RemoteDatabase::~RemoteDatabase() {
 }
 
 void RemoteDatabase::SendMessage(const Variant &msg) {
     if (!Closed()) {
-        std::string message = msg.AsJSON();
+        std::string message = VariantToJSON(msg);
         //printf("<<< %s\n", message.c_str());
-        Write(message.c_str(), message.size() + 1);
+        Write(message.data(), message.size());
     }
 }
 
@@ -61,15 +64,18 @@ void RemoteDatabase::Read() {
             }
             break;
         }
-        for (unsigned i = 0; i < numread; ++i) {
-            if (buf[i] == 0) {
-                //buffer.push_back(buf[i]);
-                //printf(">>> %s\n", &buffer[0]);
-                Variant msg = Variant::FromJSON(buffer);
-                DispatchMessage(msg);
-                buffer.clear();
-            } else {
-                buffer.push_back(buf[i]);
+        unsigned numparsed = 0;
+        while (numparsed < numread) {
+            if (!parse.get()) {
+                parse = auto_ptr<JSONToVariant>(new JSONToVariant);
+            }
+            numparsed += parse->Parse(buf + numparsed, numread - numparsed);
+            if (parse->Done()) {
+                DispatchMessage(parse->Get());
+                parse.reset();
+            } else if (parse->Error()) {
+                printf("Error parsing input!\n");
+                parse.reset();
             }
         }
     }

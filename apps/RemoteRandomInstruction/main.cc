@@ -4,6 +4,7 @@
 #include "RemoteDatabase.h"
 
 #include "Variant.h"
+#include "JSONToVariant.h"
 
 #include "Kernel.h"
 #include "Database.h"
@@ -77,15 +78,12 @@ int main(int argc, char **argv) {
         perror("failed to open config");
         return 1;
     }
+    JSONToVariant parse;
     std::vector<char> buffer(4000, 0);
-    unsigned position = 0;
-    while (!feof(config)) {
-        position += fread(&buffer[position], 1, buffer.size() - position, config);
-        if (position == buffer.size()) {
-            buffer.resize(2*position, 0);
-        }
+    while (!feof(config) && parse.Ok()) {
+        unsigned numread = fread(&buffer[0], 1, buffer.size(), config);
+        parse.Parse(&buffer[0], numread);
     }
-    buffer.resize(position);
     fclose(config);
     config = 0;
 
@@ -93,7 +91,12 @@ int main(int argc, char **argv) {
     std::string hostname = argv[optind+2];
     std::string servname = argv[optind+3];
 
-    Variant conf = Variant::FromJSON(buffer);
+    if (!parse.Done()) {
+        printf("Unable to parse config file.\n");
+        printf("Stopped on line %u column %u\n", parse.GetLine(), parse.GetColumn());
+        return 1;
+    }
+    Variant conf = parse.Get();
 
     Variant val = conf["iterations"];
     if (val.IsNumber()) {

@@ -26,10 +26,12 @@
 #include "ServerSocketHandle.h"
 #include "SocketHandle.h"
 #include "RemoteDBServer.h"
+#include "JSONToVariant.h"
 #include <list>
 #include <vector>
 #include <string>
 #include <tr1/memory>
+#include <memory>
 
 /**
  * the RemoteDatabaseDaemon is an implementation of RemoteDBServer that uses
@@ -65,7 +67,7 @@ private:
     private:
         RemoteDatabaseDaemon *daemon;
         std::string name;
-        std::vector<char> buffer;
+        std::auto_ptr<JSONToVariant> parse;
     };
     typedef std::tr1::shared_ptr<Client> ClientPtr;
     typedef std::map<std::string, ClientPtr> ClientMap;

@@ -8,6 +8,8 @@
 #include "Kernel.h"
 #include "Variant.h"
 #include "ToString.h"
+#include "VariantToJSON.h"
+#include "JSONToVariant.h"
 #include <stdio.h>
 #include <stdexcept>
 #include <stdarg.h>
@@ -22,7 +24,10 @@ public:
     RINFactory() : CPN::NodeFactory(RANDOMINSTRUCTIONNODE_TYPENAME) {}
     ~RINFactory() {}
     CPN::shared_ptr<CPN::NodeBase> Create(CPN::Kernel& ker, const CPN::NodeAttr& attr) {
-        Variant args = Variant::FromJSON(attr.GetParam());
+        JSONToVariant parse;
+        parse.Parse(attr.GetParam().data(), attr.GetParam().size());
+        ASSERT(parse.Done());
+        Variant args = parse.Get();
         return CPN::shared_ptr<CPN::NodeBase>(
                 new RandomInstructionNode(ker, attr, RandomInstructionNode::RINState(args))
                 );
@@ -97,7 +102,7 @@ std::string RandomInstructionNode::RINState::ToJSON() {
     }
     rigstate["liveNodes"] = liveNodes;
     rinstate["state"] = rigstate;
-    return rinstate.AsJSON();
+    return VariantToJSON(rinstate);
 }
 
 RandomInstructionNode::RandomInstructionNode(CPN::Kernel& ker,
@@ -137,7 +142,7 @@ void RandomInstructionNode::CreateRIN(CPN::Kernel& kernel, unsigned iterations,
         state["nodeID"] = i;
         CPN::NodeAttr attr(GetNodeNameFromID(i),
                 RANDOMINSTRUCTIONNODE_TYPENAME);
-        attr.SetParam(state.AsJSON());
+        attr.SetParam(VariantToJSON(state));
         attr.SetHost(kernelnames[(i % kernelnames.size())]);
         kernel.CreateNode(attr);
     }

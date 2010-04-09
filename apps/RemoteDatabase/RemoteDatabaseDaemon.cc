@@ -24,7 +24,10 @@
 #include "RemoteDatabaseDaemon.h"
 #include "Assert.h"
 #include "ErrnoException.h"
+#include "VariantToJSON.h"
 #include <stdio.h>
+
+using std::auto_ptr;
 
 RemoteDatabaseDaemon::RemoteDatabaseDaemon(const SocketAddress &addr)
 {
@@ -95,13 +98,13 @@ void RemoteDatabaseDaemon::Read() {
 void RemoteDatabaseDaemon::SendMessage(const std::string &recipient, const Variant &msg) {
     ClientMap::iterator entry = clients.find(recipient);
     ASSERT(entry != clients.end());
-    dbprintf(4, "reply:%s:%s\n", recipient.c_str(), msg.AsJSON().c_str());
+    dbprintf(4, "reply:%s:%s\n", recipient.c_str(), VariantToJSON(msg).c_str());
     entry->second->Send(msg);
 }
 
 void RemoteDatabaseDaemon::BroadcastMessage(const Variant &msg) {
     ClientMap::iterator entry = clients.begin();
-    dbprintf(4, "broadcast:%s\n", msg.AsJSON().c_str());
+    dbprintf(4, "broadcast:%s\n", VariantToJSON(msg).c_str());
     while (entry != clients.end()) {
         entry->second->Send(msg);
         ++entry;
@@ -134,13 +137,18 @@ void RemoteDatabaseDaemon::Client::Read() {
                 }
                 break;
             }
-            for (unsigned i = 0; i < numread; ++i) {
-                if (buf[i] == 0) {
-                    Variant msg = Variant::FromJSON(buffer);
-                    daemon->DispatchMessage(name, msg);
-                    buffer.clear();
-                } else {
-                    buffer.push_back(buf[i]);
+            unsigned numparsed = 0;
+            while (numparsed < numread) {
+                if (!parse.get()) {
+                    parse = auto_ptr<JSONToVariant>(new JSONToVariant);
+                }
+                numparsed += parse->Parse(buf + numparsed, numread - numparsed);
+                if (parse->Done()) {
+                    daemon->DispatchMessage(name, parse->Get());
+                    parse.reset();
+                } else if (parse->Error()) {
+                    daemon->dbprintf(0, "Error parsing input!\n");
+                    parse.reset();
                 }
             }
         }
@@ -151,8 +159,8 @@ void RemoteDatabaseDaemon::Client::Read() {
 
 void RemoteDatabaseDaemon::Client::Send(const Variant &msg) {
     try {
-        std::string message = msg.AsJSON();
-        Write(message.c_str(), message.size() + 1);
+        std::string message = VariantToJSON(msg);
+        Write(message.data(), message.size());
     } catch (const ErrnoException &e) {
         daemon->dbprintf(0, "Error on write to %s:%d: %s\n", name.c_str(), e.Error(), e.what());
         daemon->Terminate(name);

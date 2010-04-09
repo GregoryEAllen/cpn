@@ -26,7 +26,8 @@
 #include "RemoteDBClient.h"
 #include "SocketHandle.h"
 #include "Pthread.h"
-#include <vector>
+#include "JSONToVariant.h"
+#include <memory>
 
 /**
  * An implementation for the RemoteDBClient that is paired with RemoteDatabaseDaemon.
@@ -41,6 +42,6 @@ protected:
     void *EntryPoint();
     void Read();
 private:
-    std::vector<char> buffer;
+    std::auto_ptr<JSONToVariant> parse;
 };
 #endif
