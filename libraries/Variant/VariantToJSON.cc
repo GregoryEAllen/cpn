@@ -1,7 +1,7 @@
 
 #include "VariantToJSON.h"
 #include <sstream>
-
+#include <stdio.h>
 
 std::string VariantToJSON(const Variant &v, bool pretty) {
     std::ostringstream oss;
@@ -11,7 +11,6 @@ std::string VariantToJSON(const Variant &v, bool pretty) {
 
 void InsertString(std::ostream &os, const std::string str) {
     os << "\"";
-	char buffer[6];
     const char *text = str.c_str();
     while (*text != '\0') {
 		if (*text == '\\') {
@@ -33,7 +32,8 @@ void InsertString(std::ostream &os, const std::string str) {
 		} else if (*text < 0)	{
             os << *text;
 		} else if (*text < 0x20) {
-			sprintf(buffer, "\\u%4.4x", *text);
+            char buffer[7];
+			snprintf(buffer, sizeof(buffer), "\\u%4.4x", *text);
             os << buffer;
 		} else {
             os << *text;
