@@ -7,7 +7,7 @@
 #include "Assert.h"
 
 Base64Encoder::Base64Encoder(unsigned cpl)
-    : chars_per_line(cpl), step(step_A), result(0), stepcount(0)
+    : step(step_A), chars_per_line(cpl), result(0), stepcount(0)
 {
 }
 
@@ -56,8 +56,8 @@ void Base64Encoder::EncodeBlock(const void *datain, unsigned inlen) {
             output.push_back(EncodeValue());
             
             if (chars_per_line != 0) {
-                ++stepcount;
-                if (stepcount == chars_per_line/4) {
+                stepcount += 4;
+                if (stepcount >= chars_per_line) {
                     output.push_back('\n');
                     stepcount = 0;
                 }

@@ -33,7 +33,7 @@ private:
 
     const unsigned chars_per_line;
     char result;
-    int stepcount;
+    unsigned stepcount;
     std::vector<char> output;
 };
 
