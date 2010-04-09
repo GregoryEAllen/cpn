@@ -56,6 +56,15 @@ void VariantTest() {
     assert(cv[4]["b"].IsNull());
     assert(cv[10].IsNull());
     v = "\n";
-    std::cout << v;
+    std::cout << v << std::endl;
+
+    std::string failtext = "[\"garbage\" \n    [";
+    std::cout << "Testing parser failure: " << failtext << std::endl;
+
+    JSONVariant p;
+    std::istringstream iss2(failtext);
+    iss2 >> p;
+    assert(p.GetStatus() == JSON::Parser::ERROR);
+    std::cout << "Stopped on line: " << p.GetLine() << " Column: " << p.GetColumn() << std::endl;
 }
 
