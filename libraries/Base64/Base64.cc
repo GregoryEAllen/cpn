@@ -7,7 +7,7 @@
 #include "Assert.h"
 
 Base64Encoder::Base64Encoder(unsigned cpl)
-    : chars_per_line(cpl), step(step_A), result(0), stepcount(0)
+    : step(step_A), chars_per_line(cpl), result(0), stepcount(0)
 {
 }
 

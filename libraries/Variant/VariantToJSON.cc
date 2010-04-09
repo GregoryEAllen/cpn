@@ -1,7 +1,7 @@
 
 #include "VariantToJSON.h"
 #include <sstream>
-
+#include <stdio.h>
 
 std::string VariantToJSON(const Variant &v, bool pretty) {
     std::ostringstream oss;
@@ -11,35 +11,35 @@ std::string VariantToJSON(const Variant &v, bool pretty) {
 
 void InsertString(std::ostream &os, const std::string str) {
     os << "\"";
-	char buffer[6];
     const char *text = str.c_str();
     while (*text != '\0') {
-		if (*text == '\\') {
+        if (*text == '\\') {
             os << "\\\\";
-		} else if (*text == '\"') {
+        } else if (*text == '\"') {
             os << "\\\"";
-		} else if (*text == '/') {
+        } else if (*text == '/') {
             os << "\\/";
-		} else if (*text == '\b') {
+        } else if (*text == '\b') {
             os << "\\b";
-		} else if (*text == '\f') {
+        } else if (*text == '\f') {
             os << "\\f";
-		} else if (*text == '\n') {
+        } else if (*text == '\n') {
             os << "\\n";
-		} else if (*text == '\r') {
+        } else if (*text == '\r') {
             os << "\\r";
-		} else if (*text == '\t') {
+        } else if (*text == '\t') {
             os << "\\t";
-		} else if (*text < 0)	{
+        } else if (*text < 0)   {
             os << *text;
-		} else if (*text < 0x20) {
-			sprintf(buffer, "\\u%4.4x", *text);
+        } else if (*text < 0x20) {
+            char buffer[7];
+            snprintf(buffer, sizeof(buffer), "\\u%4.4x", *text);
             os << buffer;
-		} else {
+        } else {
             os << *text;
-		}
+        }
         ++text;
-	}
+    }
     os << "\"";
 }
 

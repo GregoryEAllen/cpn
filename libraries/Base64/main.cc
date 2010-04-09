@@ -159,7 +159,7 @@ void SelfTest() {
         int num = rand();
         if (num <= 0) { num = -num + 1; }
         if (num > (1<<16)) { num %= 1<<16; }
-        printf("Test %d with %d bytes... ", count, num*sizeof(int));
+        printf("Test %d with %d bytes... ", count, (int)(num*sizeof(int)));
         fflush(0);
         for (int i = 0; i < num; ++i) {
             buffer.push_back(rand());
@@ -223,7 +223,7 @@ void GenTestFiles() {
         if (num <= 0) { num = -num + 1; }
         if (num > (1<<16)) { num %= 1<<16; }
         std::string filename = ToString(DEC_TEST_FILE_FORMAT, i);
-        printf("Generating %s with %d bytes\n", filename.c_str(), num*sizeof(int));
+        printf("Generating %s with %d bytes\n", filename.c_str(), (int)(num*sizeof(int)));
         FILE *file = fopen(filename.c_str(), "w");
         if (file == 0) {
             perror("Error opening file");
@@ -243,7 +243,7 @@ void GenTestFiles() {
 
 std::vector<char> ReadFile(const std::string &filename) {
     std::vector<char> ret(256, 0);
-    int num = 0;
+    unsigned num = 0;
     FILE *file = fopen(filename.c_str(), "r");
     if (file == 0) {
         perror("Failed to open file");
