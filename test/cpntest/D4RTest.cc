@@ -10,6 +10,7 @@
 #include "Directory.h"
 #include "Variant.h"
 #include "ToString.h"
+#include "JSONToVariant.h"
 
 #include <stdio.h>
 
@@ -37,7 +38,9 @@ public:
         TestNodeBase(*reinterpret_cast<TesterBase**>(const_cast<void*>(attr.GetArg().GetBuffer())))
     {
         Logger::Name(NodeBase::GetName());
-        Variant noded = Variant::FromJSON(attr.GetParam());
+        JSONToVariant parse;
+        parse.Parse(attr.GetParam().data(), attr.GetParam().size());
+        Variant noded = parse.Get();
         Variant::ConstListIterator itr = noded["instructions"].ListBegin();
         while (itr != noded["instructions"].ListEnd()) {
             AddOp(*itr);

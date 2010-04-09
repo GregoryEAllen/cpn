@@ -2,6 +2,7 @@
 
 #include "D4RTester.h"
 #include "Variant.h"
+#include "JSONToVariant.h"
 #include "Directory.h"
 #include "Logger.h"
 #include <vector>
@@ -47,7 +48,7 @@ int main(int argc, char **argv) {
                 continue; 
             }
             fpath = dir.FullName();
-            std::vector<char> buf(dir.Size());
+            std::vector<char> buf(4096);
 
             printf("Processing %s\n", fpath.c_str());
             FILE *f = fopen(fpath.c_str(), "r");
@@ -55,13 +56,21 @@ int main(int argc, char **argv) {
                 perror("Could not open file");
                 continue;
             }
-            if (fread(&buf[0], 1, buf.size(), f) != buf.size()) {
-                printf("Unable to read file\n");
-                continue;
+            JSONToVariant parse;
+            while (!feof(f)) {
+                unsigned numread = fread(&buf[0], 1, buf.size(), f);
+                unsigned numparsed = parse.Parse(&buf[0], numread);
+                if (numparsed != numread) {
+                    printf("Unabled to parse file at line: %u column: %u\n", parse.GetLine(), parse.GetColumn());
+                    break;
+                }
             }
             fclose(f);
 
-            Variant conf = Variant::FromJSON(buf);
+            if (parse.GetStatus() != JSON::Parser::DONE) {
+                continue;
+            }
+            Variant conf = parse.Get();
 
             D4R::Tester tester;
             tester.Output(&loggerout);
