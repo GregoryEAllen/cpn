@@ -1,5 +1,7 @@
 
 #include "Variant.h"
+#include "JSONToVariant.h"
+#include "VariantToJSON.h"
 #include <vector>
 #include <algorithm>
 #include <stdio.h>
@@ -10,25 +12,22 @@
 
 Variant ReadValues(FILE *f) {
     std::vector<char> buffer(1024);
-    unsigned numread = 0;
-    while (!feof(f)) {
-        int ret = fread(&buffer[numread], 1, buffer.size() - numread, f);
+    JSONToVariant parse;
+    while (!feof(f) && parse.Ok()) {
+        int ret = fread(&buffer[0], 1, buffer.size(), f);
         if (ret > 0) {
-            numread += ret;
-            if (numread >= buffer.size()) {
-                buffer.resize(2*numread);
-            }
+            parse.Parse(&buffer[0], ret);
         } else {
             break;
         }
     }
-    return Variant::FromJSON(buffer);
+    return parse.Get();
 }
 
 std::string BuildLegendString(Variant run) {
     std::ostringstream oss;
     oss << "wheel: " << run["primewheel"].AsString() << " ";
-    oss << "ppf: " << run["ppf"].AsJSON() << " ";
+    oss << "ppf: " << VariantToJSON(run["ppf"]) << " ";
     oss << "zc: " << run["zerocopy"].AsString() << " ";
     return oss.str();
 }
@@ -159,7 +158,7 @@ int main(int argc, char **argv) {
                 output.Append(*itr);
             }
         }
-        puts(output.AsJSON().c_str());
+        puts(VariantToJSON(output).c_str());
     }
     return 0;
 }
