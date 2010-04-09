@@ -24,6 +24,7 @@
 #include "RemoteDBServer.h"
 #include "RDBMT.h"
 #include "Assert.h"
+#include "VariantToJSON.h"
 #include <stdio.h>
 #include <stdarg.h>
 
@@ -47,7 +48,7 @@ namespace CPN {
     }
 
     void RemoteDBServer::DispatchMessage(const std::string &sender, const Variant &msg) {
-        dbprintf(4, "msg:%s:%s\n", sender.c_str(), msg.AsJSON().c_str());
+        dbprintf(4, "msg:%s:%s\n", sender.c_str(), VariantToJSON(msg).c_str());
         if (IsTerminated()) {
             return;
         }

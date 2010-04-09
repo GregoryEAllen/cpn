@@ -61,13 +61,13 @@ int main(int argc, char **argv) {
                 unsigned numread = fread(&buf[0], 1, buf.size(), f);
                 unsigned numparsed = parse.Parse(&buf[0], numread);
                 if (numparsed != numread) {
-                    printf("Unabled to parse file at line: %u column: %u\n", parse.GetLine(), parse.GetColumn());
+                    printf("Unabled to parse line: %u column: %u\n", parse.GetLine(), parse.GetColumn());
                     break;
                 }
             }
             fclose(f);
 
-            if (parse.GetStatus() != JSON::Parser::DONE) {
+            if (!parse.Done()) {
                 continue;
             }
             Variant conf = parse.Get();

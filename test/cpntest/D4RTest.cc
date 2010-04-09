@@ -11,6 +11,7 @@
 #include "Variant.h"
 #include "ToString.h"
 #include "JSONToVariant.h"
+#include "VariantToJSON.h"
 
 #include <stdio.h>
 
@@ -40,6 +41,7 @@ public:
         Logger::Name(NodeBase::GetName());
         JSONToVariant parse;
         parse.Parse(attr.GetParam().data(), attr.GetParam().size());
+        ASSERT(parse.Done());
         Variant noded = parse.Get();
         Variant::ConstListIterator itr = noded["instructions"].ListBegin();
         while (itr != noded["instructions"].ListEnd()) {
@@ -140,7 +142,7 @@ void D4RTest::RunTest(int numkernels) {
             continue; 
         }
         fpath = dir.FullName();
-        std::vector<char> buf(dir.Size());
+        std::vector<char> buf(4096);
 
         printf("Processing %s\n", fpath.c_str());
         FILE *f = fopen(fpath.c_str(), "r");
@@ -148,14 +150,21 @@ void D4RTest::RunTest(int numkernels) {
             perror("Could not open file");
             continue;
         }
-        if (fread(&buf[0], 1, buf.size(), f) != buf.size()) {
-            printf("Unable to read file\n");
-            continue;
+        JSONToVariant parse;
+        while (!feof(f)) {
+            unsigned numread = fread(&buf[0], 1, buf.size(), f);
+            unsigned numparsed = parse.Parse(&buf[0], numread);
+            if (numparsed != numread) {
+                printf("Unabled to parse line: %u column: %u\n", parse.GetLine(), parse.GetColumn());
+                break;
+            }
         }
         fclose(f);
 
-        Variant conf = Variant::FromJSON(buf);
-
+        if (!parse.Done()) {
+            continue;
+        }
+        Variant conf = parse.Get();
         database = Database::Local();
         database->LogLevel(Logger::WARNING);
         database->UseD4R(true);
@@ -224,7 +233,7 @@ void D4RTest::Complete(TestNodeBase *tnb) {
 
 void D4RTest::CreateNode(const Variant &noded) {
     NodeAttr attr(noded["name"].AsString(), TESTNODETYPE);
-    attr.SetParam(noded.AsJSON());
+    attr.SetParam(VariantToJSON(noded));
     TesterBase *tb = this;
     attr.SetParam(StaticConstBuffer(&tb, sizeof(tb)));
     kernels[noded["key"].AsInt() % kernels.size()]->CreateNode(attr);

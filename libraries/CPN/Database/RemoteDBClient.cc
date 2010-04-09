@@ -27,6 +27,7 @@
 #include "Assert.h"
 #include "AutoUnlock.h"
 #include "Base64.h"
+#include "VariantToJSON.h"
 #include <stdexcept>
 
 namespace CPN {
@@ -339,7 +340,7 @@ namespace CPN {
         if (!(winfo.msg["success"].IsTrue())) {
             throw std::invalid_argument("No such node");
         }
-        ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
+        ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", VariantToJSON(winfo.msg).c_str());
         return winfo.msg["nodeinfo"]["key"].AsNumber<Key_t>();
     }
 
@@ -474,7 +475,7 @@ namespace CPN {
             winfo.cond.Wait(lock);
             if (shutdown) { return; }
         }
-        ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
+        ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", VariantToJSON(winfo.msg).c_str());
         if (winfo.msg["numlivenodes"].AsUnsigned() == 0) {
             return;
         }
@@ -762,7 +763,7 @@ namespace CPN {
             winfo.cond.Wait(lock);
             InternalCheckTerminated();
         }
-        ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", winfo.msg.AsJSON().c_str());
+        ASSERT(winfo.msg["success"].IsTrue(), "msg: %s", VariantToJSON(winfo.msg).c_str());
         return winfo.msg["endpointinfo"];
     }
 }
