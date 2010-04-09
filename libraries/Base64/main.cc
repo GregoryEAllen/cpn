@@ -11,19 +11,22 @@
 #include <string.h>
 #include <math.h>
 
-const char VALID_OPS[] = "hedi:o:sgft:";
+const char VALID_OPS[] = "hedi:o:sgft:c:";
 
 const char HELP_TEXT[] = "%s <-e|-d> [-i filename] [-o filename]\n"
 "\t-e\t Encode (default)\n"
 "\t-d\t Decode\n"
 "\t-i file\t use file as input (default stdin)\n"
 "\t-o file\t use file as output (default stdout)\n"
-"\t-s\t Perform a self test";
+"\t-s\t Perform a self test\n"
+"\t-c\t Set the characters per line\n"
+;
 
 const char DEC_TEST_FILE_FORMAT[] = "testfile%d.dec";
 const char ENC_TEST_FILE_FORMAT[] = "testfile%d.enc";
 const int NUM_TESTS = 10;
 
+unsigned chars_per_line = 72;
 
 void Encode();
 void Decode();
@@ -64,6 +67,9 @@ int main(int argc, char **argv) {
         case 't':
             TestLength(atoi(optarg));
             return 0;
+        case 'c':
+            chars_per_line = atoi(optarg);
+            break;
         case 'h':
             printf(HELP_TEXT, argv[0]);
             return 0;
@@ -122,7 +128,7 @@ void Decode() {
 }
 
 void Encode() {
-    Base64Encoder encoder;
+    Base64Encoder encoder(chars_per_line);
     char buffer[4096];
     std::string out;
     while (!feof(stdin)) {
@@ -159,7 +165,7 @@ void SelfTest() {
             buffer.push_back(rand());
         }
         printf("encode ... ");
-        Base64Encoder encoder;
+        Base64Encoder encoder(chars_per_line);
         encoder.EncodeBlock(&buffer[0], buffer.size()*sizeof(int));
         std::string val = encoder.BlockEnd();
         printf("decode... ");
@@ -189,7 +195,7 @@ void TestLength(unsigned len) {
     printf("Testing with buffer size %u... ", len);
     fflush(0);
     printf("encode ... ");
-    Base64Encoder encoder;
+    Base64Encoder encoder(chars_per_line);
     encoder.EncodeBlock(&buffer[0], buffer.size());
     std::string val = encoder.BlockEnd();
     //printf("\n%s\n", val.c_str());
@@ -262,7 +268,7 @@ void TestFiles() {
         std::vector<char> dec = ReadFile(ToString(DEC_TEST_FILE_FORMAT, count));
         std::vector<char> enc = ReadFile(ToString(ENC_TEST_FILE_FORMAT, count));
         printf("Test %d encoding... ", count);
-        Base64Encoder encoder;
+        Base64Encoder encoder(chars_per_line);
         encoder.EncodeBlock(&dec[0], dec.size());
         std::string val = encoder.BlockEnd();
         bool equal = (val.size() == enc.size());

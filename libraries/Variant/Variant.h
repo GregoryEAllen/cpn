@@ -52,8 +52,6 @@
 #include <vector>
 #include <map>
 
-struct json_value;
-
 class Variant {
 public:
     typedef std::vector<Variant> List;
@@ -76,10 +74,6 @@ public:
 
     static const Variant null;
 
-    static Variant FromJSON(const std::string &jsonstring);
-    static Variant FromJSON(const char *jsonstring, unsigned len);
-    static Variant FromJSON(const std::vector<char> &jsonstring);
-
     Variant();
     Variant(Type_t type_);
     Variant(bool v);
@@ -96,8 +90,6 @@ public:
     Variant(const std::string &v);
     Variant(const char *v);
     Variant(const Variant &v);
-    // Build a Variant from a json_value
-    Variant(const json_value *root);
 
     Variant &operator=(const Variant &v);
 
@@ -130,10 +122,6 @@ public:
     ConstMapIterator MapBegin() const;
     MapIterator MapEnd();
     ConstMapIterator MapEnd() const;
-
-    std::string AsJSON() const;
-    int AsJSON(char *target, unsigned maxlen) const;
-    void AsJSON(std::vector<char> &target) const;
 
     Type_t GetType() const { return type; }
 
@@ -190,7 +178,6 @@ private:
     void Assign(const Variant &v);
     void InitArray();
     void InitObject();
-    json_value *BuildJSONTree() const;
 
     int CompareString(const Variant &other) const;
     int CompareNumber(const Variant &other) const;

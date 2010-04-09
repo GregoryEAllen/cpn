@@ -12,7 +12,7 @@
 
 class Base64Encoder {
 public:
-    Base64Encoder();
+    Base64Encoder(unsigned cpl = 72);
     /**
      * Encode the data in datain into the buffer passed in codeout.
      */
@@ -31,6 +31,7 @@ private:
         step_A, step_B, step_C
     } step;
 
+    const unsigned chars_per_line;
     char result;
     int stepcount;
     std::vector<char> output;
