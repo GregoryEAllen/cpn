@@ -6,10 +6,8 @@
 #include "Base64.h"
 #include "Assert.h"
 
-static const int CHARS_PER_LINE = 72;
-
-Base64Encoder::Base64Encoder()
-    : step(step_A), result(0), stepcount(0)
+Base64Encoder::Base64Encoder(unsigned cpl)
+    : chars_per_line(cpl), step(step_A), result(0), stepcount(0)
 {
 }
 
@@ -57,10 +55,12 @@ void Base64Encoder::EncodeBlock(const void *datain, unsigned inlen) {
             result  = (fragment & 0x03f) >> 0;
             output.push_back(EncodeValue());
             
-            ++stepcount;
-            if (stepcount == CHARS_PER_LINE/4) {
-                output.push_back('\n');
-                stepcount = 0;
+            if (chars_per_line != 0) {
+                ++stepcount;
+                if (stepcount == chars_per_line/4) {
+                    output.push_back('\n');
+                    stepcount = 0;
+                }
             }
         }
     }
@@ -88,7 +88,9 @@ std::string Base64Encoder::BlockEnd() {
     case step_A:
         break;
     }
-    output.push_back('\n');
+    if (chars_per_line != 0) {
+        output.push_back('\n');
+    }
     std::string ret(&output[0], output.size());
     Reset();
     return ret;
