@@ -93,6 +93,7 @@ namespace CPN {
         unsigned QueueLength() const { return queue->QueueLength()/GetTypeSize<T>(); }
         /// \return the amount of freespace in bytes
         unsigned Freespace() const { return queue->Freespace()/GetTypeSize<T>(); }
+        unsigned ChannelStride() const { return queue->ChannelStride()/GetTypeSize<T>(); }
         /// \return true if full
         bool Full() const { return queue->Full(); }
         /// \return the endpoint key

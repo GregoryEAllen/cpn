@@ -103,9 +103,9 @@ namespace CPN {
         /**
          * \return the maximum threshold this queue supports.
          */
-         unsigned MaxThreshold() const { return queue->MaxThreshold(); }
+        unsigned MaxThreshold() const { return queue->MaxThreshold(); }
 
-         unsigned QueueLength() const { return queue->QueueLength(); }
+        unsigned QueueLength() const { return queue->QueueLength(); }
         /**
          * An accessor method for the number of elements currently in
          * the queue.
@@ -126,6 +126,8 @@ namespace CPN {
          * \return the typename for this queue
          */
         const std::string &GetDatatype() const { return queue->GetDatatype(); }
+
+        unsigned ChannelStride() const { return queue->ChannelStride(); }
 
         /**
          * \return the key associated with this endpoint

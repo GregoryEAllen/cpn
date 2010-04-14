@@ -129,6 +129,8 @@ namespace CPN {
 		 */
 		bool Full() const { return queue->Full(); }
 
+        unsigned ChannelStride() const { return queue->ChannelStride(); }
+
 		/**
 		 * \return the typename for this queue
 		 */

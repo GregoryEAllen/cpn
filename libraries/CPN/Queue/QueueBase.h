@@ -176,6 +176,12 @@ namespace CPN {
         virtual unsigned QueueLength() const = 0;
 
         /**
+         * \return The current channel stride. May change between calls to enqueue
+         * or dequeue.
+         */
+        virtual unsigned ChannelStride() const = 0;
+
+        /**
          * Ensure that this queue has at least queueLen bytes
          * of space and can support at least maxThresh as the maxThreshold
          * the new queue length will be max(queueLen, QueueLength())
