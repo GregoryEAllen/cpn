@@ -29,6 +29,7 @@
 #include "CPNCommon.h"
 #include "NodeAttr.h"
 #include "QueueBase.h"
+#include "NodeFactory.h"
 
 #include "ReentrantLock.h"
 
@@ -143,4 +144,11 @@ namespace CPN {
 	};
 
 }
+
+#define CPN_DECLARE_NODE_FACTORY(type, klass) class type ## Factory : public CPN::NodeFactory {\
+    public: type ## Factory() : CPN::NodeFactory(#type) {}\
+    CPN::shared_ptr<CPN::NodeBase> Create(CPN::Kernel &ker, const CPN::NodeAttr &attr) { return CPN::shared_ptr<NodeBase>(new klass(ker, attr)); }};\
+extern "C" CPN::shared_ptr<CPN::NodeFactory> cpninit ## type (void);\
+CPN::shared_ptr<CPN::NodeFactory> cpninit ## type (void) { return CPN::shared_ptr<CPN::NodeFactory>(new type ## Factory); }
+
 #endif

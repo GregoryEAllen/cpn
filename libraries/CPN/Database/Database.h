@@ -33,7 +33,9 @@
 #include <map>
 
 
-#define CPN_DEFAULT_INIT_SYMBOL "cpninit"
+#define CPN_DEFAULT_INIT_SYMBOL cpninit
+#define CPN_DEFAULT_INIT_SYMBOL_STR "cpninit"
+
 
 namespace CPN {
 

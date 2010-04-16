@@ -104,20 +104,7 @@ public:
     }
 };
 
-class TestNodeFactory : public CPN::NodeFactory {
-public:
-    TestNodeFactory() : CPN::NodeFactory(TESTNODETYPE) {}
-    shared_ptr<NodeBase> Create(Kernel &ker, const NodeAttr &attr) {
-        return shared_ptr<NodeBase>(new TestNode(ker, attr));
-    }
-};
-
-extern "C" shared_ptr<CPN::NodeFactory> cpninitD4RTestNodeType(void);
-
-shared_ptr<CPN::NodeFactory> cpninitD4RTestNodeType(void) {
-    return shared_ptr<CPN::NodeFactory>(new TestNodeFactory);
-}
-
+CPN_DECLARE_NODE_FACTORY(D4RTestNodeType, TestNode);
 
 void D4RTest::setUp() {
     PthreadMutexProtected al(lock);

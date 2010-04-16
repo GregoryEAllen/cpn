@@ -122,7 +122,7 @@ namespace CPN {
 
     void Database::InternalLoad(const std::string &name) {
         CPNInitPrototype init;
-        std::string sym = CPN_DEFAULT_INIT_SYMBOL;
+        std::string sym = CPN_DEFAULT_INIT_SYMBOL_STR;
         sym += name;
         void *handle = 0;
 
