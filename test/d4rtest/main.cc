@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
             while (!feof(f)) {
                 unsigned numread = fread(&buf[0], 1, buf.size(), f);
                 unsigned numparsed = parse.Parse(&buf[0], numread);
-                if (numparsed != numread) {
+                if (parse.Error()) {
                     printf("Unabled to parse line: %u column: %u\n", parse.GetLine(), parse.GetColumn());
                     break;
                 }
@@ -68,7 +68,8 @@ int main(int argc, char **argv) {
             fclose(f);
 
             if (!parse.Done()) {
-                continue;
+                printf("****************** Failure! *******************\n");
+                return 1;
             }
             Variant conf = parse.Get();
 

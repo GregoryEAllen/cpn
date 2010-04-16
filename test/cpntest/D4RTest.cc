@@ -18,6 +18,12 @@
 #include <cppunit/TestAssert.h>
 CPPUNIT_TEST_SUITE_REGISTRATION( D4RTest );
 
+#if _DEBUG
+#define DEBUG(frmt, ...) printf(frmt, __VA_ARGS__)
+#else
+#define DEBUG(frmt, ...)
+#endif
+
 using CPN::NodeBase;
 using CPN::Kernel;
 using CPN::Database;
@@ -131,7 +137,7 @@ void D4RTest::RunTest(int numkernels) {
         fpath = dir.FullName();
         std::vector<char> buf(4096);
 
-        printf("Processing %s\n", fpath.c_str());
+        DEBUG("Processing %s\n", fpath.c_str());
         FILE *f = fopen(fpath.c_str(), "r");
         if (!f) {
             perror("Could not open file");
@@ -140,17 +146,16 @@ void D4RTest::RunTest(int numkernels) {
         JSONToVariant parse;
         while (!feof(f)) {
             unsigned numread = fread(&buf[0], 1, buf.size(), f);
-            unsigned numparsed = parse.Parse(&buf[0], numread);
-            if (numparsed != numread) {
+            parse.Parse(&buf[0], numread);
+            if (parse.Error()) {
                 printf("Unabled to parse line: %u column: %u\n", parse.GetLine(), parse.GetColumn());
                 break;
             }
         }
         fclose(f);
 
-        if (!parse.Done()) {
-            continue;
-        }
+        CPPUNIT_ASSERT(parse.Done());
+
         Variant conf = parse.Get();
         database = Database::Local();
         database->LogLevel(Logger::WARNING);
@@ -165,7 +170,7 @@ void D4RTest::RunTest(int numkernels) {
                     );
         }
 
-        printf("Starting test %s with %d kernels\n", dir.BaseName().c_str(), numkernels);
+        DEBUG("Starting test %s with %d kernels\n", dir.BaseName().c_str(), numkernels);
         success = true;
         try {
             Setup(conf);
@@ -178,10 +183,11 @@ void D4RTest::RunTest(int numkernels) {
             kernels.pop_back();
         }
         runs++;
-        printf("Test %s : %s\n", dir.BaseName().c_str(), success ? "success" : "failure");
+        DEBUG("Test %s : %s\n", dir.BaseName().c_str(), success ? "success" : "failure");
         database.reset();
         if (!success) {
             failures++;
+            printf("*************** Failure! ******************\n");
         }
     }
     CPPUNIT_ASSERT(failures == 0);

@@ -95,7 +95,7 @@ void Shuffle(std::string infile, std::string datafile, std::string legendfile) {
 
     std::vector<uint64_t>::iterator xditr = xdata.begin();
     while (xditr != xdata.end()) {
-        fprintf(data, "%llu", *xditr);
+        fprintf(data, "%llu", (unsigned long long)*xditr);
         ditr = datamap.begin();
         while (ditr != datamap.end()) {
             vitr = ditr->second.find(*xditr);

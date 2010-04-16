@@ -1,1 +1,6 @@
-include ../_override
+
+USE_DL=1
+ifdef USE_DL
+    OS_LIBS += -ldl
+endif
+

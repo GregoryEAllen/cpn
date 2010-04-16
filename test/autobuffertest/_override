@@ -1,13 +1,1 @@
-
-OS_LIBS += `pkg-config --libs sigc++-2.0 cppunit` -ldl
-#OS_LIBS += `cppunit-config --libs`
-#OS_INCDIR += `cppunit-config --cflags`
-OS_INCDIR += `pkg-config --cflags sigc++-2.0 cppunit`
-
-CC_OTHER += -Wall
-#CXX_OTHER += -Wall
-#LD_OTHER += -Wall --static -rdynamic
-LD_OTHER += -Wall 
-
-OS_DEFS += -D_DEBUG
-
+../_override

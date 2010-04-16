@@ -5,6 +5,3 @@ ifdef USE_XMLPP
     OS_LIBS += `pkg-config --libs libxml++-2.6`
 endif
 
-CC_OTHER += -Wall
-LD_OTHER += -Wall -rdynamic
-
