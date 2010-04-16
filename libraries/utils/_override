@@ -1,5 +1,7 @@
+USE_WALL=1
+ifdef USE_WALL
+    # Turn on all warnings
+    CC_OTHER += -Wall
+    LD_OTHER += -Wall -rdynamic
+endif
 
-# Turn on all warnings
-CC_OTHER += -Wall
-#CXX_OTHER += -Wall
-LD_OTHER += -Wall -rdynamic
