@@ -90,7 +90,7 @@ namespace CPN {
          * the channels in data.
          * \throws BrokenQueueException if the reader is released
 		 */
-		void RawEnqueue(void *data, unsigned count,
+		void RawEnqueue(const void *data, unsigned count,
                 unsigned numChans, unsigned chanStride) {
             queue->RawEnqueue(data, count, numChans, chanStride);
         }
@@ -101,7 +101,7 @@ namespace CPN {
          * \param count the number of bytes to enqueue
          * \throws BrokenQueueException if the reader is released
          */
-		void RawEnqueue(void *data, unsigned count) { queue->RawEnqueue(data, count); }
+		void RawEnqueue(const void *data, unsigned count) { queue->RawEnqueue(data, count); }
 
 		/**
 		 * \return the number of channels supported by this queue.

@@ -70,7 +70,7 @@ namespace CPN {
          * \param data the array
          * \param count the number
          */
-        void Enqueue(T* data, unsigned count) {
+        void Enqueue(const T* data, unsigned count) {
             queue->RawEnqueue((void*)data, GetTypeSize<T>() * count);
         }
 
@@ -81,7 +81,7 @@ namespace CPN {
          * \param numChans the number of channels
          * \param chanStride the number of elements between channels
          */
-        void Enqueue(T* data, unsigned count, unsigned numChans, unsigned chanStride) {
+        void Enqueue(const T* data, unsigned count, unsigned numChans, unsigned chanStride) {
             queue->RawEnqueue((void*)data, GetTypeSize<T>() * count,
                     numChans, GetTypeSize<T>() * chanStride);
         }
