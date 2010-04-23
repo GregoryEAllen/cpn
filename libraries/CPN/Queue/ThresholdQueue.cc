@@ -92,22 +92,22 @@ namespace CPN {
     }
 
     unsigned ThresholdQueue::NumChannels() const {
-        Sync::AutoLock<const QueueBase> al(*this);
+        AutoLock<const QueueBase> al(*this);
         return queue->NumChannels();
     }
 
     unsigned ThresholdQueue::ChannelStride() const {
-        Sync::AutoLock<const QueueBase> al(*this);
+        AutoLock<const QueueBase> al(*this);
         return queue->ChannelStride();
     }
 
     unsigned ThresholdQueue::Freespace() const {
-        Sync::AutoLock<const QueueBase> al(*this);
+        AutoLock<const QueueBase> al(*this);
         return queue->Freespace();
     }
 
     bool ThresholdQueue::Full() const {
-        Sync::AutoLock<const QueueBase> al(*this);
+        AutoLock<const QueueBase> al(*this);
         return queue->Full();
     }
 
@@ -129,37 +129,37 @@ namespace CPN {
     }
 
     unsigned ThresholdQueue::Count() const {
-        Sync::AutoLock<const QueueBase> al(*this);
+        AutoLock<const QueueBase> al(*this);
         return queue->Count();
     }
 
     bool ThresholdQueue::Empty() const {
-        Sync::AutoLock<const QueueBase> al(*this);
+        AutoLock<const QueueBase> al(*this);
         return queue->Empty();
     }
 
     unsigned ThresholdQueue::MaxThreshold() const {
-        Sync::AutoLock<const QueueBase> al(*this);
+        AutoLock<const QueueBase> al(*this);
         return queue->MaxThreshold();
     }
 
     unsigned ThresholdQueue::QueueLength() const {
-        Sync::AutoLock<const QueueBase> al(*this);
+        AutoLock<const QueueBase> al(*this);
         return queue->QueueLength();
     }
 
     unsigned ThresholdQueue::ElementsEnqueued() const {
-        Sync::AutoLock<const QueueBase> al(*this);
+        AutoLock<const QueueBase> al(*this);
         return queue->ElementsEnqueued();
     }
 
     unsigned ThresholdQueue::ElementsDequeued() const {
-        Sync::AutoLock<const QueueBase> al(*this);
+        AutoLock<const QueueBase> al(*this);
         return queue->ElementsDequeued();
     }
 
     void ThresholdQueue::Grow(unsigned queueLen, unsigned maxThresh) {
-        Sync::AutoLock<QueueBase> al(*this);
+        AutoLock<QueueBase> al(*this);
         ASSERT(!(inenqueue && indequeue), "Unhandled grow case of having an outstanding dequeue and enqueue");
         if (oldqueue) {
             // If the old queue is still around we have to still be in the same state

@@ -78,12 +78,12 @@ namespace CPN {
     }
 
     void RemoteQueue::Shutdown() {
-        Sync::AutoLock<const QueueBase> al(*this);
+        AutoLock<const QueueBase> al(*this);
         dead = true;
     }
 
     unsigned RemoteQueue::Count() const {
-        Sync::AutoLock<const QueueBase> al(*this);
+        AutoLock<const QueueBase> al(*this);
         if (mode == READ) {
             return queue->Count();
         } else {
@@ -92,7 +92,7 @@ namespace CPN {
     }
 
     bool RemoteQueue::Empty() const {
-        Sync::AutoLock<const QueueBase> al(*this);
+        AutoLock<const QueueBase> al(*this);
         if (mode == READ) {
             return queue->Empty();
         } else {
@@ -101,12 +101,12 @@ namespace CPN {
     }
 
     unsigned RemoteQueue::QueueLength() const {
-        Sync::AutoLock<const QueueBase> al(*this);
+        AutoLock<const QueueBase> al(*this);
         return readerlength + writerlength;
     }
 
     void RemoteQueue::Grow(unsigned queueLen, unsigned maxThresh) {
-        Sync::AutoLock<QueueBase> al(*this);
+        AutoLock<QueueBase> al(*this);
         const unsigned maxthresh = std::max<unsigned>(queue->MaxThreshold(), maxThresh);
         readerlength = QueueLength(queueLen, maxthresh, alpha, READ);
         writerlength = QueueLength(queueLen, maxthresh, alpha, WRITE);
@@ -169,7 +169,7 @@ namespace CPN {
     }
 
     void RemoteQueue::SignalReaderTagChanged() {
-        Sync::AutoLock<QueueBase> al(*this);
+        AutoLock<QueueBase> al(*this);
         ASSERT(mode == READ);
         pendingD4RTag = true;
         ThresholdQueue::SignalReaderTagChanged();
@@ -177,7 +177,7 @@ namespace CPN {
     }
 
     void RemoteQueue::SignalWriterTagChanged() {
-        Sync::AutoLock<QueueBase> al(*this);
+        AutoLock<QueueBase> al(*this);
         ASSERT(mode == WRITE);
         pendingD4RTag = true;
         ThresholdQueue::SignalWriterTagChanged();
@@ -420,7 +420,7 @@ namespace CPN {
                         break;
                     }
                     {
-                        Sync::AutoLock<QueueBase> al(*this);
+                        AutoLock<QueueBase> al(*this);
                         if (dead) {
                             logger.Debug("Shutdown (c: %llu)", clock.Get());
                             break;
@@ -470,7 +470,7 @@ namespace CPN {
     }
 
     void RemoteQueue::InternalCheckStatus() {
-        Sync::AutoLock<QueueBase> al(*this);
+        AutoLock<QueueBase> al(*this);
         if (sock.Closed()) {
             return;
         }
@@ -586,7 +586,7 @@ namespace CPN {
     }
 
     void RemoteQueue::HandleError(int error) {
-        Sync::AutoLock<QueueBase> al(*this);
+        AutoLock<QueueBase> al(*this);
         if (readshutdown || writeshutdown) {
             Signal();
         }

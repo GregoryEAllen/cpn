@@ -40,7 +40,7 @@
  */
 class FileHandle {
 public:
-    typedef Sync::AutoLock<PthreadMutex> AutoLock;
+    typedef AutoLock<PthreadMutex> AutoLock;
 
     /**
      * \brief poll a list of FileHandles for any activity and call the

@@ -52,13 +52,13 @@ namespace D4R {
     QueueBase::~QueueBase() {}
 
     void QueueBase::SetReaderNode(Node *n) {
-        Sync::AutoLock<QueueBase> al(*this);
+        AutoLock<QueueBase> al(*this);
         reader = n;
         Signal();
     }
 
     void QueueBase::SetWriterNode(Node *n) {
-        Sync::AutoLock<QueueBase> al(*this);
+        AutoLock<QueueBase> al(*this);
         writer = n;
         Signal();
     }
@@ -132,13 +132,13 @@ namespace D4R {
     }
 
     void QueueBase::SignalReaderTagChanged() {
-        Sync::AutoLock<QueueBase> al(*this);
+        AutoLock<QueueBase> al(*this);
         readtagchanged = true;
         Signal();
     }
 
     void QueueBase::SignalWriterTagChanged() {
-        Sync::AutoLock<QueueBase> al(*this);
+        AutoLock<QueueBase> al(*this);
         writetagchanged = true;
         Signal();
     }

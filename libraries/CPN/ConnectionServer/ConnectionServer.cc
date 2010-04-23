@@ -31,7 +31,7 @@
 
 namespace CPN {
 
-    typedef Sync::AutoLock<PthreadMutex> AutoPLock;
+    typedef AutoLock<PthreadMutex> AutoPLock;
 
     ConnectionServer::ConnectionServer(SockAddrList addrs, shared_ptr<Database> db)
         : database(db), logger(db.get(), Logger::INFO), enabled(true)

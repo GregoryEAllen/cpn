@@ -28,12 +28,12 @@
 namespace CPN {
 
     void RemoteQueueHolder::AddQueue(shared_ptr<RemoteQueue> queue) {
-        Sync::AutoLock<PthreadMutex> al(lock);
+        AutoLock<PthreadMutex> al(lock);
         queuemap.insert(std::make_pair(queue->GetKey(), queue));
     }
 
     void RemoteQueueHolder::CleanupQueue(Key_t key) {
-        Sync::AutoLock<PthreadMutex> al(lock);
+        AutoLock<PthreadMutex> al(lock);
         QueueMap::iterator entry = queuemap.find(key);
         if (entry != queuemap.end()) {
             queuelist.push_back(entry->second);
@@ -48,7 +48,7 @@ namespace CPN {
     }
 
     void RemoteQueueHolder::Cleanup() {
-        Sync::AutoLock<PthreadMutex> al(lock);
+        AutoLock<PthreadMutex> al(lock);
         QueueList tmp;
         tmp.swap(queuelist);
         al.Unlock();
@@ -56,7 +56,7 @@ namespace CPN {
     }
 
     void RemoteQueueHolder::Shutdown() {
-        Sync::AutoLock<PthreadMutex> al(lock);
+        AutoLock<PthreadMutex> al(lock);
         QueueMap::iterator q = queuemap.begin();
         while (q != queuemap.end()) {
             /*

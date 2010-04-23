@@ -28,6 +28,9 @@
 #include <sstream>
 
 namespace CPN {
+
+    typedef AutoLock<QueueBase> AutoLock;
+
     QueueBase::QueueBase(shared_ptr<Database> db, const SimpleQueueAttr &attr)
         : readerkey(attr.GetReaderKey()),
         writerkey(attr.GetWriterKey()),
@@ -53,7 +56,7 @@ namespace CPN {
 
     const void *QueueBase::GetRawDequeuePtr(unsigned thresh, unsigned chan) {
         database->CheckTerminated();
-        Sync::AutoLock<QueueBase> al(*this);
+        AutoLock al(*this);
         if (indequeue) { ASSERT(dequeuethresh >= thresh); }
         else { dequeuethresh = thresh; }
         while (true) {
@@ -75,7 +78,7 @@ namespace CPN {
     }
 
     void QueueBase::Dequeue(unsigned count) {
-        Sync::AutoLock<QueueBase> al(*this);
+        AutoLock al(*this);
         dequeuethresh = 0;
         if (readshutdown) { throw BrokenQueueException(readerkey); }
         InternalDequeue(count);
@@ -104,7 +107,7 @@ namespace CPN {
 
     void *QueueBase::GetRawEnqueuePtr(unsigned thresh, unsigned chan) {
         database->CheckTerminated();
-        Sync::AutoLock<QueueBase> al(*this);
+        AutoLock al(*this);
         if (inenqueue) { ASSERT(enqueuethresh >= thresh); }
         else { enqueuethresh = thresh; }
         while (true) {
@@ -126,7 +129,7 @@ namespace CPN {
     }
 
     void QueueBase::Enqueue(unsigned count) {
-        Sync::AutoLock<QueueBase> al(*this);
+        AutoLock al(*this);
         enqueuethresh = 0;
         if (writeshutdown) { throw BrokenQueueException(writerkey); }
         InternalEnqueue(count);
@@ -152,13 +155,13 @@ namespace CPN {
     }
 
     void QueueBase::ShutdownReader() {
-        Sync::AutoLock<QueueBase> al(*this);
+        AutoLock al(*this);
         readshutdown = true;
         cond.Broadcast();
     }
 
     void QueueBase::ShutdownWriter() {
-        Sync::AutoLock<QueueBase> al(*this);
+        AutoLock al(*this);
         writeshutdown = true;
         cond.Broadcast();
     }
@@ -211,7 +214,7 @@ namespace CPN {
     }
 
     void QueueBase::Detect() {
-        Sync::AutoLock<QueueBase> al(*this);
+        AutoLock al(*this);
         unsigned size = database->CalculateGrowSize(Count(), writerequest);
         logger.Debug("Detect: Grow(%u, %u)", size, writerequest);
         Grow(size, writerequest);
@@ -219,22 +222,22 @@ namespace CPN {
     }
 
     unsigned QueueBase::ReadRequest() {
-        Sync::AutoLock<QueueBase> al(*this);
+        AutoLock al(*this);
         return readrequest;
     }
 
     unsigned QueueBase::WriteRequest() {
-        Sync::AutoLock<QueueBase> al(*this);
+        AutoLock al(*this);
         return writerequest;
     }
 
     bool QueueBase::IsReaderShutdown() {
-        Sync::AutoLock<QueueBase> al(*this);
+        AutoLock al(*this);
         return readshutdown;
     }
 
     bool QueueBase::IsWriterShutdown() {
-        Sync::AutoLock<QueueBase> al(*this);
+        AutoLock al(*this);
         return writeshutdown;
     }
 

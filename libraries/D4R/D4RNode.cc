@@ -45,27 +45,27 @@ namespace D4R {
     Node::~Node() {}
 
     Tag Node::GetPublicTag() const {
-        Sync::AutoLock<PthreadMutex> al(taglock);
+        AutoLock<PthreadMutex> al(taglock);
         return publicTag;
     }
 
     void Node::SetPublicTag(const Tag &t) {
-        Sync::AutoLock<PthreadMutex> al(taglock);
+        AutoLock<PthreadMutex> al(taglock);
         publicTag = t;
     }
 
     Tag Node::GetPrivateTag() const {
-        Sync::AutoLock<PthreadMutex> al(taglock);
+        AutoLock<PthreadMutex> al(taglock);
         return privateTag;
     }
 
     void Node::SetPrivateTag(const Tag &t) {
-        Sync::AutoLock<PthreadMutex> al(taglock);
+        AutoLock<PthreadMutex> al(taglock);
         privateTag = t;
     }
 
     void Node::Block(const Tag &t, unsigned qsize) {
-        Sync::AutoLock<PthreadMutex> al(taglock);
+        AutoLock<PthreadMutex> al(taglock);
         privateTag.QueueSize(qsize);
         privateTag.Count(std::max(privateTag.Count(), t.Count()) + 1);
         DEBUG("Node %llu:%llu block %d\n", privateTag.Count(), privateTag.Key(), (int)privateTag.QueueSize());
@@ -75,7 +75,7 @@ namespace D4R {
     }
 
     bool Node::Transmit(const Tag &t) {
-        Sync::AutoLock<PthreadMutex> al(taglock);
+        AutoLock<PthreadMutex> al(taglock);
         if (publicTag < t) {
 
             DEBUG("Transfer: publicTag < t\n\tPrivate: (%llu, %llu, %d, %llu)\n\tPublic: (%llu, %llu, %d, %llu)\n\t     t: (%llu, %llu, %d, %llu)\n",
