@@ -117,7 +117,7 @@ void SocketHandle::ShutdownWrite() {
 unsigned SocketHandle::Recv(void *ptr, unsigned len, bool block) {
     int filed;
     {
-        AutoLock al(file_lock);
+        ALock al(file_lock);
         if (eof || fd == -1) { return 0; }
         filed = fd;
     }
@@ -133,7 +133,7 @@ unsigned SocketHandle::Recv(void *ptr, unsigned len, bool block) {
         if (unsigned(num) < len) { Readable(false); }
         bytesread = num;
     } else if (num == 0 && len != 0) {
-        AutoLock al(file_lock);
+        ALock al(file_lock);
         eof = true;
         readable = false;
     } else if (num < 0) {
@@ -175,7 +175,7 @@ SocketHandle::SendOpts &SocketHandle::SendOpts::More(bool more) {
 unsigned SocketHandle::Send(const void *ptr, unsigned len, const SendOpts &opts) {
     int filed;
     {
-        AutoLock al(file_lock);
+        ALock al(file_lock);
         if (fd == -1) { return 0; }
         filed = fd;
     }

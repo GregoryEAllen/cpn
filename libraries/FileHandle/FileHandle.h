@@ -40,7 +40,7 @@
  */
 class FileHandle {
 public:
-    typedef AutoLock<PthreadMutex> AutoLock;
+    typedef AutoLock<PthreadMutex> ALock;
 
     /**
      * \brief poll a list of FileHandles for any activity and call the
@@ -83,49 +83,49 @@ public:
      * \param r true or false
      * \return the new readable status
      */
-    bool Readable(bool r) { AutoLock al(file_lock); return readable = r; }
+    bool Readable(bool r) { ALock al(file_lock); return readable = r; }
     /**
      * \brief Gives the current readability status of the file.
      * \return true if it is known that a read will not block
      */
-    bool Readable() const { AutoLock al(file_lock); return readable; }
+    bool Readable() const { ALock al(file_lock); return readable; }
     /**
      * \brief Set that this file is currently writeable or not
      * \param w true or false
      * \return the new writeable status
      */
-    bool Writeable(bool w) { AutoLock al(file_lock); return writeable = w; }
+    bool Writeable(bool w) { ALock al(file_lock); return writeable = w; }
     /**
      * \brief Gives the current writability status of the file
      * \return true if it is known that a write will not block
      */
-    bool Writeable() const { AutoLock al(file_lock); return writeable; }
+    bool Writeable() const { ALock al(file_lock); return writeable; }
 
     /** \return the current set file descriptor
      */
-    int FD() const { AutoLock al(file_lock); return fd; }
+    int FD() const { ALock al(file_lock); return fd; }
     /** \brief Set the current file descriptor
      * \param filed the new file descriptor
      * \return the new file descriptor
      */
-    int FD(int filed) { AutoLock al(file_lock); return fd = filed; }
+    int FD(int filed) { ALock al(file_lock); return fd = filed; }
 
     /** \return the current end of file condition
      */
-    bool Eof() const { AutoLock al(file_lock); return eof; }
+    bool Eof() const { ALock al(file_lock); return eof; }
     /** \brief Set/reset the end of file condition.
      * \param e the new end of file condition
      * \return the new end of file condition
      */
-    bool Eof(bool e) { AutoLock al(file_lock); return eof = e; }
+    bool Eof(bool e) { ALock al(file_lock); return eof = e; }
     /** \brief Convenience method for testing if
      * the file this FileHandle has is open and not at end of file
      * \return true if open and not at end of file otherwise false
      */
-    bool Good() const { AutoLock al(file_lock); return !(eof || fd == -1); }
+    bool Good() const { ALock al(file_lock); return !(eof || fd == -1); }
     /** \return false if this FileHandle has an open file
      */
-    bool Closed() const { AutoLock al(file_lock); return fd == -1; }
+    bool Closed() const { ALock al(file_lock); return fd == -1; }
 
     /** \brief Manipulate how the current file handles blocking
      * \param blocking true to set to blocking mode (default)

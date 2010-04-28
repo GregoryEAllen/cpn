@@ -50,7 +50,7 @@ WakeupHandle::~WakeupHandle() {
 void WakeupHandle::SendWakeup() {
     int wfiled;
     {
-        FileHandle::AutoLock al(file_lock);
+        FileHandle::ALock al(file_lock);
         wfiled = wfd;
     }
     char c = 0;

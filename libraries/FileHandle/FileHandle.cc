@@ -135,7 +135,7 @@ bool FileHandle::IsBlocking(int fd) {
 }
 
 void FileHandle::Reset() {
-    AutoLock al(file_lock);
+    ALock al(file_lock);
     readable = false;
     writeable = false;
     eof = false;
@@ -143,7 +143,7 @@ void FileHandle::Reset() {
 }
 
 void FileHandle::Close() {
-    AutoLock al(file_lock);
+    ALock al(file_lock);
     if (fd != -1) {
         if (close(fd) != 0) {
             throw ErrnoException();
@@ -158,7 +158,7 @@ void FileHandle::Close() {
 unsigned FileHandle::Read(void *ptr, unsigned len) {
     int filed;
     {
-        AutoLock al(file_lock);
+        ALock al(file_lock);
         if (eof || fd == -1) { return 0; }
         filed = fd;
     }
@@ -176,7 +176,7 @@ unsigned FileHandle::Read(void *ptr, unsigned len) {
             throw ErrnoException(error);
         }
     } else if (num == 0 && len != 0) {
-        AutoLock al(file_lock);
+        ALock al(file_lock);
         eof = true;
         readable = false;
     } else {
@@ -189,7 +189,7 @@ unsigned FileHandle::Read(void *ptr, unsigned len) {
 unsigned FileHandle::Readv(const iovec *iov, int iovcnt) {
     int filed;
     {
-        AutoLock al(file_lock);
+        ALock al(file_lock);
         if (eof || fd == -1) { return 0; }
         filed = fd;
     }
@@ -211,7 +211,7 @@ unsigned FileHandle::Readv(const iovec *iov, int iovcnt) {
             throw ErrnoException(error);
         }
     } else if (num == 0 && len != 0) {
-        AutoLock al(file_lock);
+        ALock al(file_lock);
         eof = true;
         readable = false;
     } else {
@@ -224,7 +224,7 @@ unsigned FileHandle::Readv(const iovec *iov, int iovcnt) {
 unsigned FileHandle::Write(const void *ptr, unsigned len) {
     int filed;
     {
-        AutoLock al(file_lock);
+        ALock al(file_lock);
         if (fd == -1) { return 0; }
         filed = fd;
     }
@@ -260,7 +260,7 @@ unsigned FileHandle::Write(const void *ptr, unsigned len) {
 unsigned FileHandle::Writev(const iovec *iov, int iovcnt) {
     int filed;
     {
-        AutoLock al(file_lock);
+        ALock al(file_lock);
         if (fd == -1) { return 0; }
         filed = fd;
     }

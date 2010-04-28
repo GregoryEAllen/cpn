@@ -32,7 +32,7 @@
  */
 class SocketHandle : public FileHandle {
 public:
-    typedef FileHandle::AutoLock AutoLock;
+    typedef FileHandle::ALock ALock;
 
     SocketHandle() {}
     SocketHandle(int nfd) : FileHandle(nfd) {}
