@@ -58,6 +58,9 @@ namespace CPN {
         tagUpdated(false),
         dead(false)
     {
+        if (Pthread::Error() != 0) {
+            throw ErrnoException("Could not create thread", Pthread::Error());
+        }
         if (mode == READ) {
             SetWriterNode(&mocknode);
         } else {

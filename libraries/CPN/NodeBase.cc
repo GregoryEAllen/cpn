@@ -29,6 +29,7 @@
 #include "QueueReader.h"
 #include "QueueWriter.h"
 #include "D4RDeadlockException.h"
+#include "ErrnoException.h"
 
 #include <vector>
 
@@ -42,6 +43,9 @@ namespace CPN {
         nodekey(attr.GetKey()),
         database(attr.GetDatabase())
     {
+        if (Pthread::Error() != 0) {
+            throw ErrnoException("Could not create thread", Pthread::Error());
+        }
     }
 
     NodeBase::~NodeBase() {

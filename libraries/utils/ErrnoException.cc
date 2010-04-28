@@ -42,7 +42,9 @@ ErrnoException::ErrnoException(int err) throw()
 ErrnoException::ErrnoException(const char *msg, int err) throw()
     : error(err)
 {
-    errorstring = msg;
+    Fill();
+    errorstring += ": ";
+    errorstring +=  msg;
 }
 
 ErrnoException::~ErrnoException() throw() {

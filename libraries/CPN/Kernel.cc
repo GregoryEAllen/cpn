@@ -39,6 +39,7 @@
 
 #include "Assert.h"
 #include "Logger.h"
+#include "ErrnoException.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -66,6 +67,9 @@ namespace CPN {
         database(kattr.GetDatabase())
     {
         FUNCBEGIN;
+        if (Pthread::Error() != 0) {
+            throw ErrnoException("Could not create thread", Pthread::Error());
+        }
         if (!database) {
             database = Database::Local();
         }
