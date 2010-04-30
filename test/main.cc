@@ -29,6 +29,10 @@ int main(int argc, char **argv) {
             return 0;
         }
     }
+    std::string testname = "";
+    if (argc > optind) {
+        testname = argv[optind];
+    }
 
     if (pause) {
         printf("Press enter to continue.\n");
@@ -39,7 +43,7 @@ int main(int argc, char **argv) {
     CppUnit::TestFactoryRegistry &registry = CppUnit::TestFactoryRegistry::getRegistry();
     CppUnit::Test* suite = registry.makeTest();
     runner.addTest(suite);
-    bool wasSuccessful = runner.run("", false);
+    bool wasSuccessful = runner.run(testname, false);
     return !wasSuccessful;
 }
 
