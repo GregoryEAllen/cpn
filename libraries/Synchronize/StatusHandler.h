@@ -47,15 +47,15 @@ namespace Sync {
     template<class Status_t>
     class StatusHandler {
     public:
-        StatusHandler(Status_t initialStatus, ReentrantLock* lock_)
-               : status(initialStatus), lock(lock_) {
-            ASSERT(lock);
+        StatusHandler(Status_t initialStatus)
+               : status(initialStatus) {
+            ENSURE(!pthread_mutex_init(&lock, 0));
             ENSURE(!pthread_cond_init(&cond, 0));
         }
 
         ~StatusHandler() {
-            lock = 0;
-            ENSURE(!pthread_cond_destroy(&cond));
+            ENSURE_ABORT(!pthread_cond_destroy(&cond));
+            ENSURE_ABORT(!pthread_mutex_destroy(&lock));
         }
 
         /**
@@ -63,7 +63,7 @@ namespace Sync {
          * \param newStatus the new status
          */
         void Post(Status_t newStatus) {
-            Internal::ScopeMutex l(lock->lock);
+            Internal::ScopeMutex l(lock);
             status = newStatus;
             pthread_cond_broadcast(&cond);
         }
@@ -72,7 +72,7 @@ namespace Sync {
          * \return the current status
          */
         Status_t Get() const {
-            Internal::ScopeMutex l(lock->lock);
+            Internal::ScopeMutex l(lock);
             return status;
         }
 
@@ -84,7 +84,7 @@ namespace Sync {
          * \return true if the status changed
          */
         bool CompareAndPost(Status_t oldStatus, Status_t newStatus) {
-            Internal::ScopeMutex l(lock->lock);
+            Internal::ScopeMutex l(lock);
             if (oldStatus == status) {
                 status = newStatus;
                 pthread_cond_broadcast(&cond);
@@ -95,7 +95,7 @@ namespace Sync {
 
         template <class Comparator>
         bool CompareAndPost(Status_t oldStatus, Status_t newStatus, Comparator comp) {
-            Internal::ScopeMutex l(lock->lock);
+            Internal::ScopeMutex l(lock);
             if (comp(oldStatus, status)) {
                 status = newStatus;
                 pthread_cond_broadcast(&cond);
@@ -107,21 +107,20 @@ namespace Sync {
         /**
          * This function waits until the status is
          * different than oldStatus.
-         * \note You must hold the lock associated with this status handler
          * \param oldStatus the status to compare to the
          * current status
          * \return the new status
          */
         Status_t CompareAndWait(Status_t oldStatus) const {
-            Internal::ScopeMutex l(lock->lock);
-            while (oldStatus == status) { lock->Wait(cond); }
+            Internal::ScopeMutex l(lock);
+            while (oldStatus == status) { pthread_cond_wait(&cond, &lock); }
             return status;
         }
 
         template<class Comparator>
         Status_t CompareAndWait(Status_t oldStatus, Comparator comp) const {
-            Internal::ScopeMutex l(lock->lock);
-            while (comp(oldStatus, status)) { lock->Wait(cond); }
+            Internal::ScopeMutex l(lock);
+            while (comp(oldStatus, status)) { pthread_cond_wait(&cond, &lock); }
             return status;
         }
 
@@ -129,46 +128,44 @@ namespace Sync {
          * This function compares status to oldStatus and if the same
          * sets the status to newStatus. Then waits until the status is
          * different than newStatus.
-         * \note You must hold the lock associated with this status handler
          * \param oldStatus the status to compare
          * \param newStatus the status to set the status to
          * \return the status as of the return of this function
          */
         Status_t ComparePostAndWait(Status_t oldStatus, Status_t newStatus) {
-            Internal::ScopeMutex l(lock->lock);
+            Internal::ScopeMutex l(lock);
             if (oldStatus == status) {
                 status = newStatus;
                 pthread_cond_broadcast(&cond);
-                while (status == newStatus) { lock->Wait(cond); }
+                while (status == newStatus) { pthread_cond_wait(&cond, &lock); }
             }
             return status;
         }
 
         template<class Comparator>
         Status_t ComparePostAndWait(Status_t oldStatus, Status_t newStatus, Comparator comp) {
-            Internal::ScopeMutex l(lock->lock);
+            Internal::ScopeMutex l(lock);
             if (comp(oldStatus, status)) {
                 status = newStatus;
                 pthread_cond_broadcast(&cond);
-                while (newStatus == status) { lock->Wait(cond); }
+                while (newStatus == status) { pthread_cond_wait(&cond, &lock); }
             }
             return status;
         }
 
         /**
          * Wait for the status to become theStatus then set to newStatus.
-         * \note You must hold the lock associated with this status handler
          */
         void CompareWaitAndPost(Status_t theStatus, Status_t newStatus) {
-            Internal::ScopeMutex l(lock->lock);
-            while (theStatus != status) { lock->Wait(cond); }
+            Internal::ScopeMutex l(lock);
+            while (theStatus != status) { pthread_cond_wait(&cond, &lock); }
             status = newStatus;
             pthread_cond_broadcast(&cond);
         }
 
     private:
         Status_t status;
-        mutable ReentrantLock* lock;
+        mutable pthread_mutex_t lock;
         mutable pthread_cond_t cond;
     };
 }

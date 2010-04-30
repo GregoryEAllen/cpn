@@ -61,7 +61,7 @@ namespace CPN {
 
     Kernel::Kernel(const KernelAttr &kattr)
         : lock(),
-        status(INITIALIZED, &lock),
+        status(INITIALIZED),
         kernelname(kattr.GetName()),
         hostkey(0),
         database(kattr.GetDatabase())
@@ -98,7 +98,6 @@ namespace CPN {
     }
 
     void Kernel::Wait() {
-        Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
         KernelStatus_t s = status.Get();
         while (s != DONE) {

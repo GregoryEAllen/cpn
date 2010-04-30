@@ -50,40 +50,27 @@ namespace Sync {
      */
     class ReentrantLock {
     public:
-        ReentrantLock() : count(0), owner(0) {
-            ENSURE(!pthread_mutex_init(&lock, 0));
-            ENSURE(!pthread_cond_init(&cond, 0));
+        ReentrantLock() {
+            pthread_mutexattr_t attr;
+            pthread_mutexattr_init(&attr);
+            pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+            ENSURE(!pthread_mutex_init(&lock, &attr));
+            pthread_mutexattr_destroy(&attr);
         }
         ~ReentrantLock() {
-            ASSERT_ABORT(count == 0, "Mutex still owned by %llu", (unsigned long long) owner);
             ENSURE_ABORT(!pthread_mutex_destroy(&lock));
-            ENSURE_ABORT(!pthread_cond_destroy(&cond));
         }
 
         void Unlock() const {
-            Internal::ScopeMutex l(lock);
-            ASSERT_ABORT(pthread_equal(owner, pthread_self()),
-                    "%llu trying to unlock a mutex owned by %llu",
-                    (unsigned long long)pthread_self(), (unsigned long long) owner);
-            ASSERT_ABORT(count > 0, "Unlocking a mutex that is not locked.");
-            --count;
-            if (count == 0) pthread_cond_signal(&cond);
+            ENSURE_ABORT(!pthread_mutex_unlock(&lock));
         }
 
-        void Lock() const;
-
-        /**
-         * Use only for testing purposes and asserts.
-         * \return true if the calling thread has the lock.
-         */
-        bool HaveLock() const;
+        void Lock() const {
+            ENSURE_ABORT(!pthread_mutex_lock(&lock));
+        }
 
     private:
-        void Wait(pthread_cond_t& c) const;
         mutable pthread_mutex_t lock;
-        mutable pthread_cond_t cond;
-        mutable long count;
-        mutable pthread_t owner;
 
         template<class T> friend class StatusHandler;
         friend class ReentrantCondition;
@@ -102,8 +89,7 @@ namespace Sync {
         void Signal() { pthread_cond_signal(&cond); }
         void Broadcast() { pthread_cond_broadcast(&cond); }
         void Wait(ReentrantLock &lock) const {
-            Internal::ScopeMutex l(lock.lock);
-            lock.Wait(cond);
+            pthread_cond_wait(&cond, &lock.lock);
         }
     private:
         mutable pthread_cond_t cond;

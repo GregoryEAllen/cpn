@@ -23,29 +23,4 @@
 
 #include "ReentrantLock.h"
 
-void Sync::ReentrantLock::Lock() const {
-    Internal::ScopeMutex l(lock);
-    if ( count != 0 && ( pthread_equal(owner, pthread_self()) ) ) {
-        ++count;
-    } else {
-        while (count != 0) { pthread_cond_wait(&cond, &lock); }
-        ++count;
-        owner = pthread_self();
-    }
-}
 
-void Sync::ReentrantLock::Wait(pthread_cond_t& c) const {
-    long oldcount = count;
-    pthread_t oldowner = owner;
-    count = 0;
-    pthread_cond_signal(&cond);
-    pthread_cond_wait(&c, &lock);
-    while (count != 0) { pthread_cond_wait(&cond, &lock); }
-    count = oldcount;
-    owner = oldowner;
-}
-
-bool Sync::ReentrantLock::HaveLock() const {
-    Internal::ScopeMutex l(lock);
-    return count != 0 && ( pthread_equal(owner, pthread_self()) );
-}
