@@ -161,12 +161,14 @@ namespace CPN {
 
     void RemoteQueue::InternalDequeue(unsigned count) {
         ASSERT(mode == READ);
+        FUNC_TRACE(logger);
         ThresholdQueue::InternalDequeue(count);
         InternalCheckStatus();
     }
 
     void RemoteQueue::InternalEnqueue(unsigned count) {
         ASSERT(mode == WRITE);
+        FUNC_TRACE(logger);
         ThresholdQueue::InternalEnqueue(count);
         InternalCheckStatus();
     }

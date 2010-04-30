@@ -67,8 +67,8 @@ namespace CPN {
         virtual bool Empty() const;
         virtual unsigned ChannelStride() const;
 
-        unsigned ElementsEnqueued() const;
-        unsigned ElementsDequeued() const;
+        unsigned NumEnqueued() const;
+        unsigned NumDequeued() const;
 
         virtual void Grow(unsigned queueLen, unsigned maxThresh);
 

@@ -80,9 +80,9 @@ namespace CPN {
     void QueueBase::Dequeue(unsigned count) {
         AutoLock al(*this);
         dequeuethresh = 0;
+        indequeue = false;
         if (readshutdown) { throw BrokenQueueException(readerkey); }
         InternalDequeue(count);
-        indequeue = false;
         NotifyFreespace();
     }
 
@@ -131,9 +131,9 @@ namespace CPN {
     void QueueBase::Enqueue(unsigned count) {
         AutoLock al(*this);
         enqueuethresh = 0;
+        inenqueue = false;
         if (writeshutdown) { throw BrokenQueueException(writerkey); }
         InternalEnqueue(count);
-        inenqueue = false;
         NotifyData();
     }
 
@@ -246,6 +246,7 @@ namespace CPN {
         logger.Error("size: %u, maxthresh: %u count: %u free: %u",
                 QueueLength(), MaxThreshold(), Count(), Freespace());
         logger.Error("readrequest: %u, writerequest: %u", readrequest, writerequest);
+        logger.Error("numenqueued: %u, numdequeued: %u", NumEnqueued(), NumDequeued());
         if (indequeue) {
             logger.Error("Indequeue (thresh: %u)", dequeuethresh);
         }

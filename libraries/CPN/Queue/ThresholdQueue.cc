@@ -55,11 +55,15 @@ namespace CPN {
     }
 
     void *ThresholdQueue::InternalGetRawEnqueuePtr(unsigned thresh, unsigned chan) {
+        void *ret = 0;
         if (enqueueUseOld) {
-            return oldqueue->GetRawEnqueuePtr(thresh, chan);
+            ASSERT(inenqueue);
+            ret = oldqueue->GetRawEnqueuePtr(thresh, chan);
+            ASSERT(ret);
         } else {
-            return queue->GetRawEnqueuePtr(thresh, chan);
+            ret = queue->GetRawEnqueuePtr(thresh, chan);
         }
+        return ret;
     }
 
     void ThresholdQueue::InternalEnqueue(unsigned count) {
@@ -112,11 +116,17 @@ namespace CPN {
     }
 
     const void *ThresholdQueue::InternalGetRawDequeuePtr(unsigned thresh, unsigned chan) {
+        const void *ret = 0;
         if (dequeueUseOld) {
-            return oldqueue->GetRawDequeuePtr(thresh, chan);
+            // The ONLY reason this code path should be followed is if the node made a getdequeueptr
+            // then called getdequeueptr again before dequeue when a grow happens inbetween
+            ASSERT(indequeue);
+            ret = oldqueue->GetRawDequeuePtr(thresh, chan);
+            ASSERT(ret);
         } else {
-            return queue->GetRawDequeuePtr(thresh, chan);
+            ret = queue->GetRawDequeuePtr(thresh, chan);
         }
+        return ret;
     }
 
     void ThresholdQueue::InternalDequeue(unsigned count) {
@@ -148,12 +158,12 @@ namespace CPN {
         return queue->QueueLength();
     }
 
-    unsigned ThresholdQueue::ElementsEnqueued() const {
+    unsigned ThresholdQueue::NumEnqueued() const {
         AutoLock<const QueueBase> al(*this);
         return queue->ElementsEnqueued();
     }
 
-    unsigned ThresholdQueue::ElementsDequeued() const {
+    unsigned ThresholdQueue::NumDequeued() const {
         AutoLock<const QueueBase> al(*this);
         return queue->ElementsDequeued();
     }

@@ -218,6 +218,9 @@ namespace CPN {
 
         /// For debugging ONLY!! Otherwise non deterministic output
         virtual void LogState();
+
+        virtual unsigned NumEnqueued() const = 0;
+        virtual unsigned NumDequeued() const = 0;
 	protected:
 		QueueBase(shared_ptr<Database> db, const SimpleQueueAttr &attr);
 
