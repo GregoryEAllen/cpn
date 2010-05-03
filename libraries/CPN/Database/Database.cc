@@ -121,28 +121,35 @@ namespace CPN {
     }
 
     void Database::InternalLoad(const std::string &name) {
-        CPNInitPrototype init;
         std::string sym = CPN_DEFAULT_INIT_SYMBOL_STR;
         sym += name;
         void *handle = 0;
+
+        // Use a union to avoid having to cast
+        // from void pointer to function pointer explicitely.
+        // Doing so would violate strict aliasing.
+        union {
+            void *vptr;
+            CPNInitPrototype fn;
+        } init;
 
         handle = dlopen(0, RTLD_LAZY);
         if (!handle) {
             throw std::runtime_error(dlerror());
         }
         try {
-            *((void**)&init) = dlsym(handle, sym.c_str());
+            init.vptr = dlsym(handle, sym.c_str());
             char *error = 0;
             if ((error = dlerror()) != 0) {
                 InternalLoadLib(name);
                 dlerror();
-                *((void**)&init) = dlsym(handle, sym.c_str());
+                init.vptr = dlsym(handle, sym.c_str());
                 char *error = 0;
                 if ((error = dlerror()) != 0) {
                     throw std::runtime_error(error);
                 }
             }
-            shared_ptr<NodeFactory> factory = init();
+            shared_ptr<NodeFactory> factory = init.fn();
             factorymap.insert(std::make_pair(factory->GetName(), factory));
         } catch (...) {
             dlclose(handle);
