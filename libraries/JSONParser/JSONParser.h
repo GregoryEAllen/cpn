@@ -21,6 +21,9 @@ namespace JSON {
 
         unsigned Parse(const char *c, unsigned len);
 
+        void ParseStream(std::istream &is);
+        void ParseFile(FILE *f);
+
         Status_t GetStatus() const { return status; }
         bool Done() const { return status == DONE; }
         bool Error() const { return status == ERROR; }

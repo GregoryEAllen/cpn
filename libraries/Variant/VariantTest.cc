@@ -40,7 +40,6 @@ void VariantTest() {
     JSONToVariant jv;
     iss >> jv;
     v = jv.Get();
-    //v = Variant::FromJSON(text);
     std::cout << v << std::endl;
     std::cout << PrettyJSON(v) << std::endl;
     assert(v.IsArray());
@@ -61,6 +60,7 @@ void VariantTest() {
 
     JSONToVariant jv2;
     iss >> jv2;
+    assert(jv2.Done());
     v = jv2.Get();
     assert(v[1].AsString() == "foo");
 
