@@ -12,7 +12,7 @@ namespace JSON {
     Parser::Parser()
         : status(OK),
         line(1),
-        column(1),
+        column(0),
         charcount(0),
         depth(0)
     {
@@ -33,7 +33,7 @@ namespace JSON {
         if (status != OK) { return false; }
         ++charcount;
         if (c == '\n') {
-            column = 1;
+            column = 0;
             ++line;
         } else {
             ++column;
@@ -110,7 +110,8 @@ namespace JSON {
 }
 
 std::istream &operator>>(std::istream &is, JSON::Parser &p) {
-    while (p.GetStatus() == JSON::Parser::OK && is.good() && p.Parse((char)is.get()));
+    while (p.Ok() && is.good() && p.Parse((char)is.get()));
+    if (!p.Done()) is.unget();
     return is;
 }
 
