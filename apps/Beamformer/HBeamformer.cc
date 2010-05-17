@@ -9,7 +9,8 @@
 #include <string.h>
 #include <sys/time.h>
 
-#include <iostream>
+#include <sstream>
+#include "HBLoadFromFile.h"
 
 // Maybe adjust the loop blocking based on this CACHE_LENGTH rather than set it explicitly?
 #define CACHE_LENGTH 64
@@ -49,7 +50,6 @@ HBeamformer::HBeamformer(unsigned len, unsigned nStaves, unsigned nBeams,
         FreeMem();
         throw;
     }
-    memcpy(coeffs, coeffs_, sizeof(complex<float>) * numVBeams * length);
     transpose_matrix((__m128d*)coeffs_, (__m128d*)coeffs, numVBeams, length,
             numVBeams/(CACHE_LENGTH/sizeof(__m128d)), (CACHE_LENGTH/sizeof(__m128d)));
     memcpy(replica, replica_, sizeof(complex<float>) * numVBeams * length);
@@ -174,20 +174,42 @@ void HBeamformer::DestroyPlans() {
     fftwf_destroy_plan(inversePlan_FFTW_RealGeometry);
 }
 
-void Print(const complex<float> *p, int skip) {
-    std::cout << "----" <<std::endl;
-    for (int i = 0; i < 10; ++i) {
-        std::cout << p[i*skip] << std::endl;
-    }
+void Dump(const complex<float> *p, unsigned length, unsigned numchans, unsigned chanstride) {
+    static int num = 0;
+    std::ostringstream oss;
+    oss << "dump." << num;
+    FILE *f = fopen(oss.str().c_str(), "w");
+    HBDataToFile(f, p, sizeof(complex<float>)*length, sizeof(complex<float>)*chanstride, numchans);
+    fclose(f);
+    ++num;
 }
 
 void HBeamformer::Run(const complex<float> *inptr, unsigned instride,
         complex<float> *outptr, unsigned outstride) {
-
     timevals.clear();
     timevals.push_back(getTime());
-    Print(inptr, 1);
-    // -- loop over each stave to fft time to freq and then scatter to virtual geometry.
+    //Dump(inptr, length, numStaves, instride);
+    Stage1(inptr, instride);
+    //Dump(workingData, numVStaves, length, numVStaves);
+    timevals.push_back(getTime());
+    Stage2();
+    //Dump(workingData, numVStaves, length, numVStaves);
+    timevals.push_back(getTime());
+    Stage3();
+    //Dump(workingData, numVBeams, length, numVBeams);
+    timevals.push_back(getTime());
+    Stage4();
+    //Dump(workingData, numVBeams, length, numVBeams);
+    timevals.push_back(getTime());
+    Stage5();
+    timevals.push_back(getTime());
+    //Dump(workingData, length, numBeams, length);
+    Stage6(outptr, outstride);
+    //Dump(outptr, length, numBeams, outstride);
+    timevals.push_back(getTime());
+}
+
+void HBeamformer::Stage1(const complex<float> *inptr, unsigned instride) {
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -199,47 +221,48 @@ void HBeamformer::Run(const complex<float> *inptr, unsigned instride,
 
         ::fftwf_execute_dft (forwardPlan_FFTW_RealGeometry, in, out);
     }
-    timevals.push_back(getTime());
 
     TransposeScatter((__m128d*) workingData,
                         (__m128d*) scratchData);
-            
-    timevals.push_back(getTime());
-    // -- execute the virtual geometry fft to get spatial bins. corner turn included
+    std::swap(workingData, scratchData);
+}
+
+void HBeamformer::Stage2() {
     ::fftwf_execute_dft (forwardPlan_FFTW_VirtualGeometry, 
-                            (fftwf_complex*)  scratchData, 
-                            (fftwf_complex*)  workingData);
-    Print(workingData, numBeams);
-        
-    timevals.push_back(getTime());
-    // -- loop over all bins to mutiply coeffs in
-    Print(coeffs, numBeams);
+                            (fftwf_complex*)  workingData, 
+                            (fftwf_complex*)  scratchData);
+    std::swap(workingData, scratchData);
+}
+
+void HBeamformer::Stage3() {
     vec_cpx_mul(
             (float*) workingData,
             (float*) coeffs,
             (float*) scratchData,
             numVStaves * length);
+    std::swap(workingData, scratchData);
+}
 
-    Print(scratchData, numBeams);
-    timevals.push_back(getTime());
-    // -- ifft to turn s-bins to beams
+void HBeamformer::Stage4() {
     ::fftwf_execute_dft (inversePlan_FFTW_VirtualGeometry, 
-                            (fftwf_complex*)  scratchData, 
-                            (fftwf_complex*)  scratchData);
+                            (fftwf_complex*)  workingData, 
+                            (fftwf_complex*)  workingData);
 
     for (unsigned i = 0; i < numVBeams*length; ++i) {
-        scratchData[i] /= numVBeams;
+        workingData[i] /= numVBeams;
     }
-    Print(scratchData, numBeams);
+}
 
-    timevals.push_back(getTime());
-    transpose_and_cmul_matrix((__m128d *) scratchData, 
-                        (__m128d *) workingData, 
+void HBeamformer::Stage5() {
+    transpose_and_cmul_matrix((__m128d *) workingData, 
+                        (__m128d *) scratchData, 
                         (__m128d *) replica,
                         length, numBeams,
                         128, 4);
-    Print(workingData, 1);
-    timevals.push_back(getTime());
+    std::swap(workingData, scratchData);
+}
+
+void HBeamformer::Stage6(complex<float> *outptr, unsigned outstride) {
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -251,9 +274,6 @@ void HBeamformer::Run(const complex<float> *inptr, unsigned instride,
             outptr[i + (beam * outstride)] /= length;
         }
     }
-    Print(outptr, 1);
-    timevals.push_back(getTime());
-
 }
 
 void HBeamformer::PrintTimes() {
@@ -261,25 +281,22 @@ void HBeamformer::PrintTimes() {
 
     int i = 0;
     double thetime = timevals[1 + i] - timevals[i];
-    fprintf(f, "fft/scatter:\t%f\n", thetime);
+    fprintf(f, "Stage1:\t%f\n", thetime);
     ++i;
     thetime = timevals[1 + i] - timevals[i];
-    fprintf(f, "transpose:\t%f\n", thetime);
+    fprintf(f, "Stage2:\t%f\n", thetime);
     ++i;
     thetime = timevals[1 + i] - timevals[i];
-    fprintf(f, "second fft:\t%f\n", thetime);
+    fprintf(f, "Stage3:\t%f\n", thetime);
     ++i;
     thetime = timevals[1 + i] - timevals[i];
-    fprintf(f, "complexmult:\t%f\n", thetime);
+    fprintf(f, "Stage4:\t%f\n", thetime);
     ++i;
     thetime = timevals[1 + i] - timevals[i];
-    fprintf(f, "first ifft:\t%f\n", thetime);
+    fprintf(f, "Stage5:\t%f\n", thetime);
     ++i;
     thetime = timevals[1 + i] - timevals[i];
-    fprintf(f, "transpose:\t%f\n", thetime);
-    ++i;
-    thetime = timevals[1 + i] - timevals[i];
-    fprintf(f, "ifft:\t%f\n", thetime);
+    fprintf(f, "Stage6:\t%f\n", thetime);
     ++i;
     fprintf(f, "total:\t%f\n", timevals[i] - timevals[0]);
 }

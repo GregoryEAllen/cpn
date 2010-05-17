@@ -31,6 +31,19 @@ protected:
 
     void MakeTransposeIndices();
 
+    /// workingData[:,staveToVStaveMap] = fft(inptr).T
+    void Stage1(const std::complex<float> *inptr, unsigned instride);
+    /// workingData = fft(workingData)
+    void Stage2();
+    /// workingData *= coeffs
+    void Stage3();
+    /// workingData = ifft(workingData)
+    void Stage4();
+    /// workingData = workingData.T * replica
+    void Stage5();
+    /// outptr = ifft(workingData)
+    void Stage6(std::complex<float> *outptr, unsigned outstride);
+
     void TransposeScatter(__m128d *in, __m128d *out);
 
     const unsigned numVBeams;
