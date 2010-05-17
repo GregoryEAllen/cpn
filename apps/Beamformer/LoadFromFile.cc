@@ -1,5 +1,5 @@
 
-#include "HBLoadFromFile.h"
+#include "LoadFromFile.h"
 #include "HBeamformer.h"
 #include "Variant.h"
 #include "JSONToVariant.h"
@@ -65,7 +65,7 @@ std::auto_ptr<HBeamformer> HBLoadFromFile(const std::string &filename) {
 }
 
 
-unsigned HBDataFromFile(FILE *f, void *ptr, unsigned maxlength,
+unsigned DataFromFile(FILE *f, void *ptr, unsigned maxlength,
         unsigned chanstride, unsigned numchans) {
     JSONToVariant parser;
     parser.ParseFile(f);
@@ -96,7 +96,7 @@ unsigned HBDataFromFile(FILE *f, void *ptr, unsigned maxlength,
     return std::min(maxlength, length);
 }
 
-unsigned HBDataToFile(FILE *f, const void *ptr, unsigned length,
+unsigned DataToFile(FILE *f, const void *ptr, unsigned length,
         unsigned chanstride, unsigned numchans) {
     Variant header(Variant::ObjectType);
     header["length"] = length;

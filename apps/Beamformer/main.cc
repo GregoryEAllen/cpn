@@ -1,5 +1,5 @@
 #include "HBeamformer.h"
-#include "HBLoadFromFile.h"
+#include "LoadFromFile.h"
 #include "Assert.h"
 
 #include <unistd.h>
@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
     unsigned len = former->Length() * sizeof(complex<float>);
 
     fprintf(stderr, "Reading Input..");
-    HBDataFromFile(fin, &input[0], len, len, former->NumStaves());
+    DataFromFile(fin, &input[0], len, len, former->NumStaves());
 
     fprintf(stderr, ". Done\n");
 
@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Writing Output..");
     fprintf(stderr, ". Done\n");
 
-    HBDataToFile(fout, &output[0], len, len, former->NumBeams());
+    DataToFile(fout, &output[0], len, len, former->NumBeams());
     fprintf(stderr, "Cleanup..");
     former.reset();
     fprintf(stderr, ". Done\n");

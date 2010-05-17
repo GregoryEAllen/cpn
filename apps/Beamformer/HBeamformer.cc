@@ -10,7 +10,7 @@
 #include <sys/time.h>
 
 #include <sstream>
-#include "HBLoadFromFile.h"
+#include "LoadFromFile.h"
 
 // Maybe adjust the loop blocking based on this CACHE_LENGTH rather than set it explicitly?
 #define CACHE_LENGTH 64
@@ -179,7 +179,7 @@ void Dump(const complex<float> *p, unsigned length, unsigned numchans, unsigned 
     std::ostringstream oss;
     oss << "dump." << num;
     FILE *f = fopen(oss.str().c_str(), "w");
-    HBDataToFile(f, p, sizeof(complex<float>)*length, sizeof(complex<float>)*chanstride, numchans);
+    DataToFile(f, p, sizeof(complex<float>)*length, sizeof(complex<float>)*chanstride, numchans);
     fclose(f);
     ++num;
 }
