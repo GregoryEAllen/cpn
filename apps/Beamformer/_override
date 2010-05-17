@@ -1,0 +1,32 @@
+USE_FFTW3=1
+ifdef USE_FFTW3
+		OS_LIBS += -lm -lfftw3f -lfftw3f_threads
+endif
+
+USE_FFTW3_INTEL=0
+ifdef USE_FFTW3_INTEL
+
+		OS_INCDIR += -I /opt/intel/mkl/9.1.021/include -I /opt/intel/mkl/9.1.021/include/fftw
+		OS_LIBS +=  -L/opt/intel/mkl/9.1.021/lib/em64t  -lfftw3xc_gnu -lmkl_em64t -lguide -lpthread -lm
+
+endif
+
+USE_OMP=1
+ifdef USE_OMP
+    CC_OTHER += -fopenmp
+    OS_LIBS += -lgomp
+endif
+
+CC_OTHER += -Wfatal-errors
+
+CC_OTHER += -msse3
+# enable the sse
+
+CC_OTHER += -funroll-loops
+#   unroll loops where the number of iterations can be determined on entry
+
+#CC_OTHER += -floop-block
+#   Perform loop blocking using compiler knowledge of the target cache size
+
+#CC_OTHER += -ftree-loop-linear
+#    Perform linear loop transformations on tree. This flag can improve cache performance and allow further loop optimizations to take place. 
