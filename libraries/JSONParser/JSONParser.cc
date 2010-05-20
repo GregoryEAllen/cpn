@@ -1,6 +1,7 @@
 
 #include "JSONParser.h"
 #include <istream>
+#include <cstdio>
 
 namespace JSON {
     int Parser::StaticCallback(void *ctx, int type, const struct JSON_value_struct* value) {
@@ -12,7 +13,7 @@ namespace JSON {
     Parser::Parser()
         : status(OK),
         line(1),
-        column(1),
+        column(0),
         charcount(0),
         depth(0)
     {
@@ -33,7 +34,7 @@ namespace JSON {
         if (status != OK) { return false; }
         ++charcount;
         if (c == '\n') {
-            column = 1;
+            column = 0;
             ++line;
         } else {
             ++column;
@@ -56,10 +57,30 @@ namespace JSON {
         unsigned i = 0;
         for (; i < len; ++i) {
             if (!Parse(c[i])) {
+                --i;
                 break;
             }
         }
         return i;
+    }
+
+    void Parser::ParseStream(std::istream &is) {
+        while (is.good() && Ok()) {
+            if (!Parse((char)is.get())) {
+                is.unget();
+                break;
+            }
+        }
+    }
+
+    void Parser::ParseFile(FILE *f) {
+        int c = 0;
+        while (!std::feof(f) && Ok() && (c = std::fgetc(f)) != EOF) {
+            if (!Parse((char)c)) {
+                std::ungetc(c, f);
+                break;
+            }
+        }
     }
 
     int Parser::Callback(int type, const struct JSON_value_struct *value) {
@@ -110,7 +131,7 @@ namespace JSON {
 }
 
 std::istream &operator>>(std::istream &is, JSON::Parser &p) {
-    while (p.GetStatus() == JSON::Parser::OK && is.good() && p.Parse((char)is.get()));
+    p.ParseStream(is);
     return is;
 }
 

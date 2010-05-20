@@ -35,11 +35,11 @@ void VariantTest() {
     std::cout << list << std::endl;
     std::cout << v << std::endl;
     std::string text = "[1,2,3,4,{\"A\":2}, \"text\"]";
+    text += "[\"doodle\", \"foo\", \"bar\"]";
     std::istringstream iss(text);
     JSONToVariant jv;
     iss >> jv;
     v = jv.Get();
-    //v = Variant::FromJSON(text);
     std::cout << v << std::endl;
     std::cout << PrettyJSON(v) << std::endl;
     assert(v.IsArray());
@@ -58,6 +58,12 @@ void VariantTest() {
     v = "\n";
     std::cout << v << std::endl;
 
+    JSONToVariant jv2;
+    iss >> jv2;
+    assert(jv2.Done());
+    v = jv2.Get();
+    assert(v[1].AsString() == "foo");
+
     std::string failtext = "[\"garbage\" \n    [";
     std::cout << "Testing parser failure: " << failtext << std::endl;
 
@@ -66,5 +72,8 @@ void VariantTest() {
     iss2 >> p;
     assert(p.GetStatus() == JSON::Parser::ERROR);
     std::cout << "Stopped on line: " << p.GetLine() << " Column: " << p.GetColumn() << std::endl;
+    std::string left;
+    iss2 >> left;
+    std::cout << "String left: " << left << std::endl;
 }
 
