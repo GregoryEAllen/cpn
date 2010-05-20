@@ -56,7 +56,7 @@ const char *AssertException::what() const throw() {
 
 bool __ASSERT(const char *exp, const char *file, int line, const char *func, bool die) {
     if (die) {
-        fprintf(stderr, CreateMessage(exp, file, line, func, "").c_str());
+        fputs(CreateMessage(exp, file, line, func, "").c_str(), stderr);
         abort();
     } else {
         throw AssertException(CreateMessage(exp, file, line, func, ""));
@@ -65,7 +65,7 @@ bool __ASSERT(const char *exp, const char *file, int line, const char *func, boo
 
 bool __ASSERT(const char *exp, const char *file, int line, const char *func, bool die, const std::string &msg) {
     if (die) {
-        fprintf(stderr, CreateMessage(exp, file, line, func, "").c_str());
+        fputs(CreateMessage(exp, file, line, func, "").c_str(), stderr);
         abort();
     } else {
         throw AssertException(CreateMessage(exp, file, line, func, msg.c_str()));
@@ -95,7 +95,7 @@ bool __ASSERT(const char *exp, const char *file, int line, const char *func, boo
     }
     std::string msg = CreateMessage(exp, file, line, func, &buff[0]);
     if (die) {
-        fprintf(stderr, msg.c_str());
+        fputs(msg.c_str(), stderr);
         abort();
     } else {
         throw AssertException(msg);
