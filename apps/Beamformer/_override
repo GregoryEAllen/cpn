@@ -22,11 +22,21 @@ CC_OTHER += -Wfatal-errors
 CC_OTHER += -msse3
 # enable the sse
 
+#CC_OTHER += -floop-optimize2
+# More loop optimizations? try and see
+
+CC_OTHER += -funsafe-loop-optimizations
+CC_OTHER += -Wunsafe-loop-optimizations
+# Allow unsafe optimizations (assume counters don't overflow etc.), warn if possibly broken
+
 CC_OTHER += -funroll-loops
 #   unroll loops where the number of iterations can be determined on entry
 
 #CC_OTHER += -floop-block
 #   Perform loop blocking using compiler knowledge of the target cache size
 
-#CC_OTHER += -ftree-loop-linear
+CC_OTHER += -ftree-loop-linear
 #    Perform linear loop transformations on tree. This flag can improve cache performance and allow further loop optimizations to take place. 
+
+CC_OTHER += -ftree-vectorize
+#    Perform loop vectorizatin on trees

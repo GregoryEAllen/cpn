@@ -27,7 +27,7 @@ private:
 };
 
 
-std::auto_ptr<HBeamformer> HBLoadFromFile(const std::string &filename) {
+std::auto_ptr<HBeamformer> HBLoadFromFile(const std::string &filename, bool estimate) {
     std::fstream f;
     f.open(filename.c_str(), std::fstream::in | std::fstream::binary);
 
@@ -61,7 +61,7 @@ std::auto_ptr<HBeamformer> HBLoadFromFile(const std::string &filename) {
         numread += f.gcount();
     }
     ASSERT(numread == numtoread);
-    return std::auto_ptr<HBeamformer>(new HBeamformer(length, numStaves, numBeams, &coeffs[0], &replica[0], &staveIndex[0], true));
+    return std::auto_ptr<HBeamformer>(new HBeamformer(length, numStaves, numBeams, &coeffs[0], &replica[0], &staveIndex[0], estimate));
 }
 
 

@@ -6,7 +6,7 @@
 
 class HBeamformer;
 
-std::auto_ptr<HBeamformer> HBLoadFromFile(const std::string &filename);
+std::auto_ptr<HBeamformer> HBLoadFromFile(const std::string &filename, bool estimate);
 
 unsigned DataFromFile(FILE *f, void *ptr, unsigned maxlength,
         unsigned chanstride, unsigned numchans);
