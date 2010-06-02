@@ -10,8 +10,8 @@
 class HBeamformer {
 public:
     HBeamformer(unsigned len, unsigned nStaves, unsigned nBeams,
-            std::complex<float> *coeffs_, std::complex<float> *replica_,
-            unsigned *staveIndex, bool estimate = false);
+            const std::complex<float> *coeffs_, const std::complex<float> *replica_,
+            const unsigned *staveIndex, bool estimate = false);
     ~HBeamformer();
 
     unsigned NumVBeams() const { return numVBeams; }

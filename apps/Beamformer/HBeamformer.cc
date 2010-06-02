@@ -5,7 +5,6 @@
 #include "ErrnoException.h"
 #include <pmmintrin.h>
 #include <stdlib.h>
-#include <malloc.h>
 #include <string.h>
 #include <sys/time.h>
 
@@ -30,8 +29,8 @@ static double getTime() {
 }
 
 HBeamformer::HBeamformer(unsigned len, unsigned nStaves, unsigned nBeams,
-            std::complex<float> *coeffs_, std::complex<float> *replica_,
-            unsigned *staveIndex, bool estimate)
+            const std::complex<float> *coeffs_, const std::complex<float> *replica_,
+            const unsigned *staveIndex, bool estimate)
     : numVBeams(nBeams),
     numBeams(nBeams),
     numStaves(nStaves),

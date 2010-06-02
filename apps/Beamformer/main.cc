@@ -11,6 +11,7 @@
 #include <complex>
 #include <iostream>
 #include <sys/time.h>
+#include <libgen.h>
 
 using std::complex;
 
@@ -193,7 +194,7 @@ namespace VB {
 
         fprintf(stderr, ". Done\n");
 
-        for (int j = 0; j < repititions; ++j) {
+        for (unsigned j = 0; j < repititions; ++j) {
             fprintf(stderr, "Beamform(%d)..", algo);
             double start = getTime();
             if (fan > numFans) {
@@ -228,9 +229,12 @@ namespace VB {
 
 
 int main(int argc, char **argv) {
-    if (*basename(*argv) == 'v') {
+    char *selfname = basename(*argv);
+    if (*selfname == 'v') {
         return VB::main(argc, argv);
-    } else {
+    } else if (*selfname == 'h') {
         return HB::main(argc, argv);
+    } else {
+        fprintf(stderr, "urk!\n");
     }
 }

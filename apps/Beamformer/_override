@@ -1,19 +1,18 @@
+CC_OTHER += `pkg-config --cflags fftw3f`
 USE_FFTW3=1
 ifdef USE_FFTW3
-		OS_LIBS += -lm -lfftw3f -lfftw3f_threads
+    OS_LIBS += -lfftw3f_threads `pkg-config --libs fftw3f`
 endif
 
 USE_FFTW3_INTEL=0
 ifdef USE_FFTW3_INTEL
-
-		OS_INCDIR += -I /opt/intel/mkl/9.1.021/include -I /opt/intel/mkl/9.1.021/include/fftw
-		OS_LIBS +=  -L/opt/intel/mkl/9.1.021/lib/em64t  -lfftw3xc_gnu -lmkl_em64t -lguide -lpthread -lm
-
+    OS_INCDIR += -I /opt/intel/mkl/9.1.021/include -I /opt/intel/mkl/9.1.021/include/fftw
+    OS_LIBS +=  -L/opt/intel/mkl/9.1.021/lib/em64t  -lfftw3xc_gnu -lmkl_em64t -lguide -lpthread -lm
 endif
 
+CC_OTHER += -fopenmp
 USE_OMP=1
 ifdef USE_OMP
-    CC_OTHER += -fopenmp
     OS_LIBS += -lgomp
 endif
 
