@@ -21,7 +21,7 @@ void transpose_and_cmul_matrix(__m128d *in, __m128d *out, __m128d *mul, int M, i
 void vec_cpx_mul(const float* a, const float* b, float* d, unsigned count);
 void transpose_matrix(__m128d *in, __m128d *out, int M, int N, int blockM, int blockN);
 
-double getTime() {
+static double getTime() {
     timeval tv;
     if (gettimeofday(&tv, 0) != 0) {
         throw ErrnoException();
@@ -52,6 +52,9 @@ HBeamformer::HBeamformer(unsigned len, unsigned nStaves, unsigned nBeams,
     }
     transpose_matrix((__m128d*)coeffs_, (__m128d*)coeffs, numVBeams, length,
             numVBeams/(CACHE_LENGTH/sizeof(__m128d)), (CACHE_LENGTH/sizeof(__m128d)));
+    for (unsigned i = 0; i < numVBeams * length; ++i) {
+        coeffs[i] /= (float)(numVBeams * length);
+    }
     memcpy(replica, replica_, sizeof(complex<float>) * numVBeams * length);
     memcpy(staveToVStaveMap, staveIndex, sizeof(unsigned) * numStaves);
     MakeTransposeIndices();
@@ -248,9 +251,11 @@ void HBeamformer::Stage4() {
                             (fftwf_complex*)  workingData, 
                             (fftwf_complex*)  workingData);
 
+    /*
     for (unsigned i = 0; i < numVBeams*length; ++i) {
         workingData[i] /= numVBeams;
     }
+    */
 }
 
 void HBeamformer::Stage5() {
@@ -270,9 +275,11 @@ void HBeamformer::Stage6(complex<float> *outptr, unsigned outstride) {
         fftwf_complex *in = (fftwf_complex*) (workingData + (beam * length));
         fftwf_complex *out = (fftwf_complex*) (outptr + (beam * outstride));
         ::fftwf_execute_dft (inversePlan_FFTW_RealGeometry, in, out);
+        /*
         for (unsigned i = 0; i < length; ++i) {
             outptr[i + (beam * outstride)] /= length;
         }
+        */
     }
 }
 

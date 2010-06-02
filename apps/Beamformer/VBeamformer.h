@@ -5,8 +5,17 @@
 
 class VBeamformer {
 public:
+    enum Algorithm_t {
+        ALGO_BEGIN = 0,
+        GENERIC = 0,
+        GENERIC_VECTOR = 1,
+        SSE_VECTOR = 2,
+        ORIG,
+        ALGO_END
+    };
 
-    VBeamformer();
+    VBeamformer(unsigned fans, unsigned stavetypes, unsigned elementsperstave,
+            unsigned filterlen, short *filt, std::complex<float> *bbcor);
     ~VBeamformer();
 
     // \return the number of valid output samples
@@ -14,6 +23,13 @@ public:
             unsigned numStaves, unsigned numSamples, unsigned fan,
             std::complex<float> *outdata, unsigned outstride);
 
+    unsigned NumFans() const { return numFans; }
+    unsigned NumStaveTypes() const { return numStaveTypes; }
+    unsigned NumElemsPerStave() const { return numElemsPerStave; }
+    unsigned FilterLen() const { return filterLen; }
+
+    Algorithm_t SetAlgorithm(Algorithm_t a) { return algo = a; }
+    Algorithm_t GetAlgorithm() const { return algo; }
 protected:
     unsigned numFans;
     unsigned numStaveTypes;
@@ -23,6 +39,7 @@ protected:
     float *filter;
     std::complex<float> *bbCorrect;
 
+    Algorithm_t algo;
 };
 
 /*

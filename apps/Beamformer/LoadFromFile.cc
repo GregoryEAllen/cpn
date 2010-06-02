@@ -1,6 +1,7 @@
 
 #include "LoadFromFile.h"
 #include "HBeamformer.h"
+#include "VBeamformer.h"
 #include "Variant.h"
 #include "JSONToVariant.h"
 #include "VariantToJSON.h"
@@ -62,6 +63,40 @@ std::auto_ptr<HBeamformer> HBLoadFromFile(const std::string &filename, bool esti
     }
     ASSERT(numread == numtoread);
     return std::auto_ptr<HBeamformer>(new HBeamformer(length, numStaves, numBeams, &coeffs[0], &replica[0], &staveIndex[0], estimate));
+}
+
+std::auto_ptr<VBeamformer> VBLoadFromFile(const std::string &filename) {
+    std::fstream f;
+    f.open(filename.c_str(), std::fstream::in | std::fstream::binary);
+    JSONToVariant parser;
+    f >> parser;
+    ASSERT(parser.Done(), "Parsing error: line %u, column %u\n",
+                parser.GetLine(), parser.GetColumn());
+    Variant header = parser.Get();
+    while (f.get() != 0 && f.good());
+    ASSERT(f.good());
+    unsigned numFans = header["numFans"].AsUnsigned();
+    unsigned numStaveTypes = header["numStaveTypes"].AsUnsigned();
+    unsigned numElemsPerStave = header["numElemsPerStave"].AsUnsigned();
+    unsigned filterLen = header["filterLen"].AsUnsigned();
+    std::vector< short > filter(filterLen * numStaveTypes * numElemsPerStave * numFans);
+    std::vector< complex<float> > bbcor(numFans * numStaveTypes * numElemsPerStave);
+    unsigned numread = 0;
+    unsigned numtoread = sizeof(short) * filter.size();
+    while (f.good() && numread < numtoread) {
+        f.read(((char*)&filter[0]) + numread, (numtoread - numread));
+        numread += f.gcount();
+    }
+    ASSERT(numread == numtoread);
+    numread = 0;
+    numtoread = sizeof(complex<float>) * bbcor.size();
+    while (f.good() && numread < numtoread) {
+        f.read(((char*)&bbcor[0]) + numread, (numtoread - numread));
+        numread += f.gcount();
+    }
+    ASSERT(numread == numtoread);
+    return std::auto_ptr<VBeamformer>(new VBeamformer(numFans, numStaveTypes, numElemsPerStave, filterLen,
+                &filter[0], &bbcor[0]));
 }
 
 
