@@ -22,6 +22,8 @@ class HBeamformer;
  * the replicas, in that order.
  */
 
+#define HBEAMFORMERNODE_TYPENAME "HBeamformerNodeTypeName"
+
 class HBeamformerNode : public CPN::NodeBase {
 public:
     HBeamformerNode(CPN::Kernel &ker, const CPN::NodeAttr &attr);

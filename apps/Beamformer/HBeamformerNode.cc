@@ -6,8 +6,12 @@
 #include "QueueWriterAdapter.h"
 #include "HBeamformer.h"
 #include <complex>
+#include <algorithm>
+#include <functional>
 
 using std::complex;
+
+CPN_DECLARE_NODE_FACTORY(HBeamformerNodeTypeName, HBeamformerNode);
 
 HBeamformerNode::HBeamformerNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)
     : CPN::NodeBase(ker, attr)
@@ -19,7 +23,6 @@ HBeamformerNode::HBeamformerNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)
     inport = param["inport"].AsString();
     outport = param["outport"].AsString();
     bool estimate = param["estimate"].AsBool();
-    std::vector<unsigned> staveIndexes;
     unsigned numStaves = param["numStaves"].AsUnsigned();
     unsigned numBeams = param["numBeams"].AsUnsigned();
     unsigned length = param["length"].AsUnsigned();
@@ -27,12 +30,9 @@ HBeamformerNode::HBeamformerNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)
            "Wrong sized coefficients."); 
     complex<float> *coeffs = (complex<float>*)attr.GetArg().GetBuffer();
     complex<float> *replicas = coeffs + length * numBeams;
-    for (Variant::ConstListIterator itr = param["staveIndexes"].ListBegin();
-            itr != param["staveIndexes"].ListEnd(); ++itr)
-    {
-        staveIndexes.push_back(*itr);
-    }
-
+    std::vector<unsigned> staveIndexes(param["staveIndexes"].Size());
+    std::transform(param["staveIndexes"].ListBegin(), param["staveIndexes"].ListEnd(),
+            staveIndexes.begin(), std::mem_fun_ref(&Variant::AsUnsigned));
     hbeam = new HBeamformer(length, numStaves, numBeams, coeffs, replicas, &staveIndexes[0], estimate);
 }
 
