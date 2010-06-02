@@ -17,5 +17,6 @@ private:
 
     std::string inport;
     std::vector<std::string> outports;
+    unsigned blocksize;
     VBeamformer *vbeam;
 };

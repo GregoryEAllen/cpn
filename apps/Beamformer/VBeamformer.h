@@ -19,7 +19,7 @@ public:
     ~VBeamformer();
 
     // \return the number of valid output samples
-    unsigned Run(std::complex<short> *indata, unsigned instride,
+    unsigned Run(const std::complex<short> *indata, unsigned instride,
             unsigned numStaves, unsigned numSamples, unsigned fan,
             std::complex<float> *outdata, unsigned outstride);
 

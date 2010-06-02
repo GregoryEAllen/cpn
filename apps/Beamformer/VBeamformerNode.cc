@@ -24,6 +24,18 @@ VBeamformerNode::VBeamformerNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)
     outports.resize(param["outports"].Size());
     std::transform(param["outports"].ListBegin(), param["outports"].ListEnd(),
             outports.begin(), std::mem_fun_ref(&Variant::AsUnsigned));
+    unsigned numFans = param["numFans"].AsUnsigned();
+    unsigned numStaveTypes = param["numStaveTypes"].AsUnsigned();
+    unsigned numElemsPerStave = param["numElemsPerStave"].AsUnsigned();
+    unsigned filterLen = param["filterLen"].AsUnsigned();
+    blocksize = param["blocksize"].AsUnsigned();
+    short *filter = (short*)attr.GetArg().GetBuffer();
+    complex<float> *bbcor = (complex<float>*)(filter + filterLen * numStaveTypes * numElemsPerStave * numFans);
+    vbeam = new VBeamformer(numFans, numStaveTypes, numElemsPerStave, filterLen,
+                filter, bbcor);
+    if (param["algorithm"].IsNumber()) {
+        vbeam->SetAlgorithm(param["algorithm"].AsNumber<VBeamformer::Algorithm_t>());
+    }
 
 }
 
@@ -32,9 +44,33 @@ VBeamformerNode::~VBeamformerNode() {
 }
 
 void VBeamformerNode::Process() {
-    CPN::QueueReaderAdapter<complex<float> > in = GetReader(inport);
-    CPN::QueueWriterAdapter<complex<float> > out;
+    CPN::QueueReaderAdapter<complex<short> > in = GetReader(inport);
+    std::vector< CPN::QueueWriterAdapter< complex<float> > >::iterator out_itr;
+    std::vector< CPN::QueueWriterAdapter< complex<float> > >::iterator out_end;
+    std::vector< CPN::QueueWriterAdapter< complex<float> > > out(outports.size());
+    out_itr = out.begin();
+    for (std::vector<std::string>::iterator itr = outports.begin(); itr != outports.end(); ++itr)
+        (*out_itr++) = GetWriter(*itr);
+    out_end = out.end();
+    const unsigned numinchannels = in.NumChannels();
     while (true) {
+        out_itr = out.begin();
+        unsigned fan = 0;
+        unsigned numsamples = blocksize + vbeam->FilterLen();
+        const complex<short> *inptr = in.GetDequeuePtr(numsamples);
+        if (!inptr) {
+            break;
+        }
+        unsigned instride = in.ChannelStride();
+        while (out_itr != out_end) {
+            complex<float> *outptr = out_itr->GetEnqueuePtr(numsamples);
+            unsigned outstride = out_itr->ChannelStride();
+            unsigned numout = vbeam->Run(inptr, instride, numinchannels, numsamples, fan, outptr, outstride);
+            out_itr->Enqueue(numout);
+            ++fan;
+            ++out_itr;
+        }
+        in.Dequeue(blocksize);
     }
 }
 
