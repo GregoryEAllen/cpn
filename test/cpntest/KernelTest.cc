@@ -90,9 +90,8 @@ void KernelTest::SimpleTwoNodeTestFromVariant() {
     args["queues"][0]["writernode"] = "source";
     args["queues"][0]["writerport"] = "y";
 
-    VariantCPNLoader loader(args);
-    CPN::Kernel kernel(loader.GetKernelAttr());
-    loader.Setup(&kernel);
+    CPN::Kernel kernel(VariantCPNLoader::GetKernelAttr(args));
+    VariantCPNLoader::Setup(&kernel, args);
     kernel.WaitForAllNodeEnd();
 }
 

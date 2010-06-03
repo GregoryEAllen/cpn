@@ -26,22 +26,18 @@
 
 class VariantCPNLoader {
 public:
-    VariantCPNLoader(Variant a);
 
-    CPN::KernelAttr GetKernelAttr();
+    static CPN::KernelAttr GetKernelAttr(Variant args);
 
-    void Setup(CPN::Kernel *kernel);
+    static void Setup(CPN::Kernel *kernel, Variant args);
 
-    void LoadNodes(CPN::Kernel *kernel);
-    void LoadNodes(CPN::Kernel *kernel, Variant nodelist);
+    static void LoadNodes(CPN::Kernel *kernel, Variant nodelist, Variant nodemap);
+    static void LoadNode(CPN::Kernel *kernel, Variant attr, Variant nodemap);
 
-    void LoadQueues(CPN::Kernel *kernel);
-    void LoadQueues(CPN::Kernel *kernel, Variant queuelist);
+    static void LoadQueues(CPN::Kernel *kernel, Variant queuelist);
+    static void LoadQueue(CPN::Kernel *kernel, Variant attr);
 private:
-    void LoadNode(CPN::Kernel *kernel, Variant attr);
-    void LoadQueue(CPN::Kernel *kernel, Variant attr);
-    Variant args;
-    unsigned queuesize;
-    unsigned maxthreshold;
+
+    VariantCPNLoader();
 };
 

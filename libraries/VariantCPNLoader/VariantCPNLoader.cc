@@ -23,18 +23,9 @@
 #include "VariantCPNLoader.h"
 #include "VariantToJSON.h"
 
-VariantCPNLoader::VariantCPNLoader(Variant a)
-    : args(a), queuesize(0), maxthreshold(0)
-{
-    if (args["queuesize"].IsNumber()) {
-        queuesize = args["queuesize"].AsUnsigned();
-    }
-    if (args["maxthreshold"].IsNumber()) {
-        maxthreshold = args["maxthreshold"].AsUnsigned();
-    }
-}
+VariantCPNLoader::VariantCPNLoader() { } 
 
-CPN::KernelAttr VariantCPNLoader::GetKernelAttr() {
+CPN::KernelAttr VariantCPNLoader::GetKernelAttr(Variant args) {
     CPN::KernelAttr attr(args["name"].AsString());
     if (args["host"].IsString()) {
         attr.SetHostName(args["host"].AsString());
@@ -45,16 +36,12 @@ CPN::KernelAttr VariantCPNLoader::GetKernelAttr() {
     return attr;
 }
 
-void VariantCPNLoader::Setup(CPN::Kernel *kernel) {
-    LoadNodes(kernel);
-    LoadQueues(kernel);
+void VariantCPNLoader::Setup(CPN::Kernel *kernel, Variant args) {
+    LoadNodes(kernel, args["nodes"], args["nodemap"]);
+    LoadQueues(kernel, args["queues"]);
 }
 
-void VariantCPNLoader::LoadNodes(CPN::Kernel *kernel) {
-    LoadNodes(kernel, args["nodes"]);
-}
-
-void VariantCPNLoader::LoadNodes(CPN::Kernel *kernel, Variant nodelist) {
+void VariantCPNLoader::LoadNodes(CPN::Kernel *kernel, Variant nodelist, Variant nodemap) {
     if (!nodelist.IsArray()) {
         return;
     }
@@ -63,15 +50,17 @@ void VariantCPNLoader::LoadNodes(CPN::Kernel *kernel, Variant nodelist) {
     end = nodelist.ListEnd();
     while (itr != end) {
         if (itr->IsObject()) {
-            LoadNode(kernel, *itr);
+            LoadNode(kernel, *itr, nodemap);
         }
         ++itr;
     }
 }
 
-void VariantCPNLoader::LoadNode(CPN::Kernel *kernel, Variant attr) {
+void VariantCPNLoader::LoadNode(CPN::Kernel *kernel, Variant attr, Variant nodemap) {
     CPN::NodeAttr nattr(attr["name"].AsString(), attr["type"].AsString());
-    if (attr["host"].IsString()) {
+    if (nodemap.IsObject() && nodemap.At(nattr.GetName()).IsString()) {
+        nattr.SetHost(nodemap.At(nattr.GetName()).AsString());
+    } else if (attr["host"].IsString()) {
         nattr.SetHost(attr["host"].AsString());
     }
     Variant param = attr["param"];
@@ -83,10 +72,6 @@ void VariantCPNLoader::LoadNode(CPN::Kernel *kernel, Variant attr) {
         }
     }
     kernel->CreateNode(nattr);
-}
-
-void VariantCPNLoader::LoadQueues(CPN::Kernel *kernel) {
-    LoadQueues(kernel, args["queues"]);
 }
 
 void VariantCPNLoader::LoadQueues(CPN::Kernel *kernel, Variant queuelist) {
