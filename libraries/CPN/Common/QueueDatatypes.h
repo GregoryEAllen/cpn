@@ -30,6 +30,7 @@
 #include <stdint.h>
 #include <typeinfo>
 #include <cstring>
+#include <complex>
 
 namespace CPN {
 
@@ -75,6 +76,8 @@ namespace CPN {
     REGISTER_TYPE_NAME(double);
     REGISTER_TYPE_NAME(long double);
 
+    template<> inline const char* TypeName<std::complex<float> >() { return "complex<float>"; }
+    template<> inline const char* TypeName<std::complex<double> >() { return "complex<double>"; }
 #undef REGISTER_TYPE_NAME
 
 }

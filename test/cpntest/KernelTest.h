@@ -14,6 +14,7 @@ public:
 	CPPUNIT_TEST( TestInvalidQueueCreationType );
 	CPPUNIT_TEST( TestCreateNodes );
 	CPPUNIT_TEST( SimpleTwoNodeTest );
+	CPPUNIT_TEST( SimpleTwoNodeTestFromVariant );
 	CPPUNIT_TEST( TestSync );
 	CPPUNIT_TEST( TestSyncSourceSink );
 	CPPUNIT_TEST_SUITE_END();
@@ -22,6 +23,7 @@ public:
 	void TestInvalidQueueCreationType();
 	void TestCreateNodes();
     void SimpleTwoNodeTest();
+    void SimpleTwoNodeTestFromVariant();
     void TestSync();
     void TestSyncSourceSink();
 

@@ -8,6 +8,7 @@
 #include "MockNodeFactory.h"
 #include "MockNode.h"
 #include "MockSyncNode.h"
+#include "VariantCPNLoader.h"
 #include <stdexcept>
 #include <string>
 
@@ -69,6 +70,30 @@ void KernelTest::SimpleTwoNodeTest() {
     kernel.CreateQueue(qattr);
     kernel.WaitNodeTerminate("sink");
     kernel.WaitNodeTerminate("source");
+}
+
+void KernelTest::SimpleTwoNodeTestFromVariant() {
+	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    Variant args;
+    args["name"] = "test";
+    args["nodes"][0]["name"] = "source";
+    args["nodes"][0]["type"] = MOCKNODE_TYPENAME;
+    args["nodes"][0]["param"] = MockNode::GetModeName(MockNode::MODE_SOURCE);
+    args["nodes"][1]["name"] = "sink";
+    args["nodes"][1]["type"] = MOCKNODE_TYPENAME;
+    args["nodes"][1]["param"] = MockNode::GetModeName(MockNode::MODE_SINK);
+    args["queues"][0]["size"] = 16;
+    args["queues"][0]["threshold"] = 16;
+    args["queues"][0]["datatype"] = CPN::TypeName<unsigned long>();
+    args["queues"][0]["readernode"] = "sink";
+    args["queues"][0]["readerport"] = "x";
+    args["queues"][0]["writernode"] = "source";
+    args["queues"][0]["writerport"] = "y";
+
+    VariantCPNLoader loader(args);
+    CPN::Kernel kernel(loader.GetKernelAttr());
+    loader.Setup(&kernel);
+    kernel.WaitForAllNodeEnd();
 }
 
 void KernelTest::AddNoOps(CPN::Kernel &kernel) {
