@@ -23,6 +23,7 @@ namespace JSON {
 
         void ParseStream(std::istream &is);
         void ParseFile(FILE *f);
+        bool ParseFile(const std::string &filename);
 
         Status_t GetStatus() const { return status; }
         bool Done() const { return status == DONE; }

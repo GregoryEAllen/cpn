@@ -83,6 +83,19 @@ namespace JSON {
         }
     }
 
+    bool Parser::ParseFile(const std::string &filename) {
+        FILE *f = fopen(filename.c_str(), "r");
+        if (f) {
+            try {
+                ParseFile(f);
+            } catch (...) {
+                fclose(f);
+            }
+            fclose(f);
+        }
+        return Done();
+    }
+
     int Parser::Callback(int type, const struct JSON_value_struct *value) {
         bool retval = false;
         switch(type) {
