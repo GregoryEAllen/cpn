@@ -40,8 +40,8 @@ namespace CPN {
     public:
         QueueReaderAdapter() {}
         QueueReaderAdapter(shared_ptr<QueueReader> q) : queue(q) {
-            if (TypeName<T>() != queue->GetDatatype()) {
-                throw TypeMismatchException();
+            if (!TypeCompatable(TypeName<T>(), queue->GetDatatype())) {
+                throw TypeMismatchException(TypeName<T>(), queue->GetDatatype());
             }
         }
 

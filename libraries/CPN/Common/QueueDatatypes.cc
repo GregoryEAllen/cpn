@@ -24,3 +24,14 @@
 
 #include "QueueDatatypes.h"
 
+namespace CPN {
+    bool TypeCompatable(const std::string &type1, const std::string &type2) {
+        if (type1 == "void") {
+            return true;
+        }
+        if (type2 == "void") {
+            return true;
+        }
+        return type1 == type2;
+    }
+}

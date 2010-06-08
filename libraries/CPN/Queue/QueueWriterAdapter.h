@@ -42,8 +42,8 @@ namespace CPN {
     public:
         QueueWriterAdapter() {}
         QueueWriterAdapter(shared_ptr<QueueWriter> q) : queue(q) {
-            if (TypeName<T>() != queue->GetDatatype()) {
-                throw TypeMismatchException();
+            if (!TypeCompatable(TypeName<T>(), queue->GetDatatype())) {
+                throw TypeMismatchException(TypeName<T>(), queue->GetDatatype());
             }
         }
 

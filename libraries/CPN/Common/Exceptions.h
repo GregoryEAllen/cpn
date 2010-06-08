@@ -48,9 +48,14 @@ namespace CPN {
      */
     class CPN_API TypeMismatchException : public std::exception {
     public:
-        TypeMismatchException() throw() {}
+        TypeMismatchException() throw() : message("Queue types mismatch") {}
+        TypeMismatchException(const std::string &type1, const std::string &type2) throw() {
+            message = "Queue types " + type1 + " != " + type2;
+        }
         ~TypeMismatchException() throw();
-        const char* what() const throw() { return "Queue types mismatch."; }
+        const char* what() const throw() { return message.c_str(); }
+    private:
+        std::string message;
     };
 
     /**

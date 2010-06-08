@@ -29,22 +29,15 @@
 #include "CPNCommon.h"
 #include <stdint.h>
 #include <typeinfo>
-#include <cstring>
 #include <complex>
+#include <string>
 
 namespace CPN {
 
-    // Have an idea to make this better.
-    // Have a base class with all pure virtual methods,
-    // then have a template class that enherits from it
-    // with methods like GetName and GetSize.
-    // What I want to be able to do is have a function
-    // that returns a type class where I hand it the
-    // name of the type.
-    // Maybe I should have the QueueAttr have enough information
-    // to construct a generic type class.
+    bool TypeCompatable(const std::string &type1, const std::string &type2);
+
     template<class type>
-    const char* TypeName() {
+    std::string TypeName() {
         return typeid(type).name();
     }
 
@@ -59,8 +52,9 @@ namespace CPN {
     inline unsigned GetTypeSize<void>() { return 1; }
 
 
-#define REGISTER_TYPE_NAME(type) \
-    template<> inline const char* TypeName<type>() { return #type; }
+#define REGISTER_TYPE(type, name) \
+    template<> inline std::string TypeName<type>() { return std::string(name); }
+#define REGISTER_TYPE_NAME(type) REGISTER_TYPE(type, #type)
 
     REGISTER_TYPE_NAME(void);
     REGISTER_TYPE_NAME(char);
@@ -76,9 +70,11 @@ namespace CPN {
     REGISTER_TYPE_NAME(double);
     REGISTER_TYPE_NAME(long double);
 
-    template<> inline const char* TypeName<std::complex<float> >() { return "complex<float>"; }
-    template<> inline const char* TypeName<std::complex<double> >() { return "complex<double>"; }
+    REGISTER_TYPE(std::complex<float>, "complex<float>");
+    REGISTER_TYPE(std::complex<double>, "complex<double>");
+
 #undef REGISTER_TYPE_NAME
+#undef REGISTER_TYPE
 
 }
 
