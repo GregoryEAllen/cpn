@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
     for (unsigned i = 0; i < numKernels; ++i) {
         std::string name = ToString("K #%u", i);
         kernelnames.push_back(name);
-        kernels.push_back(shared_ptr<Kernel>(new Kernel(KernelAttr(name).SetDatabase(database))));
+        kernels.push_back(shared_ptr<Kernel>(new Kernel(KernelAttr(name).SetDatabase(database).SetRemoteEnabled(numKernels > 1))));
     }
     RandomInstructionNode::CreateRIN(*kernels.front(), iterations, numNodes, debugLevel, seed, kernelnames);
 
