@@ -13,6 +13,7 @@
 #include <cppunit/TestAssert.h>
 #include <vector>
 #include <deque>
+#include <string.h>
 
 CPPUNIT_TEST_SUITE_REGISTRATION( QueueTest );
 

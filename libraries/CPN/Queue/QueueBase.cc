@@ -26,6 +26,7 @@
 #include "QueueAttr.h"
 #include "Database.h"
 #include <sstream>
+#include <string.h>
 
 namespace CPN {
 
