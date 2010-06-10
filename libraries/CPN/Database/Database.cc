@@ -47,6 +47,10 @@ namespace CPN {
         libmap.clear();
     }
 
+    bool Database::RequireRemote() {
+        return false;
+    }
+
     bool Database::UseD4R() {
         PthreadMutexProtected al(lock);
         return useD4R;

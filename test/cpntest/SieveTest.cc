@@ -300,8 +300,8 @@ void SieveTest::RunTwoKernelTest() {
     CPN::shared_ptr<CPN::Database> database = CPN::Database::Local();
     database->LogLevel(Logger::WARNING);
     database->UseD4R(false);
-    CPN::Kernel kone(CPN::KernelAttr("one").SetDatabase(database));
-    CPN::Kernel ktwo(CPN::KernelAttr("two").SetDatabase(database));
+    CPN::Kernel kone(CPN::KernelAttr("one").SetDatabase(database).SetRemoteEnabled(true));
+    CPN::Kernel ktwo(CPN::KernelAttr("two").SetDatabase(database).SetRemoteEnabled(true));
     std::vector<std::string> hosts;
     hosts.push_back("one");
     hosts.push_back("two");

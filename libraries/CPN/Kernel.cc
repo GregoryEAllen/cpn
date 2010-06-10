@@ -64,7 +64,8 @@ namespace CPN {
         status(INITIALIZED),
         kernelname(kattr.GetName()),
         hostkey(0),
-        database(kattr.GetDatabase())
+        database(kattr.GetDatabase()),
+        useremote(kattr.GetRemoteEnabled())
     {
         FUNCBEGIN;
         if (Pthread::Error() != 0) {
@@ -73,18 +74,27 @@ namespace CPN {
         if (!database) {
             database = Database::Local();
         }
+        if (database->RequireRemote()) {
+            useremote = true;
+        }
         logger.Output(database.get());
         logger.LogLevel(database->LogLevel());
         logger.Name(kernelname);
 
-        SockAddrList addrlist = SocketAddress::CreateIP(kattr.GetHostName(),
-                kattr.GetServName());
-        server.reset(new ConnectionServer(addrlist, database));
+        if (useremote) {
+            SockAddrList addrlist = SocketAddress::CreateIP(kattr.GetHostName(),
+                    kattr.GetServName());
+            server.reset(new ConnectionServer(addrlist, database));
 
-        SocketAddress addr = server->GetAddress();
-        hostkey = database->SetupHost(kernelname, addr.GetHostName(), addr.GetServName(), this);
+            SocketAddress addr = server->GetAddress();
+            hostkey = database->SetupHost(kernelname, addr.GetHostName(), addr.GetServName(), this);
+            remotequeueholder.reset(new RemoteQueueHolder());
 
-        logger.Info("New kernel, listening on %s:%s", addr.GetHostName().c_str(), addr.GetServName().c_str());
+            logger.Info("New kernel, listening on %s:%s", addr.GetHostName().c_str(), addr.GetServName().c_str());
+        } else {
+            hostkey = database->SetupHost(kernelname, this);
+            logger.Info("New kernel");
+        }
         // Start up and don't finish until actually started.
         Pthread::Start();
         status.CompareAndWait(INITIALIZED);
@@ -113,7 +123,7 @@ namespace CPN {
     void Kernel::NotifyTerminate() {
         FUNCBEGIN;
         if (status.CompareAndPost(RUNNING, TERMINATE)) {
-            server->Wakeup();
+            SendWakeup();
         }
     }
 
@@ -213,20 +223,24 @@ namespace CPN {
             if (readerhost == hostkey) {
                 CreateLocalQueue(attr);
             } else {
+                ASSERT(useremote, "Cannot create remote queue without enabling remote operations.");
                 // Send a message to the other host to create a local queue
                 database->SendCreateQueue(readerhost, attr);
             }
         } else if (readerhost == hostkey) {
+            ASSERT(useremote, "Cannot create remote queue without enabling remote operations.");
             // Create the reader end here and queue up a message
             // to the writer host that they need to create an endpoint
             CreateReaderEndpoint(attr);
             database->SendCreateWriter(writerhost, attr);
         } else if (writerhost == hostkey) {
+            ASSERT(useremote, "Cannot create remote queue without enabling remote operations.");
             // Create the writer end here and queue up a message to
             // the reader host that they need to create an endpoint
             CreateWriterEndpoint(attr);
             database->SendCreateReader(readerhost, attr);
         } else {
+            ASSERT(useremote, "Cannot create remote queue without enabling remote operations.");
             // Queue up a message to both the reader and writer host
             // to create endpoints
             database->SendCreateWriter(writerhost, attr);
@@ -236,6 +250,7 @@ namespace CPN {
 
     void Kernel::CreateReaderEndpoint(const SimpleQueueAttr &attr) {
         Sync::AutoReentrantLock arlock(lock);
+        ASSERT(useremote, "Cannot create remote queue without enabling remote operations.");
 
         shared_ptr<RemoteQueue> endp;
         endp = shared_ptr<RemoteQueue>(
@@ -243,20 +258,23 @@ namespace CPN {
                     database,
                     RemoteQueue::READ,
                     server.get(),
-                    &remotequeueholder,
+                    remotequeueholder.get(),
                     attr
                     ));
 
 
         NodeMap::iterator entry = nodemap.find(attr.GetReaderNodeKey());
         ASSERT(entry != nodemap.end(), "Node not found!?");
-        entry->second->CreateReader(endp);
-        remotequeueholder.AddQueue(endp);
+        shared_ptr<NodeBase> node = entry->second;
+        remotequeueholder->AddQueue(endp);
         endp->Start();
+        arlock.Unlock();
+        node->CreateReader(endp);
     }
 
     void Kernel::CreateWriterEndpoint(const SimpleQueueAttr &attr) {
         Sync::AutoReentrantLock arlock(lock);
+        ASSERT(useremote, "Cannot create remote queue without enabling remote operations.");
 
         shared_ptr<RemoteQueue> endp;
         endp = shared_ptr<RemoteQueue>(
@@ -264,30 +282,35 @@ namespace CPN {
                     database,
                     RemoteQueue::WRITE,
                     server.get(),
-                    &remotequeueholder,
+                    remotequeueholder.get(),
                     attr
                     ));
 
         NodeMap::iterator entry = nodemap.find(attr.GetWriterNodeKey());
         ASSERT(entry != nodemap.end(), "Node not found!?");
-        entry->second->CreateWriter(endp);
-        remotequeueholder.AddQueue(endp);
+        shared_ptr<NodeBase> node = entry->second;
+        remotequeueholder->AddQueue(endp);
         endp->Start();
+        arlock.Unlock();
+        node->CreateWriter(endp);
     }
 
     void Kernel::CreateLocalQueue(const SimpleQueueAttr &attr) {
-        Sync::AutoReentrantLock arlock(lock);
-
         shared_ptr<QueueBase> queue;
         queue = shared_ptr<QueueBase>(new ThresholdQueue(database, attr));
 
-        NodeMap::iterator entry = nodemap.find(attr.GetReaderNodeKey());
-        ASSERT(entry != nodemap.end(), "Tried to connect a queue to a node that doesn't exist.");
-        entry->second->CreateReader(queue);
+        Sync::AutoReentrantLock arlock(lock);
+        NodeMap::iterator readentry = nodemap.find(attr.GetReaderNodeKey());
+        ASSERT(readentry != nodemap.end(), "Tried to connect a queue to a node that doesn't exist.");
+        shared_ptr<NodeBase> readnode = readentry->second;
 
-        entry = nodemap.find(attr.GetWriterNodeKey());
-        ASSERT(entry != nodemap.end(), "Tried to connect a queue to a node that doesn't exist.");
-        entry->second->CreateWriter(queue);
+        NodeMap::iterator writeentry = nodemap.find(attr.GetWriterNodeKey());
+        ASSERT(writeentry != nodemap.end(), "Tried to connect a queue to a node that doesn't exist.");
+        shared_ptr<NodeBase> writenode = writeentry->second;
+        arlock.Unlock();
+
+        writenode->CreateWriter(queue);
+        readnode->CreateReader(queue);
     }
 
     void Kernel::InternalCreateNode(NodeAttr &nodeattr) {
@@ -326,27 +349,48 @@ namespace CPN {
         garbagenodes.clear();
     }
 
+    void Kernel::SendWakeup() {
+        Sync::AutoReentrantLock arlock(lock);
+        if (useremote) {
+            server->Wakeup();
+        }
+        cond.Signal();
+    }
+
     void *Kernel::EntryPoint() {
         FUNCBEGIN;
         status.CompareAndPost(INITIALIZED, RUNNING);
         try {
             database->SignalHostStart(hostkey);
-            while (status.Get() == RUNNING) {
-                ClearGarbage();
-                remotequeueholder.Cleanup();
-                server->Poll();
+            if (useremote) {
+                while (status.Get() == RUNNING) {
+                    ClearGarbage();
+                    remotequeueholder->Cleanup();
+                    server->Poll();
+                }
+            } else {
+                Sync::AutoReentrantLock arlock(lock);
+                while (status.Get() == RUNNING) {
+                    garbagenodes.clear();
+                    cond.Wait(lock);
+                }
             }
         } catch (const ShutdownException &e) {
             logger.Warn("Kernel forced shutdown");
         }
-        server->Close();
-        remotequeueholder.Shutdown();
+        if (useremote) {
+            server->Close();
+            remotequeueholder->Shutdown();
+        }
         {
             Sync::AutoReentrantLock arlock(lock);
-            NodeMap::iterator nitr = nodemap.begin();
-            while (nitr != nodemap.end()) {
+            NodeMap mapcopy = nodemap;
+            arlock.Unlock();
+            NodeMap::iterator nitr = mapcopy.begin();
+            while (nitr != mapcopy.end()) {
                 (nitr++)->second->NotifyTerminate();
             }
+            arlock.Lock();
             // Wait for all nodes to end
             while (!nodemap.empty()) {
                 garbagenodes.clear();
@@ -362,24 +406,28 @@ namespace CPN {
     void Kernel::CreateWriter(Key_t dst, const SimpleQueueAttr &attr) {
         Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
+        ASSERT(useremote);
         ASSERT(dst == hostkey);
         CreateWriterEndpoint(attr);
     }
     void Kernel::CreateReader(Key_t dst, const SimpleQueueAttr &attr) {
         Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
+        ASSERT(useremote);
         ASSERT(dst == hostkey);
         CreateReaderEndpoint(attr);
     }
     void Kernel::CreateQueue(Key_t dst, const SimpleQueueAttr &attr) {
         Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
+        ASSERT(useremote);
         ASSERT(dst == hostkey);
         CreateLocalQueue(attr);
     }
     void Kernel::CreateNode(Key_t dst, const NodeAttr &attr) {
         Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
+        ASSERT(useremote);
         ASSERT(dst == hostkey);
         NodeAttr nodeattr(attr);
         InternalCreateNode(nodeattr);
@@ -406,7 +454,9 @@ namespace CPN {
         }
         logger.Error("Kernel %s (%llu) in state %s", kernelname.c_str(), hostkey, statename.c_str());
         logger.Error("Active nodes: %u, Garbage nodes: %u", nodemap.size(), garbagenodes.size());
-        server->LogState();
+        if (useremote) {
+            server->LogState();
+        }
         NodeMap::iterator node = nodemap.begin();
         while (node != nodemap.end()) {
             node->second->LogState();

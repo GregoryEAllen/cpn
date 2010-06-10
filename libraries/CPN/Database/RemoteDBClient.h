@@ -54,6 +54,7 @@ namespace CPN {
 
         virtual CPN::Key_t SetupHost(const std::string &name, const std::string &hostname,
                 const std::string &servname, CPN::KernelBase *kmh);
+        virtual CPN::Key_t SetupHost(const std::string &name, KernelBase *kmh) { ASSERT(false, "RemoteDBClient requires remote operation is turned on."); }
         virtual CPN::Key_t GetHostKey(const std::string &host);
         virtual std::string GetHostName(CPN::Key_t hostkey);
         virtual void GetHostConnectionInfo(CPN::Key_t hostkey, std::string &hostname, std::string &servname);
@@ -96,6 +97,8 @@ namespace CPN {
 
         virtual void Terminate();
         virtual bool IsTerminated();
+
+        virtual bool RequireRemote();
 
         void DispatchMessage(const Variant &msg);
     protected:

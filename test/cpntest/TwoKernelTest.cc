@@ -34,8 +34,10 @@ void TwoKernelTest::setUp() {
     database->SwallowBrokenQueueExceptions(true);
     KernelAttr kattrone("one");
     kattrone.SetDatabase(database);
+    kattrone.SetRemoteEnabled(true);
     KernelAttr kattrtwo("two");
     kattrtwo.SetDatabase(database);
+    kattrtwo.SetRemoteEnabled(true);
     kone = new Kernel(kattrone);
     ktwo = new Kernel(kattrtwo);
 }

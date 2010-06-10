@@ -45,7 +45,8 @@ namespace CPN {
 		KernelAttr(const std::string &name_)
 			: name(name_),
             hostname("localhost"),
-            servname("")
+            servname(""),
+            remote_enabled(false)
         {}
 
         KernelAttr &SetName(const std::string &n) {
@@ -68,6 +69,11 @@ namespace CPN {
             return *this;
         }
 
+        KernelAttr &SetRemoteEnabled(bool en) {
+            remote_enabled = en;
+            return *this;
+        }
+
         const std::string &GetName() const { return name; }
 
         const std::string &GetHostName() const { return hostname; }
@@ -75,11 +81,14 @@ namespace CPN {
         const std::string &GetServName() const { return servname; }
 
         shared_ptr<Database> GetDatabase() const { return database; }
+
+        bool GetRemoteEnabled() const { return remote_enabled; }
     private:
         std::string name;
         std::string hostname;
         std::string servname;
         shared_ptr<Database> database;
+        bool remote_enabled;
 	};
 }
 #endif

@@ -2,3 +2,7 @@
 OS_LIBS += `pkg-config --libs cppunit`
 OS_INCDIR += `pkg-config --cflags cppunit`
 
+ifdef DEBUG
+    CC_OTHER += -D_DEBUG
+endif
+

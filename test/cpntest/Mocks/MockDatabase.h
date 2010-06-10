@@ -13,6 +13,7 @@ public:
 
     virtual CPN::Key_t SetupHost(const std::string &name, const std::string &hostname,
             const std::string &servname, CPN::KernelBase *kmh) { return 0; }
+    virtual CPN::Key_t SetupHost(const std::string &name, CPN::KernelBase *kmh) { return 0; }
     virtual CPN::Key_t GetHostKey(const std::string &host) { return 0; }
     virtual std::string GetHostName(CPN::Key_t hostkey) { return blank; }
     virtual void GetHostConnectionInfo(CPN::Key_t hostkey, std::string &hostname, std::string &servname) { }

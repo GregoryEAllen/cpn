@@ -628,9 +628,11 @@ namespace CPN {
             }
             ++gwitr;
         }
+        std::map<Key_t, KernelBase*> kmhcopy = kmhandlers;
+        AutoUnlock<PthreadMutex> aul(lock);
         std::map<Key_t, KernelBase*>::iterator kmhitr;
-        kmhitr = kmhandlers.begin();
-        while (kmhitr != kmhandlers.end()) {
+        kmhitr = kmhcopy.begin();
+        while (kmhitr != kmhcopy.end()) {
             kmhitr->second->NotifyTerminate();
             ++kmhitr;
         }
@@ -639,6 +641,10 @@ namespace CPN {
     bool RemoteDBClient::IsTerminated() {
         PthreadMutexProtected plock(lock);
         return shutdown;
+    }
+
+    bool RemoteDBClient::RequireRemote() {
+        return true;
     }
 
     void RemoteDBClient::InternalCheckTerminated() {

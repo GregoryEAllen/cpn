@@ -47,6 +47,7 @@ namespace CPN {
             KernelBase *kmh;
             bool live;
             bool dead;
+            bool allowremote;
         };
 
         struct NodeInfo {
@@ -78,6 +79,7 @@ namespace CPN {
 
         virtual Key_t SetupHost(const std::string &name, const std::string &hostname,
                 const std::string &servname, KernelBase *kmh);
+        virtual Key_t SetupHost(const std::string &name, KernelBase *kmh);
         virtual Key_t GetHostKey(const std::string &host);
         virtual std::string GetHostName(Key_t hostkey);
         virtual void GetHostConnectionInfo(Key_t hostkey, std::string &hostname, std::string &servname);

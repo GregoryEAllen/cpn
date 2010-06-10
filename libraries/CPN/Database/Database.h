@@ -82,6 +82,12 @@ namespace CPN {
          */
         virtual Key_t SetupHost(const std::string &name, const std::string &hostname,
                 const std::string &servname, KernelBase *kmh) = 0;
+        /** \brief Called by the kernel when it is in no remote mode.
+         * \param name the kernel name
+         * \param kmh callback reference
+         * \return the unique key for the new kernel
+         */
+        virtual Key_t SetupHost(const std::string &name, KernelBase *kmh) = 0;
         /** \param host the name of the host
          * \return the key for the given hostname.
          * \throw ShutdownException
@@ -277,6 +283,13 @@ namespace CPN {
          * \throw ShutdownException
          */
         void CheckTerminated();
+
+        /** \brief Lets the kernel know that this database type requires remote activity.
+         * This overrides the kernel option for remote activity.
+         * Default value is false
+         * \return true or false
+         */
+        virtual bool RequireRemote();
 
         /** \brief This is the parameter used for the listen command.
          * \return 256 by default

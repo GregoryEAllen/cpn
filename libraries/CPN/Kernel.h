@@ -152,7 +152,7 @@ namespace CPN {
 
         void *EntryPoint();
 
-        void SendWakeup() { server->Wakeup(); }
+        void SendWakeup();
 
         void CreateWriter(Key_t dst, const SimpleQueueAttr &attr);
         void CreateReader(Key_t dst, const SimpleQueueAttr &attr);
@@ -171,7 +171,8 @@ namespace CPN {
         Logger logger;
         shared_ptr<Database> database;
         auto_ptr<ConnectionServer> server;
-        RemoteQueueHolder remotequeueholder;
+        auto_ptr<RemoteQueueHolder> remotequeueholder;
+        bool useremote;
 
         typedef std::map<Key_t, shared_ptr<NodeBase> > NodeMap;
         typedef std::vector< shared_ptr<NodeBase> > NodeList;

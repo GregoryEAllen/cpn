@@ -70,10 +70,31 @@ namespace CPN {
         hinfo->kmh = kmh;
         hinfo->dead = false;
         hinfo->live = false;
+        hinfo->allowremote = true;
         Key_t key = NewKey();
         hostmap.insert(std::make_pair(key, hinfo));
         hostnames.insert(std::make_pair(name, key));
         return key;
+    }
+
+    Key_t LocalDatabase::SetupHost(const std::string &name, KernelBase *kmh) {
+        PthreadMutexProtected pl(lock);
+        InternalCheckTerminated();
+        if (!kmh) { throw std::invalid_argument("Must have non null KernelBase."); }
+        if (hostnames.find(name) != hostnames.end()) {
+           throw std::invalid_argument("Cannot create two kernels with the same name");
+        }
+        shared_ptr<HostInfo> hinfo = shared_ptr<HostInfo>(new HostInfo);
+        hinfo->name = name;
+        hinfo->kmh = kmh;
+        hinfo->dead = false;
+        hinfo->live = false;
+        hinfo->allowremote = false;
+        Key_t key = NewKey();
+        hostmap.insert(std::make_pair(key, hinfo));
+        hostnames.insert(std::make_pair(name, key));
+        return key;
+
     }
 
     Key_t LocalDatabase::GetHostKey(const std::string &host) {
@@ -103,6 +124,7 @@ namespace CPN {
         if (entry == hostmap.end()) {
             throw std::invalid_argument("No such host");
         }
+        ASSERT(entry->second->allowremote, "Host does not have remote configured.");
         hostname = entry->second->hostname;
         servname = entry->second->servname;
     }
@@ -457,12 +479,16 @@ namespace CPN {
     }
 
     void LocalDatabase::Terminate() {
-        PthreadMutexProtected pl(lock);
-        shutdown = true;
-        nodelivedead.Broadcast();
-        hostlivedead.Broadcast();
-        HostMap::iterator itr = hostmap.begin();
-        while (itr != hostmap.end()) {
+        HostMap mapcopy;
+        {
+            PthreadMutexProtected pl(lock);
+            shutdown = true;
+            nodelivedead.Broadcast();
+            hostlivedead.Broadcast();
+            mapcopy = hostmap;
+        }
+        HostMap::iterator itr = mapcopy.begin();
+        while (itr != mapcopy.end()) {
             if (!itr->second->dead) {
                 itr->second->kmh->NotifyTerminate();
             }

@@ -166,7 +166,7 @@ void D4RTest::RunTest(int numkernels) {
         LogLevel(database->LogLevel());
         for (int i = 0; i < numkernels; ++i) {
             kernels.push_back(
-                    new Kernel(KernelAttr(ToString("K %d", i)).SetDatabase(database))
+                    new Kernel(KernelAttr(ToString("K %d", i)).SetDatabase(database).SetRemoteEnabled(numkernels > 1))
                     );
         }
 
