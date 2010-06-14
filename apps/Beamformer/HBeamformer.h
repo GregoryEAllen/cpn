@@ -2,8 +2,8 @@
 #ifndef HBEAMFORMER_H
 #define HBEAMFORMER_H
 #pragma once
+#include "fftw_inc.h"
 #include <complex>
-#include <fftw3.h>
 #include <xmmintrin.h>
 #include <vector>
 

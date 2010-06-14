@@ -1,6 +1,5 @@
 
 #include "HBeamformer.h"
-#include "fftw_lock.h"
 #include "Assert.h"
 #include "ErrnoException.h"
 #include <pmmintrin.h>
