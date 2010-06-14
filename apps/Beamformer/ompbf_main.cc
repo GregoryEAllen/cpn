@@ -1,7 +1,8 @@
+#include "HBeamformer.h"
 #include "VBeamformer.h"
 #include "LoadFromFile.h"
-#include "Assert.h"
 #include "ErrnoException.h"
+#include "Assert.h"
 #include <complex>
 #include <unistd.h>
 #include <stdlib.h>
@@ -18,23 +19,27 @@ static double getTime() {
     return static_cast<double>(tv.tv_sec) + 1e-6 * static_cast<double>(tv.tv_usec);
 }
 
-static const char* const VALID_OPTS = "hi:o:a:f:r:";
 
-static const char* const HELP_OPTS = "Usage: %s <coefficient file>\n"
+static const char* const VALID_OPTS = "hi:o:er:na:";
+
+static const char* const HELP_OPTS = "Usage: %s <vertical coefficient file> <horizontal coefficient file>\n"
 "\t-i filename\t Use input file (default stdin)\n"
 "\t-o filename\t Use output file (default stdout)\n"
-"\t-f n\t Do only the given fan\n"
-"\t-a n\t Use algorithm n\n"
-"\t-r n\t Repeat n times\n"
+"\t-e\t Estimate FFT algorithm rather than measure.\n"
+"\t-r num\t Run num times\n"
+"\t-a n\t Use algorithm n for vertical\n"
+"\t-n \t No output, just time\n"
 ;
 
-int vb_main(int argc, char **argv) {
+
+int ompbf_main(int argc, char **argv) {
     bool procOpts = true;
     std::string input_file;
     std::string output_file;
     VBeamformer::Algorithm_t algo = VBeamformer::SSE_VECTOR;
-    unsigned fan = -1;
+    bool estimate = false;
     unsigned repetitions = 1;
+    bool nooutput = false;
     while (procOpts) {
         switch (getopt(argc, argv, VALID_OPTS)) {
         case 'i':
@@ -43,6 +48,9 @@ int vb_main(int argc, char **argv) {
         case 'o':
             output_file = optarg;
             break;
+        case 'e':
+            estimate = true;
+            break;
         case 'a':
             algo = (VBeamformer::Algorithm_t)atoi(optarg);
             if (algo < VBeamformer::ALGO_BEGIN || algo >= VBeamformer::ALGO_END) {
@@ -50,11 +58,11 @@ int vb_main(int argc, char **argv) {
                 return 1;
             }
             break;
-        case 'f':
-            fan = atoi(optarg);
-            break;
         case 'r':
             repetitions = atoi(optarg);
+            break;
+        case 'n':
+            nooutput = true;
             break;
         case -1:
             procOpts = false;
@@ -66,14 +74,15 @@ int vb_main(int argc, char **argv) {
         }
     }
 
-    if (argc <= optind) {
-        fprintf(stderr, HELP_OPTS, argv[0]);
+    if (argc <= optind + 1) {
+        fprintf(stderr, "Not enough parameters, need coefficient files\n");
         return 1;
     }
     fprintf(stderr, "Loading..");
-    std::auto_ptr<VBeamformer> former = VBLoadFromFile(argv[optind]);
+    std::auto_ptr<VBeamformer> vformer = VBLoadFromFile(argv[optind]);
+    std::auto_ptr<HBeamformer> hformer = HBLoadFromFile(argv[optind + 1], estimate);
     fprintf(stderr, ". Done\n");
-    former->SetAlgorithm(algo);
+
 
     FILE *fin = stdin;
     FILE *fout = stdout;
@@ -86,48 +95,49 @@ int vb_main(int argc, char **argv) {
         fout = fopen(output_file.c_str(), "w");
         ASSERT(fout);
     }
-    unsigned numFans = former->NumFans();
-    unsigned stride = 8192 + former->FilterLen();
+
+    unsigned numFans = vformer->NumFans();
+    unsigned stride = 8192 + vformer->FilterLen();
     unsigned numSamples = stride;
-    unsigned numElemsPerStave = former->NumElemsPerStave();
+    unsigned numElemsPerStave = vformer->NumElemsPerStave();
     unsigned numStaves = 256;
     unsigned numOutSamples = 0;
 
-    std::vector< complex<short> > input( numSamples * numElemsPerStave * numStaves, 0);
-    std::vector< complex<float> > output( numFans * numSamples * numStaves, 0);
+    std::vector< complex<short> > vinput( numSamples * numElemsPerStave * numStaves, 0);
+    std::vector< complex<float> > voutput( numFans * numSamples * numStaves, 0);
+    std::vector< complex<float> > houtput( numFans * hformer->Length() * hformer->NumBeams(), 0);
 
     fprintf(stderr, "Reading Input..");
     unsigned len = numSamples * sizeof(complex<short>);
-    len = DataFromFile(fin, &input[0], len, len, numStaves * numElemsPerStave);
+    len = DataFromFile(fin, &vinput[0], len, len, numStaves * numElemsPerStave);
     numSamples = len / sizeof(complex<short>);
 
     fprintf(stderr, ". Done\n");
 
-    for (unsigned j = 0; j < repetitions; ++j) {
-        fprintf(stderr, "Beamform(%d)..", algo);
+    for (unsigned rep = 0; rep < repetitions; ++rep) {
+        fprintf(stderr, "Vertical Beamform(%d)..", algo);
         double start = getTime();
-        if (fan > numFans) {
-            for (unsigned i = 0; i < numFans; ++i) {
-                numOutSamples = former->Run(&input[0], stride, numStaves,
-                    numSamples, i, &output[i * stride * numStaves], stride);
-            }
-        } else {
-            numOutSamples = former->Run(&input[0], stride, numStaves,
-                numSamples, fan, &output[fan * stride * numStaves], stride);
+        for (unsigned i = 0; i < numFans; ++i) {
+            numOutSamples = vformer->Run(&vinput[0], stride, numStaves,
+                numSamples, i, &voutput[i * stride * numStaves], stride);
+        }
+        fprintf(stderr, ". Done (%f ms)\n", (getTime() - start) * 1000);
+        fprintf(stderr, "Horizontal Beamform..");
+        start = getTime();
+        for (unsigned i = 0; i < numFans; ++i) {
+            hformer->Run(&voutput[i * stride * numStaves], numOutSamples, &houtput[i * hformer->Length() * hformer->NumBeams()], hformer->Length());
         }
         fprintf(stderr, ". Done (%f ms)\n", (getTime() - start) * 1000);
     }
 
-    fprintf(stderr, "Writing Output..");
-    unsigned lenout = numOutSamples * sizeof(complex<float>);
-    if (fan > numFans) {
+    if (!nooutput) {
+        fprintf(stderr, "Writing Output..");
         for (unsigned i = 0; i < numFans; ++i) {
-            DataToFile(fout, &output[i * stride * numStaves], lenout, stride*sizeof(complex<float>), numStaves);
+            unsigned len = hformer->Length() * sizeof(complex<float>);
+            DataToFile(fout, &houtput[i * hformer->Length() * hformer->NumBeams()], len, len, hformer->NumBeams());
         }
-    } else {
-        DataToFile(fout, &output[fan * stride * numStaves], lenout, stride*sizeof(complex<float>), numStaves);
+        fprintf(stderr, ". Done\n");
     }
-    fprintf(stderr, ". Done\n");
     fprintf(stderr, "Cleanup..");
     if (!input_file.empty()) {
         fclose(fin);
@@ -135,7 +145,8 @@ int vb_main(int argc, char **argv) {
     if (!output_file.empty()) {
         fclose(fout);
     }
-    former.reset();
+    hformer.reset();
+    vformer.reset();
     fprintf(stderr, ". Done\n");
 
     return 0;

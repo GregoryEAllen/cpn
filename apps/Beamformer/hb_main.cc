@@ -84,10 +84,15 @@ int hb_main(int argc, char **argv) {
     }
 
     fprintf(stderr, "Writing Output..");
-    fprintf(stderr, ". Done\n");
-
     DataToFile(fout, &output[0], len, len, former->NumBeams());
+    fprintf(stderr, ". Done\n");
     fprintf(stderr, "Cleanup..");
+    if (!input_file.empty()) {
+        fclose(fin);
+    }
+    if (!output_file.empty()) {
+        fclose(fout);
+    }
     former.reset();
     fprintf(stderr, ". Done\n");
     return 0;

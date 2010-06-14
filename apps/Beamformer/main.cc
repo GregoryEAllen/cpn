@@ -13,6 +13,8 @@ int hb_main(int argc, char **argv);
 
 int vb_main(int argc, char **argv);
 
+int ompbf_main(int argc, char **argv);
+
 int localbeamform(int argc, char **argv) {
     static const char VALID_OPTS[] = "h:p:";
     static const char HELP_OPTS[] = "%sUsage %s [options] <config>\n"
@@ -83,6 +85,8 @@ int main(int argc, char **argv) {
         return vb_main(argc, argv);
     } else if (*selfname == 'h') {
         return hb_main(argc, argv);
+    } else if (strcmp(selfname, "ompbf") == 0) {
+        return ompbf_main(argc, argv);
     } else {
         return localbeamform(argc, argv);
     }
