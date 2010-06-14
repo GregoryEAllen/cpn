@@ -5,6 +5,7 @@
 #include "QueueReaderAdapter.h"
 #include "QueueWriterAdapter.h"
 #include "HBeamformer.h"
+#include "LoadFromFile.h"
 #include <complex>
 #include <algorithm>
 #include <functional>
@@ -23,17 +24,22 @@ HBeamformerNode::HBeamformerNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)
     inport = param["inport"].AsString();
     outport = param["outport"].AsString();
     bool estimate = param["estimate"].AsBool();
-    unsigned numStaves = param["numStaves"].AsUnsigned();
-    unsigned numBeams = param["numBeams"].AsUnsigned();
-    unsigned length = param["length"].AsUnsigned();
-    ASSERT(attr.GetArg().GetSize() == (sizeof(complex<float>) * 2 * length * numBeams),
-           "Wrong sized coefficients."); 
-    complex<float> *coeffs = (complex<float>*)attr.GetArg().GetBuffer();
-    complex<float> *replicas = coeffs + length * numBeams;
-    std::vector<unsigned> staveIndexes(param["staveIndexes"].Size());
-    std::transform(param["staveIndexes"].ListBegin(), param["staveIndexes"].ListEnd(),
-            staveIndexes.begin(), std::mem_fun_ref(&Variant::AsUnsigned));
-    hbeam = new HBeamformer(length, numStaves, numBeams, coeffs, replicas, &staveIndexes[0], estimate);
+    if (param["file"].IsString()) {
+        std::auto_ptr<HBeamformer> hbf = HBLoadFromFile(param["file"].AsString(), estimate);
+        hbeam = hbf.release();
+    } else {
+        unsigned numStaves = param["numStaves"].AsUnsigned();
+        unsigned numBeams = param["numBeams"].AsUnsigned();
+        unsigned length = param["length"].AsUnsigned();
+        ASSERT(attr.GetArg().GetSize() == (sizeof(complex<float>) * 2 * length * numBeams),
+               "Wrong sized coefficients."); 
+        complex<float> *coeffs = (complex<float>*)attr.GetArg().GetBuffer();
+        complex<float> *replicas = coeffs + length * numBeams;
+        std::vector<unsigned> staveIndexes(param["staveIndexes"].Size());
+        std::transform(param["staveIndexes"].ListBegin(), param["staveIndexes"].ListEnd(),
+                staveIndexes.begin(), std::mem_fun_ref(&Variant::AsUnsigned));
+        hbeam = new HBeamformer(length, numStaves, numBeams, coeffs, replicas, &staveIndexes[0], estimate);
+    }
 }
 
 HBeamformerNode::~HBeamformerNode() {
@@ -43,6 +49,7 @@ HBeamformerNode::~HBeamformerNode() {
 void HBeamformerNode::Process() {
     CPN::QueueReaderAdapter<complex<float> > in = GetReader(inport);
     CPN::QueueWriterAdapter<complex<float> > out = GetWriter(outport);
+    ASSERT(out.NumChannels() == hbeam->NumBeams());
     while (true) {
         const complex<float> *inbuff = in.GetDequeuePtr(hbeam->Length());
         if (!inbuff) { break; }

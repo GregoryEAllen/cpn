@@ -57,7 +57,6 @@ namespace CPN {
 #define REGISTER_TYPE_NAME(type) REGISTER_TYPE(type, #type)
 
     REGISTER_TYPE_NAME(void);
-    REGISTER_TYPE_NAME(char);
     REGISTER_TYPE_NAME(int8_t);
     REGISTER_TYPE_NAME(uint8_t);
     REGISTER_TYPE_NAME(int16_t);
@@ -70,8 +69,17 @@ namespace CPN {
     REGISTER_TYPE_NAME(double);
     REGISTER_TYPE_NAME(long double);
 
+    REGISTER_TYPE(std::complex<int8_t>, "complex<int8_t>");
+    REGISTER_TYPE(std::complex<uint8_t>, "complex<uint8_t>");
+    REGISTER_TYPE(std::complex<int16_t>, "complex<int16_t>");
+    REGISTER_TYPE(std::complex<uint16_t>, "complex<uint16_t>");
+    REGISTER_TYPE(std::complex<int32_t>, "complex<int32_t>");
+    REGISTER_TYPE(std::complex<uint32_t>, "complex<uint32_t>");
+    REGISTER_TYPE(std::complex<int64_t>, "complex<int64_t>");
+    REGISTER_TYPE(std::complex<uint64_t>, "complex<uint64_t>");
     REGISTER_TYPE(std::complex<float>, "complex<float>");
     REGISTER_TYPE(std::complex<double>, "complex<double>");
+    REGISTER_TYPE(std::complex<long double>, "complex<long double>");
 
 #undef REGISTER_TYPE_NAME
 #undef REGISTER_TYPE

@@ -5,6 +5,7 @@
 #include "QueueReaderAdapter.h"
 #include "QueueWriterAdapter.h"
 #include "VBeamformer.h"
+#include "LoadFromFile.h"
 #include <complex>
 #include <algorithm>
 #include <functional>
@@ -23,16 +24,21 @@ VBeamformerNode::VBeamformerNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)
     inport = param["inport"].AsString();
     outports.resize(param["outports"].Size());
     std::transform(param["outports"].ListBegin(), param["outports"].ListEnd(),
-            outports.begin(), std::mem_fun_ref(&Variant::AsUnsigned));
-    unsigned numFans = param["numFans"].AsUnsigned();
-    unsigned numStaveTypes = param["numStaveTypes"].AsUnsigned();
-    unsigned numElemsPerStave = param["numElemsPerStave"].AsUnsigned();
-    unsigned filterLen = param["filterLen"].AsUnsigned();
+            outports.begin(), std::mem_fun_ref(&Variant::AsString));
     blocksize = param["blocksize"].AsUnsigned();
-    short *filter = (short*)attr.GetArg().GetBuffer();
-    complex<float> *bbcor = (complex<float>*)(filter + filterLen * numStaveTypes * numElemsPerStave * numFans);
-    vbeam = new VBeamformer(numFans, numStaveTypes, numElemsPerStave, filterLen,
-                filter, bbcor);
+    if (param["file"].IsString()) {
+        std::auto_ptr<VBeamformer> vbf = VBLoadFromFile(param["file"].AsString());
+        vbeam = vbf.release();
+    } else {
+        unsigned numFans = param["numFans"].AsUnsigned();
+        unsigned numStaveTypes = param["numStaveTypes"].AsUnsigned();
+        unsigned numElemsPerStave = param["numElemsPerStave"].AsUnsigned();
+        unsigned filterLen = param["filterLen"].AsUnsigned();
+        short *filter = (short*)attr.GetArg().GetBuffer();
+        complex<float> *bbcor = (complex<float>*)(filter + filterLen * numStaveTypes * numElemsPerStave * numFans);
+        vbeam = new VBeamformer(numFans, numStaveTypes, numElemsPerStave, filterLen,
+                    filter, bbcor);
+    }
     if (param["algorithm"].IsNumber()) {
         vbeam->SetAlgorithm(param["algorithm"].AsNumber<VBeamformer::Algorithm_t>());
     }
@@ -52,7 +58,7 @@ void VBeamformerNode::Process() {
     for (std::vector<std::string>::iterator itr = outports.begin(); itr != outports.end(); ++itr)
         (*out_itr++) = GetWriter(*itr);
     out_end = out.end();
-    const unsigned numinchannels = in.NumChannels();
+    const unsigned numstaves = in.NumChannels()/vbeam->NumElemsPerStave();
     while (true) {
         out_itr = out.begin();
         unsigned fan = 0;
@@ -65,7 +71,7 @@ void VBeamformerNode::Process() {
         while (out_itr != out_end) {
             complex<float> *outptr = out_itr->GetEnqueuePtr(numsamples);
             unsigned outstride = out_itr->ChannelStride();
-            unsigned numout = vbeam->Run(inptr, instride, numinchannels, numsamples, fan, outptr, outstride);
+            unsigned numout = vbeam->Run(inptr, instride, numstaves, numsamples, fan, outptr, outstride);
             out_itr->Enqueue(numout);
             ++fan;
             ++out_itr;

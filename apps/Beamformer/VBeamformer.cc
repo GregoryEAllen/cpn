@@ -5,6 +5,7 @@
 
 #include <tmmintrin.h>
 #include <unistd.h>
+#include <string.h>
 #include "ErrnoException.h"
 #include "Assert.h"
 
@@ -308,11 +309,11 @@ void vbf_vector(
                 data2 = data1;
 
                 data1 = (__m128) _mm_unpacklo_epi16((__m128i)data1, (__m128i)data1);
-                data1 = (__m128) _mm_srai_epi32(data1, 16);
+                data1 = (__m128) _mm_srai_epi32((__m128i)data1, 16);
                 data1 = _mm_cvtepi32_ps((__m128i) data1);
 
                 data2 = (__m128) _mm_unpackhi_epi16((__m128i)data2, (__m128i)data2);
-                data2 = (__m128) _mm_srai_epi32(data2, 16);
+                data2 = (__m128) _mm_srai_epi32((__m128i)data2, 16);
                 data2 = _mm_cvtepi32_ps((__m128i) data2);
 
                 // complex multiply

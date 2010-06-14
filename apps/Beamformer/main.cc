@@ -3,6 +3,10 @@
 #include "LoadFromFile.h"
 #include "Assert.h"
 #include "ErrnoException.h"
+#include "Kernel.h"
+#include "VariantCPNLoader.h"
+#include "JSONToVariant.h"
+#include "RemoteDatabase.h"
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -30,6 +34,7 @@ namespace HB {
     "\t-i filename\t Use input file (default stdin)\n"
     "\t-o filename\t Use output file (default stdout)\n"
     "\t-e\t Estimate FFT algorithm rather than measure.\n"
+    "\t-r num\t Run num times\n"
     ;
 
     int main(int argc, char **argv) {
@@ -37,7 +42,7 @@ namespace HB {
         std::string input_file;
         std::string output_file;
         bool estimate = false;
-        unsigned repititions = 1;
+        unsigned repetitions = 1;
         while (procOpts) {
             switch (getopt(argc, argv, VALID_OPTS)) {
             case 'i':
@@ -50,7 +55,7 @@ namespace HB {
                 estimate = true;
                 break;
             case 'r':
-                repititions = atoi(optarg);
+                repetitions = atoi(optarg);
                 break;
             case -1:
                 procOpts = false;
@@ -91,7 +96,7 @@ namespace HB {
 
         fprintf(stderr, ". Done\n");
 
-        for (unsigned j = 0; j < repititions; ++j) {
+        for (unsigned j = 0; j < repetitions; ++j) {
             fprintf(stderr, "Beamform..");
             former->Run(&input[0], former->Length(), &output[0], former->Length());
             fprintf(stderr, ". Done\n");
@@ -117,6 +122,8 @@ namespace VB {
     "\t-i filename\t Use input file (default stdin)\n"
     "\t-o filename\t Use output file (default stdout)\n"
     "\t-f n\t Do only the given fan\n"
+    "\t-a n\t Use algorithm n\n"
+    "\t-r n\t Repeat n times\n"
     ;
 
     int main(int argc, char **argv) {
@@ -125,7 +132,7 @@ namespace VB {
         std::string output_file;
         VBeamformer::Algorithm_t algo = VBeamformer::SSE_VECTOR;
         unsigned fan = -1;
-        unsigned repititions = 1;
+        unsigned repetitions = 1;
         while (procOpts) {
             switch (getopt(argc, argv, VALID_OPTS)) {
             case 'i':
@@ -145,7 +152,7 @@ namespace VB {
                 fan = atoi(optarg);
                 break;
             case 'r':
-                repititions = atoi(optarg);
+                repetitions = atoi(optarg);
                 break;
             case -1:
                 procOpts = false;
@@ -194,7 +201,7 @@ namespace VB {
 
         fprintf(stderr, ". Done\n");
 
-        for (unsigned j = 0; j < repititions; ++j) {
+        for (unsigned j = 0; j < repetitions; ++j) {
             fprintf(stderr, "Beamform(%d)..", algo);
             double start = getTime();
             if (fan > numFans) {
@@ -227,6 +234,69 @@ namespace VB {
     }
 }
 
+int localbeamform(int argc, char **argv) {
+    static const char VALID_OPTS[] = "h:p:";
+    static const char HELP_OPTS[] = "%sUsage %s [options] <config>\n"
+        "\t-h n\t Host name\n"
+        "\t-p n\t Port name\n"
+        ;
+    bool procOpts = true;
+    bool useremote = false;
+    std::string hostname, portname;
+    while (procOpts) {
+        switch (getopt(argc, argv, VALID_OPTS)) {
+        case 'h':
+            useremote = true;
+            hostname = optarg;
+            break;
+        case 'p':
+            useremote = true;
+            portname = optarg;
+            break;
+        case -1:
+            procOpts = false;
+            break;
+        default:
+            fprintf(stderr, HELP_OPTS, "", argv[0]);
+            return 0;
+        }
+    }
+    if (argc <= optind) {
+        fprintf(stderr, HELP_OPTS, "Missing config\n", argv[0]);
+        return 1;
+    }
+    JSONToVariant parser;
+    parser.ParseFile(argv[optind]);
+    if (!parser.Done()) {
+        fprintf(stderr, "Error on line %u column %u in %s\n",
+                parser.GetLine(), parser.GetColumn(), argv[optind]);
+        return 1;
+    }
+    Variant config = parser.Get();
+    Variant subconfig = config;
+    if (argc > optind + 1) {
+        subconfig = config.At(argv[optind + 1]);
+    }
+    CPN::KernelAttr kattr = VariantCPNLoader::GetKernelAttr(subconfig);
+    if (!useremote) {
+        if (subconfig["database"].IsObject()) {
+            Variant db = subconfig["database"];
+            useremote = true;
+            hostname = db["hostname"].AsString();
+            portname = db["portname"].AsString();
+        }
+    }
+    if (useremote) {
+        SockAddrList addrs = SocketAddress::CreateIP(hostname, portname);
+        CPN::shared_ptr<CPN::Database> database = 
+            CPN::shared_ptr<CPN::Database>(new RemoteDatabase(addrs));
+        kattr.SetDatabase(database);
+    }
+    CPN::Kernel kernel(kattr);
+    VariantCPNLoader::Setup(&kernel, subconfig);
+    kernel.WaitForAllNodeEnd();
+    return 0;
+}
 
 int main(int argc, char **argv) {
     char *selfname = basename(*argv);
@@ -235,6 +305,6 @@ int main(int argc, char **argv) {
     } else if (*selfname == 'h') {
         return HB::main(argc, argv);
     } else {
-        fprintf(stderr, "urk!\n");
+        return localbeamform(argc, argv);
     }
 }
