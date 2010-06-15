@@ -3,6 +3,7 @@
 #include "LoadFromFile.h"
 #include "ErrnoException.h"
 #include "Assert.h"
+#include "FlowMeasure.h"
 #include <complex>
 #include <unistd.h>
 #include <stdlib.h>
@@ -114,6 +115,8 @@ int ompbf_main(int argc, char **argv) {
 
     fprintf(stderr, ". Done\n");
 
+    FlowMeasure measure;
+    measure.Start();
     for (unsigned rep = 0; rep < repetitions; ++rep) {
         fprintf(stderr, "Vertical Beamform(%d)..", algo);
         double start = getTime();
@@ -127,8 +130,10 @@ int ompbf_main(int argc, char **argv) {
         for (unsigned i = 0; i < numFans; ++i) {
             hformer->Run(&voutput[i * stride * numStaves], numOutSamples, &houtput[i * hformer->Length() * hformer->NumBeams()], hformer->Length());
         }
+        measure.Tick(numSamples);
         fprintf(stderr, ". Done (%f ms)\n", (getTime() - start) * 1000);
     }
+    fprintf(stderr, "Avg:\t%f hz\nMax:\t%f hz\nMin:\t%f hz\n", measure.AverageRate(), measure.LargestRate(), measure.SmallestRate());
 
     if (!nooutput) {
         fprintf(stderr, "Writing Output..");

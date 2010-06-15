@@ -49,7 +49,8 @@ HBeamformerNode::~HBeamformerNode() {
 void HBeamformerNode::Process() {
     CPN::QueueReaderAdapter<complex<float> > in = GetReader(inport);
     CPN::QueueWriterAdapter<complex<float> > out = GetWriter(outport);
-    ASSERT(out.NumChannels() == hbeam->NumBeams());
+    ASSERT(out.NumChannels() == hbeam->NumBeams(),
+            "%u != %u", out.NumChannels(), hbeam->NumBeams());
     while (true) {
         const complex<float> *inbuff = in.GetDequeuePtr(hbeam->Length());
         if (!inbuff) { break; }
