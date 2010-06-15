@@ -3,6 +3,7 @@
 #include "ErrnoException.h"
 #include <sys/time.h>
 #include <limits>
+#include <stdio.h>
 
 static double getTime() {
     timeval tv;
@@ -14,19 +15,18 @@ static double getTime() {
 
 
 FlowMeasure::FlowMeasure()
-    : last_time(0),
+    : count_total(0), start(0), last_time(0),
     largest(0),
-    smallest(std::numeric_limits<double>::infinity()),
-    rate_sum(0)
+    smallest(std::numeric_limits<double>::infinity())
 {
 }
 
 void FlowMeasure::Start() {
-    last_time = getTime();
+    start = last_time = getTime();
 }
 
 void FlowMeasure::Start(double time) {
-    last_time = time;
+    start = last_time = time;
 }
 
 void FlowMeasure::Tick(unsigned count) {
@@ -34,11 +34,12 @@ void FlowMeasure::Tick(unsigned count) {
 }
 
 void FlowMeasure::Tick(unsigned count, double time) {
+    count_total += count;
     double rate = count/(time - last_time);
     rates.push_back(rate);
-    rate_sum += rate;
     if (rate > largest) largest = rate;
     if (rate < smallest) smallest = rate;
+    fprintf(stderr, "Tick(%p): r: %f, c: %u, t: %f\n", this, rate, count, time - last_time);
     last_time = time;
 }
 

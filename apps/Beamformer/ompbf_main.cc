@@ -130,8 +130,8 @@ int ompbf_main(int argc, char **argv) {
         for (unsigned i = 0; i < numFans; ++i) {
             hformer->Run(&voutput[i * stride * numStaves], numOutSamples, &houtput[i * hformer->Length() * hformer->NumBeams()], hformer->Length());
         }
-        measure.Tick(numSamples);
         fprintf(stderr, ". Done (%f ms)\n", (getTime() - start) * 1000);
+        measure.Tick(numSamples);
     }
     fprintf(stderr, "Avg:\t%f hz\nMax:\t%f hz\nMin:\t%f hz\n", measure.AverageRate(), measure.LargestRate(), measure.SmallestRate());
 

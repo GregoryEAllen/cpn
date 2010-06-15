@@ -48,13 +48,13 @@ public:
         while (true) {
             if (cur == end) {
                 cur = begin;
+                measure.Tick(blocksize);
             }
             const complex<float> *ptr = cur->GetDequeuePtr(blocksize);
             if (!ptr) {
                 break;
             }
             cur->Dequeue(blocksize);
-            measure.Tick(blocksize);
             ++cur;
         }
         fprintf(stderr,
@@ -118,14 +118,14 @@ public:
         while (rep < repetitions && written < qsize) {
             unsigned len = std::min(qsize - written, length);
             out.Enqueue(&data[0], len, numChans, length);
-            measure.Tick(len);
+            measure.Tick(len / sizeof(complex<short>));
             written += len;
-            ++len;
+            ++rep;
         }
         for (; rep < repetitions; ++rep) {
             out.GetEnqueuePtr(length);
             out.Enqueue(length);
-            measure.Tick(length);
+            measure.Tick(length / sizeof(complex<short>));
         }
         fprintf(stderr,
                 "Input:\nAvg:\t%f hz\nMax:\t%f hz\nMin:\t%f hz\n",
@@ -138,7 +138,7 @@ public:
 };
 CPN_DECLARE_NODE_FACTORY(CPNBFInputNode, CPNBFInputNode);
 
-static const char* const VALID_OPTS = "hi:o:er:na:";
+static const char* const VALID_OPTS = "hi:o:er:na:s:c";
 
 static const char* const HELP_OPTS = "Usage: %s <vertical coefficient file> <horizontal coefficient file>\n"
 "\t-i filename\t Use input file (default stdin)\n"
@@ -147,6 +147,8 @@ static const char* const HELP_OPTS = "Usage: %s <vertical coefficient file> <hor
 "\t-r num\t Run num times\n"
 "\t-a n\t Use algorithm n for vertical\n"
 "\t-n \t No output, just time\n"
+"\t-s n\t Scale queue sizes by n\n"
+"\t-c\t Print config\n"
 ;
 
 
@@ -158,8 +160,13 @@ int cpnbf_main(int argc, char **argv) {
     bool estimate = false;
     unsigned repetitions = 1;
     bool nooutput = false;
+    unsigned size_mult = 2;
+    bool print_config = false;
     while (procOpts) {
         switch (getopt(argc, argv, VALID_OPTS)) {
+        case 'c':
+            print_config = true;
+            break;
         case 'i':
             input_file = optarg;
             break;
@@ -175,6 +182,9 @@ int cpnbf_main(int argc, char **argv) {
                 fprintf(stderr, "Unknown algorithm number %d\n", algo);
                 return 1;
             }
+            break;
+        case 's':
+            size_mult = atoi(optarg);
             break;
         case 'r':
             repetitions = atoi(optarg);
@@ -240,7 +250,7 @@ int cpnbf_main(int argc, char **argv) {
     node = Variant::NullType;
 
     Variant queue;
-    queue["size"] = 8192*2;
+    queue["size"] = 8192*size_mult;
     queue["threshold"] = 8192;
     queue["type"] = "threshold";
     queue["datatype"] = "complex<float>";
@@ -276,7 +286,10 @@ int cpnbf_main(int argc, char **argv) {
     queue["datatype"] = "complex<int16_t>";
     config["queues"].Append(queue.Copy());
 
-    printf("%s\n", VariantToJSON(config, true).c_str());
+    if (print_config) {
+        printf("%s\n", VariantToJSON(config, true).c_str());
+        return 0;
+    }
     CPN::KernelAttr kattr = VariantCPNLoader::GetKernelAttr(config);
     CPN::Kernel kernel(kattr);
     VariantCPNLoader::Setup(&kernel, config);
