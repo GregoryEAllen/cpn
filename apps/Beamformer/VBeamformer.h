@@ -15,7 +15,7 @@ public:
     };
 
     VBeamformer(unsigned fans, unsigned stavetypes, unsigned elementsperstave,
-            unsigned filterlen, short *filt, std::complex<float> *bbcor);
+            unsigned filterlen, float *filt, std::complex<float> *bbcor);
     ~VBeamformer();
 
     // \return the number of valid output samples

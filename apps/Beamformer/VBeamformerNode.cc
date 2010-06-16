@@ -34,7 +34,7 @@ VBeamformerNode::VBeamformerNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)
         unsigned numStaveTypes = param["numStaveTypes"].AsUnsigned();
         unsigned numElemsPerStave = param["numElemsPerStave"].AsUnsigned();
         unsigned filterLen = param["filterLen"].AsUnsigned();
-        short *filter = (short*)attr.GetArg().GetBuffer();
+        float *filter = (float*)attr.GetArg().GetBuffer();
         complex<float> *bbcor = (complex<float>*)(filter + filterLen * numStaveTypes * numElemsPerStave * numFans);
         vbeam = new VBeamformer(numFans, numStaveTypes, numElemsPerStave, filterLen,
                     filter, bbcor);

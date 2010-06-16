@@ -44,19 +44,16 @@ static inline cvector cmult(cvector a, cvector b) {
 
 
 VBeamformer::VBeamformer(unsigned fans, unsigned stavetypes, unsigned elementsperstave,
-        unsigned filterlen, short *filt, complex<float> *bbcor)
+        unsigned filterlen, float *filt, complex<float> *bbcor)
     : numFans(fans),
     numStaveTypes(stavetypes),
     numElemsPerStave(elementsperstave),
     filterLen(filterlen),
     algo(VBeamformer::SSE_VECTOR)
 {
-
     AllocAligned(&filter, 16, numFans * numStaveTypes * numElemsPerStave * filterLen);
     AllocAligned(&bbCorrect, 16, numFans * numStaveTypes * numElemsPerStave);
-    for (unsigned i = 0; i < numFans * numStaveTypes * numElemsPerStave * filterLen; ++i) {
-        filter[i] = (float)filt[i];
-    }
+    memcpy(filter, filt, numFans * numStaveTypes * numElemsPerStave * filterLen);
     memcpy(bbCorrect, bbcor, numFans * numStaveTypes * numElemsPerStave * sizeof(complex<float>));
 }
 

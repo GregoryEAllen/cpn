@@ -79,10 +79,10 @@ std::auto_ptr<VBeamformer> VBLoadFromFile(const std::string &filename) {
     unsigned numStaveTypes = header["numStaveTypes"].AsUnsigned();
     unsigned numElemsPerStave = header["numElemsPerStave"].AsUnsigned();
     unsigned filterLen = header["filterLen"].AsUnsigned();
-    std::vector< short > filter(filterLen * numStaveTypes * numElemsPerStave * numFans);
+    std::vector< float > filter(filterLen * numStaveTypes * numElemsPerStave * numFans);
     std::vector< complex<float> > bbcor(numFans * numStaveTypes * numElemsPerStave);
     unsigned numread = 0;
-    unsigned numtoread = sizeof(short) * filter.size();
+    unsigned numtoread = sizeof(float) * filter.size();
     while (f.good() && numread < numtoread) {
         f.read(((char*)&filter[0]) + numread, (numtoread - numread));
         numread += f.gcount();
