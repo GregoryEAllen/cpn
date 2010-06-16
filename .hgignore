@@ -10,6 +10,7 @@ _Linux-ppc
 _Linux-ppc64
 _Linux-i686
 _Linux-x86_64
+_Linux-x86_64-swig
 # vim temporary file
 .*.swp
 # not interested in the hg backup files
