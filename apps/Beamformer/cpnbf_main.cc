@@ -216,6 +216,7 @@ int cpnbf_main(int argc, char **argv) {
     node["param"]["outports"][2] = "out3";
     node["param"]["blocksize"] = 8192;
     node["param"]["file"] = argv[optind];
+    node["param"]["algorithm"] = algo;
     config["nodes"].Append(node);
     node = Variant::NullType;
     node["type"] = "HBeamformerNodeTypeName";

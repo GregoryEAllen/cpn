@@ -81,6 +81,7 @@ int ompbf_main(int argc, char **argv) {
     }
     fprintf(stderr, "Loading..");
     std::auto_ptr<VBeamformer> vformer = VBLoadFromFile(argv[optind]);
+    vformer->SetAlgorithm(algo);
     std::auto_ptr<HBeamformer> hformer = HBLoadFromFile(argv[optind + 1], estimate);
     fprintf(stderr, ". Done\n");
 
