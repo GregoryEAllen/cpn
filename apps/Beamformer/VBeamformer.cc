@@ -62,7 +62,7 @@ VBeamformer::~VBeamformer() {
     free(bbCorrect);
 }
 
-void vbf_generic(
+static void vbf_generic(
     const complex<short> *indata,
     unsigned instride,
     unsigned numStaves,
@@ -110,7 +110,7 @@ void vbf_generic(
     }
 }
 
-void vbf_generic_vector(
+static void vbf_generic_vector(
     const complex<short> *indata,
     unsigned instride,
     unsigned numStaves,
@@ -174,7 +174,7 @@ void vbf_generic_vector(
     }
 }
 
-void vbf_sse_vector(
+static void vbf_sse_vector(
     const complex<short> *indata,
     unsigned instride,
     unsigned numStaves,
@@ -260,7 +260,7 @@ void vbf_sse_vector(
     }
 }
 
-void vbf_vector(
+static void vbf_vector(
     const complex<short> *indata,
     unsigned instride,
     unsigned numStaves,
