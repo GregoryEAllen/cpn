@@ -117,25 +117,34 @@ Variant &Variant::operator=(const Variant &v) {
 }
 
 void Variant::Assign(const Variant &v) {
-    stringval.clear();
-    array.reset();
-    object.reset();
     switch (type) {
     case NullType:
     case TrueType:
     case FalseType:
+        stringval.clear();
+        array.reset();
+        object.reset();
         break;
     case NumberType:
         numvalue= v.numvalue;
+        stringval.clear();
+        array.reset();
+        object.reset();
         break;
     case StringType:
         stringval = v.stringval;
+        array.reset();
+        object.reset();
         break;
     case ArrayType:
         array = v.array;
+        stringval.clear();
+        object.reset();
         break;
     case ObjectType:
         object = v.object;
+        stringval.clear();
+        array.reset();
         break;
     default:
         ASSERT(false, "Unknown type %d", type);
@@ -398,6 +407,49 @@ Variant &Variant::Append(const Variant &value) {
     ASSERT(ArrayType == type);
     array->push_back(value);
     return *this;
+}
+
+Variant::Type_t Variant::Contains(unsigned i) const {
+    if (ArrayType == type) {
+        if (array->size() <= i) {
+            return NullType;
+        }
+        return array->at(i).GetType();
+    }
+    if (ObjectType == type) {
+        std::ostringstream oss;
+        oss << i;
+        return Contains(oss.str());
+    }
+    ASSERT(false, "Not an indexible type");
+
+}
+
+Variant::Type_t Variant::Contains(const char *s) const {
+    if (s == 0) {
+        return Contains(unsigned(0));
+    } else {
+        return Contains(std::string(s));
+    }
+}
+
+Variant::Type_t Variant::Contains(const std::string &s) const {
+    if (ObjectType == type) {
+        Map::iterator i = object->find(s);
+        if (i == object->end()) {
+            return NullType;
+        }
+        return i->second.GetType();
+    }
+    if (ArrayType == type) {
+        std::istringstream iss(s);
+        unsigned val = 0;
+        iss >> val;
+        ASSERT(!iss.fail(), "Failed to convert operand into index");
+        return Contains(val);
+    }
+    ASSERT(false, "Invalid type");
+
 }
 
 Variant &Variant::At(unsigned i) {

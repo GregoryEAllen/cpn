@@ -142,6 +142,12 @@ public:
     // Variant().Append(v1).Append(v2)...
     Variant &Append(const Variant &value);
 
+    // Return the type at index without
+    // potentially adding the element.
+    Type_t Contains(unsigned i) const;
+    Type_t Contains(const char *s) const;
+    Type_t Contains(const std::string &s) const;
+
     Variant &At(unsigned i);
     const Variant &At(unsigned i) const;
 

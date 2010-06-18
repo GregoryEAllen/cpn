@@ -1,7 +1,7 @@
 
 USE_XMLPP=1
 ifdef USE_XMLPP
-    OS_INCDIR += `pkg-config --cflags libxml++-2.6`
     OS_LIBS += `pkg-config --libs libxml++-2.6`
 endif
+OS_INCDIR += `pkg-config --cflags libxml++-2.6`
 
