@@ -30,7 +30,7 @@ namespace JSON {
         delete_JSON_parser(parser);
     }
 
-    bool Parser::Parse(char c) {
+    bool Parser::Parse(int c) {
         if (status != OK) { return false; }
         ++charcount;
         if (c == '\n') {
@@ -56,7 +56,7 @@ namespace JSON {
     unsigned Parser::Parse(const char *c, unsigned len) {
         unsigned i = 0;
         for (; i < len; ++i) {
-            if (!Parse(c[i])) {
+            if (!Parse((unsigned char)c[i])) {
                 --i;
                 break;
             }
@@ -66,7 +66,7 @@ namespace JSON {
 
     void Parser::ParseStream(std::istream &is) {
         while (is.good() && Ok()) {
-            if (!Parse((char)is.get())) {
+            if (!Parse(is.get())) {
                 is.unget();
                 break;
             }
@@ -76,7 +76,7 @@ namespace JSON {
     void Parser::ParseFile(FILE *f) {
         int c = 0;
         while (!std::feof(f) && Ok() && (c = std::fgetc(f)) != EOF) {
-            if (!Parse((char)c)) {
+            if (!Parse(c)) {
                 std::ungetc(c, f);
                 break;
             }

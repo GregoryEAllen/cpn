@@ -17,7 +17,7 @@ namespace JSON {
         Parser();
         virtual ~Parser();
 
-        bool Parse(char c);
+        bool Parse(int c);
 
         unsigned Parse(const char *c, unsigned len);
 
