@@ -63,6 +63,7 @@ bool JSONToVariant::Key(const std::string &str) {
 bool JSONToVariant::AddValue(Variant val) {
     if (InObject()) {
         if (keystack.empty()) return false;
+        if (stack.top().Contains(keystack.top()) != Variant::NullType) return false;
         stack.top().At(keystack.top()) = val;
         keystack.pop();
     } else if (InArray()) {
