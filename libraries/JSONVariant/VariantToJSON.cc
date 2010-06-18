@@ -12,7 +12,7 @@ std::string VariantToJSON(const Variant &v, bool pretty) {
     return oss.str();
 }
 
-void InsertString(std::ostream &os, const std::string str) {
+static void InsertString(std::ostream &os, const std::string str) {
     os << "\"";
     const char *text = str.c_str();
     while (*text != '\0') {
@@ -46,7 +46,7 @@ void InsertString(std::ostream &os, const std::string str) {
     os << "\"";
 }
 
-void InsertIndent(std::ostream &os, unsigned level) {
+static void InsertIndent(std::ostream &os, unsigned level) {
     static const char tabs[] = "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
     static const unsigned len = sizeof(tabs) - 1;
     if (level < len) {
@@ -59,7 +59,7 @@ void InsertIndent(std::ostream &os, unsigned level) {
     }
 }
 
-std::ostream &VariantToJSON(std::ostream &os, const Variant &v, bool pretty, unsigned level) {
+static std::ostream &VariantToJSON(std::ostream &os, const Variant &v, bool pretty, unsigned level) {
     switch (v.GetType()) {
     case Variant::NullType:
     case Variant::TrueType:

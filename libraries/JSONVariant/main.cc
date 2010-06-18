@@ -42,6 +42,7 @@ void VariantTest() {
     v = jv.Get();
     std::cout << v << std::endl;
     std::cout << PrettyJSON(v) << std::endl;
+    v = v;
     assert(v.IsArray());
     assert(v[4].IsObject());
     assert(v[5].IsString());
@@ -55,6 +56,8 @@ void VariantTest() {
     assert(cv[4]["A"].IsNumber());
     assert(cv[4]["b"].IsNull());
     assert(cv[10].IsNull());
+    v = v[4];
+    std::cout << v << std::endl;
     v = "\n";
     std::cout << v << std::endl;
 
@@ -75,5 +78,6 @@ void VariantTest() {
     std::string left;
     iss2 >> left;
     std::cout << "String left: " << left << std::endl;
+
 }
 
