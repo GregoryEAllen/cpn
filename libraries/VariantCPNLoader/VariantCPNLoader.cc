@@ -102,13 +102,13 @@ void VariantCPNLoader::LoadQueue(CPN::Kernel *kernel, Variant attr) {
             qattr.SetHint(CPN::QUEUEHINT_DEFAULT);
         }
     }
-    if (attr["datatype"].IsString()) {
+    if (!attr["datatype"].IsNull()) {
         qattr.SetDatatype(attr["datatype"].AsString());
     }
-    if (attr["numchannels"].IsNumber()) {
+    if (!attr["numchannels"].IsNull()) {
         qattr.SetNumChannels(attr["numchannels"].AsUnsigned());
     }
-    if (attr["alpha"].IsNumber()) {
+    if (!attr["alpha"].IsNull()) {
         qattr.SetAlpha(attr["alpha"].AsDouble());
     }
     kernel->CreateQueue(qattr);
