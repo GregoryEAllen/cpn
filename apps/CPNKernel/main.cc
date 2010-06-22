@@ -14,32 +14,64 @@
 
 using std::string;
 
-Variant LoadJSONConfig(const std::string &f) {
-    Variant result;
+static Variant config = Variant::ObjectType;
+
+static void MergeVariant(Variant &base, Variant &v) {
+    switch (v.GetType()) {
+    case Variant::ObjectType:
+        if (base.IsObject()) {
+            Variant::MapIterator itr = v.MapBegin();
+            Variant::MapIterator end = v.MapEnd();
+            while (itr != end) {
+                MergeVariant(base[itr->first], itr->second);
+                ++itr;
+            }
+        } else {
+            base = v;
+        }
+        break;
+    case Variant::ArrayType:
+        if (base.IsArray()) {
+            Variant::ListIterator itr = v.ListBegin();
+            Variant::ListIterator end = v.ListEnd();
+            while (itr != end) {
+                base.Append(*itr);
+                ++itr;
+            }
+        } else {
+            base = v;
+        }
+        break;
+    default:
+        base = v;
+        break;
+    }
+}
+
+static void LoadJSONConfig(const std::string &f) {
     JSONToVariant parser;
     parser.ParseFile(f);
     if (!parser.Done()) {
         std::cerr << "Error parsing " << f << "on line "
             << parser.GetLine() << " column " << parser.GetColumn() << std::endl;
-    } else {
-        result = parser.Get();
+        return;
     }
-    return result;
+    Variant val = parser.Get();
+    MergeVariant(config, val);
 }
 
-Variant LoadXMLConfig(const std::string &f) {
-    Variant result;
+static void LoadXMLConfig(const std::string &f) {
     XMLToVariant parser;
     parser.ParseFile(f);
-    if (parser.Done()) {
-        result = parser.Get();
-    } else {
-        std::cerr << "Error parsing f\n" << parser.GetMessage() << std::endl;
+    if (!parser.Done()) {
+        std::cerr << "Error parsing " << f << "\n" << parser.GetMessage() << std::endl;
+        return;
     }
-    return result;
+    Variant val = parser.Get();
+    MergeVariant(config, val);
 }
 
-void PrintHelp(const std::string &progname) {
+static void PrintHelp(const std::string &progname) {
     using std::cerr;
     cerr << "Usage: " << progname << " [options]\n";
     cerr << "\t-x config  Use config in XML format.\n";
@@ -48,11 +80,13 @@ void PrintHelp(const std::string &progname) {
     cerr << "\t-w node    Wait for node then terminate, if not specified waits for the kernel to terminate.\n";
     cerr << "\t-k opts    Comma seperated list of host options.\n";
     cerr << "\t           Valid options are host, port, and name. (eg. -kname=blah,host=localhost,port=1234)\n";
-    cerr << "\nNote that all command line options override configuration options.\n";
+    cerr << "\t-c         Print out in JSON format the internal configuration after parsing all options\n";
+    cerr << "\nNote that options are overrided in the order they are in the command line.\n";
     cerr << "It is valid to specify multiple configuration files, they will be merged.\n";
 }
 
-void PrintDatabaseHelp(Variant v) {
+static void PrintDatabaseHelp() {
+    Variant &v = config["database"];
     using std::cerr;
     cerr << "The -d options takes a comma seperated list.\n";
     cerr << "The recognized set of values are:\n"
@@ -66,7 +100,8 @@ void PrintDatabaseHelp(Variant v) {
 
 }
 
-bool ParseDatabaseSubOpts(Variant &v) {
+static bool ParseDatabaseSubOpts() {
+    Variant &v = config["database"];
     enum { opd4r, opnd4r, opgqmt, opngqmt, opsbqe, opnsbqe, oplib, ophost, opport, ophelp, opend };
     char *opts[opend + 1];
     opts[opd4r] = "d4r";
@@ -131,62 +166,82 @@ bool ParseDatabaseSubOpts(Variant &v) {
     return true;
 }
 
-bool ParseKernelSubOpts(Variant &v) {
+static bool ParseKernelSubOpts() {
+    Variant &v = config;
     char *const opts[] = {"name", "host", "port", 0};
     char *subopt = optarg;
     char *valuep = 0;
     while (*subopt != '\0') {
         int i = getsubopt(&subopt, opts, &valuep);
         if (i < 0) return false;
+        if (valuep == 0) {
+            std::cerr << "The kernel option " << opts[i] << " requires a parameter.\n";
+            return false;
+        }
         v.At(opts[i]) = valuep;
     }
     return true;
 }
 
 int main(int argc, char **argv) {
-    Variant config = Variant::ObjectType;
+    config["name"] = *argv;
     config["database"]["d4r"] = false;
     config["database"]["grow-queue-max-threshold"] = true;
     config["database"]["swallow-broken-queue-exceptions"] = false;
     bool output_config = false;
+    bool print_help = false;
+    bool print_db_help = false;
     while (true) {
         int c = getopt(argc, argv, "x:j:hw:d:k:c");
         if (c == -1) break;
         switch (c) {
         case 'x':
-            config["confs"].Append(LoadXMLConfig(optarg));
+            LoadXMLConfig(optarg);
             break;
         case 'j':
-            config["confs"].Append(LoadJSONConfig(optarg));
+            LoadJSONConfig(optarg);
             break;
         case 'w':
-            config["wait"] = optarg;
+            config["wait-node"] = optarg;
             break;
         case 'd':
-            if (!ParseDatabaseSubOpts(config["database"])) {
-                PrintDatabaseHelp(config["database"]);
-                return 1;
+            if (!ParseDatabaseSubOpts()) {
+                print_db_help = true;
             }
             break;
         case 'k':
-            if (!ParseKernelSubOpts(config["kernel"])) {
-                PrintHelp(*argv);
-                return 1;
+            if (!ParseKernelSubOpts()) {
+                print_help = true;
             }
             break;
         case 'c':
             output_config = true;
             break;
         case 'h':
+            print_help = true;
+            break;
         default:
             PrintHelp(*argv);
             return 1;
         }
     }
+    if (print_help) {
+        PrintHelp(*argv);
+    }
+    if (print_db_help) {
+        PrintDatabaseHelp();
+    }
     if (output_config) {
         std::cout << PrettyJSON(config) << std::endl;
+    }
+    if (print_help || print_db_help || output_config) {
         return 0;
     }
+    // Load database
+    // Load the kernel attr
+    // Load any nodes
+    // Load any queues
+    // if wait-node wait for it else wait
     return 0;
     }
 
