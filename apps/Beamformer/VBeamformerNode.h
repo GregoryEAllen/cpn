@@ -6,7 +6,7 @@
 
 class VBeamformer;
 
-#define VBEAMFORMERNODE_TYPENAME "VBeamformerNodeTypeName"
+#define VBEAMFORMERNODE_TYPENAME "VBeamformerNode"
 
 class VBeamformerNode : public CPN::NodeBase {
 public:

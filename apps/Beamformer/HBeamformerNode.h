@@ -22,7 +22,7 @@ class HBeamformer;
  * the replicas, in that order.
  */
 
-#define HBEAMFORMERNODE_TYPENAME "HBeamformerNodeTypeName"
+#define HBEAMFORMERNODE_TYPENAME "HBeamformerNode"
 
 class HBeamformerNode : public CPN::NodeBase {
 public:

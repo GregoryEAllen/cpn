@@ -12,7 +12,7 @@
 
 using std::complex;
 
-CPN_DECLARE_NODE_FACTORY(HBeamformerNodeTypeName, HBeamformerNode);
+CPN_DECLARE_NODE_FACTORY(HBeamformerNode, HBeamformerNode);
 
 HBeamformerNode::HBeamformerNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)
     : CPN::NodeBase(ker, attr)

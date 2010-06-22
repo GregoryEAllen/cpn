@@ -58,7 +58,7 @@ public:
             ++cur;
         }
         fprintf(stderr,
-                "Output:\nAvg:\t%f hz\nMax:\t%f hz\nMin:\t%f hz\n",
+                "Output:\nAvg:\t%f Hz\nMax:\t%f Hz\nMin:\t%f Hz\n",
                 measure.AverageRate(), measure.LargestRate(), measure.SmallestRate());
     }
     std::vector<std::string> inports;
@@ -209,7 +209,7 @@ int cpnbf_main(int argc, char **argv) {
     config["name"] = "kernel";
     Variant node;
     node["name"] = "vertical";
-    node["type"] = "VBeamformerNodeTypeName";
+    node["type"] = "VBeamformerNode";
     node["param"]["inport"] = "input";
     node["param"]["outports"][0] = "out1";
     node["param"]["outports"][1] = "out2";
@@ -219,7 +219,7 @@ int cpnbf_main(int argc, char **argv) {
     node["param"]["algorithm"] = algo;
     config["nodes"].Append(node);
     node = Variant::NullType;
-    node["type"] = "HBeamformerNodeTypeName";
+    node["type"] = "HBeamformerNode";
     node["param"]["inport"] = "input";
     node["param"]["outport"] = "output";
     node["param"]["estimate"] = estimate;
