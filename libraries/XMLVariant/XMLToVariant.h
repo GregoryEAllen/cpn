@@ -6,12 +6,17 @@
  * documents that contain no attributes and whitespace
  * does not matter.
  *
- * Whitespace, commends, and all attributes are stripped.
+ * Whitespace, commends, and most attributes are stripped.
  * All text inside an element that contains sub elements is
  * ignored. Empty elements are assumed to have the value 'true'.
  *
- * Currently all datatypes are assumed to be strings. The user
+ * Currently all datatypes are assumed to be strings unless
+ * there is a type attribute in which case the type attribute
+ * causes this parser to try conver to that type. Otherwise user
  * must then convert them as necessary.
+ *
+ * Valid types are "object", "array", "string", "bool", "number"
+ * and "null". An empty tag is considered to be an empty string.
  */
 #pragma once
 #include "Variant.h"

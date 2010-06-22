@@ -1,8 +1,28 @@
 
 #include "VariantToXML.h"
+#include "Assert.h"
 #include <sstream>
 #include <libxml++/libxml++.h>
 
+static std::string GetTypeName(Variant::Type_t t) {
+    switch (t) {
+    case Variant::TrueType:
+        return "bool";
+    case Variant::FalseType:
+        return "bool";
+    case Variant::NumberType:
+        return "number";
+    case Variant::StringType:
+        return "string";
+    case Variant::ArrayType:
+        return "array";
+    case Variant::ObjectType:
+        return "object";
+    case Variant::NullType:
+        return "null";
+    }
+    ASSERT(false);
+}
 
 static void BuildDOM(xmlpp::Element *cur, Variant v, const std::string &name) {
     xmlpp::Element *child;
@@ -12,12 +32,14 @@ static void BuildDOM(xmlpp::Element *cur, Variant v, const std::string &name) {
     case Variant::NumberType:
     case Variant::StringType:
         child = cur->add_child(name);
+        child->set_attribute("type", GetTypeName(v.GetType()));
         child->add_child_text(v.AsString());
         break;
     case Variant::ArrayType:
         for (Variant::ConstListIterator i = v.ListBegin(); i != v.ListEnd(); ++i) {
             if (i->IsArray()) {
                 child = cur->add_child(name);
+                child->set_attribute("type", GetTypeName(i->GetType()));
                 BuildDOM(child, *i, name);
             } else {
                 BuildDOM(cur, *i, name);
@@ -26,11 +48,15 @@ static void BuildDOM(xmlpp::Element *cur, Variant v, const std::string &name) {
         break;
     case Variant::ObjectType:
         child = cur->add_child(name);
+        child->set_attribute("type", GetTypeName(v.GetType()));
         for (Variant::ConstMapIterator i = v.MapBegin(); i != v.MapEnd(); ++i) {
             BuildDOM(child, i->second, i->first);
         }
         break;
     case Variant::NullType:
+        child = cur->add_child(name);
+        child->set_attribute("type", GetTypeName(v.GetType()));
+        break;
     default:
         break;
     }

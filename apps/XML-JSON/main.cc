@@ -29,6 +29,7 @@ int ConvertXMLToJSON(istream &is, ostream &os, bool pretty) {
     }
     Variant val = xparser.Get();
     VariantToJSON(os, val, pretty);
+    if (pretty) os << '\n';
     return 0;
 }
 
@@ -42,6 +43,7 @@ int ConvertJSONToXML(istream &is, ostream &os, bool pretty, const string &rootna
     }
     Variant val = jparser.Get();
     VariantToXML(os, val, rootname, pretty);
+    if (pretty) os << '\n';
     return 0;
 }
 

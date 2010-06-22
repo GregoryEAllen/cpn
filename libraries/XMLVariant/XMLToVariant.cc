@@ -79,23 +79,46 @@ void XMLToVariant::pimpl_t::on_start_element(const Glib::ustring& name,
     if (state == ERROR) return;
     Variant element = Variant::ObjectType;
     element["#name"] = (std::string)name;
-    element["#data"] = Variant::ObjectType;
     element["#content"] = Variant::ArrayType;
+    element["#attr"] = Variant::ObjectType;
+    for (AttributeList::const_iterator itr = attributes.begin(); itr != attributes.end(); ++itr) {
+        element["#attr"][(string)itr->name] = (string)itr->value;
+    }
+    element["#type"] = element["#attr"]["type"];
     stack.push_back(element);
 }
 
-void AddData(Variant parent, Variant data, const string &name) {
-    Variant store = parent["#data"];
-    if (store[name].IsNull()) {
-        store[name] = data;
-    } else if (store[name].IsArray()) {
-        store[name].Append(data);
-    } else {
-        Variant list = Variant::ArrayType;
-        list.Append(store[name]);
-        list.Append(data);
-        store[name] = list;
+string TrimContent(Variant content) {
+    std::ostringstream oss;
+    Variant::ListIterator itr = content.ListBegin();
+    Variant::ListIterator end = content.ListEnd();
+    bool loop = true;
+    while (itr != end && loop) {
+        string text = itr->AsString();
+        for (unsigned i = 0; i < text.size(); ++i) {
+            if (!std::isspace(text[i])) {
+                loop = false;
+                oss << text.substr(i);
+                break;
+            }
+        }
+        ++itr;
     }
+    while (itr != end) {
+        oss << itr->AsString();
+        ++itr;
+    }
+    string data = oss.str();
+    bool empty = true;
+    for (unsigned i = data.size(); i > 0; --i) {
+        if (!std::isspace(data[i - 1])) {
+            data = data.substr(0, i);
+            empty = false;
+            break;
+        }
+    }
+    if (empty) return string();
+    return data;
 }
 
 void XMLToVariant::pimpl_t::on_end_element(const Glib::ustring& name) {
@@ -103,44 +126,50 @@ void XMLToVariant::pimpl_t::on_end_element(const Glib::ustring& name) {
     Variant element = stack.back();
     stack.pop_back();
     Variant parent = stack.back();
-    if (!element["#data"].Empty()) {
-        AddData(parent, element["#data"], element["#name"].AsString());
-    } else if (!element["#content"].Empty()) {
-        std::ostringstream oss;
-        Variant::ListIterator itr = element["#content"].ListBegin();
-        Variant::ListIterator end = element["#content"].ListEnd();
-        bool loop = true;
-        while (itr != end && loop) {
-            string text = itr->AsString();
-            for (unsigned i = 0; i < text.size(); ++i) {
-                if (!std::isspace(text[i])) {
-                    loop = false;
-                    oss << text.substr(i);
-                    break;
-                }
-            }
-            ++itr;
-        }
-        while (itr != end && loop) {
-            oss << itr->AsString();
-        }
-        string data = oss.str();
-        bool empty = true;
-        for (unsigned i = data.size(); i > 0; --i) {
-            if (!std::isspace(data[i - 1])) {
-                data = data.substr(0, i);
-                empty = false;
-                break;
-            }
-        }
-        if (empty) {
-            AddData(parent, true, element["#name"].AsString());
-        } else {
-            // Would be nice to try to convert to actual datatypes rather than strings
-            AddData(parent, data, element["#name"].AsString());
+    if (element["#type"].IsNull()) {
+        if (element["#data"].IsNull()) {
+            element["#data"] = TrimContent(element["#content"]);
         }
     } else {
-        AddData(parent, true, element["#name"].AsString());
+        string type = element["#type"].AsString();
+        if ("object" == type) {
+        } else if ("array" == type) {
+        } else if ("number" == type) {
+            std::istringstream iss(TrimContent(element["#content"]));
+            long double val;
+            iss >> val;
+            element["#data"] = val;
+        } else if ("bool" == type) {
+            string data = TrimContent(element["#content"]);
+            element["#data"] = (data[0] == 't' || data[0] == 'T');
+        } else if ("null" == type) {
+            element["#data"] = Variant::NullType;
+        } else /* string */ {
+            element["#data"] = TrimContent(element["#content"]);
+        }
+    }
+    bool is_object = false;
+    if (parent["#type"].IsNull()) {
+        is_object = true;
+    } else {
+        string type = parent["#type"].AsString();
+        if ("array" == type) {
+            parent["#data"].Append(element["#data"]);
+        } else /* object */ {
+            is_object = true;
+        }
+    }
+    if (is_object) {
+        if (parent["#data"][name].IsNull()) {
+            parent["#data"][name] = element["#data"];
+        } else if (parent["#data"][name].IsArray()) {
+            parent["#data"][name].Append(element["#data"]);
+        } else {
+            Variant list = Variant::ArrayType;
+            list.Append(parent["#data"][name]);
+            list.Append(element["#data"]);
+            parent["#data"][name] = list;
+        }
     }
 }
 
