@@ -17,7 +17,7 @@ using CPN::QueueWriterAdapter;
 using std::for_each;
 using std::mem_fun_ref;
 
-CPN_DECLARE_NODE_FACTORY(JoinNodeType, JoinNode);
+CPN_DECLARE_NODE_FACTORY(JoinNode, JoinNode);
 
 JoinNode::JoinNode(Kernel &ker, const NodeAttr &attr)
     : CPN::NodeBase(ker, attr)

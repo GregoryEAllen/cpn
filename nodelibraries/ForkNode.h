@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#define FORKNODE_TYPENAME "ForkNodeType"
+#define FORKNODE_TYPENAME "ForkNode"
 
 class ForkNode : public CPN::NodeBase {
 public:

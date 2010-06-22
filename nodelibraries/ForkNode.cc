@@ -17,7 +17,7 @@ using CPN::QueueWriterAdapter;
 using std::for_each;
 using std::mem_fun_ref;
 
-CPN_DECLARE_NODE_FACTORY(ForkNodeType, ForkNode);
+CPN_DECLARE_NODE_FACTORY(ForkNode, ForkNode);
 
 ForkNode::ForkNode(Kernel &ker, const NodeAttr &attr)
     : CPN::NodeBase(ker, attr)

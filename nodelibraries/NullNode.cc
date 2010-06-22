@@ -2,7 +2,7 @@
 #include "NullNode.h"
 #include "QueueReaderAdapter.h"
 
-CPN_DECLARE_NODE_FACTORY(NullNodeTypeName, NullNode);
+CPN_DECLARE_NODE_FACTORY(NullNode, NullNode);
 
 NullNode::NullNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)
     : CPN::NodeBase(ker, attr), inport(attr.GetParam())

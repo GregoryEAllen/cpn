@@ -3,7 +3,7 @@
 
 #include "NodeBase.h"
 
-#define NULLNODE_TYPENAME "NullNodeTypeName"
+#define NULLNODE_TYPENAME "NullNode"
 
 class NullNode : public CPN::NodeBase {
 public:

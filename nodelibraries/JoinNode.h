@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#define JOINNODE_TYPENAME "JoinNodeType"
+#define JOINNODE_TYPENAME "JoinNode"
 
 class JoinNode : public CPN::NodeBase {
 public:
