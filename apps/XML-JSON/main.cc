@@ -54,7 +54,7 @@ void PrintHelp(const string &progname) {
     cerr << "\t-o file\tUse file as output (default: stdout)\n";
     cerr << "\t-c chars\tUse chars as input\n";
     cerr << "\t-r name\tUse name as the root name of the XML document output (default: root)\n";
-    cerr << "\t-x\tConvert XML to JSON\t";
+    cerr << "\t-x\tConvert XML to JSON\n";
     cerr << "\t-j\tConvert JSON to XML (default)\n";
     cerr << "\nNotice that the conversion is not 1-to-1 for all inputs.\n";
 }
