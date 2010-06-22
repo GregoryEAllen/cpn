@@ -138,7 +138,7 @@ public:
 };
 CPN_DECLARE_NODE_FACTORY(CPNBFInputNode, CPNBFInputNode);
 
-static const char* const VALID_OPTS = "hi:o:er:na:s:c";
+static const char* const VALID_OPTS = "hi:o:er:na:s:cf:";
 
 static const char* const HELP_OPTS = "Usage: %s <vertical coefficient file> <horizontal coefficient file>\n"
 "\t-i filename\t Use input file (default stdin)\n"
@@ -156,7 +156,8 @@ int cpnbf_main(int argc, char **argv) {
     bool procOpts = true;
     std::string input_file;
     std::string output_file;
-    VBeamformer::Algorithm_t algo = VBeamformer::SSE_VECTOR;
+    unsigned algo = 2;
+    bool use_fan = true;
     bool estimate = false;
     unsigned repetitions = 1;
     bool nooutput = false;
@@ -166,6 +167,12 @@ int cpnbf_main(int argc, char **argv) {
         switch (getopt(argc, argv, VALID_OPTS)) {
         case 'c':
             print_config = true;
+            break;
+        case 'f':
+            if (*optarg == 'n' || *optarg == 'N')
+                use_fan = false;
+            if (*optarg == 'y' || *optarg == 'Y')
+                use_fan = true;
             break;
         case 'i':
             input_file = optarg;
@@ -177,11 +184,7 @@ int cpnbf_main(int argc, char **argv) {
             estimate = true;
             break;
         case 'a':
-            algo = (VBeamformer::Algorithm_t)atoi(optarg);
-            if (algo < VBeamformer::ALGO_BEGIN || algo >= VBeamformer::ALGO_END) {
-                fprintf(stderr, "Unknown algorithm number %d\n", algo);
-                return 1;
-            }
+            algo = atoi(optarg);
             break;
         case 's':
             size_mult = atoi(optarg);
@@ -209,7 +212,11 @@ int cpnbf_main(int argc, char **argv) {
     config["name"] = "kernel";
     Variant node;
     node["name"] = "vertical";
-    node["type"] = "VBeamformerNode";
+    if (use_fan) {
+        node["type"] = "FanVBeamformerNode";
+    } else {
+        node["type"] = "VBeamformerNode";
+    }
     node["param"]["inport"] = "input";
     node["param"]["outports"][0] = "out1";
     node["param"]["outports"][1] = "out2";

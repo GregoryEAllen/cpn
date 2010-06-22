@@ -19,6 +19,7 @@ public:
     ~FanVBeamformer();
 
     struct ResVec {
+        ResVec() {}
         ResVec(unsigned f, std::complex<float> *od, unsigned st)
             : fan(f), outdata(od), outstride(st) {}
         unsigned fan;
