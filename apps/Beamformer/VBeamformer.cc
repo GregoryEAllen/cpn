@@ -53,7 +53,7 @@ VBeamformer::VBeamformer(unsigned fans, unsigned stavetypes, unsigned elementspe
 {
     AllocAligned(&filter, 16, numFans * numStaveTypes * numElemsPerStave * filterLen);
     AllocAligned(&bbCorrect, 16, numFans * numStaveTypes * numElemsPerStave);
-    memcpy(filter, filt, numFans * numStaveTypes * numElemsPerStave * filterLen);
+    memcpy(filter, filt, numFans * numStaveTypes * numElemsPerStave * filterLen * sizeof(float));
     memcpy(bbCorrect, bbcor, numFans * numStaveTypes * numElemsPerStave * sizeof(complex<float>));
 }
 

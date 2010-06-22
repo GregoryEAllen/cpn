@@ -134,7 +134,7 @@ int ompbf_main(int argc, char **argv) {
         fprintf(stderr, ". Done (%f ms)\n", (getTime() - start) * 1000);
         measure.Tick(numSamples);
     }
-    fprintf(stderr, "Avg:\t%f hz\nMax:\t%f hz\nMin:\t%f hz\n", measure.AverageRate(), measure.LargestRate(), measure.SmallestRate());
+    fprintf(stderr, "Avg:\t%f Hz\nMax:\t%f Hz\nMin:\t%f Hz\n", measure.AverageRate(), measure.LargestRate(), measure.SmallestRate());
 
     if (!nooutput) {
         fprintf(stderr, "Writing Output..");

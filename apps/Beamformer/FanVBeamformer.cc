@@ -47,10 +47,14 @@ FanVBeamformer::FanVBeamformer(unsigned fans, unsigned stavetypes, unsigned elem
 {
     AllocAligned(&filter, 16, numFans * numStaveTypes * numElemsPerStave * filterLen);
     AllocAligned(&bbCorrect, 16, numFans * numStaveTypes * numElemsPerStave);
-    memcpy(filter, filt, numFans * numStaveTypes * numElemsPerStave * filterLen);
+    memcpy(filter, filt, numFans * numStaveTypes * numElemsPerStave * filterLen * sizeof(float));
     memcpy(bbCorrect, bbcor, numFans * numStaveTypes * numElemsPerStave * sizeof(complex<float>));
 }
 
+FanVBeamformer::~FanVBeamformer() {
+    free(filter);
+    free(bbCorrect);
+}
 
 static void fvbf_generic(
     const complex<short> *indata,
@@ -143,7 +147,7 @@ static void fvbf_generic_vector(
                 s[j][i] = 0;
             }
         }
-        for (unsigned samp = 0; samp < numOutSamples; ++samp) {
+        for (unsigned samp = 0; samp < numOutSamples; samp += BLOCKSIZE) {
             for (unsigned elem = 0; elem < numElemsPerStave; ++elem) {
                 for (unsigned i = 0; i < BLOCKSIZE; ++i) {
                     complex<short> e = instave[elem * instride + samp + i];
@@ -223,7 +227,7 @@ static void fvbf_sse_vector(
                 s[i][j + CVECSIZE] = _mm_setzero_ps();
             }
         }
-        for (unsigned samp = 0; samp < numOutSamples; ++samp) {
+        for (unsigned samp = 0; samp < numOutSamples; samp += BLOCKSIZE) {
             for (unsigned elem = 0; elem < numElemsPerStave; ++elem) {
                 __m128i e1 = *((__m128i*)&instave[elem * instride + samp]);
                 __m128i e2 = e1;
@@ -272,7 +276,7 @@ static void fvbf_sse_vector(
                     complex<float> bbCor = fanbbCorrect[stavetype * numElemsPerStave + elem];
                     cvector cpx = _mm_setr_ps(bbCor.real(), bbCor.imag(), bbCor.real(), bbCor.imag());
                     for (unsigned i = 0; i < CVECSIZE; ++i) {
-                        stave_acc[i] += elem_acc[i] * cpx;
+                        stave_acc[i] += cmult(elem_acc[i], cpx);
                     }
                 }
                 for (unsigned i = 0; i < CVECSIZE; ++i) {

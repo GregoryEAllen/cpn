@@ -1,4 +1,4 @@
-#include "VBeamformer.h"
+#include "FanVBeamformer.h"
 #include "LoadFromFile.h"
 #include "Assert.h"
 #include "ErrnoException.h"
@@ -29,11 +29,11 @@ static const char* const HELP_OPTS = "Usage: %s <coefficient file>\n"
 "\t-r n\t Repeat n times\n"
 ;
 
-int vb_main(int argc, char **argv) {
+int fvb_main(int argc, char **argv) {
     bool procOpts = true;
     std::string input_file;
     std::string output_file;
-    VBeamformer::Algorithm_t algo = VBeamformer::SSE_VECTOR;
+    FanVBeamformer::Algorithm_t algo = FanVBeamformer::SSE_VECTOR;
     unsigned fan = -1;
     unsigned repetitions = 1;
     while (procOpts) {
@@ -45,8 +45,8 @@ int vb_main(int argc, char **argv) {
             output_file = optarg;
             break;
         case 'a':
-            algo = (VBeamformer::Algorithm_t)atoi(optarg);
-            if (algo < VBeamformer::ALGO_BEGIN || algo >= VBeamformer::ALGO_END) {
+            algo = (FanVBeamformer::Algorithm_t)atoi(optarg);
+            if (algo < FanVBeamformer::ALGO_BEGIN || algo >= FanVBeamformer::ALGO_END) {
                 fprintf(stderr, "Unknown algorithm number %d\n", algo);
                 return 1;
             }
@@ -72,7 +72,7 @@ int vb_main(int argc, char **argv) {
         return 1;
     }
     fprintf(stderr, "Loading..");
-    std::auto_ptr<VBeamformer> former = VBLoadFromFile(argv[optind]);
+    std::auto_ptr<FanVBeamformer> former = FanVBLoadFromFile(argv[optind]);
     fprintf(stderr, ". Done\n");
     former->SetAlgorithm(algo);
 
@@ -108,18 +108,20 @@ int vb_main(int argc, char **argv) {
     measure.Start();
     for (unsigned j = 0; j < repetitions; ++j) {
         fprintf(stderr, "Beamform(%d)..", algo);
-        double start = getTime();
+        std::vector<FanVBeamformer::ResVec> rv;
         if (fan > numFans) {
             for (unsigned i = 0; i < numFans; ++i) {
-                numOutSamples = former->Run(&input[0], stride, numStaves,
-                    numSamples, i, &output[i * stride * numStaves], stride);
+                rv.push_back(FanVBeamformer::ResVec(i,
+                            &output[i * stride * numStaves], stride));
             }
         } else {
-            numOutSamples = former->Run(&input[0], stride, numStaves,
-                numSamples, fan, &output[fan * stride * numStaves], stride);
+            rv.push_back(FanVBeamformer::ResVec(fan,
+                        &output[fan *stride * numStaves], stride));
         }
+        double start = getTime();
+        numOutSamples = former->Run(&input[0], stride, numStaves, numSamples, &rv[0], rv.size());
         fprintf(stderr, ". Done (%f ms)\n", (getTime() - start) * 1000);
-        measure.Tick(numOutSamples);
+        measure.Tick(numSamples);
     }
     fprintf(stderr, "Avg:\t%f Hz\nMax:\t%f Hz\nMin:\t%f Hz\n", measure.AverageRate(), measure.LargestRate(), measure.SmallestRate());
 
