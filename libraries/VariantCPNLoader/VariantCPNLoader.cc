@@ -27,10 +27,10 @@ VariantCPNLoader::VariantCPNLoader() { }
 
 CPN::KernelAttr VariantCPNLoader::GetKernelAttr(Variant args) {
     CPN::KernelAttr attr(args["name"].AsString());
-    if (args["host"].IsString()) {
+    if (!args["host"].IsNull()) {
         attr.SetHostName(args["host"].AsString());
     }
-    if (args["port"].IsString()) {
+    if (!args["port"].IsNull()) {
         attr.SetServName(args["port"].AsString());
     }
     return attr;

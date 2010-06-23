@@ -25,6 +25,7 @@
 
 #include "Variant.h"
 #include "Assert.h"
+#include "ParseBool.h"
 #include <sstream>
 
 using std::tr1::shared_ptr;
@@ -174,13 +175,7 @@ bool Variant::AsBool() const {
     case NumberType:
         return numvalue != 0;
     case StringType:
-        {
-            std::istringstream iss(stringval);
-            bool val = false;
-            iss >> val;
-            ASSERT(!iss.fail(), "Connot convert \"%s\" to bool", stringval.c_str());
-            return val;
-        }
+        return ParseBool(stringval);
     case TrueType:
         return true;
     case FalseType:

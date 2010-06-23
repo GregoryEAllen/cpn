@@ -13,8 +13,44 @@
 #include <string.h>
 
 using std::string;
+using CPN::shared_ptr;
+using CPN::Database;
+using CPN::Kernel;
+using CPN::KernelAttr;
 
 static Variant config = Variant::ObjectType;
+
+static shared_ptr<Database> LoadDatabase(Variant v) {
+    shared_ptr<Database> database;
+    if (v.IsNull()) {
+        database = Database::Local();
+    } else {
+        if (v["host"].IsNull() && v["port"].IsNull()) {
+            database = Database::Local();
+        } else {
+            SockAddrList addrs = SocketAddress::CreateIP(
+                    v["host"].AsString(),
+                    v["port"].AsString()
+                    );
+            database = shared_ptr<Database>(new RemoteDatabase(addrs));
+        }
+        if (!v["d4r"].IsNull()) {
+            database->UseD4R(v["d4r"].AsBool());
+        }
+        if (!v["swallow-broken-queue-exceptions"].IsNull()) {
+            database->SwallowBrokenQueueExceptions(v["swallow-broken-queue-exceptions"].AsBool());
+        }
+        if (!v["grow-queue-max-threshold"].IsNull()) {
+            database->GrowQueueMaxThreshold(v["grow-queue-max-threshold"].AsBool());
+        }
+        if (v["libs"].IsArray()) {
+            for (Variant::ListIterator itr = v["libs"].ListBegin(); itr != v["libs"].ListEnd(); ++itr) {
+                database->LoadSharedLib(itr->AsString());
+            }
+        }
+    }
+    return database;
+}
 
 static void MergeVariant(Variant &base, Variant &v) {
     switch (v.GetType()) {
@@ -90,9 +126,9 @@ static void PrintDatabaseHelp() {
     using std::cerr;
     cerr << "The -d options takes a comma seperated list.\n";
     cerr << "The recognized set of values are:\n"
-         << "\t [no-]d4r    Turn on or off D4R. (currently: " << (v["d4r"].IsTrue() ? "on" : "off") << ")\n"
-         << "\t [no-]gqmt   Turn on or off growing of queues when they request larger max threshold. (currently: " << (v["grow-queue-max-threshold"].IsTrue() ? "on" : "off") << ")\n"
-         << "\t [no-]sbqe   Turn on or off sollowing of broken queue exceptions. (currently: " << (v["swallow-broken-queue-exceptions"].IsTrue() ? "on" : "off") << ")\n"
+         << "\t [no-]d4r    Turn on or off D4R. (currently: " << (v["d4r"].AsBool() ? "on" : "off") << ")\n"
+         << "\t [no-]gqmt   Turn on or off growing of queues when they request larger max threshold. (currently: " << (v["grow-queue-max-threshold"].AsBool() ? "on" : "off") << ")\n"
+         << "\t [no-]sbqe   Turn on or off sollowing of broken queue exceptions. (currently: " << (v["swallow-broken-queue-exceptions"].AsBool() ? "on" : "off") << ")\n"
          << "\t host=xxx    Use a remote database located at xxx, else use local.\n"
          << "\t port=xxx    Specify the port for the remote database.\n"
          << "\t lib=file    Load file as a shared object to be searched for nodes. Maybe be set multiple times.\n"
@@ -238,10 +274,22 @@ int main(int argc, char **argv) {
         return 0;
     }
     // Load database
+
+    shared_ptr<Database> database = LoadDatabase(config["database"]);
     // Load the kernel attr
+    KernelAttr kattr = VariantCPNLoader::GetKernelAttr(config);
+    kattr.SetDatabase(database);
+    // Load the kernel
+    Kernel kernel(kattr);
     // Load any nodes
     // Load any queues
+    VariantCPNLoader::Setup(&kernel, config);
     // if wait-node wait for it else wait
-    return 0;
+    if (config["wait-node"].IsNull()) {
+        kernel.Wait();
+    } else {
+        kernel.WaitNodeTerminate(config["wait-node"].AsString());
     }
+    return 0;
+}
 

@@ -1,6 +1,7 @@
 
 #include "XMLToVariant.h"
 #include "Assert.h"
+#include "ParseBool.h"
 #include <libxml++/libxml++.h>
 #include <deque>
 #include <sstream>
@@ -133,7 +134,9 @@ void XMLToVariant::pimpl_t::on_end_element(const Glib::ustring& name) {
     } else {
         string type = element["#type"].AsString();
         if ("object" == type) {
+            /* nothing at this stage */
         } else if ("array" == type) {
+            /* nothing at this stage */
         } else if ("number" == type) {
             std::istringstream iss(TrimContent(element["#content"]));
             long double val;
@@ -141,7 +144,7 @@ void XMLToVariant::pimpl_t::on_end_element(const Glib::ustring& name) {
             element["#data"] = val;
         } else if ("bool" == type) {
             string data = TrimContent(element["#content"]);
-            element["#data"] = (data[0] == 't' || data[0] == 'T');
+            element["#data"] = ParseBool(data);
         } else if ("null" == type) {
             element["#data"] = Variant::NullType;
         } else /* string */ {
