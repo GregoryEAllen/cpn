@@ -18,8 +18,6 @@ using CPN::Database;
 using CPN::Kernel;
 using CPN::KernelAttr;
 
-static Variant config = Variant::ObjectType;
-
 static shared_ptr<Database> LoadDatabase(Variant v) {
     shared_ptr<Database> database;
     if (v.IsNull()) {
@@ -84,7 +82,7 @@ static void MergeVariant(Variant &base, Variant &v) {
     }
 }
 
-static void LoadJSONConfig(const std::string &f) {
+static void LoadJSONConfig(const std::string &f, Variant &config) {
     JSONToVariant parser;
     parser.ParseFile(f);
     if (!parser.Done()) {
@@ -96,7 +94,7 @@ static void LoadJSONConfig(const std::string &f) {
     MergeVariant(config, val);
 }
 
-static void LoadXMLConfig(const std::string &f) {
+static void LoadXMLConfig(const std::string &f, Variant &config) {
     XMLToVariant parser;
     parser.ParseFile(f);
     if (!parser.Done()) {
@@ -121,7 +119,7 @@ static void PrintHelp(const std::string &progname) {
     cerr << "It is valid to specify multiple configuration files, they will be merged.\n";
 }
 
-static void PrintDatabaseHelp() {
+static void PrintDatabaseHelp(Variant &config) {
     Variant &v = config["database"];
     using std::cerr;
     cerr << "The -d options takes a comma seperated list.\n";
@@ -136,7 +134,7 @@ static void PrintDatabaseHelp() {
 
 }
 
-static bool ParseDatabaseSubOpts() {
+static bool ParseDatabaseSubOpts(Variant &config) {
     Variant &v = config["database"];
     enum { opd4r, opnd4r, opgqmt, opngqmt, opsbqe, opnsbqe, oplib, ophost, opport, ophelp, opend };
     char *opts[opend + 1];
@@ -202,7 +200,7 @@ static bool ParseDatabaseSubOpts() {
     return true;
 }
 
-static bool ParseKernelSubOpts() {
+static bool ParseKernelSubOpts(Variant &config) {
     Variant &v = config;
     char *const opts[] = {"name", "host", "port", 0};
     char *subopt = optarg;
@@ -220,6 +218,7 @@ static bool ParseKernelSubOpts() {
 }
 
 int main(int argc, char **argv) {
+    Variant config;
     config["name"] = *argv;
     config["database"]["d4r"] = false;
     config["database"]["grow-queue-max-threshold"] = true;
@@ -232,21 +231,21 @@ int main(int argc, char **argv) {
         if (c == -1) break;
         switch (c) {
         case 'x':
-            LoadXMLConfig(optarg);
+            LoadXMLConfig(optarg, config);
             break;
         case 'j':
-            LoadJSONConfig(optarg);
+            LoadJSONConfig(optarg, config);
             break;
         case 'w':
             config["wait-node"] = optarg;
             break;
         case 'd':
-            if (!ParseDatabaseSubOpts()) {
+            if (!ParseDatabaseSubOpts(config)) {
                 print_db_help = true;
             }
             break;
         case 'k':
-            if (!ParseKernelSubOpts()) {
+            if (!ParseKernelSubOpts(config)) {
                 print_help = true;
             }
             break;
@@ -265,7 +264,7 @@ int main(int argc, char **argv) {
         PrintHelp(*argv);
     }
     if (print_db_help) {
-        PrintDatabaseHelp();
+        PrintDatabaseHelp(config);
     }
     if (output_config) {
         std::cout << PrettyJSON(config) << std::endl;
