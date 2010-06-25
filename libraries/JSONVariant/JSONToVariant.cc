@@ -1,5 +1,6 @@
 
 #include "JSONToVariant.h"
+#include "Assert.h"
 
 bool JSONToVariant::ArrayBegin() {
     stack.push(Variant(Variant::ArrayType));
@@ -82,5 +83,20 @@ bool JSONToVariant::InObject() {
 bool JSONToVariant::InArray() {
     if (stack.empty()) return false;
     return stack.top().IsArray();
+}
+
+Variant VariantFromJSON(const std::string &json) {
+    JSONToVariant parser;
+    parser.Parse(json);
+    ASSERT(parser.Done(), "Error parsing JSON line %u column %u",
+            parser.GetLine(), parser.GetColumn());
+    return parser.Get();
+}
+Variant VariantFromJSON(std::istream &is) {
+    JSONToVariant parser;
+    is >> parser;
+    ASSERT(parser.Done(), "Error parsing JSON line %u column %u",
+            parser.GetLine(), parser.GetColumn());
+    return parser.Get();
 }
 

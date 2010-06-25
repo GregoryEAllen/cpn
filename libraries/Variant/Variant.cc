@@ -220,6 +220,7 @@ const std::string &Variant::AsString() const {
     case NumberType:
         {
             std::ostringstream oss;
+            oss.precision(50);
             oss << numvalue;
             ASSERT(!oss.fail(), "Failed to convert number to string.");
             stringval = oss.str();

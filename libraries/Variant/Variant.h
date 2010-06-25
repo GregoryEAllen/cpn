@@ -33,11 +33,7 @@
  * that is to say, way overkill
  *
  * Note that this will let you create a back reference but unless the user
- * explicitely breaks it, it will result in a memory leak.  Also, the back
- * reference will cause the ToJSON function to cause a stack overflow.
- *
- * This uses the mjson library (see NOTES in mjson folder) to provide
- * json serialization and deserialization.
+ * explicitely breaks it, it will result in a memory leak. 
  *
  * This class currently uses the ASSERT macro for all error checking.
  * It might make more sense to throw different exceptions on some errors
