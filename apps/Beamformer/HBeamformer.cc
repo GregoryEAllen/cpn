@@ -196,10 +196,41 @@ void HBeamformer::Run(const complex<float> *inptr, unsigned instride,
     Stage2();
     //Dump(workingData, numVStaves, length, numVStaves);
     timevals.push_back(getTime());
-    Stage3();
+    Stage3(scratchData);
+    std::swap(workingData, scratchData);
     //Dump(workingData, numVBeams, length, numVBeams);
     timevals.push_back(getTime());
-    Stage4();
+    Stage4(workingData);
+    //Dump(workingData, numVBeams, length, numVBeams);
+    timevals.push_back(getTime());
+    Stage5();
+    timevals.push_back(getTime());
+    //Dump(workingData, length, numBeams, length);
+    Stage6(outptr, outstride);
+    //Dump(outptr, length, numBeams, outstride);
+    timevals.push_back(getTime());
+}
+
+void HBeamformer::RunFirstHalf(const std::complex<float> *inptr, unsigned instride,
+        std::complex<float> *outptr) {
+    timevals.clear();
+    timevals.push_back(getTime());
+    //Dump(inptr, length, numStaves, instride);
+    Stage1(inptr, instride);
+    //Dump(workingData, numVStaves, length, numVStaves);
+    timevals.push_back(getTime());
+    Stage2();
+    //Dump(workingData, numVStaves, length, numVStaves);
+    timevals.push_back(getTime());
+    Stage3(outptr);
+    timevals.push_back(getTime());
+}
+
+void HBeamformer::RunSecondHalf(const std::complex<float> *inptr,
+        std::complex<float> *outptr, unsigned outstride) {
+    timevals.clear();
+    timevals.push_back(getTime());
+    Stage4(const_cast<complex<float>*>(inptr));
     //Dump(workingData, numVBeams, length, numVBeams);
     timevals.push_back(getTime());
     Stage5();
@@ -235,18 +266,17 @@ void HBeamformer::Stage2() {
     std::swap(workingData, scratchData);
 }
 
-void HBeamformer::Stage3() {
+void HBeamformer::Stage3(std::complex<float> *outdata) {
     vec_cpx_mul(
             (float*) workingData,
             (float*) coeffs,
-            (float*) scratchData,
+            (float*) outdata,
             numVStaves * length);
-    std::swap(workingData, scratchData);
 }
 
-void HBeamformer::Stage4() {
+void HBeamformer::Stage4(std::complex<float> *indata) {
     ::fftwf_execute_dft (inversePlan_FFTW_VirtualGeometry, 
-                            (fftwf_complex*)  workingData, 
+                            (fftwf_complex*)  indata, 
                             (fftwf_complex*)  workingData);
 
     /*
@@ -285,24 +315,11 @@ void HBeamformer::PrintTimes() {
     FILE *f = stderr;
 
     int i = 0;
-    double thetime = timevals[1 + i] - timevals[i];
-    fprintf(f, "Stage1:\t%f\n", thetime);
-    ++i;
-    thetime = timevals[1 + i] - timevals[i];
-    fprintf(f, "Stage2:\t%f\n", thetime);
-    ++i;
-    thetime = timevals[1 + i] - timevals[i];
-    fprintf(f, "Stage3:\t%f\n", thetime);
-    ++i;
-    thetime = timevals[1 + i] - timevals[i];
-    fprintf(f, "Stage4:\t%f\n", thetime);
-    ++i;
-    thetime = timevals[1 + i] - timevals[i];
-    fprintf(f, "Stage5:\t%f\n", thetime);
-    ++i;
-    thetime = timevals[1 + i] - timevals[i];
-    fprintf(f, "Stage6:\t%f\n", thetime);
-    ++i;
+    while (i + 1 < timevals.size()) {
+        double thetime = timevals[1 + i] - timevals[i];
+        fprintf(f, "Stage%d:\t%f\n", i, thetime);
+        ++i;
+    }
     fprintf(f, "total:\t%f\n", timevals[i] - timevals[0]);
 }
 

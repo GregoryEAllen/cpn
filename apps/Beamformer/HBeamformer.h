@@ -22,6 +22,10 @@ public:
 
     void Run(const std::complex<float> *inptr, unsigned instride, std::complex<float> *outptr, unsigned outstride);
 
+    // The output is a block which is length*numVStaves in size
+    void RunFirstHalf(const std::complex<float> *inptr, unsigned instride, std::complex<float> *outptr);
+    // The input is a block which is length*numVStaves in size
+    void RunSecondHalf(const std::complex<float> *inptr, std::complex<float> *outptr, unsigned outstride);
     void PrintTimes();
 protected:
     void AllocMem();
@@ -36,9 +40,9 @@ protected:
     /// workingData = fft(workingData)
     void Stage2();
     /// workingData *= coeffs
-    void Stage3();
+    void Stage3(std::complex<float> *outdata);
     /// workingData = ifft(workingData)
-    void Stage4();
+    void Stage4(std::complex<float> *indata);
     /// workingData = workingData.T * replica
     void Stage5();
     /// outptr = ifft(workingData)

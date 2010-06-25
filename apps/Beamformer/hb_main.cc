@@ -1,6 +1,7 @@
 #include "HBeamformer.h"
 #include "LoadFromFile.h"
 #include "Assert.h"
+#include "FlowMeasure.h"
 #include <complex>
 #include <unistd.h>
 #include <stdlib.h>
@@ -76,12 +77,18 @@ int hb_main(int argc, char **argv) {
 
     fprintf(stderr, ". Done\n");
 
+    FlowMeasure measure;
+    measure.Start();
     for (unsigned j = 0; j < repetitions; ++j) {
         fprintf(stderr, "Beamform..");
         former->Run(&input[0], former->Length(), &output[0], former->Length());
         fprintf(stderr, ". Done\n");
         former->PrintTimes();
+        measure.Tick(former->Length());
     }
+    fprintf(stderr,
+            "Output:\nAvg:\t%f Hz\nMax:\t%f Hz\nMin:\t%f Hz\n",
+            measure.AverageRate(), measure.LargestRate(), measure.SmallestRate());
 
     fprintf(stderr, "Writing Output..");
     DataToFile(fout, &output[0], len, len, former->NumBeams());

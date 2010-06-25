@@ -3,6 +3,7 @@
 #include "VariantCPNLoader.h"
 #include "JSONToVariant.h"
 #include "VariantToJSON.h"
+#include "ParseBool.h"
 #include "RemoteDatabase.h"
 #include "NodeBase.h"
 #include "QueueReaderAdapter.h"
@@ -33,6 +34,8 @@ public:
         std::transform(param["inports"].ListBegin(), param["inports"].ListEnd(),
                 inports.begin(), std::mem_fun_ref(&Variant::AsString));
         blocksize = param["blocksize"].AsUnsigned();
+        outfile = param["outfile"].AsString();
+        nooutput = param["nooutput"].AsBool();
     }
     void Process() {
         std::vector< CPN::QueueReaderAdapter< complex<float> > > in(inports.size());
@@ -50,19 +53,27 @@ public:
                 cur = begin;
                 measure.Tick(blocksize);
             }
-            const complex<float> *ptr = cur->GetDequeuePtr(blocksize);
+            unsigned amount = blocksize;
+            const complex<float> *ptr = cur->GetDequeuePtr(amount);
             if (!ptr) {
-                break;
+                amount = cur->Count();
+                if (amount > 0) {
+                    ptr = cur->GetDequeuePtr(amount);
+                } else {
+                    break;
+                }
             }
-            cur->Dequeue(blocksize);
+            cur->Dequeue(amount);
             ++cur;
         }
         fprintf(stderr,
                 "Output:\nAvg:\t%f Hz\nMax:\t%f Hz\nMin:\t%f Hz\n",
                 measure.AverageRate(), measure.LargestRate(), measure.SmallestRate());
     }
+    std::string outfile;
     std::vector<std::string> inports;
     unsigned blocksize;
+    bool nooutput;
 };
 CPN_DECLARE_NODE_FACTORY(CPNBFOutputNode, CPNBFOutputNode);
 
@@ -138,7 +149,7 @@ public:
 };
 CPN_DECLARE_NODE_FACTORY(CPNBFInputNode, CPNBFInputNode);
 
-static const char* const VALID_OPTS = "hi:o:er:na:s:cf:";
+static const char* const VALID_OPTS = "hi:o:er:na:s:cf:H:";
 
 static const char* const HELP_OPTS = "Usage: %s <vertical coefficient file> <horizontal coefficient file>\n"
 "\t-i filename\t Use input file (default stdin)\n"
@@ -149,6 +160,9 @@ static const char* const HELP_OPTS = "Usage: %s <vertical coefficient file> <hor
 "\t-n \t No output, just time\n"
 "\t-s n\t Scale queue sizes by n\n"
 "\t-c\t Print config\n"
+"\t-h\t Print this message and exit.\n"
+"\t-H yes|no\t Split the horizontal beamformer.\n"
+"\t-f yes|no\t Use the 'fan' vertical beamformer.\n"
 ;
 
 
@@ -163,16 +177,14 @@ int cpnbf_main(int argc, char **argv) {
     bool nooutput = false;
     unsigned size_mult = 2;
     bool print_config = false;
+    bool split_horizontal = true;
     while (procOpts) {
         switch (getopt(argc, argv, VALID_OPTS)) {
         case 'c':
             print_config = true;
             break;
         case 'f':
-            if (*optarg == 'n' || *optarg == 'N')
-                use_fan = false;
-            if (*optarg == 'y' || *optarg == 'Y')
-                use_fan = true;
+            use_fan = ParseBool(optarg);
             break;
         case 'i':
             input_file = optarg;
@@ -195,10 +207,14 @@ int cpnbf_main(int argc, char **argv) {
         case 'n':
             nooutput = true;
             break;
+        case 'H':
+            split_horizontal = ParseBool(optarg);
+            break;
 
         case -1:
             procOpts = false;
             break;
+        case 'h':
         default:
             fprintf(stderr, HELP_OPTS, argv[0]);
             return 0;
@@ -231,12 +247,24 @@ int cpnbf_main(int argc, char **argv) {
     node["param"]["outport"] = "output";
     node["param"]["estimate"] = estimate;
     node["param"]["file"] = argv[optind + 1];
+    if (split_horizontal) {
+        node["param"]["half"] = 1;
+    }
     node["name"] = "hbf1";
     config["nodes"].Append(node.Copy());
     node["name"] = "hbf2";
     config["nodes"].Append(node.Copy());
     node["name"] = "hbf3";
     config["nodes"].Append(node.Copy());
+    if (split_horizontal) {
+        node["param"]["half"] = 2;
+        node["name"] = "hbf1_2";
+        config["nodes"].Append(node.Copy());
+        node["name"] = "hbf2_2";
+        config["nodes"].Append(node.Copy());
+        node["name"] = "hbf3_2";
+        config["nodes"].Append(node.Copy());
+    }
 
     node = Variant::NullType;
     node["name"] = "input";
@@ -254,6 +282,7 @@ int cpnbf_main(int argc, char **argv) {
     node["param"]["inports"][2] = "2";
     node["param"]["blocksize"] = 8192;
     node["param"]["outfile"] = output_file;
+    node["param"]["nooutput"] = nooutput;
     config["nodes"].Append(node);
     node = Variant::NullType;
 
@@ -277,15 +306,35 @@ int cpnbf_main(int argc, char **argv) {
     queue["numchannels"] = 560;
     queue["readernode"] = "output";
     queue["readerport"] = "0";
-    queue["writernode"] = "hbf1";
+    if (split_horizontal) { queue["writernode"] = "hbf1_2"; }
+    else { queue["writernode"] = "hbf1"; }
     queue["writerport"] = "output";
     config["queues"].Append(queue.Copy());
     queue["readerport"] = "1";
-    queue["writernode"] = "hbf2";
+    if (split_horizontal) { queue["writernode"] = "hbf2_2"; }
+    else { queue["writernode"] = "hbf2"; }
     config["queues"].Append(queue.Copy());
     queue["readerport"] = "2";
-    queue["writernode"] = "hbf3";
+    if (split_horizontal) { queue["writernode"] = "hbf3_2"; }
+    else { queue["writernode"] = "hbf3"; }
     config["queues"].Append(queue.Copy());
+    if (split_horizontal) {
+        queue["size"] = 8192*256*size_mult;
+        queue["threshold"] = 8192*256;
+        queue["numchannels"] = 1;
+        queue["readerport"] = "input";
+        queue["writernode"] = "hbf1";
+        queue["readernode"] = "hbf1_2";
+        config["queues"].Append(queue.Copy());
+        queue["writernode"] = "hbf2";
+        queue["readernode"] = "hbf2_2";
+        config["queues"].Append(queue.Copy());
+        queue["writernode"] = "hbf3";
+        queue["readernode"] = "hbf3_2";
+        config["queues"].Append(queue.Copy());
+    }
+    queue["size"] = 8192*size_mult;
+    queue["threshold"] = 8192;
     queue["numchannels"] = 256*12;
     queue["readernode"] = "vertical";
     queue["readerport"] = "input";

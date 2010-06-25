@@ -15,7 +15,7 @@ using std::complex;
 CPN_DECLARE_NODE_FACTORY(HBeamformerNode, HBeamformerNode);
 
 HBeamformerNode::HBeamformerNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)
-    : CPN::NodeBase(ker, attr)
+    : CPN::NodeBase(ker, attr), half(0)
 {
     JSONToVariant parser;
     parser.Parse(attr.GetParam().data(), attr.GetParam().size());
@@ -23,6 +23,9 @@ HBeamformerNode::HBeamformerNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)
     Variant param = parser.Get();
     inport = param["inport"].AsString();
     outport = param["outport"].AsString();
+    if (!param["half"].IsNull()) {
+        half = param["half"].AsInt();
+    }
     bool estimate = param["estimate"].AsBool();
     if (param["file"].IsString()) {
         std::auto_ptr<HBeamformer> hbf = HBLoadFromFile(param["file"].AsString(), estimate);
@@ -49,15 +52,39 @@ HBeamformerNode::~HBeamformerNode() {
 void HBeamformerNode::Process() {
     CPN::QueueReaderAdapter<complex<float> > in = GetReader(inport);
     CPN::QueueWriterAdapter<complex<float> > out = GetWriter(outport);
-    ASSERT(out.NumChannels() == hbeam->NumBeams(),
-            "%u != %u", out.NumChannels(), hbeam->NumBeams());
-    while (true) {
-        const complex<float> *inbuff = in.GetDequeuePtr(hbeam->Length());
-        if (!inbuff) { break; }
-        complex<float> *outbuff = out.GetEnqueuePtr(hbeam->Length());
-        hbeam->Run(inbuff, in.ChannelStride(), outbuff, out.ChannelStride());
-        in.Dequeue(hbeam->Length());
-        out.Enqueue(hbeam->Length()); // change
+    if (half == 0) {
+        ASSERT(out.NumChannels() == hbeam->NumBeams(),
+                "%u != %u", out.NumChannels(), hbeam->NumBeams());
+        while (true) {
+            const complex<float> *inbuff = in.GetDequeuePtr(hbeam->Length());
+            if (!inbuff) { break; }
+            complex<float> *outbuff = out.GetEnqueuePtr(hbeam->Length());
+            hbeam->Run(inbuff, in.ChannelStride(), outbuff, out.ChannelStride());
+            in.Dequeue(hbeam->Length());
+            out.Enqueue(hbeam->Length()); // change
+        }
+    } else if (half == 1) {
+        const unsigned outlen = hbeam->NumVStaves() * hbeam->Length();
+        while (true) {
+            const complex<float> *inbuff = in.GetDequeuePtr(hbeam->Length());
+            if (!inbuff) { break; }
+            complex<float> *outbuff = out.GetEnqueuePtr(outlen);
+            hbeam->RunFirstHalf(inbuff, in.ChannelStride(), outbuff);
+            in.Dequeue(hbeam->Length());
+            out.Enqueue(outlen);
+        }
+    } else if (half == 2) {
+        ASSERT(out.NumChannels() == hbeam->NumBeams(),
+                "%u != %u", out.NumChannels(), hbeam->NumBeams());
+        unsigned inlen = hbeam->NumVStaves() * hbeam->Length();
+        while (true) {
+            const complex<float> *inbuff = in.GetDequeuePtr(inlen);
+            if (!inbuff) { break; }
+            complex<float> *outbuff = out.GetEnqueuePtr(hbeam->Length());
+            hbeam->RunSecondHalf(inbuff, outbuff, out.ChannelStride());
+            in.Dequeue(inlen);
+            out.Enqueue(hbeam->Length()); // change
+        }
     }
 }
 

@@ -34,5 +34,6 @@ private:
     std::string inport;
     std::string outport;
     HBeamformer *hbeam;
+    int half;
 };
 
