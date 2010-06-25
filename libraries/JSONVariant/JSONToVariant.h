@@ -28,4 +28,8 @@ protected:
     typedef std::stack<Variant> Stack;
     Stack stack;
 };
+
+Variant VariantFromJSON(const std::string &json);
+Variant VariantFromJSON(std::istream &is);
+
 #endif

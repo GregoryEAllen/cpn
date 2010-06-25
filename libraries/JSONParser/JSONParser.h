@@ -20,6 +20,7 @@ namespace JSON {
         bool Parse(int c);
 
         unsigned Parse(const char *c, unsigned len);
+        unsigned Parse(const std::string &str) { return Parse(str.data(), str.size()); }
 
         void ParseStream(std::istream &is);
         void ParseFile(FILE *f);
