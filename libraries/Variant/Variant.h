@@ -84,6 +84,7 @@ public:
     Variant(const std::string &v);
     Variant(const char *v);
     Variant(const Variant &v);
+    ~Variant();
 
     Variant &operator=(const Variant &v);
 

@@ -111,6 +111,9 @@ Variant::Variant(const Variant &v) : type(v.type) {
     Assign(v);
 }
 
+Variant::~Variant() {
+}
+
 Variant &Variant::operator=(const Variant &v) {
     type = v.type;
     Assign(v);
