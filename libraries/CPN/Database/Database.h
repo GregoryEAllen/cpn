@@ -1,21 +1,21 @@
 //=============================================================================
-//	Computational Process Networks class library
-//	Copyright (C) 1997-2006  Gregory E. Allen and The University of Texas
+//  Computational Process Networks class library
+//  Copyright (C) 1997-2006  Gregory E. Allen and The University of Texas
 //
-//	This library is free software; you can redistribute it and/or modify it
-//	under the terms of the GNU Library General Public License as published
-//	by the Free Software Foundation; either version 2 of the License, or
-//	(at your option) any later version.
+//  This library is free software; you can redistribute it and/or modify it
+//  under the terms of the GNU Library General Public License as published
+//  by the Free Software Foundation; either version 2 of the License, or
+//  (at your option) any later version.
 //
-//	This library is distributed in the hope that it will be useful,
-//	but WITHOUT ANY WARRANTY; without even the implied warranty of
-//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-//	Library General Public License for more details.
+//  This library is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//  Library General Public License for more details.
 //
-//	The GNU Public License is available in the file LICENSE, or you
-//	can write to the Free Software Foundation, Inc., 59 Temple Place -
-//	Suite 330, Boston, MA 02111-1307, USA, or you can find it on the
-//	World Wide Web at http://www.fsf.org.
+//  The GNU Public License is available in the file LICENSE, or you
+//  can write to the Free Software Foundation, Inc., 59 Temple Place -
+//  Suite 330, Boston, MA 02111-1307, USA, or you can find it on the
+//  World Wide Web at http://www.fsf.org.
 //=============================================================================
 /** \file
  * \brief The Database abstract data type.
@@ -26,24 +26,15 @@
 #pragma once
 #include "CPNCommon.h"
 #include "KernelBase.h"
+#include "NodeLoader.h"
 #include "Logger.h"
 #include "PthreadMutex.h"
 #include <string>
-#include <vector>
-#include <map>
 
 
-#define CPN_DEFAULT_INIT_SYMBOL cpninit
-#define CPN_DEFAULT_INIT_SYMBOL_STR "cpninit"
 
 
 namespace CPN {
-
-    /** \brief This is the prototype of the function
-     * that is called by the dynamic library loading
-     * facility.
-     */
-    typedef shared_ptr<NodeFactory> (*CPNInitPrototype)(void);
 
     /**
      * \brief The CPN::Database abstraction that holds all the global state
@@ -327,7 +318,9 @@ namespace CPN {
          * The library will be unloaded on distruction.
          * \param libname the library name and path
          */
-        virtual void LoadSharedLib(const std::string &libname);
+        void LoadSharedLib(const std::string &libname) { loader.LoadSharedLib(libname); }
+
+        void LoadNodeList(const std::string &filename) { loader.LoadNodeList(filename); }
 
         /** \brief Return a pointer to the node factory that produces the given
          * node type. May load a shared library to find the node factory.
@@ -341,25 +334,18 @@ namespace CPN {
          * \param nodetype the type of the node
          * \return a node factory for the node type
          */
-        virtual NodeFactory *GetNodeFactory(const std::string &nodetype);
+        NodeFactory *GetNodeFactory(const std::string &nodetype) { return loader.GetFactory(nodetype); }
 
         /** \brief A function that lets others register node factories
          * \param factory the node factory
          */
-        virtual void RegisterNodeFactory(shared_ptr<NodeFactory> factory);
+        void RegisterNodeFactory(shared_ptr<NodeFactory> factory) { loader.RegisterFactory(factory); }
 
     protected:
         Database();
 
-        void InternalLoadLib(const std::string &lib);
-        void InternalLoad(const std::string &sym);
-
         mutable PthreadMutex lock;
-        typedef std::map<std::string, void*> LibMap;
-        LibMap libmap;
-        typedef std::map<std::string, shared_ptr<NodeFactory> > FactoryMap;
-        FactoryMap factorymap;
-
+        NodeLoader loader;
         bool useD4R;
         bool swallowbrokenqueue;
         bool growmaxthresh;
