@@ -1,0 +1,16 @@
+
+CC_OTHER += -fPIC
+LD_OTHER += -fPIC
+
+${OSDIR}/%.so : ${LINKOBJECTS}
+	${LD} -shared -o $@ ${LINKOBJECTS} ${LD_OTHER} ${OS_LIBS}
+
+sharedlibs: lib ${SHAREDLIBRARY}
+
+
+$(OSDIR)/node.list:$(LIBRARY)
+	basename $(SHAREDLIBRARY) >> $@
+	nm $(LIBRARY) | grep T.\*cpninit | cut -sf 3 -d ' ' >> $@
+	echo ';' >> $@
+
+lib :: $(OSDIR)/node.list
