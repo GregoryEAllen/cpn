@@ -22,8 +22,8 @@
  */
 
 #include "Logger.h"
-#include "AutoBuffer.h"
 #include "Assert.h"
+#include <vector>
 #include <iostream>
 #include <stdio.h>
 #include <stdarg.h>
@@ -134,24 +134,24 @@ void Logger::vLogf(int level, const char *fmt, va_list ap) {
     if (level < loglevel) { return; }
     // This code was based on an example of how
     // to use vsnprintf in the unix man pages.
-    AutoBuffer buff(128);
+    std::vector<char> buff(128);
     while (1) {
         /* Try to print in the allocated space. */
         va_list ap_copy;
         va_copy(ap_copy, ap);
-        int n = vsnprintf((char*)buff.GetBuffer(), buff.GetSize(), fmt, ap_copy);
+        int n = vsnprintf(&buff[0], buff.size(), fmt, ap_copy);
         /* If that worked, return the string. */
-        if (n > -1 && unsigned(n) < buff.GetSize()) {
-            std::string ret = (char*)buff.GetBuffer();
+        if (n > -1 && unsigned(n) < buff.size()) {
+            std::string ret = &buff[0];
             Log(level, ret);
             return;
         }
         /* Else try again with more space. */
         if (n > -1) { /* glibc 2.1 */ /* precisely what is needed */
-            buff.ChangeSize(n+1);
+            buff.resize(n+1);
         }
         else { /* glibc 2.0 */ /* twice the old size */
-            buff.ChangeSize(buff.GetSize()*2);
+            buff.resize(buff.size()*2);
         }
     }
 }
