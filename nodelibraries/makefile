@@ -12,20 +12,21 @@ NODELISTS = $(addsuffix /$(OSDIR)/node.list,$(SUBDIRS))
 all: node.list
 
 clean:
-	$(RM) _node.list _node.list.mk
+	$(RM) node.list node.list.mk
 
-_node.list:  $(NODELISTS)
+real-clean: clean
+	jmake clean
+
+node.list:  $(NODELISTS) node.list.mk
 	echo include > $@
 	echo $(NODELISTS) >> $@
 	echo ';' >> $@
 
-node.list: _node.list
-	ln -sf _node.list node.list
-
-_node.list.mk:
+node.list.mk:
 	echo '#auto generator makefile' > $@
 	for dir in $(SUBDIRS); do\
 		echo -e "$$dir/$(OSDIR)/node.list: $$dir/*.cc\n\tpushd $$dir; jmake sharedlibs; popd;\n" >> $@;\
 	done
+	echo -e '\n_node.list.mk: $$(NODELISTS)\n' >> $@
 
--include _node.list.mk
+-include node.list.mk
