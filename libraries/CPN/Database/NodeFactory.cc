@@ -23,10 +23,7 @@
  */
 
 #include "NodeFactory.h"
-#include "PthreadMutex.h"
-#include <map>
 
-    
 namespace CPN {
 
     NodeFactory::NodeFactory(const std::string &name_) : name(name_) {

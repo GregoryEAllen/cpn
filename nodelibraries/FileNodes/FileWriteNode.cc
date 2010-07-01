@@ -12,7 +12,7 @@ using std::string;
 class FileWriteNode : public NodeBase {
 public:
     FileWriteNode(Kernel &ker, const NodeAttr &attr)
-        : NodeBase(ker, attr), fd(-1), input("input")
+        : NodeBase(ker, attr), fd(-1), input("input"), blocksize_set(false)
     {
         JSONToVariant p;
         p.Parse(attr.GetParam());
@@ -23,11 +23,17 @@ public:
         if (!param["inport"].IsNull()) {
             input = param["inport"].AsString();
         }
+        if (!param["blocksize"].IsNull()) {
+            blocksize = param["blocksize"].AsUnsigned();
+            blocksize_set = true;
+        }
     }
 private:
     void Process();
     int fd;
     string input;
+    bool blocksize_set;
+    unsigned blocksize;
 };
 
 CPN_DECLARE_NODE_FACTORY(FileWriteNode, FileWriteNode);
@@ -36,14 +42,21 @@ void FileWriteNode::Process() {
     QueueReaderAdapter<void> in = GetReader(input);
     try {
         while (true) {
-            unsigned blocksize = in.MaxThreshold();
-            const void *ptr = in.GetDequeuePtr(blocksize);
-            if (!ptr) {
-                blocksize = in.Count();
-                if (blocksize == 0) break;
-                ptr = in.GetDequeuePtr(blocksize);
+            unsigned blksz;
+            if (blocksize_set) {
+                blksz = blocksize;
+            } else {
+                blksz = in.MaxThreshold();
             }
-            unsigned numwritten = write(fd, ptr, blocksize);
+            const void *ptr = in.GetDequeuePtr(blksz);
+            unsigned count = in.Count();
+            if (count > 2*blksz || !ptr) {
+                blksz = count;
+                if (blksz == 0) break;
+                in.Dequeue(0);
+                ptr = in.GetDequeuePtr(blksz);
+            }
+            unsigned numwritten = write(fd, ptr, blksz);
             if (numwritten < 0) {
                 break;
             }

@@ -2,10 +2,8 @@
 CC_OTHER += -fPIC
 LD_OTHER += -fPIC
 
-${OSDIR}/%.so : ${LINKOBJECTS}
-	${LD} -shared -o $@ ${LINKOBJECTS} ${LD_OTHER} ${OS_LIBS}
-
-sharedlibs: lib ${SHAREDLIBRARY}
+sharedlibs: lib 
+	${LD} -shared -o ${SHAREDLIBRARY} ${LINKOBJECTS} ${LD_OTHER} ${OS_LIBS}
 
 
 $(OSDIR)/node.list:$(LIBRARY)

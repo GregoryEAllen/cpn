@@ -2,10 +2,12 @@
 {
     "nodes" : [
         { "name": "in", "type": "FileReadNode", "param": { "fd": 0 } },
-        { "name": "out", "type": "FileWriteNode", "param": { "fd": 1 } }
+        { "name": "out", "type": "FileWriteNode", "param": { "fd": 1, "blocksize": 1 } }
     ],
     "queues" : [
         { "size": 1024, "threshold": 64, "readernode": "out", "writernode": "in", "readerport": "input", "writerport": "output" }
     ]
+,
+    "wait-node": "out"
 }
 
