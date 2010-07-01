@@ -27,14 +27,6 @@
 #include <map>
 
     
-/// Lock to protect the factoryMap
-static PthreadMutex lock;
-
-typedef std::map< std::string, CPN::shared_ptr<CPN::NodeFactory> > FactoryMap;
-/// mapping between the node type names and the factory implementation provided
-/// by the modules.
-static FactoryMap factorymap;
-
 namespace CPN {
 
     NodeFactory::NodeFactory(const std::string &name_) : name(name_) {
@@ -43,25 +35,5 @@ namespace CPN {
     NodeFactory::~NodeFactory() {
     }
 
-}
-
-CPN::shared_ptr<CPN::NodeFactory> CPNGetNodeFactory(const std::string &ntypename) {
-    PthreadMutexProtected plock(lock);
-    CPN::shared_ptr<CPN::NodeFactory> fact;
-    FactoryMap::iterator item = factorymap.find(ntypename);
-    if (item != factorymap.end()) {
-        fact = item->second;
-    }
-    return fact;
-}
-
-void CPNRegisterNodeFactory(CPN::shared_ptr<CPN::NodeFactory> fact) {
-    PthreadMutexProtected plock(lock);
-    factorymap[fact->GetName()] = fact;
-}
-
-void CPNUnregisterNodeFactory(const std::string &ntypename) {
-    PthreadMutexProtected plock(lock);
-    factorymap.erase(ntypename);
 }
 

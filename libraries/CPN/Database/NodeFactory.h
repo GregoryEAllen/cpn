@@ -63,32 +63,5 @@ namespace CPN {
 
 }
 
-extern "C" {
-	/**
-	 * Return the a pointer to the factory for the given node type.
-	 * \warning all factories must have static program lifetime.
-	 * \param ntypename the name of the node type
-	 * \return a pointer to an implementation of this class
-	 */
-    CPN::shared_ptr<CPN::NodeFactory> CPN_API CPNGetNodeFactory(const std::string &ntypename);
-
-	/**
-	 * Add the given node to the NodeFactory Registry.
-	 * If one adds different factory with the same name
-	 * it will replace the current factory by that name.
-	 * \warning all factories must have static program lifetime.
-	 * \param fact pointer to the factory to add.
-	 */
-	void CPN_API CPNRegisterNodeFactory(CPN::shared_ptr<CPN::NodeFactory> fact);
-
-	/**
-	 * Remove the factory with the given name from the registry.
-	 * It is alright to remove the same node factory more than once.
-	 * \warning all factories must have static program lifetime.
-	 * \param ntypename the name of the factory
-	 */
-	void CPN_API CPNUnregisterNodeFactory(const std::string &ntypename);
-}
-
 #endif
 
