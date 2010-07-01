@@ -40,7 +40,7 @@ CircularQueue::CircularQueue(unsigned size, unsigned maxThresh, unsigned numChan
     if (size < maxThresh) {
         queueLength = maxThresh + 1;
         chanStride = 2 * maxThresh + 1;
-        buffer.ChangeSize(chanStride * numChannels);
+        buffer.resize(chanStride * numChannels);
     }
 }
 
@@ -54,7 +54,7 @@ CircularQueue::~CircularQueue() {
 void* CircularQueue::GetRawEnqueuePtr(unsigned thresh, unsigned chan) {
     ASSERT(chan < numChannels);
     if (Freespace() >= thresh && maxThreshold >= thresh) {
-        return buffer.GetBuffer(head + (chanStride)*chan);
+        return &buffer[head + (chanStride)*chan];
     } else {
         return 0;
     }
@@ -67,8 +67,8 @@ void CircularQueue::Enqueue(unsigned count) {
         newHead -= queueLength;
         for (unsigned chan = 0; chan < numChannels; ++chan) {
             unsigned chanOff = (chanStride)*chan;
-            memcpy(buffer.GetBuffer(chanOff),
-                   buffer.GetBuffer(queueLength + chanOff),
+            memcpy(&buffer[chanOff],
+                   &buffer[queueLength + chanOff],
                    newHead);
         }
     }
@@ -102,11 +102,11 @@ const void* CircularQueue::GetRawDequeuePtr(unsigned thresh, unsigned chan) {
     unsigned long chanOff = (chanStride)*chan;
     if (Count() >= thresh && maxThreshold >= thresh) {
         if (tail + thresh > queueLength) {
-            memcpy(buffer.GetBuffer(queueLength + chanOff),
-                   buffer.GetBuffer(chanOff),
+            memcpy(&buffer[queueLength + chanOff],
+                   &buffer[chanOff],
                    tail + thresh - queueLength);
         }
-        return buffer.GetBuffer(tail + chanOff);
+        return &buffer[tail + chanOff];
     } else {
         return 0;
     }
@@ -164,15 +164,15 @@ void CircularQueue::Grow(unsigned queueLen, unsigned maxThresh) {
     if (queueLen <= queueLength && maxThresh <= maxThreshold) return;
     if (queueLen < queueLength) { queueLen = queueLength; }
     if (maxThresh < maxThreshold) { maxThresh = maxThreshold; }
-    AutoBuffer copybuff = AutoBuffer(buffer.GetSize());
+    unsigned newchanstride = queueLen + 1 + maxThresh;
+    std::vector<char> copybuffer(newchanstride * NumChannels());
     unsigned oldcount = Count();
-    unsigned oldchanstride = ChannelStride();
-    ENSURE(RawDequeue(copybuff.GetBuffer(), oldcount, NumChannels(), oldchanstride));
-    head = tail = 0;
+    ENSURE(RawDequeue(&copybuffer[0], oldcount, NumChannels(), newchanstride));
+    tail = 0;
     queueLength = queueLen + 1;
     maxThreshold = maxThresh;
-    chanStride = queueLength + maxThreshold;
-    buffer.ChangeSize(chanStride * NumChannels());
-    ENSURE(RawEnqueue(copybuff.GetBuffer(), oldcount, NumChannels(), oldchanstride));
+    chanStride = newchanstride;
+    head = oldcount;
+    buffer.swap(copybuffer);
 }
 

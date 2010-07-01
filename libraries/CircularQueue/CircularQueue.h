@@ -26,7 +26,7 @@
 #define CIRCULARQUEUE_H
 #pragma once
 
-#include "AutoBuffer.h"
+#include <vector>
 
 /**
  * /brief A very simple circular queue.
@@ -85,7 +85,7 @@ private:
     unsigned head;
     // tail points to the next byte to read
     unsigned tail;
-    AutoBuffer buffer;
+    std::vector<char> buffer;
 };
 
 #endif
