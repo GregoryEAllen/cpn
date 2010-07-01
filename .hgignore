@@ -22,6 +22,8 @@ documentation
 
 apps/SieveOfEratosthenes/ThresholdSievePerformance/result*
 
+nodelibraries/node.list*
+
 # use regexp syntax
 syntax: regexp
 # Ignore all files/directories that have the exact same

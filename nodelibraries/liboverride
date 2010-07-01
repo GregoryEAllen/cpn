@@ -9,6 +9,7 @@ sharedlibs: lib ${SHAREDLIBRARY}
 
 
 $(OSDIR)/node.list:$(LIBRARY)
+	echo 'lib' > $@
 	basename $(SHAREDLIBRARY) >> $@
 	nm $(LIBRARY) | grep T.\*cpninit | cut -sf 3 -d ' ' >> $@
 	echo ';' >> $@

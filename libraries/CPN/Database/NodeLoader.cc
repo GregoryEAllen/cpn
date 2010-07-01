@@ -79,7 +79,7 @@ namespace CPN {
             init.vptr = dlsym(handle, sym.c_str());
             char *error = dlerror();
             if (error != 0) {
-                NodeLibMap::iterator itr = nodelibmap.find(name);
+                NodeLibMap::iterator itr = nodelibmap.find(sym);
                 if (itr == nodelibmap.end()) {
                     throw std::runtime_error("Unable to find node type " + name);
                 }

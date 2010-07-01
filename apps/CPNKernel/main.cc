@@ -5,6 +5,7 @@
 #include "XMLToVariant.h"
 #include "RemoteDatabase.h"
 #include "VariantCPNLoader.h"
+#include "PathUtils.h"
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -44,6 +45,11 @@ static shared_ptr<Database> LoadDatabase(Variant v) {
         if (v["libs"].IsArray()) {
             for (Variant::ListIterator itr = v["libs"].ListBegin(); itr != v["libs"].ListEnd(); ++itr) {
                 database->LoadSharedLib(itr->AsString());
+            }
+        }
+        if (v["liblist"].IsArray()) {
+            for (Variant::ListIterator itr = v["liblist"].ListBegin(); itr != v["liblist"].ListEnd(); ++itr) {
+                database->LoadNodeList(itr->AsString());
             }
         }
     }
@@ -136,7 +142,7 @@ static void PrintDatabaseHelp(Variant &config) {
 
 static bool ParseDatabaseSubOpts(Variant &config) {
     Variant &v = config["database"];
-    enum { opd4r, opnd4r, opgqmt, opngqmt, opsbqe, opnsbqe, oplib, ophost, opport, ophelp, opend };
+    enum { opd4r, opnd4r, opgqmt, opngqmt, opsbqe, opnsbqe, oplib, ophost, opport, ophelp, oplist, opend };
     char *opts[opend + 1];
     opts[opd4r] = "d4r";
     opts[opnd4r] = "no-d4r";
@@ -148,6 +154,7 @@ static bool ParseDatabaseSubOpts(Variant &config) {
     opts[ophost] = "host";
     opts[opport] = "port";
     opts[ophelp] = "help";
+    opts[oplist] = "list";
     opts[opend] = 0;
     char *subopt = optarg;
     char *valuep = 0;
@@ -177,6 +184,13 @@ static bool ParseDatabaseSubOpts(Variant &config) {
                 return false;
             }
             v["libs"].Append(valuep);
+            break;
+        case oplist:
+            if (valuep == 0) {
+                std::cerr << "The " << opts[oplist] << " options requires a parameter\n";
+                return false;
+            }
+            v["liblist"].Append(valuep);
             break;
         case ophost:
             if (valuep == 0) {
@@ -223,6 +237,10 @@ int main(int argc, char **argv) {
     config["database"]["d4r"] = false;
     config["database"]["grow-queue-max-threshold"] = true;
     config["database"]["swallow-broken-queue-exceptions"] = false;
+    std::string defaultlist = RealPath("node.list");
+    if (!defaultlist.empty()) {
+        config["database"]["liblist"].Append(defaultlist);
+    }
     bool output_config = false;
     bool print_help = false;
     bool print_db_help = false;
