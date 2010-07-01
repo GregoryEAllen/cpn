@@ -26,7 +26,7 @@
 
 #include "CPNCommon.h"
 #include "PacketHeader.h"
-#include "AutoCircleBuffer.h"
+#include "CircularQueue.h"
 #include "Assert.h"
 #include <vector>
 // For the iovec definition
@@ -73,12 +73,12 @@ namespace CPN {
         bool BytesReady() const;
         const void *GetEncodedBytes(unsigned &amount);
         void ReleaseEncodedBytes(unsigned amount);
-        void Reset() { cbuff.Reset(); }
-        unsigned NumBytes() const { return cbuff.Size(); }
+        void Reset() { cbuff.Clear(); }
+        unsigned NumBytes() const { return cbuff.Count(); }
     protected:
         virtual void WriteBytes(const iovec *iov, unsigned iovcnt);
     private:
-        AutoCircleBuffer cbuff;
+        CircularQueue cbuff;
     };
 }
 #endif

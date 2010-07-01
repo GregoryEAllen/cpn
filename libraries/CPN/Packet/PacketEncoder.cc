@@ -46,23 +46,36 @@ namespace CPN {
         WriteBytes(&iov[0], 2);
     }
 
-    BufferedPacketEncoder::BufferedPacketEncoder() {}
+    BufferedPacketEncoder::BufferedPacketEncoder()
+        : cbuff(4092, 4092, 1)
+    {}
 
     bool BufferedPacketEncoder::BytesReady() const {
-        return cbuff.Size() > 0;
+        return cbuff.Count() > 0;
     }
 
     const void *BufferedPacketEncoder::GetEncodedBytes(unsigned &amount) {
-        return cbuff.AllocateGet(cbuff.Size(), amount);
+        if (amount == 0) {
+            amount = cbuff.MaxThreshold();
+        }
+        if (cbuff.Count() < amount) {
+            amount = cbuff.Count();
+        }
+        if (cbuff.MaxThreshold() < amount) {
+            cbuff.Grow(0, amount);
+        }
+        return cbuff.GetRawDequeuePtr(amount);
     }
 
     void BufferedPacketEncoder::ReleaseEncodedBytes(unsigned amount) {
-        cbuff.ReleaseGet(amount);
+        cbuff.Dequeue(amount);
     }
 
     void BufferedPacketEncoder::WriteBytes(const iovec *iov, unsigned iovcnt) {
         for (unsigned i = 0; i < iovcnt; ++i) {
-            cbuff.Put(static_cast<char*>(iov[i].iov_base), iov[i].iov_len);
+            while (!cbuff.RawEnqueue(iov[i].iov_base, iov[i].iov_len)) {
+                cbuff.Grow(cbuff.Count() + iov[i].iov_len, iov[i].iov_len);
+            }
         }
     }
 }
