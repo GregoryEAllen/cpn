@@ -85,7 +85,7 @@ namespace Sync {
     class ReentrantCondition {
     public:
         ReentrantCondition() { ENSURE(!pthread_cond_init(&cond, 0)); }
-        ~ReentrantCondition() { ENSURE(!pthread_cond_destroy(&cond)); }
+        ~ReentrantCondition() { ENSURE_ABORT(!pthread_cond_destroy(&cond)); }
         void Signal() { pthread_cond_signal(&cond); }
         void Broadcast() { pthread_cond_broadcast(&cond); }
         void Wait(ReentrantLock &lock) const {
