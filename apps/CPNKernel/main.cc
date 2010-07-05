@@ -216,7 +216,7 @@ static bool ParseDatabaseSubOpts(Variant &config) {
 
 static bool ParseKernelSubOpts(Variant &config) {
     Variant &v = config;
-    char *const opts[] = {"name", "host", "port", 0};
+    static char *const opts[] = {"name", "host", "port", 0};
     char *subopt = optarg;
     char *valuep = 0;
     while (*subopt != '\0') {
@@ -228,6 +228,86 @@ static bool ParseKernelSubOpts(Variant &config) {
         }
         v.At(opts[i]) = valuep;
     }
+    return true;
+}
+
+static bool ParseNodeSubOpts(Variant &config) {
+    static char *const opts[] = {"name", "host", "type", "param", 0};
+    char *subopt = optarg;
+    char *valuep = 0;
+    Variant node;
+    while (*subopt != '\0') {
+        int i = getsubopt(&subopt, opts, &valuep);
+        if (i < 0) return false;
+        if (valuep == 0) {
+            std::cerr << "Node option " << opts[i] << " requires a parameter.\n";
+            return false;
+        }
+        node.At(opts[i]) = valuep;
+    }
+    config["nodes"].Append(node);
+    return true;
+}
+
+static bool ParseQueueSubOpts(Variant &config) {
+    enum { op_size, op_s, op_threshold, op_thresh, op_readernode, op_rn, op_readerport, op_rp,
+        op_writernode, op_wn, op_writerport, op_wp, op_type, op_datatype, op_dtype, op_numchannels, op_nc, op_alpha, op_end };
+    static char *const opts[] = {"size", "s", "threshold", "thresh", "readernode", "rn", "readerport", "rp",
+        "writernode", "wn", "writerport", "wp", "type", "datatype", "dtype", "numchannels", "nc", "alpha", 0 };
+    char *subopt = optarg;
+    char *valuep = 0;
+    Variant queue;
+    while (*subopt != '\0') {
+        int i = getsubopt(&subopt, opts, &valuep);
+        if (i < 0) return false;
+        if (valuep == 0) {
+            std::cerr << "Queue option " << opts[i] << " requires a parameter.\n";
+            return false;
+        }
+        switch (i) {
+        case op_size:
+        case op_s:
+            queue.At(opts[op_size]) = atoi(valuep);
+            break;
+        case op_threshold:
+        case op_thresh:
+            queue.At(opts[op_threshold]) = atoi(valuep);
+            break;
+        case op_readernode:
+        case op_rn:
+            queue.At(opts[op_readernode]) = valuep;
+            break;
+        case op_readerport:
+        case op_rp:
+            queue.At(opts[op_readerport]) = valuep;
+            break;
+        case op_writernode:
+        case op_wn:
+            queue.At(opts[op_writernode]) = valuep;
+            break;
+        case op_writerport:
+        case op_wp:
+            queue.At(opts[op_writerport]) = valuep;
+            break;
+        case op_type:
+            queue.At(opts[op_type]) = valuep;
+            break;
+        case op_datatype:
+        case op_dtype:
+            queue.At(opts[op_datatype]) = valuep;
+            break;
+        case op_numchannels:
+        case op_nc:
+            queue.At(opts[op_numchannels]) = atoi(valuep);
+            break;
+        case op_alpha:
+            queue.At(opts[op_alpha]) = atof(valuep);
+            break;
+        default:
+            return false;
+        }
+    }
+    config["queues"].Append(queue);
     return true;
 }
 
@@ -245,7 +325,7 @@ int main(int argc, char **argv) {
     bool print_help = false;
     bool print_db_help = false;
     while (true) {
-        int c = getopt(argc, argv, "x:j:hw:d:k:c");
+        int c = getopt(argc, argv, "x:j:hw:d:k:cn:q:");
         if (c == -1) break;
         switch (c) {
         case 'x':
@@ -264,6 +344,16 @@ int main(int argc, char **argv) {
             break;
         case 'k':
             if (!ParseKernelSubOpts(config)) {
+                print_help = true;
+            }
+            break;
+        case 'n':
+            if (!ParseNodeSubOpts(config)) {
+                print_help = true;
+            }
+            break;
+        case 'q':
+            if (!ParseQueueSubOpts(config)) {
                 print_help = true;
             }
             break;
