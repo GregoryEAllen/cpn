@@ -13,6 +13,7 @@ const char* const HELP_OPTS = "Usage: %s [-h|-d] [-l loglevel ] <address> <port>
 "\t-l\t Level of output 0 for errors only, 1 for log, 2 for database status, etc. (default: 1)\n"
 ;
 
+int main (int argc, char **argv) __attribute__((weak));
 int main(int argc, char **argv) {
 
 	signal(SIGPIPE,SIG_IGN);

@@ -8,6 +8,7 @@
 
 void VariantTest();
 
+int main (int argc, char **argv) __attribute__((weak));
 int main(int argv, char** argc) {
     VariantTest();
     return 0;

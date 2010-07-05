@@ -1,0 +1,3 @@
+
+LD_OTHER += -Wl,--whole-archive
+OS_LIBS += -Wl,--no-whole-archive

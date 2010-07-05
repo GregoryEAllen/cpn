@@ -34,6 +34,7 @@ void SelfTest();
 void GenTestFiles();
 void TestFiles();
 void TestLength(unsigned len);
+int main (int argc, char **argv) __attribute__((weak));
 
 int main(int argc, char **argv) {
     bool procOpts = true;

@@ -311,6 +311,7 @@ static bool ParseQueueSubOpts(Variant &config) {
     return true;
 }
 
+int main(int argc, char **argv) __attribute__((weak));
 int main(int argc, char **argv) {
     Variant config;
     config["name"] = *argv;
