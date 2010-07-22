@@ -22,7 +22,6 @@ T *AllocAligned(T **ptr, unsigned alignment, unsigned size) {
 typedef __m128 vector; // float[4]
 typedef __m128 cvector;
 // complex<float>[2]
-const static unsigned FILTER_BLOCK = 4;
 
 static inline cvector cmult(cvector a, cvector b) {
     /*
