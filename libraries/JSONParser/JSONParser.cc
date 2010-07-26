@@ -11,12 +11,32 @@ namespace JSON {
 
 
     Parser::Parser()
-        : status(OK),
+        : parser(0),
+        status(OK),
         line(1),
         column(0),
         charcount(0),
         depth(0)
     {
+        AllocParser();
+    }
+
+    Parser::~Parser() {
+        delete_JSON_parser(parser);
+    }
+
+    void Parser::Reset() {
+        if (parser) { delete_JSON_parser(parser); }
+        parser = 0;
+        status = OK;
+        line = 1;
+        column = 0;
+        charcount = 0;
+        depth = 0;
+        AllocParser();
+    }
+
+    void Parser::AllocParser() {
         JSON_config config;
         init_JSON_config(&config);
         config.callback = StaticCallback;
@@ -24,10 +44,6 @@ namespace JSON {
         config.depth = -1;
         config.allow_comments = 1;
         parser = new_JSON_parser(&config);
-    }
-
-    Parser::~Parser() {
-        delete_JSON_parser(parser);
     }
 
     bool Parser::Parse(int c) {

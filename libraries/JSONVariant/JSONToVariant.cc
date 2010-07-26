@@ -2,6 +2,18 @@
 #include "JSONToVariant.h"
 #include "Assert.h"
 
+JSONToVariant::JSONToVariant() {
+}
+
+JSONToVariant::~JSONToVariant() {
+}
+
+void JSONToVariant::Reset() {
+    while (!keystack.empty()) { keystack.pop(); }
+    while (!stack.empty()) { stack.pop(); }
+    JSON::Parser::Reset();
+}
+
 bool JSONToVariant::ArrayBegin() {
     stack.push(Variant(Variant::ArrayType));
     return true;

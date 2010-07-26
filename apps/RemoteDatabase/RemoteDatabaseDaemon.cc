@@ -139,16 +139,13 @@ void RemoteDatabaseDaemon::Client::Read() {
             }
             unsigned numparsed = 0;
             while (numparsed < numread) {
-                if (!parse.get()) {
-                    parse = auto_ptr<JSONToVariant>(new JSONToVariant);
-                }
-                numparsed += parse->Parse(buf + numparsed, numread - numparsed);
-                if (parse->Done()) {
-                    daemon->DispatchMessage(name, parse->Get());
-                    parse.reset();
-                } else if (parse->Error()) {
+                numparsed += parse.Parse(buf + numparsed, numread - numparsed);
+                if (parse.Done()) {
+                    daemon->DispatchMessage(name, parse.Get());
+                    parse.Reset();
+                } else if (parse.Error()) {
                     daemon->dbprintf(0, "Error parsing input!\n");
-                    parse.reset();
+                    parse.Reset();
                 }
             }
         }

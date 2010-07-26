@@ -62,10 +62,10 @@ void VariantTest() {
     v = "\n";
     std::cout << v << std::endl;
 
-    JSONToVariant jv2;
-    iss >> jv2;
-    assert(jv2.Done());
-    v = jv2.Get();
+    jv.Reset();
+    iss >> jv;
+    assert(jv.Done());
+    v = jv.Get();
     assert(v[1].AsString() == "foo");
 
     std::string failtext = "[\"garbage\" \n    [";

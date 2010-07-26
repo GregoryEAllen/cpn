@@ -33,6 +33,7 @@ namespace JSON {
         unsigned GetLine() const { return line; }
         unsigned GetColumn() const { return column; }
         unsigned GetByteCount() const { return charcount; }
+        virtual void Reset();
     protected:
 
         virtual bool ArrayBegin() = 0;
@@ -57,6 +58,10 @@ namespace JSON {
         unsigned column;
         unsigned charcount;
         unsigned depth;
+    private:
+        Parser(const Parser  &);
+        Parser & operator=(const Parser &);
+        void AllocParser();
     };
 }
 

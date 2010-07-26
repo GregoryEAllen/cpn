@@ -42,6 +42,6 @@ protected:
     void *EntryPoint();
     void Read();
 private:
-    std::auto_ptr<JSONToVariant> parse;
+    JSONToVariant parse;
 };
 #endif

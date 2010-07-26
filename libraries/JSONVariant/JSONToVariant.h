@@ -6,7 +6,10 @@
 #include <stack>
 class JSONToVariant : public JSON::Parser {
 public:
+    JSONToVariant();
+    ~JSONToVariant();
     Variant Get() const { return stack.top(); }
+    void Reset();
 protected:
     bool ArrayBegin();
     bool ArrayEnd();

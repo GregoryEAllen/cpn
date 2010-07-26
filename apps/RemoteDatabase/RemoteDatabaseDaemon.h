@@ -67,7 +67,7 @@ private:
     private:
         RemoteDatabaseDaemon *daemon;
         std::string name;
-        std::auto_ptr<JSONToVariant> parse;
+        JSONToVariant parse;
     };
     typedef std::tr1::shared_ptr<Client> ClientPtr;
     typedef std::map<std::string, ClientPtr> ClientMap;

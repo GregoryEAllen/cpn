@@ -66,16 +66,13 @@ void RemoteDatabase::Read() {
         }
         unsigned numparsed = 0;
         while (numparsed < numread) {
-            if (!parse.get()) {
-                parse = auto_ptr<JSONToVariant>(new JSONToVariant);
-            }
-            numparsed += parse->Parse(buf + numparsed, numread - numparsed);
-            if (parse->Done()) {
-                DispatchMessage(parse->Get());
-                parse.reset();
-            } else if (parse->Error()) {
+            numparsed += parse.Parse(buf + numparsed, numread - numparsed);
+            if (parse.Done()) {
+                DispatchMessage(parse.Get());
+                parse.Reset();
+            } else if (parse.Error()) {
                 printf("Error parsing input!\n");
-                parse.reset();
+                parse.Reset();
             }
         }
     }
