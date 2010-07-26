@@ -28,6 +28,7 @@
 using std::auto_ptr;
 
 RemoteDatabase::~RemoteDatabase() {
+    Join();
 }
 
 void RemoteDatabase::SendMessage(const Variant &msg) {
@@ -41,7 +42,7 @@ void RemoteDatabase::SendMessage(const Variant &msg) {
 void *RemoteDatabase::EntryPoint() {
     try {
         Readable(false);
-        while (Good()) {
+        while (Good() && !IsTerminated()) {
             Poll(-1);
             Read();
         }
@@ -49,6 +50,7 @@ void *RemoteDatabase::EntryPoint() {
         printf("RemoteDatabase: Uncaught errno exception (%d): %s\n", e.Error(), e.what());
         Terminate();
     }
+    Close();
     return 0;
 }
 

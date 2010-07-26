@@ -120,10 +120,10 @@ namespace CPN {
     }
 
     void RemoteDBServer::Terminate() {
-        shutdown = true;
         Variant msg(Variant::ObjectType);
         msg["type"] = RDBMT_TERMINATE;
         BroadcastMessage(msg);
+        shutdown = true;
     }
 
     void RemoteDBServer::SetupHost(const std::string &sender, const Variant &msg) {

@@ -79,6 +79,18 @@ void RemoteDatabaseDaemon::Run() {
 void RemoteDatabaseDaemon::Terminate() {
     CPN::RemoteDBServer::Terminate();
     Close();
+    ClientMap::iterator itr = clients.begin();
+    while (itr != clients.end()) {
+        ClientPtr client = itr->second;
+        if (!client->Closed()) {
+            try {
+                client->ShutdownWrite();
+            } catch (const ErrnoException &e) {
+                //ignore
+            }
+        }
+        ++itr;
+    }
 }
 
 void RemoteDatabaseDaemon::Terminate(const std::string &name) {
@@ -96,6 +108,11 @@ void RemoteDatabaseDaemon::Read() {
 }
 
 void RemoteDatabaseDaemon::SendMessage(const std::string &recipient, const Variant &msg) {
+    if (IsTerminated()) {
+        dbprintf(1, "Trying to send a reply after shutdown\n%s:%s",
+                recipient.c_str(), VariantToJSON(msg).c_str());
+        return;
+    }
     ClientMap::iterator entry = clients.find(recipient);
     ASSERT(entry != clients.end());
     dbprintf(4, "reply:%s:%s\n", recipient.c_str(), VariantToJSON(msg).c_str());
@@ -103,6 +120,10 @@ void RemoteDatabaseDaemon::SendMessage(const std::string &recipient, const Varia
 }
 
 void RemoteDatabaseDaemon::BroadcastMessage(const Variant &msg) {
+    if (IsTerminated()) {
+        dbprintf(1, "Trying to braodcast after shutdown\n%s", VariantToJSON(msg).c_str());
+        return;
+    }
     ClientMap::iterator entry = clients.begin();
     dbprintf(4, "broadcast:%s\n", VariantToJSON(msg).c_str());
     while (entry != clients.end()) {
