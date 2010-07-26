@@ -31,7 +31,9 @@ static shared_ptr<Database> LoadDatabase(Variant v) {
                     v["host"].AsString(),
                     v["port"].AsString()
                     );
-            database = shared_ptr<Database>(new RemoteDatabase(addrs));
+            shared_ptr<RemoteDatabase> db = shared_ptr<RemoteDatabase>(new RemoteDatabase(addrs));
+            db->Start();
+            database = db;
         }
         if (!v["d4r"].IsNull()) {
             database->UseD4R(v["d4r"].AsBool());
@@ -135,7 +137,7 @@ static void PrintDatabaseHelp(Variant &config) {
          << "\t [no-]sbqe   Turn on or off sollowing of broken queue exceptions. (currently: " << (v["swallow-broken-queue-exceptions"].AsBool() ? "on" : "off") << ")\n"
          << "\t host=xxx    Use a remote database located at xxx, else use local.\n"
          << "\t port=xxx    Specify the port for the remote database.\n"
-         << "\t lib=file    Load file as a shared object to be searched for nodes. Maybe be set multiple times.\n"
+         << "\t lib=file    Load file as a shared object to be searched for nodes. May be set multiple times.\n"
          << "\t help        This message.\n";
 
 }
@@ -238,7 +240,11 @@ static bool ParseNodeSubOpts(Variant &config) {
     Variant node;
     while (*subopt != '\0') {
         int i = getsubopt(&subopt, opts, &valuep);
-        if (i < 0) return false;
+        if (i < 0) {
+            std::cerr << "Unrecognized node option\n";
+            if (valuep != 0) { std::cerr << valuep << std::endl; }
+	    return false;
+        }
         if (valuep == 0) {
             std::cerr << "Node option " << opts[i] << " requires a parameter.\n";
             return false;
@@ -259,7 +265,11 @@ static bool ParseQueueSubOpts(Variant &config) {
     Variant queue;
     while (*subopt != '\0') {
         int i = getsubopt(&subopt, opts, &valuep);
-        if (i < 0) return false;
+        if (i < 0) {
+            std::cerr << "Unrecognized queue option\n";
+            if (valuep != 0) { std::cerr << valuep << std::endl; }
+            return false;
+        }
         if (valuep == 0) {
             std::cerr << "Queue option " << opts[i] << " requires a parameter.\n";
             return false;

@@ -198,9 +198,9 @@ XMLToVariant::~XMLToVariant() {
 }
 
 
-void XMLToVariant::ParseChunk(const void *ptr, unsigned len) {
+void XMLToVariant::ParseChunk(const std::string &chunk) {
     ASSERT(pimpl->state == OK);
-    pimpl->parse_chunk_raw((const unsigned char*)ptr, len);
+    pimpl->parse_chunk(chunk);
 }
 
 void XMLToVariant::EndChunk() {

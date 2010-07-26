@@ -33,8 +33,7 @@ public:
     XMLToVariant();
     ~XMLToVariant();
 
-    void ParseChunk(const void *ptr, unsigned len);
-    void ParseChunk(const std::string &d) { return ParseChunk(d.data(), d.size()); }
+    void ParseChunk(const std::string &chunk);
     void EndChunk();
 
     bool ParseFile(const std::string &f);
