@@ -57,7 +57,6 @@ namespace JSON {
         unsigned i = 0;
         for (; i < len; ++i) {
             if (!Parse((unsigned char)c[i])) {
-                --i;
                 break;
             }
         }
