@@ -24,10 +24,11 @@ using CPN::KernelAttr;
 
 // one interesting seed is 37733
 
-const char* const VALID_OPTS = "h";
+const char* const VALID_OPTS = "hb:";
 
 const char* const HELP_OPTS = "Usage: %s <config> <name> <database hostname> <database port>\n"
 "\t-h\tPrint out this message\n"
+"\t-b\tSpecify an IP for the kernel to bind to.\n"
 "\n"
 "The config file should be of the format:\n"
 "\n" 
@@ -52,6 +53,7 @@ int main(int argc, char **argv) {
     int debugLevel = 0;
     int loglevel = 75;
     LFSR::LFSR_t seed = RandomInstructionGenerator::DEFAULT_SEED;
+    std::string bindip = "";
 
     bool procOpts = true;
     while (procOpts) {
@@ -59,6 +61,9 @@ int main(int argc, char **argv) {
         case 'h':
             printf(HELP_OPTS, argv[0]);
             return 0;
+        case 'b':
+            bindip = optarg;
+            break;
         case -1:
             procOpts = false;
             break;
@@ -140,7 +145,7 @@ int main(int argc, char **argv) {
     database->LogLevel(loglevel);
     database->Start();
 
-    Kernel kernel(KernelAttr(name).SetDatabase(database));
+    Kernel kernel(KernelAttr(name).SetHostName(bindip).SetDatabase(database));
 
     if (name == starter) {
         printf("Creating %u nodes\n", numNodes);
