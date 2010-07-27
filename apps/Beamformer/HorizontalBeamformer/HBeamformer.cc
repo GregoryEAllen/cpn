@@ -8,8 +8,10 @@
 #include <string.h>
 #include <sys/time.h>
 
+#ifdef DUMPING
 #include <sstream>
 #include "LoadFromFile.h"
+#endif
 
 // Maybe adjust the loop blocking based on this CACHE_LENGTH rather than set it explicitly?
 #define CACHE_LENGTH 64
@@ -176,6 +178,7 @@ void HBeamformer::DestroyPlans() {
     fftwf_destroy_plan(inversePlan_FFTW_RealGeometry);
 }
 
+#ifdef DUMPING
 void Dump(const complex<float> *p, unsigned length, unsigned numchans, unsigned chanstride) {
     static int num = 0;
     std::ostringstream oss;
@@ -185,30 +188,45 @@ void Dump(const complex<float> *p, unsigned length, unsigned numchans, unsigned 
     fclose(f);
     ++num;
 }
+#endif
 
 void HBeamformer::Run(const complex<float> *inptr, unsigned instride,
         complex<float> *outptr, unsigned outstride) {
     timevals.clear();
     timevals.push_back(getTime());
-    //Dump(inptr, length, numStaves, instride);
+#ifdef DUMPING
+    Dump(inptr, length, numStaves, instride);
+#endif
     Stage1(inptr, instride);
-    //Dump(workingData, numVStaves, length, numVStaves);
+#ifdef DUMPING
+    Dump(workingData, numVStaves, length, numVStaves);
+#endif
     timevals.push_back(getTime());
     Stage2();
-    //Dump(workingData, numVStaves, length, numVStaves);
+#ifdef DUMPING
+    Dump(workingData, numVStaves, length, numVStaves);
+#endif
     timevals.push_back(getTime());
     Stage3(scratchData);
     std::swap(workingData, scratchData);
-    //Dump(workingData, numVBeams, length, numVBeams);
+#ifdef DUMPING
+    Dump(workingData, numVBeams, length, numVBeams);
+#endif
     timevals.push_back(getTime());
     Stage4(workingData);
-    //Dump(workingData, numVBeams, length, numVBeams);
+#ifdef DUMPING
+    Dump(workingData, numVBeams, length, numVBeams);
+#endif
     timevals.push_back(getTime());
     Stage5();
     timevals.push_back(getTime());
-    //Dump(workingData, length, numBeams, length);
+#ifdef DUMPING
+    Dump(workingData, length, numBeams, length);
+#endif
     Stage6(outptr, outstride);
-    //Dump(outptr, length, numBeams, outstride);
+#ifdef DUMPING
+    Dump(outptr, length, numBeams, outstride);
+#endif
     timevals.push_back(getTime());
 }
 
@@ -216,12 +234,9 @@ void HBeamformer::RunFirstHalf(const std::complex<float> *inptr, unsigned instri
         std::complex<float> *outptr) {
     timevals.clear();
     timevals.push_back(getTime());
-    //Dump(inptr, length, numStaves, instride);
     Stage1(inptr, instride);
-    //Dump(workingData, numVStaves, length, numVStaves);
     timevals.push_back(getTime());
     Stage2();
-    //Dump(workingData, numVStaves, length, numVStaves);
     timevals.push_back(getTime());
     Stage3(outptr);
     timevals.push_back(getTime());
@@ -232,13 +247,10 @@ void HBeamformer::RunSecondHalf(const std::complex<float> *inptr,
     timevals.clear();
     timevals.push_back(getTime());
     Stage4(const_cast<complex<float>*>(inptr));
-    //Dump(workingData, numVBeams, length, numVBeams);
     timevals.push_back(getTime());
     Stage5();
     timevals.push_back(getTime());
-    //Dump(workingData, length, numBeams, length);
     Stage6(outptr, outstride);
-    //Dump(outptr, length, numBeams, outstride);
     timevals.push_back(getTime());
 }
 
