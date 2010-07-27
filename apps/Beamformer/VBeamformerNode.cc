@@ -5,7 +5,6 @@
 #include "QueueReaderAdapter.h"
 #include "QueueWriterAdapter.h"
 #include "VBeamformer.h"
-#include "LoadFromFile.h"
 #include <complex>
 #include <algorithm>
 #include <functional>

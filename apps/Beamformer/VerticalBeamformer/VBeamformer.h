@@ -2,6 +2,8 @@
 #pragma once
 
 #include <complex>
+#include <string>
+#include <memory>
 
 class VBeamformer {
 public:
@@ -42,6 +44,7 @@ protected:
     Algorithm_t algo;
 };
 
+std::auto_ptr<VBeamformer> VBLoadFromFile(const std::string &filename);
 /*
  *
  *  file VBFSteerFilter.pkl

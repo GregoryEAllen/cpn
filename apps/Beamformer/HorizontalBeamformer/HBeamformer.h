@@ -6,6 +6,8 @@
 #include <complex>
 #include <xmmintrin.h>
 #include <vector>
+#include <memory>
+#include <string>
 
 class HBeamformer {
 public:
@@ -73,5 +75,8 @@ protected:
 
     std::vector<double> timevals;
 };
+
+
+std::auto_ptr<HBeamformer> HBLoadFromFile(const std::string &filename, bool estimate);
 
 #endif

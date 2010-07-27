@@ -2,6 +2,8 @@
 #pragma once
 
 #include <complex>
+#include <memory>
+#include <string>
 
 class FanVBeamformer {
 public:
@@ -45,4 +47,6 @@ protected:
     std::complex<float> *bbCorrect;
     Algorithm_t algo;
 };
+
+std::auto_ptr<FanVBeamformer> FanVBLoadFromFile(const std::string &filename);
 
