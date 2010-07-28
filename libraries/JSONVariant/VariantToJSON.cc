@@ -47,6 +47,7 @@ static void InsertString(std::ostream &os, const std::string str) {
 }
 
 static void InsertIndent(std::ostream &os, unsigned level) {
+#if 0
     static const char tabs[] = "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
     static const unsigned len = sizeof(tabs) - 1;
     if (level < len) {
@@ -57,6 +58,22 @@ static void InsertIndent(std::ostream &os, unsigned level) {
             os << "\t";
         }
     }
+#else
+    static const char spaces[] = "                                ";
+    static const unsigned len = sizeof(spaces) - 1;
+    static const unsigned tabwidth = 2;
+    static const unsigned tabs = len/tabwidth;
+    os << "\n";
+    while (level > 0) {
+        if (level < tabs) {
+            os << &spaces[len - level*tabwidth];
+            return;
+        } else {
+            os << spaces;
+            level -= tabs;
+        }
+    }
+#endif
 }
 
 static std::ostream &VariantToJSON(std::ostream &os, const Variant &v, bool pretty, unsigned level) {
