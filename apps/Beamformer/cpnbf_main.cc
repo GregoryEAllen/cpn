@@ -10,6 +10,8 @@
 #include "QueueWriterAdapter.h"
 #include "FlowMeasure.h"
 #include "VBeamformer.h"
+#include "Database.h"
+#include "PathUtils.h"
 #include <vector>
 #include <string>
 #include <fstream>
@@ -20,6 +22,8 @@
 #include <stdio.h>
 
 using std::complex;
+using CPN::shared_ptr;
+using CPN::Database;
 
 class CPNBFOutputNode : public CPN::NodeBase {
 public:
@@ -348,6 +352,9 @@ int cpnbf_main(int argc, char **argv) {
         return 0;
     }
     CPN::KernelAttr kattr = VariantCPNLoader::GetKernelAttr(config);
+    shared_ptr<Database> database = Database::Local();
+    database->LoadNodeList(RealPath("node.list"));
+    kattr.SetDatabase(database);
     CPN::Kernel kernel(kattr);
     VariantCPNLoader::Setup(&kernel, config);
     kernel.WaitForAllNodeEnd();
