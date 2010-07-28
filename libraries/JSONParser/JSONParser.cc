@@ -156,10 +156,10 @@ namespace JSON {
         }
         return retval;
     }
-}
 
-std::istream &operator>>(std::istream &is, JSON::Parser &p) {
-    p.ParseStream(is);
-    return is;
-}
+    std::istream &operator>>(std::istream &is, Parser &p) {
+        p.ParseStream(is);
+        return is;
+    }
 
+}

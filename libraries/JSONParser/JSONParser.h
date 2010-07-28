@@ -63,8 +63,8 @@ namespace JSON {
         Parser & operator=(const Parser &);
         void AllocParser();
     };
+    std::istream &operator>>(std::istream &is, Parser &p);
 }
 
-std::istream &operator>>(std::istream &is, JSON::Parser &p);
 
 #endif
