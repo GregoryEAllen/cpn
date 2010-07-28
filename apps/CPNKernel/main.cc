@@ -3,7 +3,6 @@
 #include "JSONToVariant.h"
 #include "VariantToJSON.h"
 #include "XMLToVariant.h"
-#include "RemoteDatabase.h"
 #include "VariantCPNLoader.h"
 #include "PathUtils.h"
 
@@ -19,44 +18,7 @@ using CPN::Database;
 using CPN::Kernel;
 using CPN::KernelAttr;
 
-static shared_ptr<Database> LoadDatabase(Variant v) {
-    shared_ptr<Database> database;
-    if (v.IsNull()) {
-        database = Database::Local();
-    } else {
-        if (v["host"].IsNull() && v["port"].IsNull()) {
-            database = Database::Local();
-        } else {
-            SockAddrList addrs = SocketAddress::CreateIP(
-                    v["host"].AsString(),
-                    v["port"].AsString()
-                    );
-            shared_ptr<RemoteDatabase> db = shared_ptr<RemoteDatabase>(new RemoteDatabase(addrs));
-            db->Start();
-            database = db;
-        }
-        if (!v["d4r"].IsNull()) {
-            database->UseD4R(v["d4r"].AsBool());
-        }
-        if (!v["swallow-broken-queue-exceptions"].IsNull()) {
-            database->SwallowBrokenQueueExceptions(v["swallow-broken-queue-exceptions"].AsBool());
-        }
-        if (!v["grow-queue-max-threshold"].IsNull()) {
-            database->GrowQueueMaxThreshold(v["grow-queue-max-threshold"].AsBool());
-        }
-        if (v["libs"].IsArray()) {
-            for (Variant::ListIterator itr = v["libs"].ListBegin(); itr != v["libs"].ListEnd(); ++itr) {
-                database->LoadSharedLib(itr->AsString());
-            }
-        }
-        if (v["liblist"].IsArray()) {
-            for (Variant::ListIterator itr = v["liblist"].ListBegin(); itr != v["liblist"].ListEnd(); ++itr) {
-                database->LoadNodeList(itr->AsString());
-            }
-        }
-    }
-    return database;
-}
+
 
 static void MergeVariant(Variant &base, Variant &v) {
     switch (v.GetType()) {
@@ -393,10 +355,8 @@ int main(int argc, char **argv) {
     }
     // Load database
 
-    shared_ptr<Database> database = LoadDatabase(config["database"]);
     // Load the kernel attr
     KernelAttr kattr = VariantCPNLoader::GetKernelAttr(config);
-    kattr.SetDatabase(database);
     // Load the kernel
     Kernel kernel(kattr);
     // Load any nodes

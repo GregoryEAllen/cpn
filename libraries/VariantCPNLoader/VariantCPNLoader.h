@@ -26,7 +26,15 @@
 
 class VariantCPNLoader {
 public:
+    VariantCPNLoader();
+    VariantCPNLoader(Variant conf);
 
+    Variant &GetConfig() { return config; }
+
+    void AddNode(Variant v);
+    void AddQueue(Variant v);
+
+    static CPN::shared_ptr<CPN::Database> LoadDatabase(Variant v);
     static CPN::KernelAttr GetKernelAttr(Variant args);
 
     static void Setup(CPN::Kernel *kernel, Variant args);
@@ -37,7 +45,6 @@ public:
     static void LoadQueues(CPN::Kernel *kernel, Variant queuelist);
     static void LoadQueue(CPN::Kernel *kernel, Variant attr);
 private:
-
-    VariantCPNLoader();
+    Variant config;
 };
 

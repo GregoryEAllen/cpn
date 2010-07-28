@@ -22,11 +22,57 @@
  */
 #include "VariantCPNLoader.h"
 #include "VariantToJSON.h"
+#include "RemoteDatabase.h"
+
+using CPN::shared_ptr;
+using CPN::Database;
 
 VariantCPNLoader::VariantCPNLoader() { } 
 
+shared_ptr<Database> VariantCPNLoader::LoadDatabase(Variant v) {
+    shared_ptr<Database> database;
+    if (v.IsNull()) {
+        database = Database::Local();
+    } else {
+        if (v["host"].IsNull() && v["port"].IsNull()) {
+            database = Database::Local();
+        } else {
+            SockAddrList addrs = SocketAddress::CreateIP(
+                    v["host"].AsString(),
+                    v["port"].AsString()
+                    );
+            shared_ptr<RemoteDatabase> db = shared_ptr<RemoteDatabase>(new RemoteDatabase(addrs));
+            db->Start();
+            database = db;
+        }
+        if (!v["d4r"].IsNull()) {
+            database->UseD4R(v["d4r"].AsBool());
+        }
+        if (!v["swallow-broken-queue-exceptions"].IsNull()) {
+            database->SwallowBrokenQueueExceptions(v["swallow-broken-queue-exceptions"].AsBool());
+        }
+        if (!v["grow-queue-max-threshold"].IsNull()) {
+            database->GrowQueueMaxThreshold(v["grow-queue-max-threshold"].AsBool());
+        }
+        if (v["libs"].IsArray()) {
+            for (Variant::ListIterator itr = v["libs"].ListBegin(); itr != v["libs"].ListEnd(); ++itr) {
+                database->LoadSharedLib(itr->AsString());
+            }
+        }
+        if (v["liblist"].IsArray()) {
+            for (Variant::ListIterator itr = v["liblist"].ListBegin(); itr != v["liblist"].ListEnd(); ++itr) {
+                database->LoadNodeList(itr->AsString());
+            }
+        }
+    }
+    return database;
+}
+
 CPN::KernelAttr VariantCPNLoader::GetKernelAttr(Variant args) {
     CPN::KernelAttr attr(args["name"].AsString());
+    if (!args["database"].IsNull()) {
+        attr.SetDatabase(LoadDatabase(args["database"]));
+    }
     if (!args["host"].IsNull()) {
         attr.SetHostName(args["host"].AsString());
     }
