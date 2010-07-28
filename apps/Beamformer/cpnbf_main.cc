@@ -1,25 +1,26 @@
-#include "Kernel.h"
-#include "Variant.h"
-#include "VariantCPNLoader.h"
+#include "Database.h"
+#include "FlowMeasure.h"
 #include "JSONToVariant.h"
-#include "VariantToJSON.h"
-#include "ParseBool.h"
-#include "RemoteDatabase.h"
+#include "Kernel.h"
+#include "LoadFromFile.h"
 #include "NodeBase.h"
+#include "ParseBool.h"
+#include "PathUtils.h"
 #include "QueueReaderAdapter.h"
 #include "QueueWriterAdapter.h"
-#include "FlowMeasure.h"
+#include "RemoteDatabase.h"
+#include "VariantCPNLoader.h"
+#include "Variant.h"
+#include "VariantToJSON.h"
 #include "VBeamformer.h"
-#include "Database.h"
-#include "PathUtils.h"
-#include <vector>
-#include <string>
+#include <algorithm>
+#include <complex>
 #include <fstream>
 #include <iostream>
-#include <complex>
-#include <algorithm>
-#include <unistd.h>
 #include <stdio.h>
+#include <string>
+#include <unistd.h>
+#include <vector>
 
 using std::complex;
 using CPN::shared_ptr;
@@ -49,6 +50,11 @@ public:
         for (std::vector<std::string>::iterator itr = inports.begin(); cur != end; ++cur, ++itr) {
             *cur = GetReader(*itr);
         }
+        FILE *f = 0;
+        if (!nooutput) {
+            f = fopen(outfile.c_str(), "w");
+            ASSERT(f, "Could not open %s", outfile.c_str());
+        }
         cur = begin;
         FlowMeasure measure;
         measure.Start();
@@ -67,12 +73,18 @@ public:
                     break;
                 }
             }
+            if (!nooutput) {
+                DataToFile(f, ptr, amount, cur->ChannelStride(), cur->NumChannels());
+            }
             cur->Dequeue(amount);
             ++cur;
         }
         fprintf(stderr,
                 "Output:\nAvg:\t%f Hz\nMax:\t%f Hz\nMin:\t%f Hz\n",
                 measure.AverageRate(), measure.LargestRate(), measure.SmallestRate());
+        if (f) {
+            fclose(f);
+        }
     }
     std::string outfile;
     std::vector<std::string> inports;
@@ -163,10 +175,10 @@ static const char* const HELP_OPTS = "Usage: %s <vertical coefficient file> <hor
 "\t-a n\t Use algorithm n for vertical\n"
 "\t-n \t No output, just time\n"
 "\t-s n\t Scale queue sizes by n\n"
-"\t-c\t Print config\n"
+"\t-c\t Print config and exit\n"
 "\t-h\t Print this message and exit.\n"
-"\t-H yes|no\t Split the horizontal beamformer.\n"
-"\t-f yes|no\t Use the 'fan' vertical beamformer.\n"
+"\t-H yes|no\t Split the horizontal beamformer (default: yes).\n"
+"\t-f yes|no\t Use the 'fan' vertical beamformer (default: yes).\n"
 ;
 
 
@@ -174,6 +186,8 @@ int cpnbf_main(int argc, char **argv) {
     bool procOpts = true;
     std::string input_file;
     std::string output_file;
+    std::string vertical_config;
+    std::string horizontal_config;
     unsigned algo = 2;
     bool use_fan = true;
     bool estimate = false;
@@ -228,6 +242,17 @@ int cpnbf_main(int argc, char **argv) {
         fprintf(stderr, "Not enough parameters, need coefficient files\n");
         return 1;
     }
+    if (input_file.empty()) {
+        fprintf(stderr, "Must have an input file.\n");
+        return 1;
+    }
+    if (output_file.empty() && !nooutput) {
+        fprintf(stderr, "Either an output file or no output must be specified.\n");
+        return 1;
+    }
+    vertical_config = argv[optind];
+    horizontal_config = argv[optind + 1];
+
     Variant config;
     config["name"] = "kernel";
     Variant node;
@@ -242,7 +267,7 @@ int cpnbf_main(int argc, char **argv) {
     node["param"]["outports"][1] = "out2";
     node["param"]["outports"][2] = "out3";
     node["param"]["blocksize"] = 8192;
-    node["param"]["file"] = argv[optind];
+    node["param"]["file"] = vertical_config;
     node["param"]["algorithm"] = algo;
     config["nodes"].Append(node);
     node = Variant::NullType;
@@ -250,7 +275,7 @@ int cpnbf_main(int argc, char **argv) {
     node["param"]["inport"] = "input";
     node["param"]["outport"] = "output";
     node["param"]["estimate"] = estimate;
-    node["param"]["file"] = argv[optind + 1];
+    node["param"]["file"] = horizontal_config;
     if (split_horizontal) {
         node["param"]["half"] = 1;
     }
