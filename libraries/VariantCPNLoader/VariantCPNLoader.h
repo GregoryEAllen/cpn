@@ -23,16 +23,25 @@
 #pragma once
 #include "Kernel.h"
 #include "Variant.h"
+#include <utility>
 
 class VariantCPNLoader {
 public:
     VariantCPNLoader();
     VariantCPNLoader(Variant conf);
+    ~VariantCPNLoader();
 
     Variant &GetConfig() { return config; }
 
+    void MergeConfig(Variant v);
     void AddNode(Variant v);
     void AddQueue(Variant v);
+    void AddNodeMapping(const std::string &noden, const std::string &kernn);
+
+    std::pair<bool, std::string> Validate() { return Validate(config); }
+
+    CPN::KernelAttr GetKernelAttr() { return GetKernelAttr(config); }
+    void Setup(CPN::Kernel *kernel) { Setup(kernel, config); }
 
     static CPN::shared_ptr<CPN::Database> LoadDatabase(Variant v);
     static CPN::KernelAttr GetKernelAttr(Variant args);
@@ -44,6 +53,8 @@ public:
 
     static void LoadQueues(CPN::Kernel *kernel, Variant queuelist);
     static void LoadQueue(CPN::Kernel *kernel, Variant attr);
+
+    static std::pair<bool, std::string> Validate(Variant conf);
 private:
     Variant config;
 };

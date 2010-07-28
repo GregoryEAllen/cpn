@@ -23,11 +23,98 @@
 #include "VariantCPNLoader.h"
 #include "VariantToJSON.h"
 #include "RemoteDatabase.h"
+#include <set>
+#include <map>
 
 using CPN::shared_ptr;
 using CPN::Database;
+using std::string;
+using std::set;
+using std::pair;
+using std::make_pair;
+using std::map;
 
 VariantCPNLoader::VariantCPNLoader() { } 
+VariantCPNLoader::VariantCPNLoader(Variant conf) : config(conf) { } 
+VariantCPNLoader::~VariantCPNLoader() { } 
+
+void VariantCPNLoader::MergeConfig(Variant v) {
+    Variant::MapIterator topitr = v.MapBegin(), topend = v.MapEnd();
+    for (;topitr != topend; ++topitr) {
+        if (topitr->first == "database") {
+            Variant::MapIterator mitr = v["database"].MapBegin(), mend = v["database"].MapEnd();
+            for (;mitr != mend; ++mitr) {
+                config["database"][mitr->first] = mitr->second;
+            }
+        } else if (topitr->first == "nodes") {
+            Variant::ListIterator litr = v["nodes"].ListBegin(), lend = v["nodes"].ListEnd();
+            for (;litr != lend; ++litr) {
+                AddNode(*litr);
+            }
+        } else if (topitr->first == "queues") {
+            Variant::ListIterator litr = v["queues"].ListBegin(), lend = v["queues"].ListEnd();
+            for (;litr != lend; ++litr) {
+                AddQueue(*litr);
+            }
+        } else {
+            config[topitr->first] = topitr->second;
+        }
+    }
+}
+
+
+void VariantCPNLoader::AddNode(Variant v) {
+    if (!config["nodes"].IsArray()) {
+        config["nodes"] = Variant::ArrayType;
+    }
+    Variant nodes = config["nodes"];
+    Variant::ListIterator itr = nodes.ListBegin(), end = nodes.ListEnd();
+    for (; itr != end; ++itr) {
+        if (v["name"] == itr->At("name")) {
+            for (Variant::MapIterator mitr = v.MapBegin(),
+                    mend = v.MapEnd(); mitr != mend; ++mitr) {
+                itr->At(mitr->first) = mitr->second.Copy();
+            }
+            return;
+        }
+    }
+    nodes.Append(v.Copy());
+}
+
+void VariantCPNLoader::AddQueue(Variant v) {
+    if (!config["queues"].IsArray()) {
+        config["queues"] = Variant::ArrayType;
+    }
+    Variant queues = config["queues"];
+    Variant::ListIterator qitr = queues.ListBegin(), qend = queues.ListEnd();
+    for (;qitr != qend; ++qitr) {
+        if (
+                (
+                 v["readernode"] == qitr->At("readernode") &&
+                 v["readerport"] == qitr->At("readerport")
+                ) ||
+                (
+                 v["writernode"] == qitr->At("writernode") &&
+                 v["writerport"] == qitr->At("writerport")
+                )
+           ) {
+            for (Variant::MapIterator mitr = v.MapBegin(),
+                    mend = v.MapEnd(); mitr != mend; ++mitr) {
+                qitr->At(mitr->first) = mitr->second.Copy();
+            }
+            return;
+        }
+    }
+    queues.Append(v.Copy());
+}
+
+void VariantCPNLoader::AddNodeMapping(const std::string &noden, const std::string &kernn) {
+    if (!config["nodemap"].IsObject()) {
+        config["nodemap"] = Variant::ObjectType;
+    }
+    Variant nodemap = config["nodemap"];
+    nodemap["noden"] = kernn;
+}
 
 shared_ptr<Database> VariantCPNLoader::LoadDatabase(Variant v) {
     shared_ptr<Database> database;
@@ -158,5 +245,56 @@ void VariantCPNLoader::LoadQueue(CPN::Kernel *kernel, Variant attr) {
         qattr.SetAlpha(attr["alpha"].AsDouble());
     }
     kernel->CreateQueue(qattr);
+}
+
+std::pair<bool, std::string> VariantCPNLoader::Validate(Variant conf) {
+    set<string> nodeset;
+    if (!conf["name"].IsString()) {
+        return make_pair(false, "Kernels must have a name.");
+    }
+
+    Variant nodes = conf["nodes"];
+    Variant::ListIterator nitr = nodes.ListBegin(), nend = nodes.ListEnd();
+    for (; nitr != nend; ++nitr) {
+        if (!nitr->At("name").IsString()) {
+            return make_pair(false, "Nodes must have a name");
+        }
+        if (!nitr->At("type").IsString()) {
+            return make_pair(false, "Nodes must have a type");
+        }
+        if (!nodeset.insert(nitr->At("name").AsString()).second) {
+            return make_pair(false, "Duplicate node");
+        }
+    }
+    map<string, set<string> > readports, writeports;
+    Variant queues = conf["queues"];
+    Variant::ListIterator qitr = queues.ListBegin(), qend = queues.ListEnd();
+    for (;qitr != qend; ++qitr) {
+        if (qitr->At("size").IsNull()) {
+            return make_pair(false, "Queues must have a size");
+        }
+        if (qitr->At("threshold").IsNull()) {
+            return make_pair(false, "Queues must have a threshold");
+        }
+        if (!qitr->At("readernode").IsString()) {
+            return make_pair(false, "Queues must have a readernode");
+        }
+        if (!qitr->At("readerport").IsString()) {
+            return make_pair(false, "Queues must have a readerport");
+        }
+        if (!readports[qitr->At("readernode").AsString()].insert(qitr->At("readerport").AsString()).second) {
+            return make_pair(false, "Two queues connected to the same reader port.");
+        }
+        if (!qitr->At("writernode").IsString()) {
+            return make_pair(false, "Queues must have a writernode");
+        }
+        if (!qitr->At("writerport").IsString()) {
+            return make_pair(false, "Queues must have a writerport");
+        }
+        if (!writeports[qitr->At("writernode").AsString()].insert(qitr->At("writerport").AsString()).second) {
+            return make_pair(false, "Two queues connected to the same writer port.");
+        }
+    }
+    return make_pair(true, "");
 }
 

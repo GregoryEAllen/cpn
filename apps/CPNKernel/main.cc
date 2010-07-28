@@ -20,39 +20,7 @@ using CPN::KernelAttr;
 
 
 
-static void MergeVariant(Variant &base, Variant &v) {
-    switch (v.GetType()) {
-    case Variant::ObjectType:
-        if (base.IsObject()) {
-            Variant::MapIterator itr = v.MapBegin();
-            Variant::MapIterator end = v.MapEnd();
-            while (itr != end) {
-                MergeVariant(base[itr->first], itr->second);
-                ++itr;
-            }
-        } else {
-            base = v;
-        }
-        break;
-    case Variant::ArrayType:
-        if (base.IsArray()) {
-            Variant::ListIterator itr = v.ListBegin();
-            Variant::ListIterator end = v.ListEnd();
-            while (itr != end) {
-                base.Append(*itr);
-                ++itr;
-            }
-        } else {
-            base = v;
-        }
-        break;
-    default:
-        base = v;
-        break;
-    }
-}
-
-static void LoadJSONConfig(const std::string &f, Variant &config) {
+static void LoadJSONConfig(const std::string &f, VariantCPNLoader &loader) {
     JSONToVariant parser;
     parser.ParseFile(f);
     if (!parser.Done()) {
@@ -61,10 +29,10 @@ static void LoadJSONConfig(const std::string &f, Variant &config) {
         return;
     }
     Variant val = parser.Get();
-    MergeVariant(config, val);
+    loader.MergeConfig(val);
 }
 
-static void LoadXMLConfig(const std::string &f, Variant &config) {
+static void LoadXMLConfig(const std::string &f, VariantCPNLoader &loader) {
     XMLToVariant parser;
     parser.ParseFile(f);
     if (!parser.Done()) {
@@ -72,7 +40,7 @@ static void LoadXMLConfig(const std::string &f, Variant &config) {
         return;
     }
     Variant val = parser.Get();
-    MergeVariant(config, val);
+    loader.MergeConfig(val);
 }
 
 static void PrintHelp(const std::string &progname) {
@@ -85,6 +53,9 @@ static void PrintHelp(const std::string &progname) {
     cerr << "\t-k opts    Comma seperated list of host options.\n";
     cerr << "\t           Valid options are host, port, and name. (eg. -kname=blah,host=localhost,port=1234)\n";
     cerr << "\t-c         Print out in JSON format the internal configuration after parsing all options\n";
+    cerr << "\t-n 'json'  Add or modify a node.\n";
+    cerr << "\t-q 'json'  Add or modify a queue.\n";
+    cerr << "\t-v         Verify config\n";
     cerr << "\nNote that options are overrided in the order they are in the command line.\n";
     cerr << "It is valid to specify multiple configuration files, they will be merged.\n";
 }
@@ -100,6 +71,7 @@ static void PrintDatabaseHelp(Variant &config) {
          << "\t host=xxx    Use a remote database located at xxx, else use local.\n"
          << "\t port=xxx    Specify the port for the remote database.\n"
          << "\t lib=file    Load file as a shared object to be searched for nodes. May be set multiple times.\n"
+         << "\t list=file   Add file to the list of lists for looking up where to load nodes from.\n"
          << "\t help        This message.\n";
 
 }
@@ -195,94 +167,6 @@ static bool ParseKernelSubOpts(Variant &config) {
     return true;
 }
 
-static bool ParseNodeSubOpts(Variant &config) {
-    static char *const opts[] = {"name", "host", "type", "param", 0};
-    char *subopt = optarg;
-    char *valuep = 0;
-    Variant node;
-    while (*subopt != '\0') {
-        int i = getsubopt(&subopt, opts, &valuep);
-        if (i < 0) {
-            std::cerr << "Unrecognized node option\n";
-            if (valuep != 0) { std::cerr << valuep << std::endl; }
-	    return false;
-        }
-        if (valuep == 0) {
-            std::cerr << "Node option " << opts[i] << " requires a parameter.\n";
-            return false;
-        }
-        node.At(opts[i]) = valuep;
-    }
-    config["nodes"].Append(node);
-    return true;
-}
-
-static bool ParseQueueSubOpts(Variant &config) {
-    enum { op_size, op_s, op_threshold, op_thresh, op_readernode, op_rn, op_readerport, op_rp,
-        op_writernode, op_wn, op_writerport, op_wp, op_type, op_datatype, op_dtype, op_numchannels, op_nc, op_alpha, op_end };
-    static char *const opts[] = {"size", "s", "threshold", "thresh", "readernode", "rn", "readerport", "rp",
-        "writernode", "wn", "writerport", "wp", "type", "datatype", "dtype", "numchannels", "nc", "alpha", 0 };
-    char *subopt = optarg;
-    char *valuep = 0;
-    Variant queue;
-    while (*subopt != '\0') {
-        int i = getsubopt(&subopt, opts, &valuep);
-        if (i < 0) {
-            std::cerr << "Unrecognized queue option\n";
-            if (valuep != 0) { std::cerr << valuep << std::endl; }
-            return false;
-        }
-        if (valuep == 0) {
-            std::cerr << "Queue option " << opts[i] << " requires a parameter.\n";
-            return false;
-        }
-        switch (i) {
-        case op_size:
-        case op_s:
-            queue.At(opts[op_size]) = atoi(valuep);
-            break;
-        case op_threshold:
-        case op_thresh:
-            queue.At(opts[op_threshold]) = atoi(valuep);
-            break;
-        case op_readernode:
-        case op_rn:
-            queue.At(opts[op_readernode]) = valuep;
-            break;
-        case op_readerport:
-        case op_rp:
-            queue.At(opts[op_readerport]) = valuep;
-            break;
-        case op_writernode:
-        case op_wn:
-            queue.At(opts[op_writernode]) = valuep;
-            break;
-        case op_writerport:
-        case op_wp:
-            queue.At(opts[op_writerport]) = valuep;
-            break;
-        case op_type:
-            queue.At(opts[op_type]) = valuep;
-            break;
-        case op_datatype:
-        case op_dtype:
-            queue.At(opts[op_datatype]) = valuep;
-            break;
-        case op_numchannels:
-        case op_nc:
-            queue.At(opts[op_numchannels]) = atoi(valuep);
-            break;
-        case op_alpha:
-            queue.At(opts[op_alpha]) = atof(valuep);
-            break;
-        default:
-            return false;
-        }
-    }
-    config["queues"].Append(queue);
-    return true;
-}
-
 int main(int argc, char **argv) __attribute__((weak));
 int main(int argc, char **argv) {
     Variant config;
@@ -294,18 +178,20 @@ int main(int argc, char **argv) {
     if (!defaultlist.empty()) {
         config["database"]["liblist"].Append(defaultlist);
     }
+    VariantCPNLoader loader(config);
     bool output_config = false;
     bool print_help = false;
     bool print_db_help = false;
+    bool validate = false;
     while (true) {
-        int c = getopt(argc, argv, "x:j:hw:d:k:cn:q:");
+        int c = getopt(argc, argv, "x:j:hw:d:k:cn:q:v");
         if (c == -1) break;
         switch (c) {
         case 'x':
-            LoadXMLConfig(optarg, config);
+            LoadXMLConfig(optarg, loader);
             break;
         case 'j':
-            LoadJSONConfig(optarg, config);
+            LoadJSONConfig(optarg, loader);
             break;
         case 'w':
             config["wait-node"] = optarg;
@@ -321,17 +207,16 @@ int main(int argc, char **argv) {
             }
             break;
         case 'n':
-            if (!ParseNodeSubOpts(config)) {
-                print_help = true;
-            }
+            loader.AddNode(VariantFromJSON(optarg));
             break;
         case 'q':
-            if (!ParseQueueSubOpts(config)) {
-                print_help = true;
-            }
+            loader.AddQueue(VariantFromJSON(optarg));
             break;
         case 'c':
             output_config = true;
+            break;
+        case 'v':
+            validate = true;
             break;
         case 'h':
             print_help = true;
@@ -350,18 +235,23 @@ int main(int argc, char **argv) {
     if (output_config) {
         std::cout << PrettyJSON(config) << std::endl;
     }
+    if (validate) {
+        std::pair<bool, std::string> r = loader.Validate();
+        if (!r.first) {
+            std::cerr << "Error validating config: " << r.second << std::endl;
+            return 1;
+        }
+    }
     if (print_help || print_db_help || output_config) {
         return 0;
     }
-    // Load database
-
     // Load the kernel attr
-    KernelAttr kattr = VariantCPNLoader::GetKernelAttr(config);
+    KernelAttr kattr = loader.GetKernelAttr();
     // Load the kernel
     Kernel kernel(kattr);
     // Load any nodes
     // Load any queues
-    VariantCPNLoader::Setup(&kernel, config);
+    loader.Setup(&kernel);
     // if wait-node wait for it else wait
     if (config["wait-node"].IsNull()) {
         kernel.Wait();
