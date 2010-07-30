@@ -165,7 +165,7 @@ public:
 };
 CPN_DECLARE_NODE_FACTORY(CPNBFInputNode, CPNBFInputNode);
 
-static const char* const VALID_OPTS = "hi:o:er:na:s:cf:H:";
+static const char* const VALID_OPTS = "hi:o:er:na:s:cf:H:q:";
 
 static const char* const HELP_OPTS = "Usage: %s <vertical coefficient file> <horizontal coefficient file>\n"
 "\t-i filename\t Use input file (default stdin)\n"
@@ -179,6 +179,7 @@ static const char* const HELP_OPTS = "Usage: %s <vertical coefficient file> <hor
 "\t-h\t Print this message and exit.\n"
 "\t-H yes|no\t Split the horizontal beamformer (default: yes).\n"
 "\t-f yes|no\t Use the 'fan' vertical beamformer (default: yes).\n"
+"\t-q xxx\t Set xxx as the queue type (default: threshold).\n"
 ;
 
 
@@ -188,6 +189,7 @@ int cpnbf_main(int argc, char **argv) {
     std::string output_file;
     std::string vertical_config;
     std::string horizontal_config;
+    std::string queue_type = "threshold";
     unsigned algo = 2;
     bool use_fan = true;
     bool estimate = false;
@@ -228,6 +230,9 @@ int cpnbf_main(int argc, char **argv) {
         case 'H':
             split_horizontal = ParseBool(optarg);
             break;
+        case 'q':
+            queue_type = optarg;
+            break;
 
         case -1:
             procOpts = false;
@@ -255,6 +260,11 @@ int cpnbf_main(int argc, char **argv) {
 
     Variant config;
     config["name"] = "kernel";
+    std::string nodelist = RealPath("node.list");
+    if (!nodelist.empty()) {
+        config["database"]["liblist"].Append(nodelist);
+    }
+    VariantCPNLoader loader(config);
     Variant node;
     node["name"] = "vertical";
     if (use_fan) {
@@ -269,7 +279,7 @@ int cpnbf_main(int argc, char **argv) {
     node["param"]["blocksize"] = 8192;
     node["param"]["file"] = vertical_config;
     node["param"]["algorithm"] = algo;
-    config["nodes"].Append(node);
+    loader.AddNode(node);
     node = Variant::NullType;
     node["type"] = "HBeamformerNode";
     node["param"]["inport"] = "input";
@@ -280,19 +290,19 @@ int cpnbf_main(int argc, char **argv) {
         node["param"]["half"] = 1;
     }
     node["name"] = "hbf1";
-    config["nodes"].Append(node.Copy());
+    loader.AddNode(node);
     node["name"] = "hbf2";
-    config["nodes"].Append(node.Copy());
+    loader.AddNode(node);
     node["name"] = "hbf3";
-    config["nodes"].Append(node.Copy());
+    loader.AddNode(node);
     if (split_horizontal) {
         node["param"]["half"] = 2;
         node["name"] = "hbf1_2";
-        config["nodes"].Append(node.Copy());
+        loader.AddNode(node);
         node["name"] = "hbf2_2";
-        config["nodes"].Append(node.Copy());
+        loader.AddNode(node);
         node["name"] = "hbf3_2";
-        config["nodes"].Append(node.Copy());
+        loader.AddNode(node);
     }
 
     node = Variant::NullType;
@@ -301,7 +311,7 @@ int cpnbf_main(int argc, char **argv) {
     node["param"]["outport"] = "output";
     node["param"]["infile"] = input_file;
     node["param"]["repetitions"] = repetitions;
-    config["nodes"].Append(node);
+    loader.AddNode(node);
     node = Variant::NullType;
 
     node["name"] = "output";
@@ -312,41 +322,41 @@ int cpnbf_main(int argc, char **argv) {
     node["param"]["blocksize"] = 8192;
     node["param"]["outfile"] = output_file;
     node["param"]["nooutput"] = nooutput;
-    config["nodes"].Append(node);
+    loader.AddNode(node);
     node = Variant::NullType;
 
     Variant queue;
     queue["size"] = 8192*size_mult;
     queue["threshold"] = 8192;
-    queue["type"] = "threshold";
+    queue["type"] = queue_type;
     queue["datatype"] = "complex<float>";
     queue["numchannels"] = 256;
     queue["readerport"] = "input";
     queue["writerport"] = "out1";
     queue["readernode"] = "hbf1";
     queue["writernode"] = "vertical";
-    config["queues"].Append(queue.Copy());
+    loader.AddQueue(queue);
     queue["writerport"] = "out2";
     queue["readernode"] = "hbf2";
-    config["queues"].Append(queue.Copy());
+    loader.AddQueue(queue);
     queue["writerport"] = "out3";
     queue["readernode"] = "hbf3";
-    config["queues"].Append(queue.Copy());
+    loader.AddQueue(queue);
     queue["numchannels"] = 560;
     queue["readernode"] = "output";
     queue["readerport"] = "0";
     if (split_horizontal) { queue["writernode"] = "hbf1_2"; }
     else { queue["writernode"] = "hbf1"; }
     queue["writerport"] = "output";
-    config["queues"].Append(queue.Copy());
+    loader.AddQueue(queue);
     queue["readerport"] = "1";
     if (split_horizontal) { queue["writernode"] = "hbf2_2"; }
     else { queue["writernode"] = "hbf2"; }
-    config["queues"].Append(queue.Copy());
+    loader.AddQueue(queue);
     queue["readerport"] = "2";
     if (split_horizontal) { queue["writernode"] = "hbf3_2"; }
     else { queue["writernode"] = "hbf3"; }
-    config["queues"].Append(queue.Copy());
+    loader.AddQueue(queue);
     if (split_horizontal) {
         queue["size"] = 8192*256*size_mult;
         queue["threshold"] = 8192*256;
@@ -354,13 +364,13 @@ int cpnbf_main(int argc, char **argv) {
         queue["readerport"] = "input";
         queue["writernode"] = "hbf1";
         queue["readernode"] = "hbf1_2";
-        config["queues"].Append(queue.Copy());
+        loader.AddQueue(queue);
         queue["writernode"] = "hbf2";
         queue["readernode"] = "hbf2_2";
-        config["queues"].Append(queue.Copy());
+        loader.AddQueue(queue);
         queue["writernode"] = "hbf3";
         queue["readernode"] = "hbf3_2";
-        config["queues"].Append(queue.Copy());
+        loader.AddQueue(queue);
     }
     queue["size"] = 8192*size_mult;
     queue["threshold"] = 8192;
@@ -370,18 +380,21 @@ int cpnbf_main(int argc, char **argv) {
     queue["writernode"] = "input";
     queue["writerport"] = "output";
     queue["datatype"] = "complex<int16_t>";
-    config["queues"].Append(queue.Copy());
+    loader.AddQueue(queue);
 
     if (print_config) {
         printf("%s\n", VariantToJSON(config, true).c_str());
         return 0;
     }
-    CPN::KernelAttr kattr = VariantCPNLoader::GetKernelAttr(config);
-    shared_ptr<Database> database = Database::Local();
-    database->LoadNodeList(RealPath("node.list"));
-    kattr.SetDatabase(database);
+    std::pair<bool, std::string> verifyret = loader.Validate();
+    if (!verifyret.first) {
+        fprintf(stderr, "Configuration error:\n%s\n", verifyret.second.c_str());
+        return 1;
+    }
+
+    CPN::KernelAttr kattr = loader.GetKernelAttr();
     CPN::Kernel kernel(kattr);
-    VariantCPNLoader::Setup(&kernel, config);
+    loader.Setup(&kernel);
     kernel.WaitForAllNodeEnd();
     return 0;
 }

@@ -242,7 +242,7 @@ static void fvbf_sse_vector(
                 unsigned fan = rv[res].fan;
                 complex<float> *outdata = rv[res].outdata;
                 unsigned outstride = rv[res].outstride;
-                float *fanfilter = &filter[fan * numStaveTypes * numElemsPerStave * filterLen];
+                float *fanfilter = &filter[fan * numStaveTypes * numElemsPerStave * filterLen + stavetype * numElemsPerStave * filterLen];
                 complex<float> *fanbbCorrect = &bbCorrect[fan * numStaveTypes * numElemsPerStave];
 
                 cvector stave_acc[CVECSIZE];
@@ -250,7 +250,7 @@ static void fvbf_sse_vector(
                     stave_acc[i] = _mm_setzero_ps();
                 }
                 for (unsigned elem = 0; elem < numElemsPerStave; ++elem) {
-                    float *filt = &fanfilter[stavetype * numElemsPerStave * filterLen + elem * filterLen];
+                    float *filt = &fanfilter[elem * filterLen];
                     cvector elem_acc[CVECSIZE];
                     for (unsigned i = 0; i < CVECSIZE; ++i) {
                         elem_acc[i] = _mm_setzero_ps();
