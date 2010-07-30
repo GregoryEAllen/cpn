@@ -19,7 +19,7 @@ static double getTime() {
     return static_cast<double>(tv.tv_sec) + 1e-6 * static_cast<double>(tv.tv_usec);
 }
 
-static const char* const VALID_OPTS = "hi:o:a:f:r:";
+static const char* const VALID_OPTS = "hi:o:a:f:r:n";
 
 static const char* const HELP_OPTS = "Usage: %s <coefficient file>\n"
 "\t-i filename\t Use input file (default stdin)\n"
@@ -27,6 +27,7 @@ static const char* const HELP_OPTS = "Usage: %s <coefficient file>\n"
 "\t-f n\t Do only the given fan\n"
 "\t-a n\t Use algorithm n\n"
 "\t-r n\t Repeat n times\n"
+"\t-n\t No output.\n"
 ;
 
 int fvb_main(int argc, char **argv) {
@@ -36,6 +37,7 @@ int fvb_main(int argc, char **argv) {
     FanVBeamformer::Algorithm_t algo = FanVBeamformer::SSE_VECTOR;
     unsigned fan = -1;
     unsigned repetitions = 1;
+    bool nooutput = false;
     while (procOpts) {
         switch (getopt(argc, argv, VALID_OPTS)) {
         case 'i':
@@ -56,6 +58,9 @@ int fvb_main(int argc, char **argv) {
             break;
         case 'r':
             repetitions = atoi(optarg);
+            break;
+        case 'n':
+            nooutput = true;
             break;
         case -1:
             procOpts = false;
@@ -83,7 +88,7 @@ int fvb_main(int argc, char **argv) {
         fin = fopen(input_file.c_str(), "r");
         ASSERT(fin);
     }
-    if (!output_file.empty()) {
+    if (!output_file.empty() && !nooutput) {
         fout = fopen(output_file.c_str(), "w");
         ASSERT(fout);
     }
@@ -125,16 +130,18 @@ int fvb_main(int argc, char **argv) {
     }
     fprintf(stderr, "Avg:\t%f Hz\nMax:\t%f Hz\nMin:\t%f Hz\n", measure.AverageRate(), measure.LargestRate(), measure.SmallestRate());
 
-    fprintf(stderr, "Writing Output..");
-    unsigned lenout = numOutSamples * sizeof(complex<float>);
-    if (fan > numFans) {
-        for (unsigned i = 0; i < numFans; ++i) {
-            DataToFile(fout, &output[i * stride * numStaves], lenout, stride*sizeof(complex<float>), numStaves);
+    if (!nooutput) {
+        fprintf(stderr, "Writing Output..");
+        unsigned lenout = numOutSamples * sizeof(complex<float>);
+        if (fan > numFans) {
+            for (unsigned i = 0; i < numFans; ++i) {
+                DataToFile(fout, &output[i * stride * numStaves], lenout, stride*sizeof(complex<float>), numStaves);
+            }
+        } else {
+            DataToFile(fout, &output[fan * stride * numStaves], lenout, stride*sizeof(complex<float>), numStaves);
         }
-    } else {
-        DataToFile(fout, &output[fan * stride * numStaves], lenout, stride*sizeof(complex<float>), numStaves);
+        fprintf(stderr, ". Done\n");
     }
-    fprintf(stderr, ". Done\n");
     fprintf(stderr, "Cleanup..");
     if (!input_file.empty()) {
         fclose(fin);

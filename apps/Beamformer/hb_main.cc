@@ -9,13 +9,14 @@
 
 using std::complex;
 
-static const char* const VALID_OPTS = "hi:o:er:";
+static const char* const VALID_OPTS = "hi:o:er:n";
 
 static const char* const HELP_OPTS = "Usage: %s <coefficient file>\n"
 "\t-i filename\t Use input file (default stdin)\n"
 "\t-o filename\t Use output file (default stdout)\n"
 "\t-e\t Estimate FFT algorithm rather than measure.\n"
 "\t-r num\t Run num times\n"
+"\t-n \t No output just time\n"
 ;
 
 int hb_main(int argc, char **argv) {
@@ -23,6 +24,7 @@ int hb_main(int argc, char **argv) {
     std::string input_file;
     std::string output_file;
     bool estimate = false;
+    bool nooutput = false;
     unsigned repetitions = 1;
     while (procOpts) {
         switch (getopt(argc, argv, VALID_OPTS)) {
@@ -37,6 +39,9 @@ int hb_main(int argc, char **argv) {
             break;
         case 'r':
             repetitions = atoi(optarg);
+            break;
+        case 'n':
+            nooutput = true;
             break;
         case -1:
             procOpts = false;
@@ -63,7 +68,7 @@ int hb_main(int argc, char **argv) {
         fin = fopen(input_file.c_str(), "r");
         ASSERT(fin);
     }
-    if (!output_file.empty()) {
+    if (!output_file.empty() && !nooutput) {
         fout = fopen(output_file.c_str(), "w");
         ASSERT(fout);
     }
@@ -90,9 +95,11 @@ int hb_main(int argc, char **argv) {
             "Output:\nAvg:\t%f Hz\nMax:\t%f Hz\nMin:\t%f Hz\n",
             measure.AverageRate(), measure.LargestRate(), measure.SmallestRate());
 
-    fprintf(stderr, "Writing Output..");
-    DataToFile(fout, &output[0], len, len, former->NumBeams());
-    fprintf(stderr, ". Done\n");
+    if (!nooutput) {
+        fprintf(stderr, "Writing Output..");
+        DataToFile(fout, &output[0], len, len, former->NumBeams());
+        fprintf(stderr, ". Done\n");
+    }
     fprintf(stderr, "Cleanup..");
     if (!input_file.empty()) {
         fclose(fin);
