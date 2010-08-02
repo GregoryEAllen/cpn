@@ -4,6 +4,7 @@
 #include "Kernel.h"
 #include "LoadFromFile.h"
 #include "NodeBase.h"
+#include "NumProcs.h"
 #include "ParseBool.h"
 #include "PathUtils.h"
 #include "QueueReaderAdapter.h"
@@ -165,7 +166,7 @@ public:
 };
 CPN_DECLARE_NODE_FACTORY(CPNBFInputNode, CPNBFInputNode);
 
-static const char* const VALID_OPTS = "hi:o:er:na:s:cf:H:q:";
+static const char* const VALID_OPTS = "hi:o:er:na:s:cf:H:q:p:";
 
 static const char* const HELP_OPTS = "Usage: %s <vertical coefficient file> <horizontal coefficient file>\n"
 "\t-i filename\t Use input file (default stdin)\n"
@@ -202,6 +203,9 @@ int cpnbf_main(int argc, char **argv) {
         switch (getopt(argc, argv, VALID_OPTS)) {
         case 'c':
             print_config = true;
+            break;
+        case 'p':
+            SetNumProcs(atoi(optarg));
             break;
         case 'f':
             use_fan = ParseBool(optarg);

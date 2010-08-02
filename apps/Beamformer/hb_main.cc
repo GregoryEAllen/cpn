@@ -2,6 +2,7 @@
 #include "LoadFromFile.h"
 #include "Assert.h"
 #include "FlowMeasure.h"
+#include "NumProcs.h"
 #include <complex>
 #include <unistd.h>
 #include <stdlib.h>
@@ -9,7 +10,7 @@
 
 using std::complex;
 
-static const char* const VALID_OPTS = "hi:o:er:n";
+static const char* const VALID_OPTS = "hi:o:er:np:";
 
 static const char* const HELP_OPTS = "Usage: %s <coefficient file>\n"
 "\t-i filename\t Use input file (default stdin)\n"
@@ -42,6 +43,9 @@ int hb_main(int argc, char **argv) {
             break;
         case 'n':
             nooutput = true;
+            break;
+        case 'p':
+            SetNumProcs(atoi(optarg));
             break;
         case -1:
             procOpts = false;

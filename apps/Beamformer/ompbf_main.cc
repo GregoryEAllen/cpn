@@ -4,6 +4,7 @@
 #include "ErrnoException.h"
 #include "Assert.h"
 #include "FlowMeasure.h"
+#include "NumProcs.h"
 #include <complex>
 #include <unistd.h>
 #include <stdlib.h>
@@ -21,7 +22,7 @@ static double getTime() {
 }
 
 
-static const char* const VALID_OPTS = "hi:o:er:na:";
+static const char* const VALID_OPTS = "hi:o:er:na:p:";
 
 static const char* const HELP_OPTS = "Usage: %s <vertical coefficient file> <horizontal coefficient file>\n"
 "\t-i filename\t Use input file (default stdin)\n"
@@ -48,6 +49,9 @@ int ompbf_main(int argc, char **argv) {
             break;
         case 'o':
             output_file = optarg;
+            break;
+        case 'p':
+            SetNumProcs(atoi(optarg));
             break;
         case 'e':
             estimate = true;

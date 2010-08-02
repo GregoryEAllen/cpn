@@ -3,6 +3,7 @@
 #include "Assert.h"
 #include "ErrnoException.h"
 #include "FlowMeasure.h"
+#include "NumProcs.h"
 #include <complex>
 #include <unistd.h>
 #include <stdlib.h>
@@ -19,7 +20,7 @@ static double getTime() {
     return static_cast<double>(tv.tv_sec) + 1e-6 * static_cast<double>(tv.tv_usec);
 }
 
-static const char* const VALID_OPTS = "hi:o:a:f:r:";
+static const char* const VALID_OPTS = "hi:o:a:f:r:p:";
 
 static const char* const HELP_OPTS = "Usage: %s <coefficient file>\n"
 "\t-i filename\t Use input file (default stdin)\n"
@@ -43,6 +44,9 @@ int vb_main(int argc, char **argv) {
             break;
         case 'o':
             output_file = optarg;
+            break;
+        case 'p':
+            SetNumProcs(atoi(optarg));
             break;
         case 'a':
             algo = (VBeamformer::Algorithm_t)atoi(optarg);

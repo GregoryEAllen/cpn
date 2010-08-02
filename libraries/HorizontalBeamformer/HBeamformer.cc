@@ -2,7 +2,7 @@
 #include "HBeamformer.h"
 #include "Assert.h"
 #include "ErrnoException.h"
-#include "SysConf.h"
+#include "NumProcs.h"
 #include <pmmintrin.h>
 #include <stdlib.h>
 #include <string.h>
@@ -139,7 +139,7 @@ void HBeamformer::MakePlans(bool estimate) {
                                                 fftwFlags);
 
 #ifdef _OPENMP
-    fftwf_plan_with_nthreads(NumProcessorsOnline());
+    fftwf_plan_with_nthreads(GetNumProcs());
 #endif
     const int vstaves = numVStaves;
     forwardPlan_FFTW_VirtualGeometry = ::fftwf_plan_many_dft(1, &vstaves, length,
