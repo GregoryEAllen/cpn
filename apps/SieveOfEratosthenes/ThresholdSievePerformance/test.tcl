@@ -21,7 +21,7 @@ set iterations 5
 set wheel 0
 set zerocopy 0
 set minimumprime 1000
-set maximumprime 1000000
+set maximumprime 100000000
 
 # First test for ppn = 1, w = 0
 
@@ -41,7 +41,7 @@ for {set maxprime $minimumprime} {$maxprime <= $maximumprime} {set maxprime [exp
     incr num
 }
 
-set maximumprime 100000000
+set maximumprime 1000000000
 set ppn "5,0,0"
 
 for {set maxprime $minimumprime} {$maxprime <= $maximumprime} {set maxprime [expr $maxprime * 10]} {

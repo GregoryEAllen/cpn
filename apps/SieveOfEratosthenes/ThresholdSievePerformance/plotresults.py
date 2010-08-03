@@ -32,7 +32,7 @@ fid.close()
 lgd = lines[1:]
 lgd2 = [ lgd[i] for i in idx ]
 
-pylab.legend(lgd2,loc=4)
+pylab.legend(lgd2,loc='upper left')
 
 pylab.savefig('result.pdf')
 

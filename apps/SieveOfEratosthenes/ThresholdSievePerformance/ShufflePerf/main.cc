@@ -26,9 +26,15 @@ Variant ReadValues(FILE *f) {
 
 std::string BuildLegendString(Variant run) {
     std::ostringstream oss;
-    oss << "wheel: " << run["primewheel"].AsString() << " ";
-    oss << "ppf: " << VariantToJSON(run["ppf"]) << " ";
-    oss << "zc: " << run["zerocopy"].AsString() << " ";
+    oss << "wheel: " << run["primewheel"].AsInt() << " ";
+    oss << "ppf: [";
+    for (Variant::ListIterator itr = run["ppf"].ListBegin(), end = run["ppf"].ListEnd();
+           itr != end; ++itr) {
+        oss << itr->AsDouble();
+        if (itr + 1 != end) oss << ", ";
+        else oss << "] ";
+    }
+    oss << "zc: " << run["zerocopy"].AsInt() << " ";
     return oss.str();
 }
 
@@ -158,7 +164,7 @@ int main(int argc, char **argv) {
                 output.Append(*itr);
             }
         }
-        puts(VariantToJSON(output).c_str());
+        puts(VariantToJSON(output, true).c_str());
     }
     return 0;
 }
