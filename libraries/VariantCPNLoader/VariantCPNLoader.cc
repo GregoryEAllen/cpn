@@ -38,6 +38,34 @@ VariantCPNLoader::VariantCPNLoader() { }
 VariantCPNLoader::VariantCPNLoader(Variant conf) : config(conf) { } 
 VariantCPNLoader::~VariantCPNLoader() { } 
 
+void VariantCPNLoader::UseD4R(bool value) {
+    config["database"]["d4r"] = value;
+}
+
+void VariantCPNLoader::GrowQueueMaxThreshold(bool value) {
+    config["database"]["grow-queue-max-threshold"] = value;
+}
+
+void VariantCPNLoader::SwallowBrokenQueueExceptions(bool value) {
+    config["database"]["swallow-broken-queue-exceptions"] = value;
+}
+
+void VariantCPNLoader::AddLib(const std::string &filename) {
+    config["database"]["libs"].Append(filename);
+}
+
+void VariantCPNLoader::AddLibList(const std::string &filename) {
+    config["database"]["liblist"].Append(filename);
+}
+
+void VariantCPNLoader::DatabaseHost(const std::string &host) {
+    config["database"]["host"] = host;
+}
+
+void VariantCPNLoader::DatabasePort(const std::string &port) {
+    config["database"]["port"] = port;
+}
+
 void VariantCPNLoader::MergeConfig(Variant v) {
     Variant::MapIterator topitr = v.MapBegin(), topend = v.MapEnd();
     for (;topitr != topend; ++topitr) {

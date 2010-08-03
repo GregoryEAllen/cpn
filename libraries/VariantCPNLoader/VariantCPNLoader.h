@@ -32,8 +32,17 @@ public:
     ~VariantCPNLoader();
 
     Variant &GetConfig() { return config; }
-
     void MergeConfig(Variant v);
+
+    // Database functions
+    void UseD4R(bool value);
+    void GrowQueueMaxThreshold(bool value);
+    void SwallowBrokenQueueExceptions(bool value);
+    void AddLib(const std::string &filename);
+    void AddLibList(const std::string &filename);
+    void DatabaseHost(const std::string &host);
+    void DatabasePort(const std::string &port);
+
     void AddNode(Variant v);
     void AddQueue(Variant v);
     void AddNodeMapping(const std::string &noden, const std::string &kernn);
