@@ -8,6 +8,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 using std::complex;
 
 static const char* const VALID_OPTS = "hi:o:er:np:";
@@ -45,7 +49,13 @@ int hb_main(int argc, char **argv) {
             nooutput = true;
             break;
         case 'p':
-            SetNumProcs(atoi(optarg));
+            {
+                int num_threads = atoi(optarg);
+                SetNumProcs(num_threads);
+#ifdef _OPENMP
+                omp_set_num_threads(num_threads);
+#endif
+            }
             break;
         case -1:
             procOpts = false;

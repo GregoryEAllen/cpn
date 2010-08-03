@@ -23,6 +23,10 @@
 #include <unistd.h>
 #include <vector>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 using std::complex;
 using CPN::shared_ptr;
 using CPN::Database;
@@ -205,7 +209,13 @@ int cpnbf_main(int argc, char **argv) {
             print_config = true;
             break;
         case 'p':
-            SetNumProcs(atoi(optarg));
+            {
+                int num_threads = atoi(optarg);
+                SetNumProcs(num_threads);
+#ifdef _OPENMP
+                omp_set_num_threads(num_threads);
+#endif
+            }
             break;
         case 'f':
             use_fan = ParseBool(optarg);

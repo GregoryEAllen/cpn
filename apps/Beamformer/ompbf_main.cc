@@ -11,6 +11,10 @@
 #include <sys/time.h>
 #include <stdio.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 using std::complex;
 
 static double getTime() {
@@ -51,7 +55,13 @@ int ompbf_main(int argc, char **argv) {
             output_file = optarg;
             break;
         case 'p':
-            SetNumProcs(atoi(optarg));
+            {
+                int num_threads = atoi(optarg);
+                SetNumProcs(num_threads);
+#ifdef _OPENMP
+                omp_set_num_threads(num_threads);
+#endif
+            }
             break;
         case 'e':
             estimate = true;
