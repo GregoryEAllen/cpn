@@ -76,8 +76,7 @@ static void PrintDatabaseHelp(Variant &config) {
 
 }
 
-static bool ParseDatabaseSubOpts(Variant &config) {
-    Variant &v = config["database"];
+static bool ParseDatabaseSubOpts(VariantCPNLoader &loader) {
     enum { opd4r, opnd4r, opgqmt, opngqmt, opsbqe, opnsbqe, oplib, ophost, opport, ophelp, oplist, opend };
     char *opts[opend + 1];
     opts[opd4r] = "d4r";
@@ -97,50 +96,50 @@ static bool ParseDatabaseSubOpts(Variant &config) {
     while (*subopt != '\0') {
         switch (getsubopt(&subopt, opts, &valuep)) {
         case opd4r: // d4r
-            v["d4r"] = true;
+            loader.UseD4R(true);
             break;
         case opnd4r: // no-d4r
-            v["d4r"] = false;
+            loader.UseD4R(false);
             break;
         case opgqmt: // gqmt
-            v["grow-queue-max-threshold"] = true;
+            loader.GrowQueueMaxThreshold(true);
             break;
         case opngqmt: // no-gqmt
-            v["grow-queue-max-threshold"] = false;
+            loader.GrowQueueMaxThreshold(false);
             break;
         case opsbqe: // sbqe
-            v["swallow-broken-queue-exceptions"] = true;
+            loader.SwallowBrokenQueueExceptions(true);
             break;
         case opnsbqe: // no-sbqe
-            v["swallow-broken-queue-exceptions"] = false;
+            loader.SwallowBrokenQueueExceptions(false);
             break;
         case oplib: // lib
             if (valuep == 0) {
                 std::cerr << "The " << opts[oplib] << " options requires a parameter\n";
                 return false;
             }
-            v["libs"].Append(valuep);
+            loader.AddLib(valuep);
             break;
         case oplist:
             if (valuep == 0) {
                 std::cerr << "The " << opts[oplist] << " options requires a parameter\n";
                 return false;
             }
-            v["liblist"].Append(valuep);
+            loader.AddLibList(valuep);
             break;
         case ophost:
             if (valuep == 0) {
                 std::cerr << "The " << opts[ophost] << " options requires a parameter\n";
                 return false;
             }
-            v["host"] = valuep;
+            loader.DatabaseHost(valuep);
             break;
         case opport:
             if (valuep == 0) {
                 std::cerr << "The " << opts[opport] << " options requires a parameter\n";
                 return false;
             }
-            v["port"] = valuep;
+            loader.DatabasePort(valuep);
             break;
         case ophelp:
         default:
@@ -197,7 +196,7 @@ int main(int argc, char **argv) {
             config["wait-node"] = optarg;
             break;
         case 'd':
-            if (!ParseDatabaseSubOpts(config)) {
+            if (!ParseDatabaseSubOpts(loader)) {
                 print_db_help = true;
             }
             break;
