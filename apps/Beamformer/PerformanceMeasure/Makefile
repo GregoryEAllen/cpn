@@ -10,6 +10,10 @@ define make_data
 	OMP_WAIT_POLICY=$(2) /usr/bin/time -v $($(1)) -p $(3) 2>&1 | tee $(4)
 endef
 
+define make_data_spin
+	GOMP_SPINCOUNT=$(2) /usr/bin/time -v $($(1)) -p $(3) 2>&1 | tee $(4)
+endef
+
 compute_format = awk -F '[[:space:].:]*' '{ printf "%02d %s.%s\n", $$2, $$5, $$6 }' | sort
 define compute_avg
 	egrep 'Avg:' $(1) | $(compute_format) > $(2)
