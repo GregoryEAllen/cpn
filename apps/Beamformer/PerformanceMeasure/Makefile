@@ -32,10 +32,6 @@ TARGETS += result.full.max.pdf result.half.max.pdf
 
 all: $(TARGETS)
 
-data: $(data_files)
-
-intermediate: $(intermediate_files)
-
 clean:
 	$(RM) $(TARGETS) $(intermediate_files)
 
@@ -46,3 +42,8 @@ data.mk: gen_data_mk.py
 	python gen_data_mk.py > $@
 
 include data.mk
+
+data: $(data_files)
+
+intermediate: $(intermediate_files)
+
