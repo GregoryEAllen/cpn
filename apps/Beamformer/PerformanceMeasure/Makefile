@@ -32,6 +32,10 @@ TARGETS += result.full.max.pdf result.half.max.pdf
 
 all: $(TARGETS)
 
+data: $(data_files)
+
+intermediate: $(intermediate_files)
+
 clean:
 	$(RM) $(TARGETS) $(intermediate_files)
 
