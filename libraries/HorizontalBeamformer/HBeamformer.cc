@@ -18,8 +18,8 @@
 
 using std::complex;
 
-void transpose_and_cmul_matrix(__m128d *in, __m128d *out, __m128d *mul, int M, int N, int blockM, int blockN);
-void vec_cpx_mul(const float* a, const float* b, float* d, unsigned count);
+void transpose_and_cmul_matrix(__m128d *in, __m128d *out, __m128d *mul, int M, int N);
+void vec_cpx_mul(const float* a, const float* b, float* d, int count);
 void transpose_matrix(__m128d *in, __m128d *out, int M, int N, int blockM, int blockN);
 
 static double getTime() {
@@ -267,6 +267,7 @@ void HBeamformer::Stage1(const complex<float> *inptr, unsigned instride) {
         ::fftwf_execute_dft (forwardPlan_FFTW_RealGeometry, in, out);
     }
 
+    timevals.push_back(getTime());
     TransposeScatter((__m128d*) workingData,
                         (__m128d*) scratchData);
     std::swap(workingData, scratchData);
@@ -303,8 +304,7 @@ void HBeamformer::Stage5() {
     transpose_and_cmul_matrix((__m128d *) workingData, 
                         (__m128d *) scratchData, 
                         (__m128d *) replica,
-                        length, numBeams,
-                        128, 4);
+                        length, numBeams);
     std::swap(workingData, scratchData);
 }
 
@@ -361,34 +361,25 @@ void HBeamformer::TransposeScatter(__m128d *in, __m128d *out) {
                         break;
                     case 1:
                         for (unsigned jj = j; jj < j + blockN/2; jj+=1 ) {
-                            __m128d x, y;
-                            y = in[jj + (ii*N) + N/2];
-                            x = _mm_unpacklo_pd(zero_vector, y);
-                            y = _mm_unpackhi_pd(zero_vector, y);
-                            out[ii + jj*M] = x;
-                            out[ii + (jj*M)+M/2] = y;
+                            __m128d y = in[jj + (ii*N) + N/2];
+                            out[ii + jj*M] =  _mm_unpacklo_pd(zero_vector, y);
+                            out[ii + (jj*M)+M/2] = _mm_unpackhi_pd(zero_vector, y);
                         }
                         break;
                     case 2:
                         for (unsigned jj = j; jj < j + blockN/2; jj+=1 ) {
-                            __m128d x, y;
-                            x = in[jj + ii*N];
-                            y = _mm_unpackhi_pd(x, zero_vector);
-                            x = _mm_unpacklo_pd(x, zero_vector);
-                            out[ii + jj*M] = x;
-                            out[ii + (jj*M)+M/2] = y;
+                            __m128d x = in[jj + ii*N];
+                            out[ii + jj*M] = _mm_unpacklo_pd(x, zero_vector);
+                            out[ii + (jj*M)+M/2] = _mm_unpackhi_pd(x, zero_vector);
                         }
                         break;
                     case 3:
                         for (unsigned jj = j; jj < j + blockN/2; jj+=1 ) {
-                            __m128d x, y, temp;
+                            __m128d x, y;
                             x = in[jj + ii*N];
                             y = in[jj + (ii*N) + N/2];
-                            temp = x;
-                            x = _mm_unpacklo_pd(x, y);
-                            y = _mm_unpackhi_pd(temp, y);
-                            out[ii + jj*M] = x;
-                            out[ii + (jj*M)+M/2] = y;
+                            out[ii + jj*M] = _mm_unpacklo_pd(x, y);
+                            out[ii + (jj*M)+M/2] = _mm_unpackhi_pd(x, y);
                         }
                         break;
                 }
@@ -398,66 +389,81 @@ void HBeamformer::TransposeScatter(__m128d *in, __m128d *out) {
 }
 
 
-void vec_cpx_mul(const float* a, const float* b, float* d, unsigned count) 
+void vec_cpx_mul(const float* a, const float* b, float* d, int count) 
 {
     count /= 2;    // count in double vectors
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (unsigned i=0; i < count; i += 1) {
+    for (int i = 0; i < count; ++i) {
+        //_mm_prefetch(&a[(i + 16) * 4], _MM_HINT_T0);
+        //_mm_prefetch(&b[(i + 16) * 4], _MM_HINT_T0);
+        //_mm_prefetch(&d[(i + 16) * 4], _MM_HINT_T0);
         __m128 A, B, C, D;
-        A = _mm_load_ps(&a[i*4]);       // A = [ a0r a0i a1r a1i ]
+        A = _mm_load_ps(&a[i * 4]);       // A = [ a0r a0i a1r a1i ]
         C = _mm_moveldup_ps(A);         // C = [ a0r a0r a1r a1r ]
-        B = _mm_load_ps(&b[i*4]);       // B = [ b0r b0i b1r b1i ]
+        B = _mm_load_ps(&b[i * 4]);       // B = [ b0r b0i b1r b1i ]
         D = _mm_mul_ps(C, B);           // D = [ a0r*b0r a0r*b0i a1r*b1r a1r*b1i ]
         C = _mm_shuffle_ps(B, B, 0xB1); // C = [ b0i b0r b1i b1r ]
         A = _mm_movehdup_ps(A);         // A = [ a0i a0i a1i a1i ]
         A = _mm_mul_ps(A, C);           // A = [ a0i*b0i a0i*b0r a1i*b1i a1i*b1r ]
         D = _mm_addsub_ps(D, A);        // D = [ a0r*b0r-a0i*b0i a0r*b0i+a0i*b0r a1r*b1r-a1i*b1i a1r*b1i+a1i*b1r ]
-        _mm_store_ps(&d[i*4], D);
+        _mm_store_ps(&d[i * 4], D);
     }
 }
 
 
-void transpose_and_cmul_matrix(__m128d *in, __m128d *out, __m128d *mul, int M, int N, int blockM, int blockN) {
+void transpose_and_cmul_matrix(__m128d *in, __m128d *out, __m128d *mul, int M, int N) {
 
+    static const int blockM = 128;
+    static const int blockN = 4;
     ASSERT(!((M % blockM) || (N % blockN)));
+
+    static const int LOOK_AHEAD = 8;
+
+
+#define TACM_PROCESS(ii, jj) do {\
+                    __m128d x,y,temp;\
+                    __m128 xr,xi,yr,yi,temp1a,temp2a,temp3a,ma,temp1b,temp2b,temp3b,mb;\
+                    x = in[jj + ii*N];\
+                    y = in[jj + (ii*N) + N/2];\
+                    ma = _mm_load_ps((const float *)&mul[ii + jj*M]);\
+                    mb = _mm_load_ps((const float *)&mul[ii + jj*M + M/2]);\
+                    temp = x;\
+                    x = _mm_unpacklo_pd(x,y);\
+                    y = _mm_unpackhi_pd(temp,y);\
+                    xr = _mm_moveldup_ps((__m128)x);\
+                    temp1a = _mm_mul_ps(xr, ma);\
+                    temp3a = _mm_shuffle_ps(ma, ma, 0xB1);\
+                    xi = _mm_movehdup_ps((__m128)x);\
+                    temp2a = _mm_mul_ps(xi, temp3a);\
+                    x = (__m128d)_mm_addsub_ps(temp1a, temp2a);\
+                    out[ii + jj*M] = x;\
+                    yr = _mm_moveldup_ps((__m128)y);\
+                    temp3b = _mm_shuffle_ps(mb, mb, 0xB1);\
+                    temp1b = _mm_mul_ps(yr, mb);\
+                    yi = _mm_movehdup_ps((__m128)y);\
+                    temp2b = _mm_mul_ps(yi, temp3b);\
+                    y = (__m128d)_mm_addsub_ps(temp1b, temp2b);\
+                    out[ii + (jj*M)+M/2] = y;\
+                } while(0)
+
+#define TACM_SECOND_PROCESS(ii, j) do {\
+                _mm_prefetch(&in[j + (ii * N) + LOOK_AHEAD], _MM_HINT_T0);\
+                _mm_prefetch(&in[j + (ii * N) + N/2 + LOOK_AHEAD], _MM_HINT_T0);\
+                _mm_prefetch(&out[ii + ((j + LOOK_AHEAD) * M)], _MM_HINT_T0);\
+                _mm_prefetch(&out[ii + ((j + LOOK_AHEAD) * M) + M/2], _MM_HINT_T0);\
+                TACM_PROCESS(ii, j + 0);\
+                TACM_PROCESS(ii, j + 1);\
+            } while (0)
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
     for (int i = 0; i < M/2; i += blockM/2) {
         for (int j = 0; j < N/2; j += blockN/2) {
-            for (int ii = i; ii < i + blockM/2; ii+=1) {
-                for (int jj = j; jj < j + blockN/2; jj+=1 ) {
-                    __m128d x,y,temp;
-                    __m128 xr,xi,yr,yi,temp1a,temp2a,temp3a,ma,temp1b,temp2b,temp3b,mb;
-                    x = in[jj + ii*N];
-                    y = in[jj + (ii*N) + N/2];
-                    ma = _mm_load_ps((const float *)&mul[ii + jj*M]);
-                    mb = _mm_load_ps((const float *)&mul[ii + jj*M+M/2]);
-                    temp = x;
-                    x = _mm_unpacklo_pd(x,y);
-                    y = _mm_unpackhi_pd(temp,y);
-                    //transpose done, now do the multiply on each element
-                    //first and second element
-                    xr = _mm_moveldup_ps((__m128)x);                //SSE3 specific
-                    temp1a = _mm_mul_ps(xr, ma);
-                    temp3a = _mm_shuffle_ps(ma, ma, 0xB1);
-                    xi = _mm_movehdup_ps((__m128)x);                            //SSE3 specific
-                    temp2a = _mm_mul_ps(xi, temp3a);
-                    x = (__m128d)_mm_addsub_ps(temp1a, temp2a); //SSE3 specifintec
-                    //third and fourth element
-                    out[ii + jj*M] = x;
-                    yr = _mm_moveldup_ps((__m128)y);                //SSE3 specific
-                    temp3b = _mm_shuffle_ps(mb, mb, 0xB1);
-                    temp1b = _mm_mul_ps(yr, mb);
-                    yi = _mm_movehdup_ps((__m128)y);                            //SSE3 specific
-                    temp2b = _mm_mul_ps(yi, temp3b);
-                    y = (__m128d)_mm_addsub_ps(temp1b, temp2b); //SSE3 specific
-                    out[ii + (jj*M)+M/2] = y;
-                }
-            }
+            for (int ii = i; ii < i + blockM/2; ii+=1)
+                TACM_SECOND_PROCESS(ii, j);
         }
     }
 }
