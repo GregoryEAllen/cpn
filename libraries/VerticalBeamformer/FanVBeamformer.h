@@ -9,9 +9,12 @@ class FanVBeamformer {
 public:
     enum Algorithm_t {
         ALGO_BEGIN = 0,
-        GENERIC = 0,
-        GENERIC_VECTOR = 1,
-        SSE_VECTOR = 2,
+        AUTO = 0,
+        GENERIC = 1,
+        GENERIC_VECTOR = 2,
+        SSE_VECTOR = 3,
+        SSE_VECTOR_HARD = 4,
+        SSE_VECTOR_HARDCODE = 5,
         ALGO_END
     };
 

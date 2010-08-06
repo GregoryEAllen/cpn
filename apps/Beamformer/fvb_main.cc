@@ -39,7 +39,7 @@ int fvb_main(int argc, char **argv) {
     bool procOpts = true;
     std::string input_file;
     std::string output_file;
-    FanVBeamformer::Algorithm_t algo = FanVBeamformer::SSE_VECTOR;
+    FanVBeamformer::Algorithm_t algo = FanVBeamformer::AUTO;
     unsigned fan = -1;
     unsigned repetitions = 1;
     bool nooutput = false;

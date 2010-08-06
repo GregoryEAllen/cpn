@@ -293,6 +293,191 @@ static void fvbf_sse_vector(
     }
 }
 
+static void fvbf_sse_vector_hard(
+    const complex<short> *indata,
+    unsigned instride,
+    unsigned numStaves,
+    unsigned numSamples,
+    float *filter,
+    complex<float> *bbCorrect,
+    unsigned numStaveTypes,
+    unsigned numElemsPerStave,
+    unsigned filterLen,
+    FanVBeamformer::ResVec *rv,
+    unsigned numres,
+    unsigned &numOutSamples
+    )
+{
+    ASSERT(numElemsPerStave == 12);
+
+    const unsigned BLOCKSIZE = 4;
+    const unsigned CVECSIZE = 2;
+    const unsigned BLOCKSPFILT = filterLen/BLOCKSIZE;
+    const unsigned VECPFILT = filterLen/CVECSIZE;
+    const unsigned NUMELEMSPERSTAVE = 12;
+
+    numOutSamples = numSamples - filterLen;
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (unsigned stave = 0; stave < numStaves; ++stave) {
+        unsigned stavetype = stave % numStaveTypes;
+        const complex<short> *instave = &indata[stave * instride * NUMELEMSPERSTAVE];
+        cvector s[NUMELEMSPERSTAVE][VECPFILT + CVECSIZE];
+        for (unsigned i = 0; i < NUMELEMSPERSTAVE; ++i) {
+            for (unsigned j = 0; j < VECPFILT; ++j) {
+                s[i][j + CVECSIZE] = _mm_setzero_ps();
+            }
+        }
+        for (unsigned samp = 0; samp < numOutSamples; samp += BLOCKSIZE) {
+            //for (unsigned elem = 0; elem < NUMELEMSPERSTAVE; ++elem)
+#define GRAB_NEXT_SAMPLE(element) do {\
+                const unsigned elem = element;\
+                __m128i e1 = *((__m128i*)&instave[elem * instride + samp]);\
+                __m128i e2 = e1;\
+                e1 = _mm_unpacklo_epi16(e1, e1);\
+                e1 = _mm_srai_epi32(e1, 16);\
+                s[elem][1] = _mm_cvtepi32_ps(e1);\
+                e2 = _mm_unpackhi_epi16(e2, e2);\
+                e2 = _mm_srai_epi32(e2, 16);\
+                s[elem][0] = _mm_cvtepi32_ps(e2);\
+            } while (0)
+            unsigned element = 0;
+            GRAB_NEXT_SAMPLE(element++);
+            GRAB_NEXT_SAMPLE(element++);
+            GRAB_NEXT_SAMPLE(element++);
+            GRAB_NEXT_SAMPLE(element++);
+
+            GRAB_NEXT_SAMPLE(element++);
+            GRAB_NEXT_SAMPLE(element++);
+            GRAB_NEXT_SAMPLE(element++);
+            GRAB_NEXT_SAMPLE(element++);
+
+            GRAB_NEXT_SAMPLE(element++);
+            GRAB_NEXT_SAMPLE(element++);
+            GRAB_NEXT_SAMPLE(element++);
+            GRAB_NEXT_SAMPLE(element++);
+
+            for (unsigned res = 0; res < numres; ++res) {
+
+                unsigned fan = rv[res].fan;
+                complex<float> *outdata = rv[res].outdata;
+                unsigned outstride = rv[res].outstride;
+                float *fanfilter = &filter[fan * numStaveTypes * NUMELEMSPERSTAVE * filterLen + stavetype * NUMELEMSPERSTAVE * filterLen];
+                complex<float> *fanbbCorrect = &bbCorrect[fan * numStaveTypes * NUMELEMSPERSTAVE];
+
+                cvector stave_acc[CVECSIZE];
+                for (unsigned i = 0; i < CVECSIZE; ++i) {
+                    stave_acc[i] = _mm_setzero_ps();
+                }
+
+                //for (unsigned elem = 0; elem < NUMELEMSPERSTAVE; ++elem)
+#define PROC_ELEMENT(element) do {\
+                    const unsigned elem = element;\
+                    float *filt = &fanfilter[elem * filterLen];\
+                    cvector elem_acc[CVECSIZE];\
+                    for (unsigned i = 0; i < CVECSIZE; ++i) {\
+                        elem_acc[i] = _mm_setzero_ps();\
+                    }\
+                    for (unsigned fi = 0; fi < BLOCKSPFILT; fi += 1) {\
+                        vector coeffs = *((vector*)&filt[fi * BLOCKSIZE]);\
+                        cvector c = _mm_shuffle_ps(coeffs, coeffs, 0x00);\
+                        elem_acc[0] += s[elem][VECPFILT*fi + 1] * c;\
+                        elem_acc[1] += s[elem][VECPFILT*fi + 0] * c;\
+                        c = _mm_shuffle_ps(coeffs, coeffs, 0x55);\
+                        cvector temp = _mm_shuffle_ps(s[elem][VECPFILT*fi + 2], s[elem][VECPFILT*fi + 1], 0x4E);\
+                        elem_acc[0] += temp * c;\
+                        elem_acc[1] += _mm_shuffle_ps(s[elem][VECPFILT*fi + 1], s[elem][VECPFILT*fi + 0], 0x4E) * c;\
+                        c = _mm_shuffle_ps(coeffs, coeffs, 0xAA);\
+                        elem_acc[0] += s[elem][VECPFILT*fi + 2] * c;\
+                        elem_acc[1] += s[elem][VECPFILT*fi + 1] * c;\
+                        c = _mm_shuffle_ps(coeffs, coeffs, 0xFF);\
+                        elem_acc[0] += _mm_shuffle_ps(s[elem][VECPFILT*fi + 3], s[elem][VECPFILT*fi + 2], 0x4E) * c;\
+                        elem_acc[1] += temp * c;\
+                    }\
+                    complex<float> bbCor = fanbbCorrect[stavetype * NUMELEMSPERSTAVE + elem];\
+                    cvector cpx = _mm_setr_ps(bbCor.real(), bbCor.imag(), bbCor.real(), bbCor.imag());\
+                    for (unsigned i = 0; i < CVECSIZE; ++i) {\
+                        stave_acc[i] += cmult(elem_acc[i], cpx);\
+                    }\
+                } while (0)
+                element = 0;
+                PROC_ELEMENT(element++);
+                PROC_ELEMENT(element++);
+                PROC_ELEMENT(element++);
+                PROC_ELEMENT(element++);
+
+                PROC_ELEMENT(element++);
+                PROC_ELEMENT(element++);
+                PROC_ELEMENT(element++);
+                PROC_ELEMENT(element++);
+
+                PROC_ELEMENT(element++);
+                PROC_ELEMENT(element++);
+                PROC_ELEMENT(element++);
+                PROC_ELEMENT(element++);
+
+                for (unsigned i = 0; i < CVECSIZE; ++i) {
+                    *((cvector*)&outdata[stave *outstride + samp + i*CVECSIZE]) = stave_acc[i];
+                }
+            }
+            //for (unsigned elem = 0; elem < NUMELEMSPERSTAVE; ++elem)
+#define SHIFT_ELEM(element) do {\
+                const unsigned elem = element;\
+                for (int i = VECPFILT; i > 0; i -= CVECSIZE) {\
+                    for (unsigned j = 0; j < CVECSIZE; ++j) {\
+                        s[elem][i + j] = s[elem][i + j - CVECSIZE];\
+                    }\
+                }\
+            } while (0)
+            element = 0;
+            SHIFT_ELEM(element++);
+            SHIFT_ELEM(element++);
+            SHIFT_ELEM(element++);
+            SHIFT_ELEM(element++);
+
+            SHIFT_ELEM(element++);
+            SHIFT_ELEM(element++);
+            SHIFT_ELEM(element++);
+            SHIFT_ELEM(element++);
+
+            SHIFT_ELEM(element++);
+            SHIFT_ELEM(element++);
+            SHIFT_ELEM(element++);
+            SHIFT_ELEM(element++);
+        }
+    }
+}
+void fvbf_sse_vector_hardcode(
+    const complex<short> *indata,
+    unsigned instride,
+    unsigned numStaves,
+    unsigned numSamples,
+    float *filter,
+    complex<float> *bbCorrect,
+    unsigned numStaveTypes,
+    unsigned numElemsPerStave,
+    unsigned filterLen,
+    FanVBeamformer::ResVec *rv,
+    unsigned numres,
+    unsigned &numOutSamples
+    );
+bool fvbf_sse_vector_hardcode_check(
+    const complex<short> *indata,
+    unsigned instride,
+    unsigned numStaves,
+    unsigned numSamples,
+    float *filter,
+    complex<float> *bbCorrect,
+    unsigned numStaveTypes,
+    unsigned numElemsPerStave,
+    unsigned filterLen,
+    FanVBeamformer::ResVec *rv,
+    unsigned numres,
+    unsigned &numOutSamples
+    );
+
+
 unsigned FanVBeamformer::Run(const std::complex<short> *indata, unsigned instride,
         unsigned numStaves, unsigned numSamples, ResVec *rv, unsigned numres) {
     unsigned numOutputSamples = 0;;
@@ -345,7 +530,116 @@ unsigned FanVBeamformer::Run(const std::complex<short> *indata, unsigned instrid
                 numOutputSamples
                 );
         break;
+    case SSE_VECTOR_HARD:
+        fvbf_sse_vector_hard(
+                indata,
+                instride,
+                numStaves,
+                numSamples,
+                filter,
+                bbCorrect,
+                numStaveTypes,
+                numElemsPerStave,
+                filterLen,
+                rv,
+                numres,
+                numOutputSamples
+                );
+        break;
+    case SSE_VECTOR_HARDCODE:
+        fvbf_sse_vector_hardcode(
+                indata,
+                instride,
+                numStaves,
+                numSamples,
+                filter,
+                bbCorrect,
+                numStaveTypes,
+                numElemsPerStave,
+                filterLen,
+                rv,
+                numres,
+                numOutputSamples
+                );
+        break;
+    case AUTO:
     default:
+
+        if (fvbf_sse_vector_hardcode_check(
+                indata,
+                instride,
+                numStaves,
+                numSamples,
+                filter,
+                bbCorrect,
+                numStaveTypes,
+                numElemsPerStave,
+                filterLen,
+                rv,
+                numres,
+                numOutputSamples)) {
+            fvbf_sse_vector_hardcode(
+                    indata,
+                    instride,
+                    numStaves,
+                    numSamples,
+                    filter,
+                    bbCorrect,
+                    numStaveTypes,
+                    numElemsPerStave,
+                    filterLen,
+                    rv,
+                    numres,
+                    numOutputSamples
+                    );
+        } else if (filterLen % 4 == 0) {
+            if (numElemsPerStave == 12) {
+                fvbf_sse_vector_hard(
+                        indata,
+                        instride,
+                        numStaves,
+                        numSamples,
+                        filter,
+                        bbCorrect,
+                        numStaveTypes,
+                        numElemsPerStave,
+                        filterLen,
+                        rv,
+                        numres,
+                        numOutputSamples
+                        );
+            } else {
+                fvbf_sse_vector(
+                        indata,
+                        instride,
+                        numStaves,
+                        numSamples,
+                        filter,
+                        bbCorrect,
+                        numStaveTypes,
+                        numElemsPerStave,
+                        filterLen,
+                        rv,
+                        numres,
+                        numOutputSamples
+                        );
+            }
+        } else {
+            fvbf_generic(
+                    indata,
+                    instride,
+                    numStaves,
+                    numSamples,
+                    filter,
+                    bbCorrect,
+                    numStaveTypes,
+                    numElemsPerStave,
+                    filterLen,
+                    rv,
+                    numres,
+                    numOutputSamples
+                    );
+        }
         break;
     }
     return numOutputSamples;

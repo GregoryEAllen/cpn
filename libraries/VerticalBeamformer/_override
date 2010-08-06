@@ -1,16 +1,19 @@
 
+_gen_FVBHardcode.cc: gen_fvhardcode.py
+	python $< > $@
+
 CC_OTHER += -fopenmp
 USE_OMP=1
 ifdef USE_OMP
     OS_LIBS += -lgomp
 endif
 
-CC_OTHER += -Wfatal-errors
+CC_OTHER += -Wfatal-errors -Winline
 
 CC_OTHER += -mmmx -m3dnow -msse -msse2 -msse3 -mssse3
 # enable the sse
 
-#CC_OTHER += -floop-optimize2
+CC_OTHER += -floop-optimize2
 # More loop optimizations? try and see
 
 CC_OTHER += -funsafe-loop-optimizations
@@ -26,5 +29,36 @@ CC_OTHER += -funroll-loops
 CC_OTHER += -ftree-loop-linear
 #    Perform linear loop transformations on tree. This flag can improve cache performance and allow further loop optimizations to take place. 
 
-#CC_OTHER += -ftree-vectorize
+CC_OTHER += -ftree-vectorize
 #    Perform loop vectorizatin on trees
+
+#CC_OTHER += -fmodulo-sched
+#    Perform swing modulo scheduling immediately before the first scheduling pass. This pass looks at innermost loops and reorders their instructions by overlapping different iterations.
+
+CC_OTHER += -fgcse-sm
+#    When -fgcse-sm is enabled, a store motion pass is run after global common subexpression elimination. This pass will attempt to move stores out of loops. When used in conjunction with -fgcse-lm, loops containing a load/store sequence can be changed to a load before the loop and a store after the loop.
+
+CC_OTHER += -fgcse-las
+#    When -fgcse-las is enabled, the global common subexpression elimination pass eliminates redundant loads that come after stores to the same memory location (both partial and full redundancies).
+
+CC_OTHER += -fgcse-after-reload
+#    When -fgcse-after-reload is enabled, a redundant load elimination pass is performed after reload. The purpose of this pass is to cleanup redundant spilling. 
+
+#CC_OTHER += -fprefetch-loop-arrays
+
+CC_OTHER += -ftree-loop-im
+#    Perform loop invariant motion on trees. This pass moves only invariants that would be hard to handle at RTL level (function calls, operations that expand to nontrivial sequences of insns). With -funswitch-loops it also moves operands of conditions that are invariant out of the loop, so that we can use just trivial invariantness analysis in loop unswitching. The pass also includes store motion.
+
+CC_OTHER += -ftree-loop-ivcanon
+#    Create a canonical counter for number of iterations in the loop for that determining number of iterations requires complicated analysis. Later optimizations then may determine the number easily. Useful especially in connection with unrolling.
+
+CC_OTHER += -fivopts
+#    Perform induction variable optimizations (strength reduction, induction variable merging and induction variable elimination) on trees. 
+
+CC_OTHER += -fpeel-loops
+#    Peels the loops for that there is enough information that they do not roll much (from profile feedback). It also turns on complete loop peeling (i.e. complete removal of loops with small constant number of iterations).
+
+CC_OTHER += -funswitch-loops
+#    Move branches with loop invariant conditions out of the loop, with duplicates of the loop on both branches (modified according to result of the condition). 
+
+
