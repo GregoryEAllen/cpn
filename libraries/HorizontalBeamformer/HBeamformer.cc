@@ -422,7 +422,8 @@ void transpose_and_cmul_matrix(__m128d *in, __m128d *out, __m128d *mul, int M, i
     static const int LOOK_AHEAD = 8;
 
 
-#define TACM_PROCESS(ii, jj) do {\
+#define TACM_PROCESS(i_, j_) do {\
+                    int ii = i_, jj = j_;\
                     __m128d x,y,temp;\
                     __m128 xr,xi,yr,yi,temp1a,temp2a,temp3a,ma,temp1b,temp2b,temp3b,mb;\
                     x = in[jj + ii*N];\
@@ -448,13 +449,14 @@ void transpose_and_cmul_matrix(__m128d *in, __m128d *out, __m128d *mul, int M, i
                     out[ii + (jj*M)+M/2] = y;\
                 } while(0)
 
-#define TACM_SECOND_PROCESS(ii, j) do {\
-                _mm_prefetch(&in[j + (ii * N) + LOOK_AHEAD], _MM_HINT_T0);\
-                _mm_prefetch(&in[j + (ii * N) + N/2 + LOOK_AHEAD], _MM_HINT_T0);\
-                _mm_prefetch(&out[ii + ((j + LOOK_AHEAD) * M)], _MM_HINT_T0);\
-                _mm_prefetch(&out[ii + ((j + LOOK_AHEAD) * M) + M/2], _MM_HINT_T0);\
-                TACM_PROCESS(ii, j + 0);\
-                TACM_PROCESS(ii, j + 1);\
+#define TACM_SECOND_PROCESS(i_, j_) do {\
+                int ii_ = i_, jj_ = j_;\
+                _mm_prefetch(&in[jj_ + (ii_ * N) + LOOK_AHEAD], _MM_HINT_T0);\
+                _mm_prefetch(&in[jj_ + (ii_ * N) + N/2 + LOOK_AHEAD], _MM_HINT_T0);\
+                _mm_prefetch(&out[ii_ + ((jj_ + LOOK_AHEAD) * M)], _MM_HINT_T0);\
+                _mm_prefetch(&out[ii_ + ((jj_ + LOOK_AHEAD) * M) + M/2], _MM_HINT_T0);\
+                TACM_PROCESS(ii_, jj_ + 0);\
+                TACM_PROCESS(ii_, jj_ + 1);\
             } while (0)
 
 #ifdef _OPENMP
