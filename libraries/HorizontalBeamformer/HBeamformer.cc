@@ -344,7 +344,7 @@ void HBeamformer::TransposeScatter(__m128d *in, __m128d *out) {
     const unsigned blockM = M/8;
     const unsigned blockN = 8;
 
-    static const __m128d zero_vector[4] = {0};
+    static const __m128d zero_vector[4] = {{0}};
 
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -383,20 +383,53 @@ void HBeamformer::TransposeScatter(__m128d *in, __m128d *out) {
 void vec_cpx_mul(const float* a, const float* b, float* d, int count) 
 {
     count /= 2;    // count in double vectors
+
+    // No apparent difference between these two,
+    // I'm leaving this in here to experiment with later.
+#if 0
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < count; i += 4) {
+        __m128 *A = (__m128*)&a[i *4];
+        __m128 *B = (__m128*)&b[i *4];
+        __m128 *D = (__m128*)&d[i *4];
+
+#define VCM_MUL(A_, B_) _mm_addsub_ps(_mm_mul_ps(_mm_moveldup_ps(A_), B_), _mm_mul_ps(_mm_movehdup_ps(A_), _mm_shuffle_ps(B_, B_, 0xB1)))
+
+        __m128 A1, A2, A3, A4, B1, B2, B3, B4, D1, D2, D3, D4;
+        A1 = *A++;
+        A2 = *A++;
+        A3 = *A++;
+        A4 = *A++;
+        B1 = *B++;
+        B2 = *B++;
+        B3 = *B++;
+        B4 = *B++;
+        D1 = VCM_MUL(A1, B1);
+        D2 = VCM_MUL(A2, B2);
+        D3 = VCM_MUL(A3, B3);
+        D4 = VCM_MUL(A4, B4);
+        *D++ = D1;
+        *D++ = D2;
+        *D++ = D3;
+        *D++ = D4;
+#else
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
     for (int i = 0; i < count; ++i) {
         __m128 A, B, C, D;
         A = _mm_load_ps(&a[i * 4]);     // A = [ a0r a0i a1r a1i ]
-        C = _mm_moveldup_ps(A);         // C = [ a0r a0r a1r a1r ]
         B = _mm_load_ps(&b[i * 4]);     // B = [ b0r b0i b1r b1i ]
+        C = _mm_moveldup_ps(A);         // C = [ a0r a0r a1r a1r ]
         D = _mm_mul_ps(C, B);           // D = [ a0r*b0r a0r*b0i a1r*b1r a1r*b1i ]
         C = _mm_shuffle_ps(B, B, 0xB1); // C = [ b0i b0r b1i b1r ]
         A = _mm_movehdup_ps(A);         // A = [ a0i a0i a1i a1i ]
         A = _mm_mul_ps(A, C);           // A = [ a0i*b0i a0i*b0r a1i*b1i a1i*b1r ]
         D = _mm_addsub_ps(D, A);        // D = [ a0r*b0r-a0i*b0i a0r*b0i+a0i*b0r a1r*b1r-a1i*b1i a1r*b1i+a1i*b1r ]
         _mm_store_ps(&d[i * 4], D);
+#endif
     }
 }
 
