@@ -3,6 +3,7 @@ _gen_FVBHardcode.cc: gen_fvhardcode.py
 	python $< > $@
 
 OBJECTS += _gen_FVBHardcode.o
+LINKOBJECTS += $(OSDIR)/_gen_FVBHardcode.o
 
 CC_OTHER += -fopenmp
 USE_OMP=1
