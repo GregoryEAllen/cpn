@@ -341,48 +341,39 @@ void HBeamformer::TransposeScatter(__m128d *in, __m128d *out) {
 
     const unsigned M = numVStaves;
     const unsigned N = length; 
-    const unsigned blockM = M/4;
-    const unsigned blockN = 4;
+    const unsigned blockM = M/8;
+    const unsigned blockN = 8;
 
-    __m128d zero_vector = {0,0};
+    static const __m128d zero_vector[4] = {0};
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
     for (unsigned i = 0; i < M/2; i += blockM/2) {
         for (unsigned j = 0; j < N/2; j += blockN/2) {
+            const __m128d *input[2][2] = {
+                {zero_vector, zero_vector},
+                {&in[j + i * N], &in[j + i * N + N/2]}
+            };
+            __m128d *out1 = &out[i + j * M];
+            __m128d *out2 = &out[i + j * M + M/2];
+            char *t = &transposeIndices[i];
             for (unsigned ii = i; ii < i + blockM/2; ii+=1) {
-                switch (transposeIndices[ii]) {
-                    case 0:
-                        for (unsigned jj = j; jj < j + blockN/2; jj+=1 ) {
-                            out[ii + jj*M] = zero_vector;
-                            out[ii + (jj*M)+M/2] = zero_vector;
-                        }
-                        break;
-                    case 1:
-                        for (unsigned jj = j; jj < j + blockN/2; jj+=1 ) {
-                            __m128d y = in[jj + (ii*N) + N/2];
-                            out[ii + jj*M] =  _mm_unpacklo_pd(zero_vector, y);
-                            out[ii + (jj*M)+M/2] = _mm_unpackhi_pd(zero_vector, y);
-                        }
-                        break;
-                    case 2:
-                        for (unsigned jj = j; jj < j + blockN/2; jj+=1 ) {
-                            __m128d x = in[jj + ii*N];
-                            out[ii + jj*M] = _mm_unpacklo_pd(x, zero_vector);
-                            out[ii + (jj*M)+M/2] = _mm_unpackhi_pd(x, zero_vector);
-                        }
-                        break;
-                    case 3:
-                        for (unsigned jj = j; jj < j + blockN/2; jj+=1 ) {
-                            __m128d x, y;
-                            x = in[jj + ii*N];
-                            y = in[jj + (ii*N) + N/2];
-                            out[ii + jj*M] = _mm_unpacklo_pd(x, y);
-                            out[ii + (jj*M)+M/2] = _mm_unpackhi_pd(x, y);
-                        }
-                        break;
-                }
+                const __m128d *x = input[((*t)>>1)&1][0];
+                const __m128d *y = input[(*t)&1][1];
+                *out1 = _mm_unpacklo_pd(*(x), *(y));
+                *out2 = _mm_unpackhi_pd(*(x), *(y));
+                *(out1 + M) = _mm_unpacklo_pd(*(++x), *(++y));
+                *(out2 + M) = _mm_unpackhi_pd(*(x), *(y));
+                *(out1 + 2*M) = _mm_unpacklo_pd(*(++x), *(++y));
+                *(out2 + 2*M) = _mm_unpackhi_pd(*(x), *(y));
+                *(out1 + 3*M) = _mm_unpacklo_pd(*(++x), *(++y));
+                *(out2 + 3*M) = _mm_unpackhi_pd(*(x), *(y));
+                ++out1;
+                ++out2;
+                input[1][0] += N;
+                input[1][1] += N;
+                ++t;
             }
         }
     }
@@ -396,13 +387,10 @@ void vec_cpx_mul(const float* a, const float* b, float* d, int count)
 #pragma omp parallel for
 #endif
     for (int i = 0; i < count; ++i) {
-        //_mm_prefetch(&a[(i + 16) * 4], _MM_HINT_T0);
-        //_mm_prefetch(&b[(i + 16) * 4], _MM_HINT_T0);
-        //_mm_prefetch(&d[(i + 16) * 4], _MM_HINT_T0);
         __m128 A, B, C, D;
-        A = _mm_load_ps(&a[i * 4]);       // A = [ a0r a0i a1r a1i ]
+        A = _mm_load_ps(&a[i * 4]);     // A = [ a0r a0i a1r a1i ]
         C = _mm_moveldup_ps(A);         // C = [ a0r a0r a1r a1r ]
-        B = _mm_load_ps(&b[i * 4]);       // B = [ b0r b0i b1r b1i ]
+        B = _mm_load_ps(&b[i * 4]);     // B = [ b0r b0i b1r b1i ]
         D = _mm_mul_ps(C, B);           // D = [ a0r*b0r a0r*b0i a1r*b1r a1r*b1i ]
         C = _mm_shuffle_ps(B, B, 0xB1); // C = [ b0i b0r b1i b1r ]
         A = _mm_movehdup_ps(A);         // A = [ a0i a0i a1i a1i ]
