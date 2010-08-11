@@ -1,22 +1,22 @@
-#include "Kernel.h"
-#include "Variant.h"
 #include "JSONToVariant.h"
+#include "Kernel.h"
+#include "PathUtils.h"
+#include "VariantCPNLoader.h"
+#include "Variant.h"
 #include "VariantToJSON.h"
 #include "XMLToVariant.h"
-#include "VariantCPNLoader.h"
-#include "PathUtils.h"
 
-#include <unistd.h>
-#include <stdlib.h>
 #include <iostream>
+#include <stdlib.h>
 #include <string>
 #include <string.h>
+#include <unistd.h>
 
-using std::string;
-using CPN::shared_ptr;
 using CPN::Database;
 using CPN::Kernel;
 using CPN::KernelAttr;
+using CPN::shared_ptr;
+using std::string;
 
 
 

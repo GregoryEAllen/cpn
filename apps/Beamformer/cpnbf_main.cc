@@ -27,9 +27,9 @@
 #include <omp.h>
 #endif
 
-using std::complex;
-using CPN::shared_ptr;
 using CPN::Database;
+using CPN::shared_ptr;
+using std::complex;
 
 class CPNBFOutputNode : public CPN::NodeBase {
 public:
@@ -173,17 +173,17 @@ CPN_DECLARE_NODE_FACTORY(CPNBFInputNode, CPNBFInputNode);
 static const char* const VALID_OPTS = "hi:o:er:na:s:cf:H:q:p:";
 
 static const char* const HELP_OPTS = "Usage: %s <vertical coefficient file> <horizontal coefficient file>\n"
-"\t-i filename\t Use input file (default stdin)\n"
-"\t-o filename\t Use output file (default stdout)\n"
-"\t-e\t Estimate FFT algorithm rather than measure.\n"
-"\t-r num\t Run num times\n"
 "\t-a n\t Use algorithm n for vertical\n"
-"\t-n \t No output, just time\n"
-"\t-s n\t Scale queue sizes by n\n"
 "\t-c\t Print config and exit\n"
+"\t-e\t Estimate FFT algorithm rather than measure.\n"
+"\t-f yes|no\t Use the 'fan' vertical beamformer (default: yes).\n"
 "\t-h\t Print this message and exit.\n"
 "\t-H yes|no\t Split the horizontal beamformer (default: yes).\n"
-"\t-f yes|no\t Use the 'fan' vertical beamformer (default: yes).\n"
+"\t-i filename\t Use input file\n"
+"\t-n \t No output, just time\n"
+"\t-o filename\t Use output file\n"
+"\t-r num\t Run num times\n"
+"\t-s n\t Scale queue sizes by n\n"
 "\t-q xxx\t Set xxx as the queue type (default: threshold).\n"
 ;
 
@@ -203,6 +203,13 @@ int cpnbf_main(int argc, char **argv) {
     unsigned size_mult = 2;
     bool print_config = false;
     bool split_horizontal = true;
+    Variant config;
+    config["name"] = "kernel";
+    std::string nodelist = RealPath("node.list");
+    if (!nodelist.empty()) {
+        config["database"]["liblist"].Append(nodelist);
+    }
+    VariantCPNLoader loader(config);
     while (procOpts) {
         switch (getopt(argc, argv, VALID_OPTS)) {
         case 'c':
@@ -272,13 +279,6 @@ int cpnbf_main(int argc, char **argv) {
     vertical_config = argv[optind];
     horizontal_config = argv[optind + 1];
 
-    Variant config;
-    config["name"] = "kernel";
-    std::string nodelist = RealPath("node.list");
-    if (!nodelist.empty()) {
-        config["database"]["liblist"].Append(nodelist);
-    }
-    VariantCPNLoader loader(config);
     Variant node;
     node["name"] = "vertical";
     if (use_fan) {
