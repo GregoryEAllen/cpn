@@ -204,7 +204,7 @@ int cpnbf_main(int argc, char **argv) {
     std::string vertical_config;
     std::string horizontal_config;
     std::string queue_type = "threshold";
-    unsigned algo = 2;
+    unsigned algo = 0;
     bool use_fan = true;
     bool estimate = false;
     unsigned repetitions = 1;

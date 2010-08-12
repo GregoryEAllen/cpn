@@ -38,6 +38,7 @@ public:
     void UseD4R(bool value);
     void GrowQueueMaxThreshold(bool value);
     void SwallowBrokenQueueExceptions(bool value);
+    void LogLevel(int i);
     void AddLib(const std::string &filename);
     void AddLibList(const std::string &filename);
     void DatabaseHost(const std::string &host);

@@ -61,6 +61,7 @@ void RemoteDatabaseDaemon::Run() {
                 ClientMap::iterator todelete = itr;
                 ++itr;
                 clients.erase(todelete);
+                Terminate();
             } else {
                 if (client->Readable()) {
                     client->Read();
@@ -77,6 +78,7 @@ void RemoteDatabaseDaemon::Run() {
 }
 
 void RemoteDatabaseDaemon::Terminate() {
+    if (IsTerminated()) return;
     CPN::RemoteDBServer::Terminate();
     Close();
     ClientMap::iterator itr = clients.begin();
@@ -176,9 +178,15 @@ void RemoteDatabaseDaemon::Client::Read() {
 }
 
 void RemoteDatabaseDaemon::Client::Send(const Variant &msg) {
+    if (Closed()) {
+        return;
+    }
     try {
         std::string message = VariantToJSON(msg);
-        Write(message.data(), message.size());
+        int numwritten = 0;
+        while (numwritten < message.size()) {
+            numwritten += Write(message.data() + numwritten, message.size() - numwritten);
+        }
     } catch (const ErrnoException &e) {
         daemon->dbprintf(0, "Error on write to %s:%d: %s\n", name.c_str(), e.Error(), e.what());
         daemon->Terminate(name);

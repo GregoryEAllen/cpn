@@ -66,6 +66,10 @@ void VariantCPNLoader::DatabasePort(const std::string &port) {
     config["database"]["port"] = port;
 }
 
+void VariantCPNLoader::LogLevel(int i) {
+    config["database"]["loglevel"] = i;
+}
+
 void VariantCPNLoader::MergeConfig(Variant v) {
     Variant::MapIterator topitr = v.MapBegin(), topend = v.MapEnd();
     for (;topitr != topend; ++topitr) {
@@ -178,6 +182,9 @@ shared_ptr<Database> VariantCPNLoader::LoadDatabase(Variant v) {
             for (Variant::ListIterator itr = v["liblist"].ListBegin(); itr != v["liblist"].ListEnd(); ++itr) {
                 database->LoadNodeList(itr->AsString());
             }
+        }
+        if (!v["loglevel"].IsNull()) {
+            database->LogLevel(v["loglevel"].AsInt());
         }
     }
     return database;

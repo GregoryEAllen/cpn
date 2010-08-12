@@ -31,7 +31,7 @@
 #include <algorithm>
 #include <sstream>
 
-#if 0
+#if 1
 #define FUNC_TRACE(logger) logger.Trace("%s (c: %llu)", __PRETTY_FUNCTION__, clock.Get())
 #else
 #define FUNC_TRACE(logger)
@@ -212,7 +212,20 @@ namespace CPN {
             iov.iov_len = count;
             iovs.push_back(iov);
         }
-        unsigned numread = sock.Readv(&iovs[0], iovs.size());
+        unsigned numread = 0;
+        unsigned numtoread = packet.DataLength();
+        unsigned i = 0;
+        while (numread < numtoread) {
+            unsigned num = sock.Readv(&iovs[i], iovs.size() - i);
+            numread += num;
+            if (numread == numtoread) break;
+            while (iovs[i].iov_len <= num) {
+                num -= iovs[i].iov_len;
+                ++i;
+            }
+            iovs[i].iov_len -= num;
+            iovs[i].iov_base = ((char*)iovs[i].iov_base) + num;
+        }
         ASSERT(numread == packet.DataLength());
         queue->Enqueue(count);
         bytecount += count;
@@ -408,12 +421,30 @@ namespace CPN {
     }
 
     void RemoteQueue::WriteBytes(const iovec *iov, unsigned iovcnt) {
-        unsigned numwritten = sock.Writev(iov, iovcnt);
-#if 1
         unsigned total = 0;
         for (unsigned i = 0; i < iovcnt; ++i) { total += iov[i].iov_len; }
+        unsigned numwritten = 0;
+        while (numwritten < total) {
+            unsigned num = sock.Writev(iov, iovcnt);
+            numwritten += num;
+            if (numwritten == total) break;
+            while (iov->iov_len <= num) {
+                num -= iov->iov_len;
+                ++iov;
+                --iovcnt;
+            }
+            if (num > 0) {
+                // Finish writing this section...
+                unsigned amount = num;
+                while (amount < iov->iov_len) {
+                    amount += sock.Write(((char*)iov->iov_base) + amount, iov->iov_len - amount);
+                }
+                ++iov;
+                --iovcnt;
+                numwritten += amount - num;
+            }
+        }
         ASSERT(total == numwritten);
-#endif
     }
 
     void *RemoteQueue::EntryPoint() {
