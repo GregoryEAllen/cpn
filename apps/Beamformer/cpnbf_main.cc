@@ -175,19 +175,20 @@ static const char* const VALID_OPTS = "h:i:o:er:na:s:c:f:S:q:p:Cv:j:";
 static const char* const HELP_OPTS = "Usage: %s [options]\n"
 "\t-a n\t Use algorithm n for vertical\n"
 "\t-C\t Print config and exit\n"
-"\t-c yes|no\t Load internal config. (default: yes)\n"
+"\t-c y|n\t Load internal config. (default: yes)\n"
 "\t-e\t Estimate FFT algorithm rather than measure.\n"
-"\t-f yes|no\t Use the 'fan' vertical beamformer (default: yes).\n"
+"\t-f y|n\t Use the 'fan' vertical beamformer (default: yes).\n"
 "\t-h file\t Use file for horizontal coefficients.\n"
 "\t-i file\t Use input file\n"
 "\t-j file\t Load file as JSON and merge with config.\n"
+"\t-J JSON\t Load JSON and merge it with config. (allows overrides on the command line)\n"
 "\t-n \t No output, just time\n"
 "\t-o file\t Use output file\n"
 "\t-q xxx\t Set xxx as the queue type (default: threshold).\n"
 "\t-p num\t Use num processors\n"
 "\t-r num\t Run num times\n"
 "\t-s n\t Scale queue sizes by n\n"
-"\t-S yes|no\t Split the horizontal beamformer (default: yes).\n"
+"\t-S y|n\t Split the horizontal beamformer (default: yes).\n"
 "\t-v file\t Use file for vertial coefficients.\n"
 ;
 
@@ -259,6 +260,18 @@ int cpnbf_main(int argc, char **argv) {
                 loader.MergeConfig(parser.Get());
             }
             break;
+        case 'J':
+            {
+                JSONToVariant parser;
+                parser.Parse(optarg, strlen(optarg));
+                if (!parser.Done()) {
+                    fprintf(stderr, "Error parsing command line JSON on line %u column %u\n",
+                            parser.GetLine(), parser.GetColumn());
+                    return 1;
+                }
+                loader.MergeConfig(parser.Get());
+            }
+            break;
         case 'n':
             nooutput = true;
             break;
@@ -299,19 +312,23 @@ int cpnbf_main(int argc, char **argv) {
     }
     if (load_internal_config) {
         if (horizontal_config.empty()) {
-            fprintf(stderr, "Must specify horitontal config.");
+            fprintf(stderr, "Must specify horitontal config.\n");
+            fprintf(stderr, HELP_OPTS, argv[0]);
             return 1;
         }
         if (vertical_config.empty()) {
-            fprintf(stderr, "Must specify vertical config.");
+            fprintf(stderr, "Must specify vertical config.\n");
+            fprintf(stderr, HELP_OPTS, argv[0]);
             return 1;
         }
         if (input_file.empty()) {
             fprintf(stderr, "Must have an input file.\n");
+            fprintf(stderr, HELP_OPTS, argv[0]);
             return 1;
         }
         if (output_file.empty() && !nooutput) {
             fprintf(stderr, "Either an output file or no output must be specified.\n");
+            fprintf(stderr, HELP_OPTS, argv[0]);
             return 1;
         }
 
