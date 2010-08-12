@@ -170,25 +170,33 @@ public:
 };
 CPN_DECLARE_NODE_FACTORY(CPNBFInputNode, CPNBFInputNode);
 
-static const char* const VALID_OPTS = "hi:o:er:na:s:cf:H:q:p:";
+static const char* const VALID_OPTS = "h:i:o:er:na:s:c:f:S:q:p:Cv:j:";
 
-static const char* const HELP_OPTS = "Usage: %s <vertical coefficient file> <horizontal coefficient file>\n"
+static const char* const HELP_OPTS = "Usage: %s [options]\n"
 "\t-a n\t Use algorithm n for vertical\n"
-"\t-c\t Print config and exit\n"
+"\t-C\t Print config and exit\n"
+"\t-c yes|no\t Load internal config. (default: yes)\n"
 "\t-e\t Estimate FFT algorithm rather than measure.\n"
 "\t-f yes|no\t Use the 'fan' vertical beamformer (default: yes).\n"
-"\t-h\t Print this message and exit.\n"
-"\t-H yes|no\t Split the horizontal beamformer (default: yes).\n"
-"\t-i filename\t Use input file\n"
+"\t-h file\t Use file for horizontal coefficients.\n"
+"\t-i file\t Use input file\n"
+"\t-j file\t Load file as JSON and merge with config.\n"
 "\t-n \t No output, just time\n"
-"\t-o filename\t Use output file\n"
+"\t-o file\t Use output file\n"
+"\t-q xxx\t Set xxx as the queue type (default: threshold).\n"
+"\t-p num\t Use num processors\n"
 "\t-r num\t Run num times\n"
 "\t-s n\t Scale queue sizes by n\n"
-"\t-q xxx\t Set xxx as the queue type (default: threshold).\n"
+"\t-S yes|no\t Split the horizontal beamformer (default: yes).\n"
+"\t-v file\t Use file for vertial coefficients.\n"
 ;
 
 
 int cpnbf_main(int argc, char **argv) {
+    if (argc == 1) {
+        fprintf(stderr, HELP_OPTS, *argv);
+        return 0;
+    }
     bool procOpts = true;
     std::string input_file;
     std::string output_file;
@@ -203,6 +211,7 @@ int cpnbf_main(int argc, char **argv) {
     unsigned size_mult = 2;
     bool print_config = false;
     bool split_horizontal = true;
+    bool load_internal_config = true;
     Variant config;
     config["name"] = "kernel";
     std::string nodelist = RealPath("node.list");
@@ -212,8 +221,52 @@ int cpnbf_main(int argc, char **argv) {
     VariantCPNLoader loader(config);
     while (procOpts) {
         switch (getopt(argc, argv, VALID_OPTS)) {
-        case 'c':
+        case 'a':
+            algo = atoi(optarg);
+            break;
+        case 'C':
             print_config = true;
+            break;
+        case 'c':
+            load_internal_config = ParseBool(optarg);
+            break;
+        case 'e':
+            estimate = true;
+            break;
+        case 'f':
+            use_fan = ParseBool(optarg);
+            break;
+        case 'h':
+            horizontal_config = optarg;
+            break;
+        case 'i':
+            input_file = optarg;
+            break;
+        case 'j':
+            {
+                JSONToVariant parser;
+                FILE *f = fopen(optarg, "r");
+                if (!f) {
+                    fprintf(stderr, "Unable to open config file %s\n", optarg);
+                    return 1;
+                }
+                parser.ParseFile(f);
+                if (!parser.Done()) {
+                    fprintf(stderr, "Error parsing config file %s on line %u column %u\n",
+                            optarg, parser.GetLine(), parser.GetColumn());
+                    return 1;
+                }
+                loader.MergeConfig(parser.Get());
+            }
+            break;
+        case 'n':
+            nooutput = true;
+            break;
+        case 'o':
+            output_file = optarg;
+            break;
+        case 'q':
+            queue_type = optarg;
             break;
         case 'p':
             {
@@ -224,177 +277,161 @@ int cpnbf_main(int argc, char **argv) {
 #endif
             }
             break;
-        case 'f':
-            use_fan = ParseBool(optarg);
-            break;
-        case 'i':
-            input_file = optarg;
-            break;
-        case 'o':
-            output_file = optarg;
-            break;
-        case 'e':
-            estimate = true;
-            break;
-        case 'a':
-            algo = atoi(optarg);
+        case 'r':
+            repetitions = atoi(optarg);
             break;
         case 's':
             size_mult = atoi(optarg);
             break;
-        case 'r':
-            repetitions = atoi(optarg);
-            break;
-        case 'n':
-            nooutput = true;
-            break;
-        case 'H':
+        case 'S':
             split_horizontal = ParseBool(optarg);
             break;
-        case 'q':
-            queue_type = optarg;
+        case 'v':
+            vertical_config = optarg;
             break;
-
         case -1:
             procOpts = false;
             break;
-        case 'h':
         default:
             fprintf(stderr, HELP_OPTS, argv[0]);
             return 0;
         }
     }
-    if (argc <= optind + 1) {
-        fprintf(stderr, "Not enough parameters, need coefficient files\n");
-        return 1;
-    }
-    if (input_file.empty()) {
-        fprintf(stderr, "Must have an input file.\n");
-        return 1;
-    }
-    if (output_file.empty() && !nooutput) {
-        fprintf(stderr, "Either an output file or no output must be specified.\n");
-        return 1;
-    }
-    vertical_config = argv[optind];
-    horizontal_config = argv[optind + 1];
+    if (load_internal_config) {
+        if (horizontal_config.empty()) {
+            fprintf(stderr, "Must specify horitontal config.");
+            return 1;
+        }
+        if (vertical_config.empty()) {
+            fprintf(stderr, "Must specify vertical config.");
+            return 1;
+        }
+        if (input_file.empty()) {
+            fprintf(stderr, "Must have an input file.\n");
+            return 1;
+        }
+        if (output_file.empty() && !nooutput) {
+            fprintf(stderr, "Either an output file or no output must be specified.\n");
+            return 1;
+        }
 
-    Variant node;
-    node["name"] = "vertical";
-    if (use_fan) {
-        node["type"] = "FanVBeamformerNode";
-    } else {
-        node["type"] = "VBeamformerNode";
-    }
-    node["param"]["inport"] = "input";
-    node["param"]["outports"][0] = "out1";
-    node["param"]["outports"][1] = "out2";
-    node["param"]["outports"][2] = "out3";
-    node["param"]["blocksize"] = 8192;
-    node["param"]["file"] = vertical_config;
-    node["param"]["algorithm"] = algo;
-    loader.AddNode(node);
-    node = Variant::NullType;
-    node["type"] = "HBeamformerNode";
-    node["param"]["inport"] = "input";
-    node["param"]["outport"] = "output";
-    node["param"]["estimate"] = estimate;
-    node["param"]["file"] = horizontal_config;
-    if (split_horizontal) {
-        node["param"]["half"] = 1;
-    }
-    node["name"] = "hbf1";
-    loader.AddNode(node);
-    node["name"] = "hbf2";
-    loader.AddNode(node);
-    node["name"] = "hbf3";
-    loader.AddNode(node);
-    if (split_horizontal) {
-        node["param"]["half"] = 2;
-        node["name"] = "hbf1_2";
+        Variant node;
+        node["name"] = "vertical";
+        if (use_fan) {
+            node["type"] = "FanVBeamformerNode";
+        } else {
+            node["type"] = "VBeamformerNode";
+        }
+        node["param"]["inport"] = "input";
+        node["param"]["outports"][0] = "out1";
+        node["param"]["outports"][1] = "out2";
+        node["param"]["outports"][2] = "out3";
+        node["param"]["blocksize"] = 8192;
+        node["param"]["file"] = vertical_config;
+        node["param"]["algorithm"] = algo;
         loader.AddNode(node);
-        node["name"] = "hbf2_2";
+        node = Variant::NullType;
+        node["type"] = "HBeamformerNode";
+        node["param"]["inport"] = "input";
+        node["param"]["outport"] = "output";
+        node["param"]["estimate"] = estimate;
+        node["param"]["file"] = horizontal_config;
+        if (split_horizontal) {
+            node["param"]["half"] = 1;
+        }
+        node["name"] = "hbf1";
         loader.AddNode(node);
-        node["name"] = "hbf3_2";
+        node["name"] = "hbf2";
         loader.AddNode(node);
-    }
+        node["name"] = "hbf3";
+        loader.AddNode(node);
+        if (split_horizontal) {
+            node["param"]["half"] = 2;
+            node["name"] = "hbf1_2";
+            loader.AddNode(node);
+            node["name"] = "hbf2_2";
+            loader.AddNode(node);
+            node["name"] = "hbf3_2";
+            loader.AddNode(node);
+        }
 
-    node = Variant::NullType;
-    node["name"] = "input";
-    node["type"] = "CPNBFInputNode";
-    node["param"]["outport"] = "output";
-    node["param"]["infile"] = input_file;
-    node["param"]["repetitions"] = repetitions;
-    loader.AddNode(node);
-    node = Variant::NullType;
+        node = Variant::NullType;
+        node["name"] = "input";
+        node["type"] = "CPNBFInputNode";
+        node["param"]["outport"] = "output";
+        node["param"]["infile"] = input_file;
+        node["param"]["repetitions"] = repetitions;
+        loader.AddNode(node);
+        node = Variant::NullType;
 
-    node["name"] = "output";
-    node["type"] = "CPNBFOutputNode";
-    node["param"]["inports"][0] = "0";
-    node["param"]["inports"][1] = "1";
-    node["param"]["inports"][2] = "2";
-    node["param"]["blocksize"] = 8192;
-    node["param"]["outfile"] = output_file;
-    node["param"]["nooutput"] = nooutput;
-    loader.AddNode(node);
-    node = Variant::NullType;
+        node["name"] = "output";
+        node["type"] = "CPNBFOutputNode";
+        node["param"]["inports"][0] = "0";
+        node["param"]["inports"][1] = "1";
+        node["param"]["inports"][2] = "2";
+        node["param"]["blocksize"] = 8192;
+        node["param"]["outfile"] = output_file;
+        node["param"]["nooutput"] = nooutput;
+        loader.AddNode(node);
+        node = Variant::NullType;
 
-    Variant queue;
-    queue["size"] = 8192*size_mult;
-    queue["threshold"] = 8192;
-    queue["type"] = queue_type;
-    queue["datatype"] = "complex<float>";
-    queue["numchannels"] = 256;
-    queue["readerport"] = "input";
-    queue["writerport"] = "out1";
-    queue["readernode"] = "hbf1";
-    queue["writernode"] = "vertical";
-    loader.AddQueue(queue);
-    queue["writerport"] = "out2";
-    queue["readernode"] = "hbf2";
-    loader.AddQueue(queue);
-    queue["writerport"] = "out3";
-    queue["readernode"] = "hbf3";
-    loader.AddQueue(queue);
-    queue["numchannels"] = 560;
-    queue["readernode"] = "output";
-    queue["readerport"] = "0";
-    if (split_horizontal) { queue["writernode"] = "hbf1_2"; }
-    else { queue["writernode"] = "hbf1"; }
-    queue["writerport"] = "output";
-    loader.AddQueue(queue);
-    queue["readerport"] = "1";
-    if (split_horizontal) { queue["writernode"] = "hbf2_2"; }
-    else { queue["writernode"] = "hbf2"; }
-    loader.AddQueue(queue);
-    queue["readerport"] = "2";
-    if (split_horizontal) { queue["writernode"] = "hbf3_2"; }
-    else { queue["writernode"] = "hbf3"; }
-    loader.AddQueue(queue);
-    if (split_horizontal) {
-        queue["size"] = 8192*256*size_mult;
-        queue["threshold"] = 8192*256;
-        queue["numchannels"] = 1;
+        Variant queue;
+        queue["size"] = 8192*size_mult;
+        queue["threshold"] = 8192;
+        queue["type"] = queue_type;
+        queue["datatype"] = "complex<float>";
+        queue["numchannels"] = 256;
         queue["readerport"] = "input";
-        queue["writernode"] = "hbf1";
-        queue["readernode"] = "hbf1_2";
+        queue["writerport"] = "out1";
+        queue["readernode"] = "hbf1";
+        queue["writernode"] = "vertical";
         loader.AddQueue(queue);
-        queue["writernode"] = "hbf2";
-        queue["readernode"] = "hbf2_2";
+        queue["writerport"] = "out2";
+        queue["readernode"] = "hbf2";
         loader.AddQueue(queue);
-        queue["writernode"] = "hbf3";
-        queue["readernode"] = "hbf3_2";
+        queue["writerport"] = "out3";
+        queue["readernode"] = "hbf3";
+        loader.AddQueue(queue);
+        queue["numchannels"] = 560;
+        queue["readernode"] = "output";
+        queue["readerport"] = "0";
+        if (split_horizontal) { queue["writernode"] = "hbf1_2"; }
+        else { queue["writernode"] = "hbf1"; }
+        queue["writerport"] = "output";
+        loader.AddQueue(queue);
+        queue["readerport"] = "1";
+        if (split_horizontal) { queue["writernode"] = "hbf2_2"; }
+        else { queue["writernode"] = "hbf2"; }
+        loader.AddQueue(queue);
+        queue["readerport"] = "2";
+        if (split_horizontal) { queue["writernode"] = "hbf3_2"; }
+        else { queue["writernode"] = "hbf3"; }
+        loader.AddQueue(queue);
+        if (split_horizontal) {
+            queue["size"] = 8192*256*size_mult;
+            queue["threshold"] = 8192*256;
+            queue["numchannels"] = 1;
+            queue["readerport"] = "input";
+            queue["writernode"] = "hbf1";
+            queue["readernode"] = "hbf1_2";
+            loader.AddQueue(queue);
+            queue["writernode"] = "hbf2";
+            queue["readernode"] = "hbf2_2";
+            loader.AddQueue(queue);
+            queue["writernode"] = "hbf3";
+            queue["readernode"] = "hbf3_2";
+            loader.AddQueue(queue);
+        }
+        queue["size"] = 8192*size_mult;
+        queue["threshold"] = 8192;
+        queue["numchannels"] = 256*12;
+        queue["readernode"] = "vertical";
+        queue["readerport"] = "input";
+        queue["writernode"] = "input";
+        queue["writerport"] = "output";
+        queue["datatype"] = "complex<int16_t>";
         loader.AddQueue(queue);
     }
-    queue["size"] = 8192*size_mult;
-    queue["threshold"] = 8192;
-    queue["numchannels"] = 256*12;
-    queue["readernode"] = "vertical";
-    queue["readerport"] = "input";
-    queue["writernode"] = "input";
-    queue["writerport"] = "output";
-    queue["datatype"] = "complex<int16_t>";
-    loader.AddQueue(queue);
 
     if (print_config) {
         printf("%s\n", VariantToJSON(config, true).c_str());
