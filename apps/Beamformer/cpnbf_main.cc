@@ -170,7 +170,7 @@ public:
 };
 CPN_DECLARE_NODE_FACTORY(CPNBFInputNode, CPNBFInputNode);
 
-static const char* const VALID_OPTS = "h:i:o:er:na:s:c:f:S:q:p:Cv:j:";
+static const char* const VALID_OPTS = "h:i:o:er:na:s:c:f:S:q:p:Cv:j:J:";
 
 static const char* const HELP_OPTS = "Usage: %s [options]\n"
 "\t-a n\t Use algorithm n for vertical\n"
