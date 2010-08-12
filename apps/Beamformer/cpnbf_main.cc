@@ -463,7 +463,7 @@ int cpnbf_main(int argc, char **argv) {
     CPN::KernelAttr kattr = loader.GetKernelAttr();
     CPN::Kernel kernel(kattr);
     loader.Setup(&kernel);
-    kernel.WaitForAllNodeEnd();
+    kernel.WaitNodeTerminate("output");
     return 0;
 }
 

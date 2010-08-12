@@ -249,6 +249,10 @@ const std::string &Variant::AsString() const {
 }
 
 Variant::List &Variant::AsArray() {
+    if (NullType == type) {
+        type = ArrayType;
+        InitArray();
+    }
     switch (type) {
     case ArrayType:
         return *array;
@@ -267,6 +271,10 @@ const Variant::List &Variant::AsArray() const {
 }
 
 Variant::ListIterator Variant::ListBegin() {
+    if (NullType == type) {
+        type = ArrayType;
+        InitArray();
+    }
     ASSERT(type == ArrayType);
     return array->begin();
 }
@@ -277,6 +285,10 @@ Variant::ConstListIterator Variant::ListBegin() const {
 }
 
 Variant::ListIterator Variant::ListEnd() {
+    if (NullType == type) {
+        type = ArrayType;
+        InitArray();
+    }
     ASSERT(type == ArrayType);
     return array->end();
 }
@@ -288,6 +300,10 @@ Variant::ConstListIterator Variant::ListEnd() const {
 
 
 Variant::Map &Variant::AsObject() {
+    if (NullType == type) {
+        type = ObjectType;
+        InitObject();
+    }
     switch (type) {
     case ObjectType:
         return *object;
@@ -306,6 +322,10 @@ const Variant::Map &Variant::AsObject() const {
 }
 
 Variant::MapIterator Variant::MapBegin() {
+    if (NullType == type) {
+        type = ObjectType;
+        InitObject();
+    }
     ASSERT(type == ObjectType);
     return object->begin();
 }
@@ -316,6 +336,10 @@ Variant::ConstMapIterator Variant::MapBegin() const {
 }
 
 Variant::MapIterator Variant::MapEnd() {
+    if (NullType == type) {
+        type = ObjectType;
+        InitObject();
+    }
     ASSERT(type == ObjectType);
     return object->end();
 }

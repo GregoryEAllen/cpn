@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
         }
     }
     if (argc != optind + 2) {
-        printf("Not enough arguments must have address and port to listen on");
+        printf("Not enough arguments must have address and port to listen on\n");
         return 1;
     }
     SockAddrList addrlist = SocketAddress::CreateIP(argv[optind], argv[optind+1]);
