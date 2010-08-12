@@ -16,9 +16,6 @@ CC_OTHER += -Wfatal-errors -Winline
 CC_OTHER += -mmmx -m3dnow -msse -msse2 -msse3 -mssse3
 # enable the sse
 
-CC_OTHER += -floop-optimize2
-# More loop optimizations? try and see
-
 CC_OTHER += -funsafe-loop-optimizations
 CC_OTHER += -Wunsafe-loop-optimizations
 # Allow unsafe optimizations (assume counters don't overflow etc.), warn if possibly broken
