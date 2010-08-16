@@ -47,7 +47,6 @@ void RemoteDatabaseDaemon::Run() {
     addr.SetFromSockName(FD());
     dbprintf(1, "Listening on %s:%s\n", addr.GetHostName().c_str(), addr.GetServName().c_str());
     while (true) {
-        ClientMap::iterator itr = clients.begin();
         std::vector<FileHandle*> fds;
         if (!Closed()) {
             if (Readable()) {
@@ -55,6 +54,7 @@ void RemoteDatabaseDaemon::Run() {
             }
             fds.push_back(this);
         }
+        ClientMap::iterator itr = clients.begin();
         while (itr != clients.end()) {
             ClientPtr client = itr->second;
             if (client->Closed()) {
