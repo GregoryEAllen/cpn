@@ -612,6 +612,12 @@ namespace CPN {
         }
     }
 
+    void *NotifyTerminate(void *arg) {
+        KernelBase *kb = reinterpret_cast<KernelBase*>(arg);
+        kb->NotifyTerminate();
+        return 0;
+    }
+
     void RemoteDBClient::InternalTerminate() {
         shutdown = true;
         std::map<unsigned, WaiterInfo*>::iterator cwitr = callwaiters.begin();
@@ -628,12 +634,11 @@ namespace CPN {
             }
             ++gwitr;
         }
-        std::map<Key_t, KernelBase*> kmhcopy = kmhandlers;
-        AutoUnlock<PthreadMutex> aul(lock);
         std::map<Key_t, KernelBase*>::iterator kmhitr;
-        kmhitr = kmhcopy.begin();
-        while (kmhitr != kmhcopy.end()) {
-            kmhitr->second->NotifyTerminate();
+        kmhitr = kmhandlers.begin();
+        while (kmhitr != kmhandlers.end()) {
+            PthreadBase thread(NotifyTerminate, kmhitr->second);
+            thread.Detach();
             ++kmhitr;
         }
     }
