@@ -158,8 +158,13 @@ void D4RTest::RunTest(int numkernels) {
 
         Variant conf = parse.Get();
         database = Database::Local();
+#ifdef _DEBUG
+        database->LogLevel(Logger::TRACE);
+#else
         database->LogLevel(Logger::WARNING);
+#endif
         database->UseD4R(true);
+
         database->SwallowBrokenQueueExceptions(true);
         database->GrowQueueMaxThreshold(false);
         Output(database.get());

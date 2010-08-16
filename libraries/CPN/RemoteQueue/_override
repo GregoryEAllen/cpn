@@ -1,0 +1,4 @@
+
+ifeq ($(DEBUG),1)
+    CC_OTHER += -D_DEBUG
+endif

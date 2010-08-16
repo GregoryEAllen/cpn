@@ -1,8 +1,8 @@
 
-OS_LIBS += `pkg-config --libs cppunit`
-OS_INCDIR += `pkg-config --cflags cppunit`
+OS_LIBS += $(shell pkg-config --libs cppunit)
+OS_INCDIR += $(shell pkg-config --cflags cppunit)
 
-ifdef DEBUG
+ifeq ($(DEBUG),1)
     CC_OTHER += -D_DEBUG
 endif
 

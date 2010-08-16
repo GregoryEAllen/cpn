@@ -31,7 +31,7 @@
 #include <algorithm>
 #include <sstream>
 
-#if 0
+#if _DEBUG
 #define FUNC_TRACE(logger) logger.Trace("%s (c: %llu)", __PRETTY_FUNCTION__, clock.Get())
 #else
 #define FUNC_TRACE(logger)
