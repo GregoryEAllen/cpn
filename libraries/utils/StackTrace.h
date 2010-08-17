@@ -29,7 +29,9 @@
 #pragma once
 
 #include <string>
-#define STACKTRACE_MAXTRACE 20
+#ifndef STACKTRACE_MAXTRACE 
+#define STACKTRACE_MAXTRACE 100
+#endif
 /**
  * Prints the stack trace to stderr
  * Should work even if we are out of memory

@@ -28,23 +28,26 @@
 static const char UNKNOWN_ERROR[] = "Unknown error";
 
 ErrnoException::ErrnoException() throw()
-    : error(errno)
+    : Exception(3), error(errno)
 {
     Fill();
+    errorstring += "\nBacktrace:\n" + GetStackTrace();
 }
 
 ErrnoException::ErrnoException(int err) throw()
-    : error(err)
+    : Exception(3), error(err)
 {
     Fill();
+    errorstring += "\nBacktrace:\n" + GetStackTrace();
 }
 
 ErrnoException::ErrnoException(const char *msg, int err) throw()
-    : error(err)
+    : Exception(3), error(err)
 {
     Fill();
     errorstring += ": ";
     errorstring +=  msg;
+    errorstring += "\nBacktrace:\n" + GetStackTrace();
 }
 
 ErrnoException::~ErrnoException() throw() {

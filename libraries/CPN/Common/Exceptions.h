@@ -27,17 +27,17 @@
 #pragma once
 
 #include "CPNCommon.h"
+#include "Exception.h"
 #include <string>
-#include <exception>
 
 namespace CPN {
 
 	/**
 	 * \brief An exception indicating that the Kernel has shut down.
 	 */
-	class CPN_API ShutdownException : public std::exception {
+	class CPN_API ShutdownException : public Exception {
 	public:
-		ShutdownException() throw() {}
+		ShutdownException() throw() : Exception(3) {}
 		~ShutdownException() throw();
 		const char* what() const throw() { return "The kernel has shutdown."; }
 	private:
@@ -46,9 +46,9 @@ namespace CPN {
     /**
      * \brief An exception indicating that there is a type mismatch in the queue.
      */
-    class CPN_API TypeMismatchException : public std::exception {
+    class CPN_API TypeMismatchException : public Exception {
     public:
-        TypeMismatchException() throw() : message("Queue types mismatch") {}
+        TypeMismatchException() throw() : Exception(3), message("Queue types mismatch") {}
         TypeMismatchException(const std::string &type1, const std::string &type2) throw() {
             message = "Queue types " + type1 + " != " + type2;
         }
@@ -62,7 +62,7 @@ namespace CPN {
      * \brief An exception indicating that the node tried to write
      * to a shutdown queue
      */
-    class CPN_API BrokenQueueException : public std::exception {
+    class CPN_API BrokenQueueException : public Exception {
     public:
         BrokenQueueException(Key_t key) throw();
         ~BrokenQueueException() throw();

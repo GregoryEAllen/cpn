@@ -32,7 +32,9 @@ namespace CPN {
 
     TypeMismatchException::~TypeMismatchException() throw() {}
 
-    BrokenQueueException::BrokenQueueException(Key_t key) throw() {
+    BrokenQueueException::BrokenQueueException(Key_t key) throw()
+        : Exception(3)
+    {
         std::ostringstream oss;
         oss << "Queue endpoint " << key << " shutdown abnormally.";
         msg = oss.str();

@@ -1,4 +1,4 @@
 
-ifeq ($(DEBUG),1)
+ifeq ($(TRACE),1)
     CC_OTHER += -D_DEBUG
 endif

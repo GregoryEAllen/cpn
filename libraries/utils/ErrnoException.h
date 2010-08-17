@@ -24,9 +24,8 @@
 #define ERRNOEXCEPTION_H
 #pragma once
 
-#include <exception>
+#include "Exception.h"
 #include <vector>
-#include <string>
 
 /**
  * A generic exception that encapsulates
@@ -35,7 +34,7 @@
  * Note that this dynamically allocates memory
  * so is unsutable for out of memory errors.
  */
-class ErrnoException : public std::exception {
+class ErrnoException : public Exception {
 public:
     ErrnoException() throw();
     ErrnoException(int err) throw();

@@ -37,13 +37,15 @@ std::string CreateMessage(const char *exp, const char *file,
     oss << "Assert failed in " << file << ":" << line;
     oss << " in " << func;
     oss << " : " << exp << '\n' << msg << '\n';
-    oss << "\nBacktrace:\n" << GetStack(3);
     return oss.str();
 }
 
 AssertException::AssertException(const std::string &msg) throw()
-    : message(msg)
+    : Exception(4)
 {
+    std::ostringstream oss;
+    oss << msg << "\nBacktrace:\n" << GetStackTrace() << "\n";
+    message = oss.str();
 }
 
 
@@ -56,7 +58,8 @@ const char *AssertException::what() const throw() {
 
 bool __ASSERT(const char *exp, const char *file, int line, const char *func, bool die) {
     if (die) {
-        fputs(CreateMessage(exp, file, line, func, "").c_str(), stderr);
+        fprintf(stderr, "%s\nBacktrace:\n%s\n",
+                CreateMessage(exp, file, line, func, "").c_str(), GetStack(2).c_str());
         abort();
     } else {
         throw AssertException(CreateMessage(exp, file, line, func, ""));
@@ -65,7 +68,8 @@ bool __ASSERT(const char *exp, const char *file, int line, const char *func, boo
 
 bool __ASSERT(const char *exp, const char *file, int line, const char *func, bool die, const std::string &msg) {
     if (die) {
-        fputs(CreateMessage(exp, file, line, func, "").c_str(), stderr);
+        fprintf(stderr, "%s\nBacktrace:\n%s\n",
+                CreateMessage(exp, file, line, func, "").c_str(), GetStack(2).c_str());
         abort();
     } else {
         throw AssertException(CreateMessage(exp, file, line, func, msg.c_str()));
@@ -95,7 +99,7 @@ bool __ASSERT(const char *exp, const char *file, int line, const char *func, boo
     }
     std::string msg = CreateMessage(exp, file, line, func, &buff[0]);
     if (die) {
-        fputs(msg.c_str(), stderr);
+        fprintf(stderr, "%s\nBacktrace:\n%s\n", msg.c_str(), GetStack(2).c_str());
         abort();
     } else {
         throw AssertException(msg);

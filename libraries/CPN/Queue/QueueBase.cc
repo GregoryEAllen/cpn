@@ -246,8 +246,8 @@ namespace CPN {
         logger.Error("Printing state (w:%llu r:%llu)", readerkey, writerkey);
         logger.Error("size: %u, maxthresh: %u count: %u free: %u",
                 QueueLength(), MaxThreshold(), Count(), Freespace());
-        logger.Error("readrequest: %u, writerequest: %u", readrequest, writerequest);
-        logger.Error("numenqueued: %u, numdequeued: %u", NumEnqueued(), NumDequeued());
+        logger.Error("readrequest: %u, writerequest: %u numenqueued: %u, numdequeued: %u",
+                readrequest, writerequest, NumEnqueued(), NumDequeued());
         if (indequeue) {
             logger.Error("Indequeue (thresh: %u)", dequeuethresh);
         }

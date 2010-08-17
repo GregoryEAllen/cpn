@@ -33,12 +33,13 @@
 #include "SocketHandle.h"
 #include "D4RNode.h"
 #include "Assert.h"
+#include "ErrnoException.h"
+
 namespace CPN {
     class RemoteQueueHolder;
 
     class RemoteQueue
         : public ThresholdQueue,
-        public Pthread,
         private PacketEncoder,
         private PacketDecoder
     {
@@ -54,6 +55,8 @@ namespace CPN {
 
         ~RemoteQueue();
 
+        void Start();
+
         Mode_t GetMode() const { return mode; }
         Key_t GetKey() const { return mode == READ ? readerkey : writerkey; }
         void Shutdown();
@@ -68,6 +71,7 @@ namespace CPN {
         /// For debug ONLY!
         void LogState();
     private:
+        void Signal();
         void WaitForData();
         void WaitForFreespace();
         void InternalDequeue(unsigned count);
@@ -98,17 +102,24 @@ namespace CPN {
         void Read();
         void WriteBytes(const iovec *iov, unsigned iovcnt);
 
-        void *EntryPoint();
+        void *FileThreadEntryPoint();
+        void *ActionThreadEntryPoint();
         void InternalCheckStatus();
 
-        void HandleError(int error);
+        void HandleError(const ErrnoException &e);
         static unsigned QueueLength(unsigned length, unsigned maxthresh, double alpha, Mode_t mode);
+
+        std::string GetState();
 
         class MockNode : public D4R::Node {
         public:
             MockNode(Key_t key) : D4R::Node(key) {}
             void SignalTagChanged() { ASSERT(false); }
         };
+
+        auto_ptr<Pthread> fileThread;
+        auto_ptr<Pthread> actionThread;
+        bool pendingAction;
 
         const Mode_t mode;
         const double alpha;

@@ -38,13 +38,12 @@
 #define ASSERT_H
 #pragma once
 
-#include <exception>
-#include <string>
+#include "Exception.h"
 
 /**
  * \brief The exception thrown by the ASSERT macro.
  */
-class AssertException : public std::exception {
+class AssertException : public Exception {
 public:
     AssertException(const std::string &msg) throw();
     virtual ~AssertException() throw();

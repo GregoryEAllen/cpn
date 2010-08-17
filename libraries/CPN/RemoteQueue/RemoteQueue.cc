@@ -25,14 +25,14 @@
 #include "QueueAttr.h"
 #include "Database.h"
 #include "Exceptions.h"
-#include "ErrnoException.h"
 #include "AutoLock.h"
+#include "PthreadFunctional.h"
 #include <errno.h>
 #include <algorithm>
 #include <sstream>
 
 #if _DEBUG
-#define FUNC_TRACE(logger) logger.Trace("%s (c: %llu)", __PRETTY_FUNCTION__, clock.Get())
+#define FUNC_TRACE(logger) logger.Trace("%s %s", __PRETTY_FUNCTION__, GetState().c_str())
 #else
 #define FUNC_TRACE(logger)
 #endif
@@ -58,8 +58,13 @@ namespace CPN {
         tagUpdated(false),
         dead(false)
     {
-        if (Pthread::Error() != 0) {
-            throw ErrnoException("Could not create thread", Pthread::Error());
+        fileThread = auto_ptr<Pthread>(CreatePthreadFunctional(this, &RemoteQueue::FileThreadEntryPoint));
+        if (fileThread->Error() != 0) {
+            throw ErrnoException("Could not create thread", fileThread->Error());
+        }
+        actionThread = auto_ptr<Pthread>(CreatePthreadFunctional(this, &RemoteQueue::ActionThreadEntryPoint));
+        if (actionThread->Error() != 0) {
+            throw ErrnoException("Could not create thread", actionThread->Error());
         }
         if (mode == READ) {
             SetWriterNode(&mocknode);
@@ -76,13 +81,21 @@ namespace CPN {
     }
 
     RemoteQueue::~RemoteQueue() {
+        ASSERT_ABORT(dead, "Shutdown but not dead!?");
+        Signal();
         logger.Trace("Destructed (c: %llu)", clock.Get());
-        Join();
+        fileThread.reset();
+        actionThread.reset();
+    }
+
+    void RemoteQueue::Start() {
+        fileThread->Start();
     }
 
     void RemoteQueue::Shutdown() {
         AutoLock<const QueueBase> al(*this);
         dead = true;
+        Signal();
     }
 
     unsigned RemoteQueue::Count() const {
@@ -116,29 +129,28 @@ namespace CPN {
         const unsigned newlen = (mode == WRITE ? writerlength : readerlength);
         ThresholdQueue::Grow(newlen, maxthresh);
         pendingGrow = true;
-        InternalCheckStatus();
+        Signal();
     }
 
     void RemoteQueue::ShutdownReader() {
         ASSERT(mode == READ);
         ThresholdQueue::ShutdownReader();
-        InternalCheckStatus();
+        Signal();
     }
 
     void RemoteQueue::ShutdownWriter() {
         ASSERT(mode == WRITE);
         ThresholdQueue::ShutdownWriter();
-        InternalCheckStatus();
+        Signal();
     }
 
     void RemoteQueue::WaitForData() {
         ASSERT(mode == READ);
         pendingBlock = true;
         tagUpdated = false;
-        InternalCheckStatus();
+        Signal();
         while (ReadBlocked() && !tagUpdated) {
             Wait();
-            InternalCheckStatus();
         }
         if (ReadBlocked() && tagUpdated) {
             ThresholdQueue::WaitForData();
@@ -149,10 +161,9 @@ namespace CPN {
         ASSERT(mode == WRITE);
         pendingBlock = true;
         tagUpdated = false;
-        InternalCheckStatus();
+        Signal();
         while (WriteBlocked() && !tagUpdated) {
             Wait();
-            InternalCheckStatus();
         }
         if (WriteBlocked() && tagUpdated) {
             ThresholdQueue::WaitForFreespace();
@@ -163,14 +174,14 @@ namespace CPN {
         ASSERT(mode == READ);
         FUNC_TRACE(logger);
         ThresholdQueue::InternalDequeue(count);
-        InternalCheckStatus();
+        Signal();
     }
 
     void RemoteQueue::InternalEnqueue(unsigned count) {
         ASSERT(mode == WRITE);
         FUNC_TRACE(logger);
         ThresholdQueue::InternalEnqueue(count);
-        InternalCheckStatus();
+        Signal();
     }
 
     void RemoteQueue::SignalReaderTagChanged() {
@@ -178,7 +189,6 @@ namespace CPN {
         ASSERT(mode == READ);
         pendingD4RTag = true;
         ThresholdQueue::SignalReaderTagChanged();
-        InternalCheckStatus();
     }
 
     void RemoteQueue::SignalWriterTagChanged() {
@@ -186,7 +196,6 @@ namespace CPN {
         ASSERT(mode == WRITE);
         pendingD4RTag = true;
         ThresholdQueue::SignalWriterTagChanged();
-        InternalCheckStatus();
     }
 
     void RemoteQueue::SetupPacket(Packet &packet) {
@@ -275,11 +284,10 @@ namespace CPN {
         ASSERT(mode == WRITE);
         ASSERT(!readshutdown);
         readrequest = packet.Requested();
-        if (readrequest > queue->Count() + bytecount) {
-            if (useD4R) {
-                pendingD4RTag = true;
-            }
+        if (useD4R) {
+            pendingD4RTag = true;
         }
+        Signal();
     }
 
     void RemoteQueue::SendReadBlockPacket() {
@@ -296,11 +304,10 @@ namespace CPN {
         ASSERT(mode == READ);
         ASSERT(!writeshutdown);
         writerequest = packet.Requested();
-        if (writerequest > queue->Freespace()) {
-            if (useD4R) {
-                pendingD4RTag = true;
-            }
+        if (useD4R) {
+            pendingD4RTag = true;
         }
+        Signal();
     }
 
     void RemoteQueue::SendWriteBlockPacket() {
@@ -325,7 +332,11 @@ namespace CPN {
         Packet packet(PACKET_ENDOFWRITE);
         SetupPacket(packet);
         PacketEncoder::SendPacket(packet);
-        sock.ShutdownWrite();
+        try {
+            sock.ShutdownWrite();
+        } catch (const ErrnoException &e) {
+            logger.Debug("Error trying to close the write end: %s", e.what());
+        }
     }
 
     void RemoteQueue::EndOfReadPacket(const Packet &packet) {
@@ -342,7 +353,11 @@ namespace CPN {
         Packet packet(PACKET_ENDOFREAD);
         SetupPacket(packet);
         PacketEncoder::SendPacket(packet);
-        sock.ShutdownWrite();
+        try {
+            sock.ShutdownWrite();
+        } catch (const ErrnoException &e) {
+            logger.Debug("Error trying to close the read end: %s", e.what());
+        }
     }
 
     void RemoteQueue::GrowPacket(const Packet &packet) {
@@ -447,13 +462,13 @@ namespace CPN {
         ASSERT(total == numwritten);
     }
 
-    void *RemoteQueue::EntryPoint() {
+    void *RemoteQueue::FileThreadEntryPoint() {
         try {
             while (true) {
                 try {
                     if (database->IsTerminated()) {
                         logger.Debug("Forced Shutdown (c: %llu)", clock.Get());
-                        break;
+                        Shutdown();
                     }
                     {
                         AutoLock<QueueBase> al(*this);
@@ -478,18 +493,21 @@ namespace CPN {
                             logger.Debug("Connection Failed (c: %llu)", clock.Get());
                         } else {
                             logger.Debug("Connected (c: %llu)", clock.Get());
+                            actionThread->Start();
                         }
                     } else {
                         FileHandle *fds[2];
                         fds[0] = &sock;
                         fds[1] = holder->GetWakeup();
                         FileHandle::Poll(fds, fds+2, -1);
-                        InternalCheckStatus();
+                        {
+                            AutoLock<QueueBase> al(*this);
+                            Read();
+                            Signal();
+                        }
                     }
                 } catch (const ErrnoException &e) {
-                    logger.Error("Exception in RemoteQueue main loop (c: %llu e: %d): %s",
-                            clock.Get(), e.Error(), e.what());
-                    HandleError(e.Error());
+                    HandleError(e);
                 }
             }
         } catch (const ShutdownException &e) {
@@ -502,6 +520,24 @@ namespace CPN {
         }
         holder->CleanupQueue(GetKey());
         server->Wakeup();
+        return 0;
+    }
+
+    void RemoteQueue::Signal() {
+        AutoLock<QueueBase> al(*this);
+        pendingAction = true;
+        QueueBase::Signal();
+    }
+
+    void *RemoteQueue::ActionThreadEntryPoint() {
+        AutoLock<QueueBase> al(*this);
+        while (!dead) {
+            InternalCheckStatus();
+            while(!pendingAction) {
+                Wait();
+            }
+            pendingAction = false;
+        }
         return 0;
     }
 
@@ -526,7 +562,6 @@ namespace CPN {
         }
 
         try {
-            Read();
 
             if (pendingGrow) {
                 SendGrowPacket();
@@ -615,23 +650,28 @@ namespace CPN {
                 }
             }
         } catch (const ErrnoException &e) {
-            logger.Error("Exception in RemoteQueue check status (c: %llu e: %d): %s",
-                    clock.Get(), e.Error(), e.what());
-            HandleError(e.Error());
+            HandleError(e);
         }
     }
 
-    void RemoteQueue::HandleError(int error) {
+    void RemoteQueue::HandleError(const ErrnoException &e) {
         AutoLock<QueueBase> al(*this);
         if (readshutdown || writeshutdown) {
             Signal();
         }
-        switch (error) {
+        switch (e.Error()) {
         case EPIPE:
         case EBADF:
-            sock.Close();
+        case ECONNRESET:
+            try {
+                sock.Close();
+            } catch (const ErrnoException &e) {}
+            dead = true;
             break;
         default:
+            logger.Error("Exception in RemoteQueue rethrowing (c: %llu e: %d): %s",
+                    clock.Get(), e.Error(), e.what());
+            throw;
             break;
         }
     }
@@ -653,14 +693,36 @@ namespace CPN {
         }
     }
 
+    std::string RemoteQueue::GetState() {
+        std::ostringstream oss;
+        oss << std::boolalpha
+            << "s: " << QueueLength() << ",mt: " << MaxThreshold() << ",c: " << Count()
+            << ",f: " << Freespace() << ",rr: " << readrequest << ",wr: " << writerequest
+            << ",te: " << NumEnqueued() << ",td: " << NumDequeued()
+            << ",M: " << (mode == READ ? "r" : "w") << ",rl: " << readerlength
+            << ",wl: " << writerlength << ",c: " << clock.Get() << ",bc: "
+            << bytecount << ",pb: " << pendingBlock << ",se: " << sentEnd
+            << ",pg: " << pendingGrow << ",pd4r: " << pendingD4RTag
+            << ",d: " << dead;
+        if (readshutdown) {
+            oss << ",readshutdown";
+        }
+        if (writeshutdown) {
+            oss << ",writeshutdown";
+        }
+        return oss.str();
+    }
+
     void RemoteQueue::LogState() {
         ThresholdQueue::LogState();
         logger.Error("Mode: %s, Readerlength: %u, Writerlength %u, Clock: %llu, bytecount: %u",
                 mode == READ ? "read" : "write", readerlength, writerlength, clock.Get(), bytecount);
-        logger.Error("PendingBlock: %s, SentEnd: %s, PendingGrow: %s, PendingD4R: %s, Dead: %s, Running: %s",
+        logger.Error("PendingBlock: %s, SentEnd: %s, PendingGrow: %s, PendingD4R: %s, Dead: %s",
                 BoolString(pendingBlock), BoolString(sentEnd), BoolString(pendingGrow),
-                BoolString(pendingD4RTag), BoolString(dead), BoolString(Running()));
-        logger.Error("Thread id: %llu", (unsigned long long)((pthread_t)(*this)));
+                BoolString(pendingD4RTag), BoolString(dead));
+        logger.Error("FileThread id: %llu, Running: %s, ActionThread id: %llu, Running: %s",
+                (unsigned long long)((pthread_t)(*fileThread)), BoolString(fileThread->Running()),
+                (unsigned long long)((pthread_t)(*actionThread)), BoolString(actionThread->Running()));
         if (sock.Closed()) {
             logger.Error("Socket closed");
         }
