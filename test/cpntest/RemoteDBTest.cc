@@ -171,6 +171,7 @@ void RemoteDBTest::WaitForHostTest() {
     std::string name = "bogus3";
     m_hostname = name;
     Pthread *waiter = CreatePthreadFunctional(this, &RemoteDBTest::WaitForHostSetup);
+    CPPUNIT_ASSERT_EQUAL(0, waiter->Error());
     lock.Lock();
     signaled = false;
     waiter->Start();
@@ -217,6 +218,7 @@ void RemoteDBTest::WaitForNodeTest() {
     LocalRDBClient lrdbc(serv, __PRETTY_FUNCTION__);
     m_nodename = "bogus node";
     Pthread *waiter = CreatePthreadFunctional(this, &RemoteDBTest::WaitForNode);
+    CPPUNIT_ASSERT_EQUAL(0, waiter->Error());
     lock.Lock();
     signaled = false;
     waiter->Start();

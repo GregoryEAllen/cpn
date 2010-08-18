@@ -49,6 +49,7 @@ void RemoteQueueTest::setUp() {
     server = shared_ptr<ConnectionServer>(new ConnectionServer(addrs, database));
     server->Disable();
     servert = shared_ptr<Pthread>(CreatePthreadFunctional(this, &RemoteQueueTest::PollServer));
+    CPPUNIT_ASSERT_EQUAL(0, servert->Error());
     servert->Start();
 
 
@@ -117,8 +118,10 @@ void RemoteQueueTest::CommunicationTest() {
     server->Enable();
     auto_ptr<Pthread> enqueuer = auto_ptr<Pthread>(
             CreatePthreadFunctional(this, &RemoteQueueTest::EnqueueData));
+    CPPUNIT_ASSERT_EQUAL(0, enqueuer->Error());
     auto_ptr<Pthread> dequeuer = auto_ptr<Pthread>(
             CreatePthreadFunctional(this, &RemoteQueueTest::DequeueData));
+    CPPUNIT_ASSERT_EQUAL(0, dequeuer->Error());
 
     dequeuer->Start();
     while (wqueue->ReadRequest() == 0) {
@@ -213,8 +216,10 @@ void RemoteQueueTest::EndOfWriteQueueTest() {
     server->Enable();
     auto_ptr<Pthread> enqueuer = auto_ptr<Pthread>(
             CreatePthreadFunctional(this, &RemoteQueueTest::EnqueueData));
+    CPPUNIT_ASSERT_EQUAL(0, enqueuer->Error());
     auto_ptr<Pthread> dequeuer = auto_ptr<Pthread>(
             CreatePthreadFunctional(this, &RemoteQueueTest::DequeueData));
+    CPPUNIT_ASSERT_EQUAL(0, dequeuer->Error());
     enqueuer->Start();
     while (rqueue->WriteRequest() == 0) {
         Pthread::Yield();
@@ -257,6 +262,7 @@ void RemoteQueueTest::EndOfReadQueueTest2() {
     server->Enable();
     auto_ptr<Pthread> enqueuer = auto_ptr<Pthread>(
             CreatePthreadFunctional(this, &RemoteQueueTest::EnqueueData));
+    CPPUNIT_ASSERT_EQUAL(0, enqueuer->Error());
     enqueuer->Start();
     while (rqueue->WriteRequest() == 0) {
         Pthread::Yield();
@@ -274,6 +280,7 @@ void RemoteQueueTest::WriteBlockWithNoFDTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
     auto_ptr<Pthread> enqueuer = auto_ptr<Pthread>(
             CreatePthreadFunctional(this, &RemoteQueueTest::EnqueueData));
+    CPPUNIT_ASSERT_EQUAL(0, enqueuer->Error());
     enqueuer->Start();
     // Wait for the enqueuer to block
     while (wqueue->WriteRequest() == 0) {
@@ -305,6 +312,7 @@ void RemoteQueueTest::WriteEndWithNoFDTest() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
     auto_ptr<Pthread> enqueuer = auto_ptr<Pthread>(
             CreatePthreadFunctional(this, &RemoteQueueTest::EnqueueData));
+    CPPUNIT_ASSERT_EQUAL(0, enqueuer->Error());
     enqueuer->Start();
     // Wait for the enqueuer to block
     while (wqueue->WriteRequest() == 0) {
@@ -325,6 +333,7 @@ void RemoteQueueTest::WriteEndWithNoFDTest() {
 
     std::auto_ptr<Pthread> dequeuer = std::auto_ptr<Pthread>(
             CreatePthreadFunctional(this, &RemoteQueueTest::DequeueData));
+    CPPUNIT_ASSERT_EQUAL(0, dequeuer->Error());
     dequeuer->Start();
     {
         PthreadMutexProtected al(lock);

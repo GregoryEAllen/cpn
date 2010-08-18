@@ -194,8 +194,8 @@ void D4RTest::RunTest(int numkernels) {
             failures++;
             printf("*************** Failure! ******************\n");
         }
+        CPPUNIT_ASSERT(failures == 0);
     }
-    CPPUNIT_ASSERT(failures == 0);
 }
 
 void D4RTest::RunOneKernelTest() {

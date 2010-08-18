@@ -307,8 +307,10 @@ void QueueTest::CommunicationTest() {
     Reset();
     std::auto_ptr<Pthread> enqueuer = std::auto_ptr<Pthread>(
             CreatePthreadFunctional(this, &QueueTest::EnqueueData));
+    CPPUNIT_ASSERT_EQUAL(0, enqueuer->Error());
     std::auto_ptr<Pthread> dequeuer = std::auto_ptr<Pthread>(
             CreatePthreadFunctional(this, &QueueTest::DequeueData));
+    CPPUNIT_ASSERT_EQUAL(0, dequeuer->Error());
     enqueuer->Start();
     while (queue->WriteRequest() == 0);
     dequeuer->Start();
@@ -336,8 +338,10 @@ void QueueTest::DequeueBlockTest() {
     Reset();
     std::auto_ptr<Pthread> enqueuer = std::auto_ptr<Pthread>(
             CreatePthreadFunctional(this, &QueueTest::EnqueueData));
+    CPPUNIT_ASSERT_EQUAL(0, enqueuer->Error());
     std::auto_ptr<Pthread> dequeuer = std::auto_ptr<Pthread>(
             CreatePthreadFunctional(this, &QueueTest::DequeueData));
+    CPPUNIT_ASSERT_EQUAL(0, dequeuer->Error());
     dequeuer->Start();
     while (queue->ReadRequest() == 0);
     enqueuer->Start();

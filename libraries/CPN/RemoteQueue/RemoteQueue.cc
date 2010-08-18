@@ -284,8 +284,10 @@ namespace CPN {
         ASSERT(mode == WRITE);
         ASSERT(!readshutdown);
         readrequest = packet.Requested();
-        if (useD4R) {
-            pendingD4RTag = true;
+        if (readrequest > queue->Count() + bytecount) {
+            if (useD4R) {
+                pendingD4RTag = true;
+            }
         }
         Signal();
     }
@@ -304,8 +306,10 @@ namespace CPN {
         ASSERT(mode == READ);
         ASSERT(!writeshutdown);
         writerequest = packet.Requested();
-        if (useD4R) {
-            pendingD4RTag = true;
+        if (writerequest > readerlength - queue->Count() || queue->Count() > readerlength) {
+            if (useD4R) {
+                pendingD4RTag = true;
+            }
         }
         Signal();
     }
@@ -570,16 +574,9 @@ namespace CPN {
 
             if (mode == WRITE) {
                 if (!sentEnd) {
-                    if (!queue->Empty()) {
-                        // If we can write more try to write more
-                        if (bytecount < readerlength) {
-                            SendEnqueuePacket();
-                        }
-                        // If we can still write more, have the next call to Poll
-                        // check writeability
-                        if (bytecount < readerlength) {
-                            sock.Writeable(false);
-                        }
+                    // Write as much as we can
+                    while (!queue->Empty() && (bytecount < readerlength)) {
+                        SendEnqueuePacket();
                     }
                     // A pending block is present
                     if (pendingBlock) {
