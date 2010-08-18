@@ -45,9 +45,6 @@ namespace CPN {
         database(attr.GetDatabase())
     {
         thread.reset(CreatePthreadFunctional(this, &NodeBase::EntryPoint));
-        if (thread->Error() != 0) {
-            throw ErrnoException("Could not create thread", thread->Error());
-        }
     }
 
     NodeBase::~NodeBase() {

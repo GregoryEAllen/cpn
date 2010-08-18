@@ -41,7 +41,11 @@ PthreadMutexAttr::PthreadMutexAttr(void)
 PthreadMutexAttr::~PthreadMutexAttr(void)
 //-----------------------------------------------------------------------------
 {
-	TrapError(pthread_mutexattr_destroy(&theAttr));
+    try {
+        TrapError(pthread_mutexattr_destroy(&theAttr));
+    } catch (...) {
+        std::terminate();
+    }
 }
 
 

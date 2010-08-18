@@ -65,8 +65,6 @@ namespace CPN {
         bool Empty() const;
         unsigned QueueLength() const;
         void Grow(unsigned queueLen, unsigned maxThresh);
-        void ShutdownReader();
-        void ShutdownWriter();
 
         /// For debug ONLY!
         void LogState();

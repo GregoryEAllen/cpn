@@ -44,10 +44,14 @@ PthreadAttr::PthreadAttr(int systemScope)
 PthreadAttr::~PthreadAttr(void)
 //-----------------------------------------------------------------------------
 {
-	referenceCount--;
-//	printf("PthreadAttr::~PthreadAttr: referenceCount = %d\n", referenceCount);
-	if (!referenceCount)
-		TrapError(pthread_attr_destroy(&attr));
+    try {
+        referenceCount--;
+    //	printf("PthreadAttr::~PthreadAttr: referenceCount = %d\n", referenceCount);
+        if (!referenceCount)
+            TrapError(pthread_attr_destroy(&attr));
+    } catch (...) {
+        std::terminate();
+    }
 }
 
 

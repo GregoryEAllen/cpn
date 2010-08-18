@@ -59,13 +59,7 @@ namespace CPN {
         dead(false)
     {
         fileThread = auto_ptr<Pthread>(CreatePthreadFunctional(this, &RemoteQueue::FileThreadEntryPoint));
-        if (fileThread->Error() != 0) {
-            throw ErrnoException("Could not create thread", fileThread->Error());
-        }
         actionThread = auto_ptr<Pthread>(CreatePthreadFunctional(this, &RemoteQueue::ActionThreadEntryPoint));
-        if (actionThread->Error() != 0) {
-            throw ErrnoException("Could not create thread", actionThread->Error());
-        }
         if (mode == READ) {
             SetWriterNode(&mocknode);
         } else {
@@ -129,18 +123,6 @@ namespace CPN {
         const unsigned newlen = (mode == WRITE ? writerlength : readerlength);
         ThresholdQueue::Grow(newlen, maxthresh);
         pendingGrow = true;
-        Signal();
-    }
-
-    void RemoteQueue::ShutdownReader() {
-        ASSERT(mode == READ);
-        ThresholdQueue::ShutdownReader();
-        Signal();
-    }
-
-    void RemoteQueue::ShutdownWriter() {
-        ASSERT(mode == WRITE);
-        ThresholdQueue::ShutdownWriter();
         Signal();
     }
 

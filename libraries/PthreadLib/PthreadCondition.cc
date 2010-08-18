@@ -56,7 +56,11 @@ PthreadCondition::PthreadCondition(const PthreadConditionAttr& cAttr)
 PthreadCondition::~PthreadCondition()
 //-----------------------------------------------------------------------------
 {
-	TrapError(pthread_cond_destroy(&theCond));
+    try {
+        TrapError(pthread_cond_destroy(&theCond));
+    } catch (...) {
+        std::terminate();
+    }
 }
 
 

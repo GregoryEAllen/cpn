@@ -31,16 +31,7 @@
 
 #include "PthreadDefs.h"
 #ifdef _POSIX_THREADS
-
-//=============================================================================
-//	Compile Options
-//-----------------------------------------------------------------------------
-#define THROW_THREAD_EXCEPTIONS		0
-// Set to 1 to throw an exception when a Pthread library call signals an error.
-// Set to 0 to simply record the error in the static variable Pthread<xxx>::error,
-// which can be read with Pthread<xxx>::Error().
-//-----------------------------------------------------------------------------
-
+#include "ErrnoException.h"
 
 class PthreadErrorHandler {
   public:
@@ -60,10 +51,7 @@ inline void PthreadErrorHandler::TrapError(int err)
 {
 	if (err) {
 		error = err;
-
-		#if THROW_THREAD_EXCEPTIONS
-			throw err;
-		#endif
+        throw ErrnoException(error);
 	}
 }
 

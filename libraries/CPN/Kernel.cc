@@ -70,9 +70,6 @@ namespace CPN {
     {
         FUNCBEGIN;
         thread.reset(CreatePthreadFunctional(this, &Kernel::EntryPoint));
-        if (thread->Error() != 0) {
-            throw ErrnoException("Could not create thread", thread->Error());
-        }
         if (!database) {
             database = Database::Local();
         }

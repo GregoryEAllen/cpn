@@ -39,7 +39,7 @@ Pthread::Pthread(void)
     inJoin = false;
 	state = uninitialized;
 	TrapError( pthread_create( &theThread, 0, PthreadEntryPoint, this) );
-	state = created;
+    state = created;
     cond.Broadcast();
 }
 
@@ -60,8 +60,7 @@ Pthread::Pthread(const PthreadAttr& attr)
 	//		SGI's pthread_create is not const correct!!!
 	pthread_attr_t* myAttr = (PthreadAttr&)attr;
 	TrapError( pthread_create(&theThread, myAttr, PthreadEntryPoint, this) );
-
-	state = created;
+    state = created;
     cond.Broadcast();
 }
 
@@ -70,32 +69,34 @@ Pthread::Pthread(const PthreadAttr& attr)
 Pthread::~Pthread(void)
 //-----------------------------------------------------------------------------
 {
-	// Force the thread to terminate if it has not already done so.
-	// Is it safe to do this to a thread that has already terminated?
+    try {
+        // Force the thread to terminate if it has not already done so.
+        // Is it safe to do this to a thread that has already terminated?
 
-    bool need_start = false;
-	// valgrind's memcheck tool claims this allocates a block of 
-	// memory that is never freed.
-	{
-		PthreadMutexProtected p(mutex);
-        switch (state) {
-            case uninitialized:
-                // should be impossible
-            case created:
-                need_start = true;
-            case started:
-            case running:
-                Cancel();
-            case done:
-            case joined:
-                break;
+        bool need_start = false;
+        {
+            PthreadMutexProtected p(mutex);
+            switch (state) {
+                case uninitialized:
+                    // should be impossible
+                    return;
+                case created:
+                    need_start = true;
+                case started:
+                case running:
+                    Cancel();
+                case done:
+                case joined:
+                    break;
+            }
         }
-	}
 
-    if (need_start) { Start(); }
-	// Now wait.
-	Join();
-//	Detach();
+        if (need_start) { Start(); }
+        // Now wait.
+        Join();
+    } catch (...) {
+        std::terminate();
+    }
 }
 
 void Pthread::Start(void) {
@@ -110,7 +111,7 @@ void *Pthread::Join(void) {
     void *result = 0;
     {
         PthreadMutexProtected p(mutex);
-        if (inJoin) {
+        if (inJoin || state == joined) {
             while (state != joined) {
                 cond.Wait(mutex);
             }

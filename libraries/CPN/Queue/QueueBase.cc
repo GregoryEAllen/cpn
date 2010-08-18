@@ -158,13 +158,13 @@ namespace CPN {
     void QueueBase::ShutdownReader() {
         AutoLock al(*this);
         readshutdown = true;
-        cond.Broadcast();
+        Signal();
     }
 
     void QueueBase::ShutdownWriter() {
         AutoLock al(*this);
         writeshutdown = true;
-        cond.Broadcast();
+        Signal();
     }
 
     void QueueBase::WaitForData() {

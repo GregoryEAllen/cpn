@@ -38,7 +38,7 @@ class PthreadKey: public PthreadErrorHandler {
 	PthreadKey(void (*destructor)(T) = 0)
 		{ TrapError(pthread_key_create(&theKey, (void(*)(void*))destructor)); }
    ~PthreadKey(void)
-   		{ TrapError(pthread_key_delete(theKey)); }
+   		{ try { TrapError(pthread_key_delete(theKey)); } catch (...) { std::terminate(); } }
 
 	operator pthread_key_t* (void)				{ return &theKey; }
 	operator const pthread_key_t* (void) const	{ return &theKey; }

@@ -645,7 +645,6 @@ namespace CPN {
             ++gwitr;
         }
         terminateThread.reset(CreatePthreadFunctional(this, &RemoteDBClient::TerminateThread));
-        if (terminateThread->Error() != 0) { throw ErrnoException(terminateThread->Error()); }
         terminateThread->Start();
     }
 
