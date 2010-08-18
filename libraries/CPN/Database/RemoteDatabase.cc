@@ -23,12 +23,29 @@
 #include "RemoteDatabase.h"
 #include "ErrnoException.h"
 #include "VariantToJSON.h"
+#include "PthreadFunctional.h"
 #include <stdio.h>
 
 using std::auto_ptr;
 
+RemoteDatabase::RemoteDatabase(const SocketAddress &addr)
+{ 
+    thread.reset(CreatePthreadFunctional(this, &RemoteDatabase::EntryPoint));
+    if (thread->Error() != 0) { throw ErrnoException(thread->Error()); }
+    Connect(addr);
+    thread->Start();
+}
+
+RemoteDatabase::RemoteDatabase(const SockAddrList &addrs)
+{ 
+    thread.reset(CreatePthreadFunctional(this, &RemoteDatabase::EntryPoint));
+    if (thread->Error() != 0) { throw ErrnoException(thread->Error()); }
+    Connect(addrs);
+    thread->Start();
+}
+
 RemoteDatabase::~RemoteDatabase() {
-    Join();
+    thread->Join();
 }
 
 void RemoteDatabase::SendMessage(const Variant &msg) {

@@ -143,7 +143,6 @@ int main(int argc, char **argv) {
 
     shared_ptr<RemoteDatabase> database = shared_ptr<RemoteDatabase>(new RemoteDatabase(addrs));
     database->LogLevel(loglevel);
-    database->Start();
 
     Kernel kernel(KernelAttr(name).SetHostName(bindip).SetDatabase(database));
 

@@ -40,6 +40,7 @@
 #include "Assert.h"
 #include "Logger.h"
 #include "ErrnoException.h"
+#include "PthreadFunctional.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -68,8 +69,9 @@ namespace CPN {
         useremote(kattr.GetRemoteEnabled())
     {
         FUNCBEGIN;
-        if (Pthread::Error() != 0) {
-            throw ErrnoException("Could not create thread", Pthread::Error());
+        thread.reset(CreatePthreadFunctional(this, &Kernel::EntryPoint));
+        if (thread->Error() != 0) {
+            throw ErrnoException("Could not create thread", thread->Error());
         }
         if (!database) {
             database = Database::Local();
@@ -96,7 +98,7 @@ namespace CPN {
             logger.Info("New kernel");
         }
         // Start up and don't finish until actually started.
-        Pthread::Start();
+        thread->Start();
         status.CompareAndWait(INITIALIZED);
     }
 
@@ -104,6 +106,7 @@ namespace CPN {
         FUNCBEGIN;
         Terminate();
         Wait();
+        thread->Join();
         FUNCEND;
     }
 

@@ -28,6 +28,8 @@
 #include "AutoUnlock.h"
 #include "Base64.h"
 #include "VariantToJSON.h"
+#include "PthreadFunctional.h"
+#include "ErrnoException.h"
 #include <stdexcept>
 
 namespace CPN {
@@ -612,9 +614,17 @@ namespace CPN {
         }
     }
 
-    void *NotifyTerminate(void *arg) {
-        KernelBase *kb = reinterpret_cast<KernelBase*>(arg);
-        kb->NotifyTerminate();
+    void *RemoteDBClient::TerminateThread() {
+        std::map<Key_t, KernelBase*> mapcopy;
+        {
+            PthreadMutexProtected plock(lock);
+            mapcopy = kmhandlers;
+        }
+        std::map<Key_t, KernelBase*>::iterator kmhitr;
+        kmhitr = mapcopy.begin();
+        while (kmhitr != mapcopy.end()) {
+            kmhitr->second->NotifyTerminate();
+        }
         return 0;
     }
 
@@ -634,13 +644,9 @@ namespace CPN {
             }
             ++gwitr;
         }
-        std::map<Key_t, KernelBase*>::iterator kmhitr;
-        kmhitr = kmhandlers.begin();
-        while (kmhitr != kmhandlers.end()) {
-            PthreadBase thread(NotifyTerminate, kmhitr->second);
-            thread.Detach();
-            ++kmhitr;
-        }
+        terminateThread.reset(CreatePthreadFunctional(this, &RemoteDBClient::TerminateThread));
+        if (terminateThread->Error() != 0) { throw ErrnoException(terminateThread->Error()); }
+        terminateThread->Start();
     }
 
     bool RemoteDBClient::IsTerminated() {

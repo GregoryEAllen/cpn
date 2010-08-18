@@ -30,6 +30,7 @@
 #include "QueueWriter.h"
 #include "D4RDeadlockException.h"
 #include "ErrnoException.h"
+#include "PthreadFunctional.h"
 
 #include <vector>
 
@@ -43,12 +44,17 @@ namespace CPN {
         nodekey(attr.GetKey()),
         database(attr.GetDatabase())
     {
-        if (Pthread::Error() != 0) {
-            throw ErrnoException("Could not create thread", Pthread::Error());
+        thread.reset(CreatePthreadFunctional(this, &NodeBase::EntryPoint));
+        if (thread->Error() != 0) {
+            throw ErrnoException("Could not create thread", thread->Error());
         }
     }
 
     NodeBase::~NodeBase() {
+    }
+
+    void NodeBase::Start() {
+        thread->Start();
     }
 
     void NodeBase::CreateReader(shared_ptr<QueueBase> q) {
@@ -193,8 +199,8 @@ namespace CPN {
         Logger logger(database.get(), Logger::ERROR);
         logger.Name(name.c_str());
         logger.Error("Logging (key: %llu), %u readers, %u writers, %s",
-                nodekey, readermap.size(), writermap.size(), Running() ? "Running" : "done");
-        logger.Error("Thread id: %llu", (unsigned long long)((pthread_t)(*this)));
+                nodekey, readermap.size(), writermap.size(), thread->Running() ? "Running" : "done");
+        logger.Error("Thread id: %llu", (unsigned long long)((pthread_t)(*thread.get())));
         ReaderMap::iterator r = readermap.begin();
         while (r != readermap.end()) {
             r->second->GetQueue()->LogState();

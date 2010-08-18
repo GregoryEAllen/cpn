@@ -126,10 +126,12 @@ namespace CPN {
         GenericWaiterPtr NewGenericWaiter();
         void InternalTerminate();
         void InternalCheckTerminated();
+        void *TerminateThread();
 
         CPN::Key_t GetCreateEndpointKey(RDBMT_t msgtype, CPN::Key_t nodekey, const std::string &portname);
         Variant GetEndpointInfo(RDBMT_t msgtype, CPN::Key_t portkey);
 
+        auto_ptr<Pthread> terminateThread;
         std::map<unsigned, WaiterInfo*> callwaiters;
         std::list<std::tr1::weak_ptr<GenericWaiter> > waiters;
         std::map<CPN::Key_t, CPN::KernelBase*> kmhandlers;

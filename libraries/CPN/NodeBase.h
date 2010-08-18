@@ -48,7 +48,7 @@ namespace CPN {
 	 * lifetime of the node object.
 	 *
 	 */
-	class CPN_API NodeBase : private Pthread, private QueueReleaser, private D4R::Node {
+	class CPN_API NodeBase : private QueueReleaser, private D4R::Node {
 	public:
 		NodeBase(Kernel &ker, const NodeAttr &attr);
 
@@ -104,7 +104,7 @@ namespace CPN {
         /**
          * \brief For use by the CPN::Kernel to start the node.
          */
-        using Pthread::Start;
+        void Start();
 
         /** \brief Called by the kernel when it is shutting down */
         void NotifyTerminate();
@@ -134,6 +134,7 @@ namespace CPN {
         const std::string name;
         const std::string type;
         const Key_t nodekey;
+        auto_ptr<Pthread> thread;
 
         typedef std::map<Key_t, shared_ptr<QueueReader> > ReaderMap;
         typedef std::map<Key_t, shared_ptr<QueueWriter> > WriterMap;

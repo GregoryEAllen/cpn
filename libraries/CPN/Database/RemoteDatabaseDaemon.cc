@@ -183,7 +183,7 @@ void RemoteDatabaseDaemon::Client::Send(const Variant &msg) {
     }
     try {
         std::string message = VariantToJSON(msg);
-        int numwritten = 0;
+        unsigned numwritten = 0;
         while (numwritten < message.size()) {
             numwritten += Write(message.data() + numwritten, message.size() - numwritten);
         }

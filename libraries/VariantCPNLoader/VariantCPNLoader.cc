@@ -161,7 +161,6 @@ shared_ptr<Database> VariantCPNLoader::LoadDatabase(Variant v) {
                     v["port"].AsString()
                     );
             shared_ptr<RemoteDatabase> db = shared_ptr<RemoteDatabase>(new RemoteDatabase(addrs));
-            db->Start();
             database = db;
         }
         if (!v["d4r"].IsNull()) {

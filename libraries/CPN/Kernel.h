@@ -59,7 +59,7 @@ namespace CPN {
      * correctly and to provide a unified interface to
      * the user of the process network.
      */
-    class CPN_API Kernel : private Pthread, private KernelBase {
+    class CPN_API Kernel : private KernelBase {
         enum KernelStatus_t {
             INITIALIZED, RUNNING, TERMINATE, DONE
         };
@@ -166,6 +166,7 @@ namespace CPN {
         Sync::ReentrantLock lock;
         Sync::StatusHandler<KernelStatus_t> status;
         Sync::ReentrantCondition cond;
+        auto_ptr<Pthread> thread;
         const std::string kernelname;
         Key_t hostkey;
         Logger logger;

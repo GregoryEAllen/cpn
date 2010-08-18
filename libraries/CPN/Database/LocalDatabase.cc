@@ -332,8 +332,8 @@ namespace CPN {
     }
 
     Key_t LocalDatabase::GetCreateReaderKey(Key_t nodekey, const std::string &portname) {
-        InternalCheckTerminated();
         PthreadMutexProtected pl(lock);
+        InternalCheckTerminated();
         NodeMap::iterator entry = nodemap.find(nodekey);
         if (entry == nodemap.end()) {
             throw std::invalid_argument("No such node");
@@ -354,8 +354,8 @@ namespace CPN {
         }
     }
     Key_t LocalDatabase::GetReaderNode(Key_t portkey) {
-        InternalCheckTerminated();
         PthreadMutexProtected pl(lock);
+        InternalCheckTerminated();
         PortMap::iterator entry = readports.find(portkey);
         if (entry == readports.end()) {
             throw std::invalid_argument("No such port");

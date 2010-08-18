@@ -32,10 +32,10 @@
 /**
  * An implementation for the RemoteDBClient that is paired with RemoteDatabaseDaemon.
  */
-class RemoteDatabase : public Pthread, public CPN::RemoteDBClient, public SocketHandle {
+class RemoteDatabase : public CPN::RemoteDBClient, public SocketHandle {
 public:
-    RemoteDatabase(const SocketAddress &addr) { Connect(addr); }
-    RemoteDatabase(const SockAddrList &addrs) { Connect(addrs); }
+    RemoteDatabase(const SocketAddress &addr);
+    RemoteDatabase(const SockAddrList &addrs);
     ~RemoteDatabase();
 protected:
     void SendMessage(const Variant &msg);
@@ -43,5 +43,6 @@ protected:
     void Read();
 private:
     JSONToVariant parse;
+    std::auto_ptr<Pthread> thread;
 };
 #endif
