@@ -49,9 +49,13 @@ class Pthread : public PthreadBase {
 		PthreadMutexProtected p(mutex);
 		return state == running;
 	}
+
+    /**
+     * \return true if Joining would not block.
+     */
 	int Done(void) {
 		PthreadMutexProtected p(mutex);
-		return state == done;
+		return state == done || state == joined;
 	}
 
     void *Join(void);
