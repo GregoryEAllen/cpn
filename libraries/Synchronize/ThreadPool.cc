@@ -85,16 +85,16 @@ namespace Sync {
                     cond.Wait(lock);
                 }
                 --waiting;
-                if (shutdown) die = true;
-                if (timedout && taskqueue.empty()) {
-                    if (numthreads > minthreads) {
+                if (taskqueue.empty()) {
+                    if (shutdown) die = true;
+                    if (timedout && (numthreads > minthreads)) {
                         SpawnCleanup();
                         die = true;
                     }
-                }
-                if (die) {
-                    --numthreads;
-                    return 0;
+                    if (die) {
+                        --numthreads;
+                        return 0;
+                    }
                 }
             }
             shared_ptr<Runnable> r = taskqueue.front();
