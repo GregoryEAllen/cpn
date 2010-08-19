@@ -1,5 +1,8 @@
 
 #include "Runnable.h"
 
-Runnable::~Runnable() {}
+namespace Sync {
 
+    Runnable::~Runnable() {}
+
+}

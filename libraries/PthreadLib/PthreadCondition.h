@@ -53,7 +53,8 @@ class PthreadCondition : public PthreadErrorHandler {
 	// BEWARE!  abstime is the time in the future to wake up, not the interval
 	// i.e.  usleep(100) is equivalent to:   struct timespec ts;
 	//       clock_gettime(CLOCK_REALTIME, &ts); ts.tv_nsec += 100000;
-	PthreadCondition&	TimedWait(PthreadMutex& mutex, const timespec* abstime);
+	int TimedWait(PthreadMutex& mutex, const timespec* abstime);
+	int TimedWait(PthreadMutex& mutex, double reltime);
 
   private:
 	pthread_cond_t		theCond;

@@ -25,6 +25,7 @@
 
 #include "PthreadCondition.h"
 #include "PthreadConditionAttr.h"
+#include <errno.h>
 #ifdef _POSIX_THREADS
 
 
@@ -88,11 +89,38 @@ PthreadCondition& PthreadCondition::Wait(PthreadMutex& mutex)
 }
 
 //-----------------------------------------------------------------------------
-PthreadCondition& PthreadCondition::TimedWait(PthreadMutex& mutex, const timespec* abstime)
+int PthreadCondition::TimedWait(PthreadMutex& mutex, const timespec* abstime)
 //-----------------------------------------------------------------------------
-{	TrapError(pthread_cond_timedwait(&theCond, mutex, abstime));
-	return *this;
+{	
+    int err = pthread_cond_timedwait(&theCond, mutex, abstime);
+    if (err != 0) {
+        if (err == ETIMEDOUT) { return true; }
+        TrapError(err);
+    }
+    return false;
 }
+
+//-----------------------------------------------------------------------------
+int PthreadCondition::TimedWait(PthreadMutex& mutex, double reltime)
+//-----------------------------------------------------------------------------
+{
+    timespec ts;
+    int ret = clock_gettime(CLOCK_REALTIME, &ts);
+    if (ret != 0) throw ErrnoException();
+    unsigned sec = (unsigned)reltime;
+    if (sec > 0) {
+        ts.tv_sec += sec;
+        unsigned nsec = (unsigned)((reltime - sec)*1e9);
+        if (nsec > 0) ts.tv_nsec += nsec;
+    }
+    int err = pthread_cond_timedwait(&theCond, mutex, &ts);
+    if (err != 0) {
+        if (err == ETIMEDOUT) { return true; }
+        TrapError(err);
+    }
+    return false;
+}
+
 
 
 #endif

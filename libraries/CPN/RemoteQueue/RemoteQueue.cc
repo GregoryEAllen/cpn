@@ -465,7 +465,7 @@ namespace CPN {
                     }
                     if (sock.Closed()) {
                         logger.Debug("Connecting (c: %llu)", clock.Get());
-                        shared_ptr<Future<int> > conn;
+                        shared_ptr<Sync::Future<int> > conn;
                         if (mode == WRITE) {
                             conn = server->ConnectWriter(GetKey());
                         } else {

@@ -98,9 +98,9 @@ namespace CPN {
         }
     }
 
-    shared_ptr<Future<int> > ConnectionServer::ConnectWriter(Key_t writerkey) {
+    shared_ptr<Sync::Future<int> > ConnectionServer::ConnectWriter(Key_t writerkey) {
         if (server.Closed()) {
-            return shared_ptr<Future<int> >();
+            return shared_ptr<Sync::Future<int> >();
         }
         AutoPLock al(lock);
         shared_ptr<PendingConnection> conn;
@@ -130,9 +130,9 @@ namespace CPN {
         return conn;
     }
 
-    shared_ptr<Future<int> > ConnectionServer::ConnectReader(Key_t readerkey) {
+    shared_ptr<Sync::Future<int> > ConnectionServer::ConnectReader(Key_t readerkey) {
         if (server.Closed()) {
-            return shared_ptr<Future<int> >();
+            return shared_ptr<Sync::Future<int> >();
         }
         AutoPLock al(lock);
         shared_ptr<PendingConnection> conn;

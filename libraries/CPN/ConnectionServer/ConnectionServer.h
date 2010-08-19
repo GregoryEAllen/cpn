@@ -39,8 +39,8 @@ namespace CPN {
         void Poll();
         void Wakeup() { wakeup.SendWakeup(); }
         void Close();
-        shared_ptr<Future<int> > ConnectWriter(Key_t writerkey);
-        shared_ptr<Future<int> > ConnectReader(Key_t readerkey);
+        shared_ptr<Sync::Future<int> > ConnectWriter(Key_t writerkey);
+        shared_ptr<Sync::Future<int> > ConnectReader(Key_t readerkey);
         SocketAddress GetAddress();
 
         // For testing
@@ -50,7 +50,7 @@ namespace CPN {
         /// For debug ONLY!
         void LogState();
     private:
-        class PendingConnection : public Future<int>, public SocketHandle {
+        class PendingConnection : public Sync::Future<int>, public SocketHandle {
         public:
             PendingConnection(Key_t k, ConnectionServer *serv);
             ~PendingConnection();
