@@ -532,13 +532,6 @@ namespace CPN {
         if (sock.Closed()) {
             return;
         }
-        if (database->IsTerminated()) {
-            if (mode == WRITE) {
-                ThresholdQueue::ShutdownWriter();
-            } else {
-                ThresholdQueue::ShutdownReader();
-            }
-        }
 
         clock.Tick();
 
@@ -549,13 +542,16 @@ namespace CPN {
 
         try {
 
-            if (pendingGrow) {
+            if (pendingGrow && !sentEnd) {
                 SendGrowPacket();
                 pendingGrow = false;
             }
 
             if (mode == WRITE) {
                 if (!sentEnd) {
+                    if (database->IsTerminated()) {
+                        ThresholdQueue::ShutdownWriter();
+                    }
                     // Write as much as we can
                     while (!queue->Empty() && (bytecount < readerlength)) {
                         SendEnqueuePacket();
@@ -595,6 +591,9 @@ namespace CPN {
                 }
             } else {
                 if (!sentEnd) {
+                    if (database->IsTerminated()) {
+                        ThresholdQueue::ShutdownReader();
+                    }
                     // If some bytes have been read from the queue
                     if (bytecount > queue->Count()) {
                         SendDequeuePacket();

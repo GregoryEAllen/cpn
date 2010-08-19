@@ -56,14 +56,9 @@ namespace CPN {
             ~PendingConnection();
             int Get();
             void Set(int filed);
-            void Reset(int filed);
-            bool Done();
-            void Cancel();
             Key_t GetKey() const { return key; }
         private:
-            PthreadCondition cond;
             const Key_t key;
-            bool done;
             ConnectionServer *server;
         };
 

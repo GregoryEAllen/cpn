@@ -193,42 +193,32 @@ namespace CPN {
     }
 
     ConnectionServer::PendingConnection::PendingConnection(Key_t k, ConnectionServer *serv)
-        : key(k), done(false), server(serv)
+        : key(k), server(serv)
     {}
 
     ConnectionServer::PendingConnection::~PendingConnection() {
     }
 
     int ConnectionServer::PendingConnection::Get() {
-        AutoPLock al(file_lock);
-        while (!done) {
-            cond.Wait(file_lock);
-        }
+        AutoPLock al(future_lock);
+        InternalWait();
+        ret = -1;
+        al.Unlock();
+        AutoPLock alf(file_lock);
         int filed = fd;
         fd = -1;
-        al.Unlock();
+        alf.Unlock();
         server->PendingDone(key, this);
         return filed;
     }
 
     void ConnectionServer::PendingConnection::Set(int filed) {
-        AutoPLock al(file_lock);
-        ASSERT(!done);
+        AutoPLock alf(file_lock);
         fd = filed;
-        done = true;
-        cond.Signal();
+        alf.Unlock();
+        AutoPLock al(future_lock);
+        ASSERT(!done);
+        InternalSet(filed);
     }
 
-    bool ConnectionServer::PendingConnection::Done() {
-        AutoPLock al(file_lock);
-        return done;
-    }
-
-    void ConnectionServer::PendingConnection::Cancel() {
-        AutoPLock al(file_lock);
-        if (!done) {
-            done = true;
-            cond.Signal();
-        }
-    }
 }
