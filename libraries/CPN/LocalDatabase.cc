@@ -41,7 +41,7 @@ namespace CPN {
     void LocalDatabase::Log(int level, const std::string &msg) {
         PthreadMutexProtected pl(lock);
         if (level >= loglevel) {
-            std::cout << level << ":" << msg << std::endl;
+            std::cerr << level << ":" << msg << std::endl;
         }
     }
 
@@ -56,10 +56,10 @@ namespace CPN {
     }
 
     Key_t LocalDatabase::SetupHost(const std::string &name, const std::string &hostname,
-            const std::string &servname, KernelBase *kmh) {
+            const std::string &servname, KernelBase *kernel) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
-        if (!kmh) { throw std::invalid_argument("Must have non null KernelBase."); }
+        if (!kernel) { throw std::invalid_argument("Must have non null Kernel."); }
         if (hostnames.find(name) != hostnames.end()) {
            throw std::invalid_argument("Cannot create two kernels with the same name");
         }
@@ -67,7 +67,7 @@ namespace CPN {
         hinfo->name = name;
         hinfo->hostname = hostname;
         hinfo->servname = servname;
-        hinfo->kmh = kmh;
+        hinfo->kernel = kernel;
         hinfo->dead = false;
         hinfo->live = false;
         hinfo->allowremote = true;
@@ -77,16 +77,16 @@ namespace CPN {
         return key;
     }
 
-    Key_t LocalDatabase::SetupHost(const std::string &name, KernelBase *kmh) {
+    Key_t LocalDatabase::SetupHost(const std::string &name, KernelBase *kernel) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
-        if (!kmh) { throw std::invalid_argument("Must have non null KernelBase."); }
+        if (!kernel) { throw std::invalid_argument("Must have non null Kernel."); }
         if (hostnames.find(name) != hostnames.end()) {
            throw std::invalid_argument("Cannot create two kernels with the same name");
         }
         shared_ptr<HostInfo> hinfo = shared_ptr<HostInfo>(new HostInfo);
         hinfo->name = name;
-        hinfo->kmh = kmh;
+        hinfo->kernel = kernel;
         hinfo->dead = false;
         hinfo->live = false;
         hinfo->allowremote = false;
@@ -129,7 +129,7 @@ namespace CPN {
         servname = entry->second->servname;
     }
 
-    void LocalDatabase::DestroyHostKey(Key_t hostkey) {
+    void LocalDatabase::SignalHostEnd(Key_t hostkey) {
         PthreadMutexProtected pl(lock);
         HostMap::iterator entry = hostmap.find(hostkey);
         if (entry == hostmap.end()) {
@@ -167,51 +167,51 @@ namespace CPN {
     }
 
     void LocalDatabase::SendCreateWriter(Key_t hostkey, const SimpleQueueAttr &attr) {
-        KernelBase *kmh;
+        KernelBase *kernel;
         {
             PthreadMutexProtected pl(lock);
             InternalCheckTerminated();
             shared_ptr<HostInfo> hinfo = hostmap[hostkey];
-            kmh = hinfo->kmh;
+            kernel = hinfo->kernel;
         }
-        ASSERT(kmh);
-        kmh->CreateWriter(hostkey, attr);
+        ASSERT(kernel);
+        kernel->RemoteCreateWriter(attr);
     }
 
     void LocalDatabase::SendCreateReader(Key_t hostkey, const SimpleQueueAttr &attr) {
-        KernelBase *kmh;
+        KernelBase *kernel;
         {
             PthreadMutexProtected pl(lock);
             InternalCheckTerminated();
             shared_ptr<HostInfo> hinfo = hostmap[hostkey];
-            kmh = hinfo->kmh;
+            kernel = hinfo->kernel;
         }
-        ASSERT(kmh);
-        kmh->CreateReader(hostkey, attr);
+        ASSERT(kernel);
+        kernel->RemoteCreateReader(attr);
     }
 
     void LocalDatabase::SendCreateQueue(Key_t hostkey, const SimpleQueueAttr &attr) {
-        KernelBase *kmh;
+        KernelBase *kernel;
         {
             PthreadMutexProtected pl(lock);
             InternalCheckTerminated();
             shared_ptr<HostInfo> hinfo = hostmap[hostkey];
-            kmh = hinfo->kmh;
+            kernel = hinfo->kernel;
         }
-        ASSERT(kmh);
-        kmh->CreateQueue(hostkey, attr);
+        ASSERT(kernel);
+        kernel->RemoteCreateQueue(attr);
     }
 
     void LocalDatabase::SendCreateNode(Key_t hostkey, const NodeAttr &attr) {
-        KernelBase *kmh;
+        KernelBase *kernel;
         {
             PthreadMutexProtected pl(lock);
             InternalCheckTerminated();
             shared_ptr<HostInfo> hinfo = hostmap[hostkey];
-            kmh = hinfo->kmh;
+            kernel = hinfo->kernel;
         }
-        ASSERT(kmh);
-        kmh->CreateNode(hostkey, attr);
+        ASSERT(kernel);
+        kernel->RemoteCreateNode(attr);
     }
 
     Key_t LocalDatabase::CreateNodeKey(Key_t hostkey, const std::string &nodename) {
@@ -378,15 +378,6 @@ namespace CPN {
         return entry->second->name;
     }
 
-    void LocalDatabase::DestroyReaderKey(Key_t portkey) {
-        PthreadMutexProtected pl(lock);
-        PortMap::iterator entry = readports.find(portkey);
-        if (entry == readports.end()) {
-            throw std::invalid_argument("No such port");
-        }
-        entry->second->dead = true;
-    }
-
     Key_t LocalDatabase::GetCreateWriterKey(Key_t nodekey, const std::string &portname) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
@@ -432,15 +423,6 @@ namespace CPN {
             throw std::invalid_argument("No such port");
         }
         return entry->second->name;
-    }
-
-    void LocalDatabase::DestroyWriterKey(Key_t portkey) {
-        PthreadMutexProtected pl(lock);
-        PortMap::iterator entry = writeports.find(portkey);
-        if (entry == writeports.end()) {
-            throw std::invalid_argument("No such port");
-        }
-        entry->second->dead = true;
     }
 
     void LocalDatabase::ConnectEndpoints(Key_t writerkey, Key_t readerkey) {
@@ -490,7 +472,7 @@ namespace CPN {
         HostMap::iterator itr = mapcopy.begin();
         while (itr != mapcopy.end()) {
             if (!itr->second->dead) {
-                itr->second->kmh->NotifyTerminate();
+                itr->second->kernel->NotifyTerminate();
             }
             ++itr;
         }

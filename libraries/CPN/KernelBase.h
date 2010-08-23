@@ -25,18 +25,18 @@
 #define CPN_KERNELBASE_H
 #pragma once
 #include "CPNCommon.h"
-#include "Future.h"
-#include "Logger.h"
+#include "QueueAttr.h"
+#include "NodeAttr.h"
 
 namespace CPN {
 
     class KernelBase {
     public:
         virtual ~KernelBase();
-        virtual void CreateWriter(Key_t dst, const SimpleQueueAttr &attr);
-        virtual void CreateReader(Key_t dst, const SimpleQueueAttr &attr);
-        virtual void CreateQueue(Key_t dst, const SimpleQueueAttr &attr);
-        virtual void CreateNode(Key_t dst, const NodeAttr &attr);
+        virtual void RemoteCreateWriter(SimpleQueueAttr attr);
+        virtual void RemoteCreateReader(SimpleQueueAttr attr);
+        virtual void RemoteCreateQueue(SimpleQueueAttr attr);
+        virtual void RemoteCreateNode(NodeAttr attr);
         virtual void NotifyTerminate();
     };
 }

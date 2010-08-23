@@ -53,14 +53,14 @@ namespace CPN {
         virtual void Log(int level, const std::string &logmsg);
 
         virtual CPN::Key_t SetupHost(const std::string &name, const std::string &hostname,
-                const std::string &servname, CPN::KernelBase *kmh);
-        virtual CPN::Key_t SetupHost(const std::string &name, KernelBase *kmh) { ASSERT(false, "RemoteDBClient requires remote operation is turned on."); }
+                const std::string &servname, CPN::KernelBase *kernel);
+        virtual CPN::Key_t SetupHost(const std::string &name, KernelBase *kernel) { ASSERT(false, "RemoteDBClient requires remote operation is turned on."); }
         virtual CPN::Key_t GetHostKey(const std::string &host);
         virtual std::string GetHostName(CPN::Key_t hostkey);
         virtual void GetHostConnectionInfo(CPN::Key_t hostkey, std::string &hostname, std::string &servname);
-        virtual void DestroyHostKey(CPN::Key_t hostkey);
         virtual CPN::Key_t WaitForHostStart(const std::string &host);
         virtual void SignalHostStart(CPN::Key_t hostkey);
+        virtual void SignalHostEnd(CPN::Key_t hostkey);
 
         virtual void SendCreateWriter(CPN::Key_t hostkey, const CPN::SimpleQueueAttr &attr);
         virtual void SendCreateReader(CPN::Key_t hostkey, const CPN::SimpleQueueAttr &attr);
@@ -83,13 +83,11 @@ namespace CPN {
         virtual CPN::Key_t GetReaderNode(CPN::Key_t portkey);
         virtual CPN::Key_t GetReaderHost(CPN::Key_t portkey);
         virtual std::string GetReaderName(CPN::Key_t portkey);
-        virtual void DestroyReaderKey(CPN::Key_t portkey);
 
         virtual CPN::Key_t GetCreateWriterKey(CPN::Key_t nodekey, const std::string &portname);
         virtual CPN::Key_t GetWriterNode(CPN::Key_t portkey);
         virtual CPN::Key_t GetWriterHost(CPN::Key_t portkey);
         virtual std::string GetWriterName(CPN::Key_t portkey);
-        virtual void DestroyWriterKey(CPN::Key_t portkey);
 
         virtual void ConnectEndpoints(CPN::Key_t writerkey, CPN::Key_t readerkey);
         virtual CPN::Key_t GetReadersWriter(CPN::Key_t readerkey);
@@ -127,14 +125,18 @@ namespace CPN {
         void InternalTerminate();
         void InternalCheckTerminated();
         void *TerminateThread();
+        Variant RemoteCall(Variant msg);
 
         CPN::Key_t GetCreateEndpointKey(RDBMT_t msgtype, CPN::Key_t nodekey, const std::string &portname);
         Variant GetEndpointInfo(RDBMT_t msgtype, CPN::Key_t portkey);
 
         auto_ptr<Pthread> terminateThread;
-        std::map<unsigned, WaiterInfo*> callwaiters;
-        std::list<std::tr1::weak_ptr<GenericWaiter> > waiters;
-        std::map<CPN::Key_t, CPN::KernelBase*> kmhandlers;
+        typedef std::map<unsigned, WaiterInfo*> WaiterMap;
+        WaiterMap callwaiters;
+        typedef std::list<std::tr1::weak_ptr<GenericWaiter> > WaiterList;
+        WaiterList waiters;
+        typedef std::map<CPN::Key_t, CPN::KernelBase*> KernelMap;
+        KernelMap kernels;
         unsigned trancounter;
         bool shutdown;
         int loglevel;

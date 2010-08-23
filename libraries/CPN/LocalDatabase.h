@@ -44,7 +44,7 @@ namespace CPN {
             std::string name;
             std::string hostname;
             std::string servname;
-            KernelBase *kmh;
+            KernelBase *kernel;
             bool live;
             bool dead;
             bool allowremote;
@@ -78,12 +78,12 @@ namespace CPN {
         virtual int LogLevel(int level);
 
         virtual Key_t SetupHost(const std::string &name, const std::string &hostname,
-                const std::string &servname, KernelBase *kmh);
-        virtual Key_t SetupHost(const std::string &name, KernelBase *kmh);
+                const std::string &servname, KernelBase *kernel);
+        virtual Key_t SetupHost(const std::string &name, KernelBase *kernel);
         virtual Key_t GetHostKey(const std::string &host);
         virtual std::string GetHostName(Key_t hostkey);
         virtual void GetHostConnectionInfo(Key_t hostkey, std::string &hostname, std::string &servname);
-        virtual void DestroyHostKey(Key_t hostkey);
+        virtual void SignalHostEnd(Key_t hostkey);
         virtual Key_t WaitForHostStart(const std::string &host);
         virtual void SignalHostStart(Key_t hostkey);
 
@@ -106,13 +106,11 @@ namespace CPN {
         virtual Key_t GetReaderNode(Key_t portkey);
         virtual Key_t GetReaderHost(Key_t portkey);
         virtual std::string GetReaderName(Key_t portkey);
-        virtual void DestroyReaderKey(Key_t portkey);
 
         virtual Key_t GetCreateWriterKey(Key_t nodekey, const std::string &portname);
         virtual Key_t GetWriterNode(Key_t portkey);
         virtual Key_t GetWriterHost(Key_t portkey);
         virtual std::string GetWriterName(Key_t portkey);
-        virtual void DestroyWriterKey(Key_t portkey);
 
         virtual void ConnectEndpoints(Key_t writerkey, Key_t readerkey);
         virtual Key_t GetReadersWriter(Key_t readerkey);

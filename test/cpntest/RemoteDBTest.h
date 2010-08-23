@@ -57,19 +57,6 @@ public:
 
     LocalRDBServ *serv;
 
-
-    void CreateWriter(CPN::Key_t dst, const CPN::SimpleQueueAttr &attr);
-    void CreateReader(CPN::Key_t dst, const CPN::SimpleQueueAttr &attr);
-    void CreateQueue(CPN::Key_t dst, const CPN::SimpleQueueAttr &attr);
-    void CreateNode(CPN::Key_t dst, const CPN::NodeAttr &attr);
-
-    LoggerOutput *GetLogger() {
-        return 0;
-    }
-    CPN::shared_ptr<CPN::Database> GetDatabase() const {
-        return CPN::shared_ptr<CPN::Database>();
-    }
-
     PthreadMutex lock;
     PthreadCondition cond;
     bool signaled;

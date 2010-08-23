@@ -45,8 +45,6 @@
 #include <string>
 #include <map>
 #include <vector>
-#include <deque>
-#include <list>
 
 namespace CPN {
 
@@ -59,7 +57,7 @@ namespace CPN {
      * correctly and to provide a unified interface to
      * the user of the process network.
      */
-    class CPN_API Kernel : private KernelBase {
+    class CPN_API Kernel : public KernelBase {
         enum KernelStatus_t {
             INITIALIZED, RUNNING, TERMINATE, DONE
         };
@@ -139,6 +137,21 @@ namespace CPN {
         /** \brief Called by the node in the cleanup routine.
          */
         void NodeTerminated(Key_t key);
+
+        /**
+         * These functions are called by the database to create things
+         * remotely. Should not be called by anyone but the database!
+         * \{
+         */
+        void NotifyTerminate();
+        void RemoteCreateWriter(SimpleQueueAttr attr);
+        void RemoteCreateReader(SimpleQueueAttr attr);
+        void RemoteCreateQueue(SimpleQueueAttr attr);
+        void RemoteCreateNode(NodeAttr attr);
+        /**
+         * \}
+         */
+
     private:
         // Not copyable
         Kernel(const Kernel&);
@@ -153,12 +166,6 @@ namespace CPN {
         void *EntryPoint();
 
         void SendWakeup();
-
-        void CreateWriter(Key_t dst, const SimpleQueueAttr &attr);
-        void CreateReader(Key_t dst, const SimpleQueueAttr &attr);
-        void CreateQueue(Key_t dst, const SimpleQueueAttr &attr);
-        void CreateNode(Key_t dst, const NodeAttr &attr);
-        void NotifyTerminate();
 
         // Function to be called from gdb
         void LogState();

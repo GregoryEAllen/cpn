@@ -160,7 +160,7 @@ void RemoteDBTest::HostSetupTest() {
     lrdbc.GetHostConnectionInfo(hostkey, hname, sname);
     CPPUNIT_ASSERT(hname == hostname);
     CPPUNIT_ASSERT(sname == servname);
-    lrdbc.DestroyHostKey(hostkey);
+    lrdbc.SignalHostEnd(hostkey);
 }
 
 void RemoteDBTest::WaitForHostTest() {
@@ -259,7 +259,6 @@ void RemoteDBTest::ReaderTest() {
     CPPUNIT_ASSERT_EQUAL(m_nodekey, lrdbc.GetReaderNode(rkey));
     CPPUNIT_ASSERT_EQUAL((Key_t)4321, lrdbc.GetReaderHost(rkey));
     CPPUNIT_ASSERT_EQUAL(std::string("bogus key"), lrdbc.GetReaderName(rkey));
-    lrdbc.DestroyReaderKey(rkey);
 }
 
 void RemoteDBTest::WriterTest() {
@@ -274,7 +273,6 @@ void RemoteDBTest::WriterTest() {
     CPPUNIT_ASSERT_EQUAL(m_nodekey, lrdbc.GetWriterNode(wkey));
     CPPUNIT_ASSERT_EQUAL((Key_t)4321, lrdbc.GetWriterHost(wkey));
     CPPUNIT_ASSERT_EQUAL(std::string("bogus key"), lrdbc.GetWriterName(wkey));
-    lrdbc.DestroyWriterKey(wkey);
 }
 
 void RemoteDBTest::ConnectTest() {
@@ -289,17 +287,5 @@ void RemoteDBTest::ConnectTest() {
 
     CPPUNIT_ASSERT_EQUAL(wkey, lrdbc.GetReadersWriter(rkey));
     CPPUNIT_ASSERT_EQUAL(rkey, lrdbc.GetWritersReader(wkey));
-}
-
-void RemoteDBTest::CreateWriter(CPN::Key_t dst, const CPN::SimpleQueueAttr &attr) {
-}
-
-void RemoteDBTest::CreateReader(CPN::Key_t dst, const CPN::SimpleQueueAttr &attr) {
-}
-
-void RemoteDBTest::CreateQueue(CPN::Key_t dst, const CPN::SimpleQueueAttr &attr) {
-}
-
-void RemoteDBTest::CreateNode(CPN::Key_t dst, const CPN::NodeAttr &attr) {
 }
 

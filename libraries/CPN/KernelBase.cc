@@ -27,19 +27,18 @@
 namespace CPN {
     KernelBase::~KernelBase() {}
 
-    void KernelBase::CreateWriter(Key_t dst, const SimpleQueueAttr &attr) {
+    void KernelBase::RemoteCreateWriter(SimpleQueueAttr attr) {
         ASSERT(false, "Unexpected message");
     }
-    void KernelBase::CreateReader(Key_t dst, const SimpleQueueAttr &attr) {
+    void KernelBase::RemoteCreateReader(SimpleQueueAttr attr) {
         ASSERT(false, "Unexpected message");
     }
-    void KernelBase::CreateQueue(Key_t dst, const SimpleQueueAttr &attr) {
+    void KernelBase::RemoteCreateQueue(SimpleQueueAttr attr) {
         ASSERT(false, "Unexpected message");
     }
-    void KernelBase::CreateNode(Key_t dst, const NodeAttr &attr) {
+    void KernelBase::RemoteCreateNode(NodeAttr attr) {
         ASSERT(false, "Unexpected message");
     }
-
     void KernelBase::NotifyTerminate() {
         ASSERT(false, "Unexpected message");
     }

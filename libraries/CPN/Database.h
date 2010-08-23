@@ -25,7 +25,6 @@
 #define CPNDB_DATABASE_H
 #pragma once
 #include "CPNCommon.h"
-#include "KernelBase.h"
 #include "NodeLoader.h"
 #include "Logger.h"
 #include "PthreadMutex.h"
@@ -72,13 +71,13 @@ namespace CPN {
          * \throw std::invalid_argument
          */
         virtual Key_t SetupHost(const std::string &name, const std::string &hostname,
-                const std::string &servname, KernelBase *kmh) = 0;
-        /** \brief Called by the kernel when it is in no remote mode.
+                const std::string &servname, KernelBase *kernel) = 0;
+        /** \brief Called by the kernel when it is not in remote mode.
          * \param name the kernel name
          * \param kmh callback reference
          * \return the unique key for the new kernel
          */
-        virtual Key_t SetupHost(const std::string &name, KernelBase *kmh) = 0;
+        virtual Key_t SetupHost(const std::string &name, KernelBase *kernel) = 0;
         /** \param host the name of the host
          * \return the key for the given hostname.
          * \throw ShutdownException
@@ -103,7 +102,7 @@ namespace CPN {
          * \param hostkey id of the host that died
          * \throw std::invalid_argument
          */
-        virtual void DestroyHostKey(Key_t hostkey) = 0;
+        virtual void SignalHostEnd(Key_t hostkey) = 0;
         /** \brief Does not return until the given host has started.
          * \param host the name of the host (the key may not be known yet)
          * \throw ShutdownException
@@ -222,11 +221,6 @@ namespace CPN {
          * \throw std::invalid_argument
          */
         virtual std::string GetReaderName(Key_t portkey) = 0;
-        /** \brief called by the endpoint when it is released.
-         * \param portkey the unique id for the port
-         * \throw std::invalid_argument
-         */
-        virtual void DestroyReaderKey(Key_t portkey) = 0;
 
         /** \see GetCreateReaderKey */
         virtual Key_t GetCreateWriterKey(Key_t nodekey, const std::string &portname) = 0;
@@ -236,8 +230,6 @@ namespace CPN {
         virtual Key_t GetWriterHost(Key_t portkey) = 0;
         /** \see GetReaderName */
         virtual std::string GetWriterName(Key_t portkey) = 0;
-        /** \see DestroyReaderKey */
-        virtual void DestroyWriterKey(Key_t portkey) = 0;
 
         /** \brief Called by the kernel when a queue is created.
          * Note that the endpoints may have been created when the node requests them but

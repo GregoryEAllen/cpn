@@ -210,7 +210,7 @@ namespace CPN {
     }
 
     void QueueBase::NotifyTerminate() {
-        // Can't have the lock because this is called with the database lock
+        AutoLock al(*this);
         cond.Broadcast();
     }
 

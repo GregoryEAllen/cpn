@@ -519,7 +519,7 @@ namespace CPN {
         AutoLock<QueueBase> al(*this);
         while (!dead) {
             InternalCheckStatus();
-            while(!pendingAction) {
+            while(!pendingAction && !dead) {
                 Wait();
             }
             pendingAction = false;
@@ -535,7 +535,15 @@ namespace CPN {
 
         clock.Tick();
 
+        bool terminated = database->IsTerminated();
         if (sock.Eof() && !(readshutdown || writeshutdown)) {
+            if (terminated) {
+                if (!sock.Closed()) {
+                    sock.Close();
+                }
+                Shutdown();
+                return;
+            }
             logger.Error("Eof detected but not shutdown! (c: %llu)", clock.Get());
             ASSERT(false, "EOF detected but not shutdown! (c: %llu)", clock.Get());
         }
@@ -549,7 +557,7 @@ namespace CPN {
 
             if (mode == WRITE) {
                 if (!sentEnd) {
-                    if (database->IsTerminated()) {
+                    if (terminated) {
                         ThresholdQueue::ShutdownWriter();
                     }
                     // Write as much as we can
@@ -574,7 +582,7 @@ namespace CPN {
                     }
                 }
                 if (writeshutdown) {
-                    if (!sentEnd && queue->Empty()) {
+                    if (!sentEnd && (queue->Empty() || terminated)) {
                         SendEndOfWritePacket();
                         sentEnd = true;
                     }
@@ -591,7 +599,7 @@ namespace CPN {
                 }
             } else {
                 if (!sentEnd) {
-                    if (database->IsTerminated()) {
+                    if (terminated) {
                         ThresholdQueue::ShutdownReader();
                     }
                     // If some bytes have been read from the queue

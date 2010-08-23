@@ -397,40 +397,35 @@ namespace CPN {
                 cond.Wait(lock);
             }
         }
-        database->DestroyHostKey(hostkey);
+        database->SignalHostEnd(hostkey);
         status.Post(DONE);
         FUNCEND;
         return 0;
     }
 
-    void Kernel::CreateWriter(Key_t dst, const SimpleQueueAttr &attr) {
+    void Kernel::RemoteCreateWriter(SimpleQueueAttr attr) {
         Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
         ASSERT(useremote);
-        ASSERT(dst == hostkey);
         CreateWriterEndpoint(attr);
     }
-    void Kernel::CreateReader(Key_t dst, const SimpleQueueAttr &attr) {
+    void Kernel::RemoteCreateReader(SimpleQueueAttr attr) {
         Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
         ASSERT(useremote);
-        ASSERT(dst == hostkey);
         CreateReaderEndpoint(attr);
     }
-    void Kernel::CreateQueue(Key_t dst, const SimpleQueueAttr &attr) {
+    void Kernel::RemoteCreateQueue(SimpleQueueAttr attr) {
         Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
         ASSERT(useremote);
-        ASSERT(dst == hostkey);
         CreateLocalQueue(attr);
     }
-    void Kernel::CreateNode(Key_t dst, const NodeAttr &attr) {
+    void Kernel::RemoteCreateNode(NodeAttr attr) {
         Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
         ASSERT(useremote);
-        ASSERT(dst == hostkey);
-        NodeAttr nodeattr(attr);
-        InternalCreateNode(nodeattr);
+        InternalCreateNode(attr);
     }
 
     void Kernel::LogState() {
