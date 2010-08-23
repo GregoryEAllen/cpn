@@ -30,6 +30,16 @@ namespace Sync {
             return ret;
         }
 
+        template<typename Return, typename Klass>
+        shared_ptr<Future<Return> > Execute(shared_ptr<Klass> klass, Return (Klass::*f)()) {
+            std::auto_ptr< RunnableFuture<Return> > aret = CreateRunnableFuture(klass, f);
+            shared_ptr< RunnableFuture<Return> > ret = 
+                shared_ptr< RunnableFuture<Return> >(aret);
+            Execute(ret);
+            return ret;
+        }
+
+
         virtual void Execute(shared_ptr<Runnable> r) = 0;
     };
 }

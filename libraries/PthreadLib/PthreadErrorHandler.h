@@ -51,7 +51,7 @@ inline void PthreadErrorHandler::TrapError(int err)
 {
 	if (err) {
 		error = err;
-        throw ErrnoException(error);
+        throw ErrnoException(err);
 	}
 }
 

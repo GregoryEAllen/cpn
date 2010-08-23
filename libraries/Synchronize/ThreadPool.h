@@ -18,13 +18,22 @@ namespace Sync {
         ThreadPool(unsigned minthreads_, unsigned maxthreads_, double timeout_);
         ~ThreadPool();
 
+        /**
+         * Wait for the queue to become empty.
+         */
+        void Wait();
+        /**
+         * Wait for all tasks to be complete and then shutdown.
+         * Any leftover tasks may be executed in the calling thread.
+         */
         void Shutdown();
         using Executor::Execute;
         void Execute(shared_ptr<Runnable> r);
     private:
     
         PthreadMutex lock;
-        PthreadCondition cond;
+        PthreadCondition enqueue_cond;
+        PthreadCondition dequeue_cond;
         bool shutdown;
         typedef std::deque<shared_ptr<Runnable> > TaskQueue;
         TaskQueue taskqueue;
@@ -33,13 +42,13 @@ namespace Sync {
         unsigned minthreads;
         unsigned maxthreads;
         unsigned numthreads;
+        unsigned numtasks;
         unsigned waiting;
         double timeout;
+        bool needscleanup;
 
         void Spawn();
         void InternalCleanup();
-        void Cleanup();
-        void SpawnCleanup();
         void *TaskThread();
     };
 }
