@@ -19,7 +19,7 @@
 CPPUNIT_TEST_SUITE_REGISTRATION( D4RTest );
 
 #if _DEBUG
-#define DEBUG(frmt, ...) printf(frmt, __VA_ARGS__)
+#define DEBUG(frmt, ...) fprintf(stderr, frmt, __VA_ARGS__)
 #else
 #define DEBUG(frmt, ...)
 #endif

@@ -106,6 +106,7 @@ namespace CPN {
          */
         void Start();
 
+        void Join();
         /** \brief Called by the kernel when it is shutting down */
         void NotifyTerminate();
 

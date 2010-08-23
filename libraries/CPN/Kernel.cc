@@ -346,7 +346,10 @@ namespace CPN {
     void Kernel::ClearGarbage() {
         Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
-        garbagenodes.clear();
+        while (!garbagenodes.empty()) {
+            garbagenodes.back()->Join();
+            garbagenodes.pop_back();
+        }
     }
 
     void Kernel::SendWakeup() {
@@ -371,7 +374,7 @@ namespace CPN {
             } else {
                 Sync::AutoReentrantLock arlock(lock);
                 while (status.Get() == RUNNING) {
-                    garbagenodes.clear();
+                    ClearGarbage();
                     cond.Wait(lock);
                 }
             }
@@ -393,10 +396,11 @@ namespace CPN {
             arlock.Lock();
             // Wait for all nodes to end
             while (!nodemap.empty()) {
-                garbagenodes.clear();
+                ClearGarbage();
                 cond.Wait(lock);
             }
         }
+        ClearGarbage();
         database->SignalHostEnd(hostkey);
         status.Post(DONE);
         FUNCEND;

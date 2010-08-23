@@ -54,6 +54,10 @@ namespace CPN {
         thread->Start();
     }
 
+    void NodeBase::Join() {
+        thread->Join();
+    }
+
     void NodeBase::CreateReader(shared_ptr<QueueBase> q) {
         Sync::AutoReentrantLock arl(lock);
         Key_t readerkey = q->GetReaderKey();
@@ -107,7 +111,6 @@ namespace CPN {
         }
         database->SignalNodeEnd(nodekey);
         kernel.NodeTerminated(nodekey);
-        /*
         // force release of all readers and writers
         arl.Lock();
         ReaderMap readers;
@@ -117,7 +120,6 @@ namespace CPN {
         arl.Unlock();
         readers.clear();
         writers.clear();
-        */
         return 0;
     }
 
