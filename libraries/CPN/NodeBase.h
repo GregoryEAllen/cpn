@@ -48,7 +48,7 @@ namespace CPN {
 	 * lifetime of the node object.
 	 *
 	 */
-	class CPN_API NodeBase : private QueueReleaser, private D4R::Node {
+	class CPN_API NodeBase : private QueueReleaser {
 	public:
 		NodeBase(Kernel &ker, const NodeAttr &attr);
 
@@ -121,8 +121,6 @@ namespace CPN {
 	private:
 		void* EntryPoint();
 
-        void SignalTagChanged();
-
         shared_ptr<QueueReader> GetReader(Key_t ekey);
         shared_ptr<QueueWriter> GetWriter(Key_t ekey);
 
@@ -136,6 +134,7 @@ namespace CPN {
         const std::string type;
         const Key_t nodekey;
         auto_ptr<Pthread> thread;
+        shared_ptr<D4R::Node> d4rnode;
 
         typedef std::map<Key_t, shared_ptr<QueueReader> > ReaderMap;
         typedef std::map<Key_t, shared_ptr<QueueWriter> > WriterMap;

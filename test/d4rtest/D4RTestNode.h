@@ -14,18 +14,19 @@ namespace D4R {
 
     class TestNode
         : public Pthread,
-        public TestNodeBase,
-        public Node
+        public TestNodeBase
     {
     public:
 
         TestNode(const std::string &name_, uint64_t k, TesterBase *tb);
         TestNode(const Variant &noded, TesterBase *tb);
+        ~TestNode();
 
-        void SignalTagChanged();
+        Tag GetPublicTag() const { return node->GetPublicTag(); }
+        Tag GetPrivateTag() const { return node->GetPrivateTag(); }
 
-        void AddReadQueue(TestQueue *q);
-        void AddWriteQueue(TestQueue *q);
+        void AddReadQueue(shared_ptr<TestQueue> q);
+        void AddWriteQueue(shared_ptr<TestQueue> q);
 
         const std::string &GetName() const { return name; }
 
@@ -40,8 +41,9 @@ namespace D4R {
 
         PthreadMutex lock;
         const std::string name;
-        typedef std::map<std::string, TestQueue*> QueueMap;
+        typedef std::map<std::string, shared_ptr<TestQueue> > QueueMap;
         QueueMap readermap;
         QueueMap writermap;
+        shared_ptr<Node> node;
     };
 }

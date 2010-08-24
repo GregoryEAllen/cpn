@@ -109,12 +109,6 @@ namespace CPN {
 
         std::string GetState();
 
-        class MockNode : public D4R::Node {
-        public:
-            MockNode(Key_t key) : D4R::Node(key) {}
-            void SignalTagChanged() { ASSERT(false); }
-        };
-
         auto_ptr<Pthread> fileThread;
         auto_ptr<Pthread> actionThread;
         bool pendingAction;
@@ -124,7 +118,7 @@ namespace CPN {
         ConnectionServer *const server;
         RemoteQueueHolder *const holder;
         SocketHandle sock;
-        MockNode mocknode;
+        shared_ptr<D4R::Node> mocknode;
         LogicalClock clock;
 
         unsigned readerlength;

@@ -21,15 +21,13 @@
  * \author John Bridgman
  */
 #include "D4RNode.h"
+#include "D4RQueue.h"
 #include "AutoLock.h"
-#include "AutoUnlock.h"
-#include "Assert.h"
 #include <algorithm>
-#include <functional>
 
-#if 0
+#if _DEBUG
 #include <stdio.h>
-#define DEBUG(fmt, ...) printf(fmt, ## __VA_ARGS__)
+#define DEBUG(fmt, ...) fprintf(stderr, fmt, ## __VA_ARGS__)
 #else
 #define DEBUG(fmt, ...)
 #endif
@@ -103,6 +101,51 @@ namespace D4R {
                     t.Count(), t.Key(), (int)t.QueueSize(), t.QueueKey());
         }
         return false;
+    }
+
+    void Node::AddReader(weak_ptr<QueueBase> q) {
+        AutoLock<PthreadMutex> al(taglock);
+        readerlist.push_back(q);
+    }
+    void Node::AddWriter(weak_ptr<QueueBase> q) {
+        AutoLock<PthreadMutex> al(taglock);
+        writerlist.push_back(q);
+    }
+
+    void SignalReader(shared_ptr<QueueBase> q) {
+        q->SignalReaderTagChanged();
+    }
+
+    void SignalWriter(shared_ptr<QueueBase> q) {
+        q->SignalWriterTagChanged();
+    }
+
+    typedef std::list<weak_ptr<QueueBase> > QueueList;
+    void GetQueues(QueueList &qlist, std::list<shared_ptr<QueueBase> > &out) {
+        QueueList::iterator itr, end;
+        itr = qlist.begin();
+        end = qlist.end();
+        while (itr != end) {
+            shared_ptr<QueueBase> q = itr->lock();
+            if (q) {
+                out.push_back(q);
+                ++itr;
+            } else {
+                itr = qlist.erase(itr);
+            }
+        }
+    }
+
+    void Node::SignalTagChanged() {
+        std::list<shared_ptr<QueueBase> > readers;
+        std::list<shared_ptr<QueueBase> > writers;
+        {
+            AutoLock<PthreadMutex> al(taglock);
+            GetQueues(readerlist, readers);
+            GetQueues(writerlist, writers);
+        }
+        std::for_each(readers.begin(), readers.end(), &SignalReader);
+        std::for_each(writers.begin(), writers.end(), &SignalWriter);
     }
 
 }

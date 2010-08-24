@@ -22,7 +22,11 @@
  */
 #ifndef D4R_QUEUE_H
 #define D4R_QUEUE_H
+#pragma once
+#include <tr1/memory>
 namespace D4R {
+
+    using std::tr1::shared_ptr;
 
     class Node;
 
@@ -31,8 +35,8 @@ namespace D4R {
         QueueBase();
         virtual ~QueueBase();
 
-        void SetReaderNode(Node *n);
-        void SetWriterNode(Node *n);
+        void SetReaderNode(shared_ptr<Node> n);
+        void SetWriterNode(shared_ptr<Node> n);
 
     protected:
         /**
@@ -70,8 +74,8 @@ namespace D4R {
         virtual void Wait() = 0;
         virtual void Signal() = 0;
 
-        Node *reader;
-        Node *writer;
+        shared_ptr<Node> reader;
+        shared_ptr<Node> writer;
         bool readtagchanged;
         bool writetagchanged;
         bool incomm;

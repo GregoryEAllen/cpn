@@ -149,8 +149,7 @@ namespace CPN {
 
         /** \brief Called by the node */
         void NotifyTerminate() { queue->NotifyTerminate(); }
-        /** \brief Called by the node */
-        void SignalTagChanged() { queue->SignalWriterTagChanged(); }
+
         shared_ptr<QueueBase> GetQueue() { return queue; }
     private:
         QueueReleaser *releaser;

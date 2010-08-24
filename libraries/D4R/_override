@@ -1,0 +1,5 @@
+
+ifeq ($(D4RTRACE),1)
+    CC_OTHER += -D_DEBUG
+endif
+

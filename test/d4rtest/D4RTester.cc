@@ -20,11 +20,6 @@ namespace D4R {
             ++nodeitr;
         }
         nodemap.clear();
-        QueueMap::iterator qitr = queuemap.begin();
-        while (qitr != queuemap.end()) {
-            delete qitr->second.queue;
-            ++qitr;
-        }
         queuemap.clear();
     }
 
@@ -89,7 +84,7 @@ namespace D4R {
         for (;qentry != queuemap.end(); ++qentry) {
             queue_t *queue = new queue_t;
             queue->qinfo = qentry->second;
-            TestQueue *q = queue->qinfo.queue;
+            shared_ptr<TestQueue> q = queue->qinfo.queue;
             queue->name = q->GetName();
             if (q->EnqueueAmount() > 0) {
                 if (q->DequeueAmount() > 0) {
@@ -192,7 +187,7 @@ namespace D4R {
     }
 
     void Tester::CreateQueue(const Variant &queued) {
-        TestQueue *tq = new TestQueue(queued);
+        shared_ptr<TestQueue> tq(new TestQueue(queued));
         tq->Output(this);
         tq->LogLevel(LogLevel());
         QueueInfo qinfo;

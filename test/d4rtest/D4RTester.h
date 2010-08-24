@@ -34,7 +34,7 @@ namespace D4R {
         typedef std::map<std::string, TestNode*> NodeMap;
     public:
         struct QueueInfo {
-            TestQueue *queue;
+            shared_ptr<TestQueue> queue;
             TestNode *reader;
             TestNode *writer;
         };

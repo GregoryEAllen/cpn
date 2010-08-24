@@ -37,11 +37,11 @@
 namespace CPN {
 
     NodeBase::NodeBase(Kernel &ker, const NodeAttr &attr)
-    :   D4R::Node(attr.GetKey()),
-        kernel(ker),
+    :   kernel(ker),
         name(attr.GetName()),
         type(attr.GetTypeName()),
         nodekey(attr.GetKey()),
+        d4rnode(new D4R::Node(attr.GetKey())),
         database(attr.GetDatabase())
     {
         thread.reset(CreatePthreadFunctional(this, &NodeBase::EntryPoint));
@@ -61,7 +61,9 @@ namespace CPN {
     void NodeBase::CreateReader(shared_ptr<QueueBase> q) {
         Sync::AutoReentrantLock arl(lock);
         Key_t readerkey = q->GetReaderKey();
-        q->SetReaderNode(this);
+        d4rnode->AddReader(q);
+        q->SetReaderNode(d4rnode);
+        q->SignalReaderTagChanged();
         ASSERT(readermap.find(readerkey) == readermap.end(), "The reader already exists");
         shared_ptr<QueueReader> reader;
         reader = shared_ptr<QueueReader>(new QueueReader(this, q));
@@ -72,7 +74,9 @@ namespace CPN {
     void NodeBase::CreateWriter(shared_ptr<QueueBase> q) {
         Sync::AutoReentrantLock arl(lock);
         Key_t writerkey = q->GetWriterKey();
-        q->SetWriterNode(this);
+        d4rnode->AddWriter(q);
+        q->SetWriterNode(d4rnode);
+        q->SignalWriterTagChanged();
         ASSERT(writermap.find(writerkey) == writermap.end(), "The writer already exists.");
         shared_ptr<QueueWriter> writer;
         writer = shared_ptr<QueueWriter>(new QueueWriter(this, q));
@@ -186,20 +190,16 @@ namespace CPN {
         while (ritr != readermap.end()) { (ritr++)->second->NotifyTerminate(); }
     }
 
-    void NodeBase::SignalTagChanged() {
-        Sync::AutoReentrantLock arl(lock);
-        WriterMap::iterator witr = writermap.begin();
-        while (witr != writermap.end()) { (witr++)->second->SignalTagChanged(); }
-        ReaderMap::iterator ritr = readermap.begin();
-        while (ritr != readermap.end()) { (ritr++)->second->SignalTagChanged(); }
-    }
-
     void NodeBase::LogState() {
         Logger logger(database.get(), Logger::ERROR);
         logger.Name(name.c_str());
         logger.Error("Logging (key: %llu), %u readers, %u writers, %s",
                 nodekey, readermap.size(), writermap.size(), thread->Running() ? "Running" : "done");
         logger.Error("Thread id: %llu", (unsigned long long)((pthread_t)(*thread.get())));
+        D4R::Tag tag = d4rnode->GetPrivateTag();
+        logger.Error("Private key: (%llu, %llu, %llu, %llu)", tag.Count(), tag.Key(), tag.QueueSize(), tag.QueueKey());
+        tag = d4rnode->GetPublicTag();
+        logger.Error("Public key: (%llu, %llu, %llu, %llu)", tag.Count(), tag.Key(), tag.QueueSize(), tag.QueueKey());
         ReaderMap::iterator r = readermap.begin();
         while (r != readermap.end()) {
             r->second->GetQueue()->LogState();

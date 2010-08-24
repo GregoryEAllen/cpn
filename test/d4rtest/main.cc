@@ -7,17 +7,21 @@
 #include "Logger.h"
 #include <vector>
 
-const char VALID_OPS[] = "l:";
+const char VALID_OPS[] = "l:r";
 
 
 int main(int argc, char **argv) {
     bool procOpts = true;
     int loglevel = Logger::DEBUG;
+    bool repeat = false;
     while (procOpts) {
         int opt = getopt(argc, argv, VALID_OPS);
         switch (opt) {
         case 'l':
             loglevel = atoi(optarg);
+            break;
+        case 'r':
+            repeat = true;
             break;
         case -1:
             procOpts = false;
@@ -38,57 +42,60 @@ int main(int argc, char **argv) {
     std::string ext = ".test";
     LoggerStdOutput loggerout(loglevel);
 
-    for ( Directory dir(dirname); !dir.End() ; dir.Next() ) {
-        try {
-            if (!dir.IsRegularFile()) continue;
-            std::string fpath = dir.BaseName();
-            if (fpath[0] == '.' || fpath[0] == '_') continue;
-            if (fpath.size() < ext.size() ||
-                    fpath.substr(fpath.size() - ext.size(), ext.size()) != ext) {
-                continue; 
-            }
-            fpath = dir.FullName();
-            std::vector<char> buf(4096);
-
-            printf("Processing %s\n", fpath.c_str());
-            FILE *f = fopen(fpath.c_str(), "r");
-            if (!f) {
-                perror("Could not open file");
-                continue;
-            }
-            JSONToVariant parse;
-            while (!feof(f)) {
-                unsigned numread = fread(&buf[0], 1, buf.size(), f);
-                unsigned numparsed = parse.Parse(&buf[0], numread);
-                if (parse.Error()) {
-                    printf("Unabled to parse line: %u column: %u\n", parse.GetLine(), parse.GetColumn());
-                    break;
+    do {
+        for ( Directory dir(dirname); !dir.End() ; dir.Next() ) {
+            try {
+                if (!dir.IsRegularFile()) continue;
+                std::string fpath = dir.BaseName();
+                if (fpath[0] == '.' || fpath[0] == '_') continue;
+                if (fpath.size() < ext.size() ||
+                        fpath.substr(fpath.size() - ext.size(), ext.size()) != ext) {
+                    continue; 
                 }
-            }
-            fclose(f);
+                fpath = dir.FullName();
+                std::vector<char> buf(4096);
 
-            if (!parse.Done()) {
-                printf("****************** Failure! *******************\n");
+                printf("Processing %s\n", fpath.c_str());
+                FILE *f = fopen(fpath.c_str(), "r");
+                if (!f) {
+                    perror("Could not open file");
+                    continue;
+                }
+                JSONToVariant parse;
+                while (!feof(f)) {
+                    unsigned numread = fread(&buf[0], 1, buf.size(), f);
+                    unsigned numparsed = parse.Parse(&buf[0], numread);
+                    if (parse.Error()) {
+                        printf("Unabled to parse line: %u column: %u\n", parse.GetLine(), parse.GetColumn());
+                        break;
+                    }
+                }
+                fclose(f);
+
+                if (!parse.Done()) {
+                    printf("****************** Failure! *******************\n");
+                    return 1;
+                }
+                Variant conf = parse.Get();
+
+                D4R::Tester tester;
+                tester.Output(&loggerout);
+                tester.LogLevel(loggerout.LogLevel());
+                tester.Setup(conf);
+                tester.Run();
+
+                if (tester.Success()) {
+                    printf("Success!\n");
+                } else {
+                    printf("****************** Failure! *******************\n");
+                    return 1;
+                }
+            } catch (const std::exception &e) {
+                printf("Error: %s\n", e.what());
                 return 1;
             }
-            Variant conf = parse.Get();
-
-            D4R::Tester tester;
-            tester.Output(&loggerout);
-            tester.LogLevel(loggerout.LogLevel());
-            tester.Setup(conf);
-            tester.Run();
-
-            if (tester.Success()) {
-                printf("Success!\n");
-            } else {
-                printf("****************** Failure! *******************\n");
-                return 1;
-            }
-        } catch (const std::exception &e) {
-            printf("Error: %s\n", e.what());
         }
-    }
+    } while (repeat);
 
     return 0;
 }

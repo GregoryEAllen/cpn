@@ -47,7 +47,7 @@ namespace CPN {
         alpha(attr.GetAlpha()),
         server(s),
         holder(h),
-        mocknode(mode_ == READ ? attr.GetReaderNodeKey() : attr.GetWriterNodeKey()),
+        mocknode(new D4R::Node(mode_ == READ ? attr.GetReaderNodeKey() : attr.GetWriterNodeKey())),
         readerlength(QueueLength(attr.GetLength(), attr.GetMaxThreshold(), attr.GetAlpha(), READ)),
         writerlength(QueueLength(attr.GetLength(), attr.GetMaxThreshold(), attr.GetAlpha(), WRITE)),
         bytecount(0),
@@ -61,9 +61,9 @@ namespace CPN {
         fileThread = auto_ptr<Pthread>(CreatePthreadFunctional(this, &RemoteQueue::FileThreadEntryPoint));
         actionThread = auto_ptr<Pthread>(CreatePthreadFunctional(this, &RemoteQueue::ActionThreadEntryPoint));
         if (mode == READ) {
-            SetWriterNode(&mocknode);
+            SetWriterNode(mocknode);
         } else {
-            SetReaderNode(&mocknode);
+            SetReaderNode(mocknode);
         }
         std::ostringstream oss;
         oss << "RemoteQueue(m:";
@@ -375,7 +375,7 @@ namespace CPN {
         ASSERT(numread == sizeof(tag));
         tagUpdated = true;
         Signal();
-        mocknode.SetPublicTag(tag);
+        mocknode->SetPublicTag(tag);
         if (mode == WRITE) {
             QueueBase::SignalReaderTagChanged();
         } else {

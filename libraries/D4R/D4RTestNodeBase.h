@@ -6,6 +6,7 @@
 #include "Variant.h"
 #include "PthreadMutex.h"
 #include "PthreadCondition.h"
+#include <deque>
 namespace D4R {
 
     class TesterBase;

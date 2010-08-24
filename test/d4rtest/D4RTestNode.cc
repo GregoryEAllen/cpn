@@ -10,15 +10,15 @@ namespace D4R {
 
 
     TestNode::TestNode(const std::string &name_, uint64_t k, TesterBase *tb)
-        : TestNodeBase(tb), Node(k), name(name_)
+        : TestNodeBase(tb), name(name_), node(new Node(k))
     {
         Logger::Name(name);
     }
 
     TestNode::TestNode(const Variant &noded, TesterBase *tb)
         : TestNodeBase(tb),
-        Node(noded["key"].AsNumber<uint64_t>()),
-        name(noded["name"].AsString())
+        name(noded["name"].AsString()),
+        node(new Node(noded["key"].AsNumber<uint64_t>()))
     {
         Logger::Name(name);
         Variant::ConstListIterator itr = noded["instructions"].ListBegin();
@@ -28,27 +28,21 @@ namespace D4R {
         }
     }
 
-    void TestNode::SignalTagChanged() {
-        PthreadMutexProtected al(lock);
-        QueueMap::iterator itr = readermap.begin();
-        while (itr != readermap.end()) {
-            (itr++)->second->SignalReaderTagChanged();
-        }
-        itr = writermap.begin();
-        while (itr != writermap.end()) {
-            (itr++)->second->SignalWriterTagChanged();
-        }
+    TestNode::~TestNode() {
+        Join();
     }
 
-    void TestNode::AddReadQueue(TestQueue *q) {
+    void TestNode::AddReadQueue(shared_ptr<TestQueue> q) {
         PthreadMutexProtected al(lock);
-        q->SetReaderNode(this);
+        q->SetReaderNode(node);
+        node->AddReader(q);
         readermap.insert(std::make_pair(q->GetName(), q));
     }
 
-    void TestNode::AddWriteQueue(TestQueue *q) {
+    void TestNode::AddWriteQueue(shared_ptr<TestQueue> q) {
         PthreadMutexProtected al(lock);
-        q->SetWriterNode(this);
+        q->SetWriterNode(node);
+        node->AddWriter(q);
         writermap.insert(std::make_pair(q->GetName(), q));
     }
 
@@ -62,7 +56,7 @@ namespace D4R {
     }
 
     void TestNode::Enqueue(const std::string &qname, unsigned amount) {
-        TestQueue *q;
+        shared_ptr<TestQueue> q;
         {
             PthreadMutexProtected al(lock);
             q  = writermap[qname];
@@ -74,7 +68,7 @@ namespace D4R {
     }
 
     void TestNode::Dequeue(const std::string &qname, unsigned amount) {
-        TestQueue *q;
+        shared_ptr<TestQueue> q;
         {
             PthreadMutexProtected al(lock);
             q  = readermap[qname];
@@ -86,7 +80,7 @@ namespace D4R {
     }
 
     void TestNode::VerifyReaderSize(const std::string &qname, unsigned amount) {
-        TestQueue *q;
+        shared_ptr<TestQueue> q;
         {
             PthreadMutexProtected al(lock);
             q  = readermap[qname];
@@ -101,7 +95,7 @@ namespace D4R {
     }
 
     void TestNode::VerifyWriterSize(const std::string &qname, unsigned amount) {
-        TestQueue *q;
+        shared_ptr<TestQueue> q;
         {
             PthreadMutexProtected al(lock);
             q  = writermap[qname];
@@ -116,6 +110,8 @@ namespace D4R {
     }
 
     void TestNode::PrintNode() {
+        Tag publicTag = GetPublicTag();
+        Tag privateTag = GetPrivateTag();
         Info("Public tag: (%llu, %llu, %u)", publicTag.Count(), publicTag.Key(), publicTag.QueueSize());
         Info("Private tag: (%llu, %llu, %u)", privateTag.Count(), privateTag.Key(), privateTag.QueueSize());
     }

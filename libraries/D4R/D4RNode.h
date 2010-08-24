@@ -25,7 +25,8 @@
 #pragma once
 #include "D4RTag.h"
 #include "PthreadMutex.h"
-#include <deque>
+#include <list>
+#include <tr1/memory>
 namespace D4R {
 
 /*
@@ -66,30 +67,36 @@ namespace D4R {
  *
  */
 
-    /*
-     */
+    using std::tr1::weak_ptr;
+    using std::tr1::shared_ptr;
+    class QueueBase;
 
     class Node {
     public:
 
         Node(uint64_t key);
 
-        virtual ~Node();
+        ~Node();
 
         Tag GetPublicTag() const;
         void SetPublicTag(const Tag &t);
         Tag GetPrivateTag() const;
         void SetPrivateTag(const Tag &t);
 
+        void AddReader(weak_ptr<QueueBase> q);
+        void AddWriter(weak_ptr<QueueBase> q);
+
         void Block(const Tag &t, unsigned qsize);
         bool Transmit(const Tag &t);
 
     protected:
-        virtual void SignalTagChanged() = 0;
+        void SignalTagChanged();
 
         Tag publicTag;
         Tag privateTag;
         mutable PthreadMutex taglock;
+        std::list<weak_ptr<QueueBase> > readerlist;
+        std::list<weak_ptr<QueueBase> > writerlist;
     private:
         Node(const Node&);
         Node &operator=(const Node&);

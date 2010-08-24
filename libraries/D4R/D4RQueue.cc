@@ -25,7 +25,13 @@
 #include "D4RDeadlockException.h"
 #include "AutoLock.h"
 #include "AutoUnlock.h"
-#include "Assert.h"
+
+#if _DEBUG
+#include <stdio.h>
+#define DEBUG(fmt, ...) fprintf(stderr, fmt, ## __VA_ARGS__)
+#else
+#define DEBUG(fmt, ...)
+#endif
 
 template <typename T>
 class ScopeSetter {
@@ -42,22 +48,20 @@ public:
 namespace D4R {
 
     QueueBase::QueueBase()
-        : reader(0),
-        writer(0),
-        readtagchanged(false),
+        : readtagchanged(false),
         writetagchanged(false),
         incomm(false)
     {}
 
     QueueBase::~QueueBase() {}
 
-    void QueueBase::SetReaderNode(Node *n) {
+    void QueueBase::SetReaderNode(shared_ptr<Node> n) {
         AutoLock<QueueBase> al(*this);
         reader = n;
         Signal();
     }
 
-    void QueueBase::SetWriterNode(Node *n) {
+    void QueueBase::SetWriterNode(shared_ptr<Node> n) {
         AutoLock<QueueBase> al(*this);
         writer = n;
         Signal();
@@ -133,12 +137,14 @@ namespace D4R {
 
     void QueueBase::SignalReaderTagChanged() {
         AutoLock<QueueBase> al(*this);
+        DEBUG("%s: (%llu -> %llu)\n", __PRETTY_FUNCTION__, (writer ? writer->GetPrivateTag().Key() : 0), (reader ? reader->GetPrivateTag().Key() : 0));
         readtagchanged = true;
         Signal();
     }
 
     void QueueBase::SignalWriterTagChanged() {
         AutoLock<QueueBase> al(*this);
+        DEBUG("%s: (%llu -> %llu)\n", __PRETTY_FUNCTION__, (writer ? writer->GetPrivateTag().Key() : 0), (reader ? reader->GetPrivateTag().Key() : 0));
         writetagchanged = true;
         Signal();
     }
