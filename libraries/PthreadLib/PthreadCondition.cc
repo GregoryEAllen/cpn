@@ -25,6 +25,7 @@
 
 #include "PthreadCondition.h"
 #include "PthreadConditionAttr.h"
+#include <sys/time.h>
 #include <errno.h>
 #ifdef _POSIX_THREADS
 
@@ -105,8 +106,11 @@ int PthreadCondition::TimedWait(PthreadMutex& mutex, double reltime)
 //-----------------------------------------------------------------------------
 {
     timespec ts;
-    int ret = clock_gettime(CLOCK_REALTIME, &ts);
+    timeval tv;
+    int ret = gettimeofday(&tv, 0);
     if (ret != 0) throw ErrnoException();
+    ts.tv_sec = tv.tv_sec;
+    ts.tv_nsec = tv.tv_usec * 1000;
     unsigned sec = (unsigned)reltime;
     if (sec > 0) {
         ts.tv_sec += sec;
