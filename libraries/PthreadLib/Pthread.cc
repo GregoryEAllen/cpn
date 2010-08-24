@@ -84,9 +84,9 @@ Pthread::~Pthread(void)
                     need_start = true;
                 case started:
                 case running:
-                    Cancel();
-                case done:
-                case joined:
+                    state = canceled;
+                    cond.Broadcast();
+                default:
                     break;
             }
         }
@@ -140,6 +140,7 @@ void* Pthread::PthreadEntryPoint(void* arg)
 		while (ptr->state == created) {
 			ptr->cond.Wait(ptr->mutex);
 		}
+        if (ptr->state != started) return 0;
 		ptr->state = running;
         ptr->cond.Broadcast();
 	}

@@ -70,7 +70,7 @@ class Pthread : public PthreadBase {
     void *returnResult;
     bool inJoin;
 
-	enum PthreadState { uninitialized = 0, created, started, running, done, joined };
+	enum PthreadState { uninitialized = 0, created, started, running, done, joined, canceled };
 	PthreadState	state;
 
 	static void*	PthreadEntryPoint(void* arg);
