@@ -1,4 +1,4 @@
-CC_OTHER += `pkg-config --cflags fftw3f`
+INCLUDES += $(shell pkg-config --cflags fftw3f)
 
 CC_OTHER += -fopenmp
 USE_OMP=1
