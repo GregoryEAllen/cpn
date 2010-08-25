@@ -125,7 +125,7 @@ namespace CPN {
     void RemoteDBClient::SignalHostEnd(Key_t hostkey) {
         PthreadMutexProtected plock(lock);
         Variant msg(Variant::ObjectType);
-        msg["type"] = RDBMT_DESTROY_HOST_KEY;
+        msg["type"] = RDBMT_SIGNAL_HOST_END;
         msg["key"] = hostkey;
         SendMessage(msg);
         kernels.erase(hostkey);

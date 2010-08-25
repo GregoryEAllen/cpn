@@ -60,8 +60,8 @@ namespace CPN {
         case RDBMT_SIGNAL_HOST_START:
             SignalHostStart(msg);
             break;
-        case RDBMT_DESTROY_HOST_KEY:
-            DestroyHostKey(msg);
+        case RDBMT_SIGNAL_HOST_END:
+            SignalHostEnd(msg);
             break;
         case RDBMT_GET_HOST_INFO:
             GetHostInfo(sender, msg);
@@ -90,17 +90,11 @@ namespace CPN {
         case RDBMT_GET_CREATE_READER_KEY:
             GetCreateEndpointKey(sender, msg);
             break;
-        case RDBMT_DESTROY_READER_KEY:
-            DestroyEndpointKey(msg);
-            break;
         case RDBMT_GET_READER_INFO:
             GetEndpointInfo(sender, msg);
             break;
         case RDBMT_GET_CREATE_WRITER_KEY:
             GetCreateEndpointKey(sender, msg);
-            break;
-        case RDBMT_DESTROY_WRITER_KEY:
-            DestroyEndpointKey(msg);
             break;
         case RDBMT_GET_WRITER_INFO:
             GetEndpointInfo(sender, msg);
@@ -128,31 +122,28 @@ namespace CPN {
 
     void RemoteDBServer::SetupHost(const std::string &sender, const Variant &msg) {
         std::string name = msg["name"].AsString();
-        if (hostmap.find(name) != hostmap.end()) {
-            Variant reply(Variant::ObjectType);
-            reply["msgid"] = msg["msgid"];
-            reply["msgtype"] = "reply";
-            reply["success"] = false;
-            SendMessage(sender, reply);
-            return;
-        }
-        Variant hostinfo(Variant::ObjectType);
-        Key_t hostkey = NewKey();
-        hostinfo["key"] = hostkey;
-        hostinfo["name"] = name;
-        hostinfo["hostname"] = msg["hostname"];
-        hostinfo["servname"] = msg["servname"];
-        hostinfo["live"] = false;
-        hostinfo["type"] = "hostinfo";
-        hostinfo["client"] = sender;
-        datamap.insert(std::make_pair(hostkey, hostinfo));
-        hostmap.insert(std::make_pair(name, hostkey));
-        dbprintf(2, "Host %s created\n", name.c_str());
-        Variant reply;
+        Variant reply(Variant::ObjectType);
         reply["msgid"] = msg["msgid"];
         reply["msgtype"] = "reply";
-        reply["success"] = true;
-        reply["hostinfo"] = hostinfo.Copy();
+        if (hostmap.find(name) != hostmap.end()) {
+            reply["success"] = false;
+            return;
+        } else {
+            Variant hostinfo(Variant::ObjectType);
+            Key_t hostkey = NewKey();
+            hostinfo["key"] = hostkey;
+            hostinfo["name"] = name;
+            hostinfo["hostname"] = msg["hostname"];
+            hostinfo["servname"] = msg["servname"];
+            hostinfo["live"] = false;
+            hostinfo["type"] = "hostinfo";
+            hostinfo["client"] = sender;
+            datamap.insert(std::make_pair(hostkey, hostinfo));
+            hostmap.insert(std::make_pair(name, hostkey));
+            dbprintf(2, "Host %s created\n", name.c_str());
+            reply["success"] = true;
+            reply["hostinfo"] = hostinfo.Copy();
+        }
         SendMessage(sender, reply);
     }
 
@@ -167,7 +158,7 @@ namespace CPN {
         BroadcastMessage(notice);
     }
 
-    void RemoteDBServer::DestroyHostKey(const Variant &msg) {
+    void RemoteDBServer::SignalHostEnd(const Variant &msg) {
         Key_t hostkey = msg["key"].AsNumber<Key_t>();
         Variant hostinfo = datamap[hostkey];
         ASSERT(hostinfo["type"].AsString() == "hostinfo");
@@ -195,13 +186,11 @@ namespace CPN {
             hostkey = msg["key"].AsNumber<Key_t>();
         }
         DataMap::iterator entry = datamap.find(hostkey);
-        if (entry == datamap.end()) {
-            SendMessage(sender, reply);
-            return;
+        if (entry != datamap.end()) {
+            ASSERT(entry->second["type"].AsString() == "hostinfo");
+            reply["success"] = true;
+            reply["hostinfo"] = entry->second.Copy();
         }
-        ASSERT(entry->second["type"].AsString() == "hostinfo");
-        reply["success"] = true;
-        reply["hostinfo"] = entry->second.Copy();
         SendMessage(sender, reply);
     }
 
@@ -210,25 +199,24 @@ namespace CPN {
         Variant reply(Variant::ObjectType);
         reply["msgid"] = msg["msgid"];
         reply["msgtype"] = "reply";
-        reply["success"] = false;
         if (nodemap.find(nodename) != nodemap.end()) {
-            SendMessage(sender, reply);
-            return;
+            reply["success"] = false;
+        } else {
+            Key_t nodekey = NewKey();
+            Variant nodeinfo(Variant::ObjectType);
+            nodeinfo["name"] = nodename;
+            nodeinfo["key"] = nodekey;
+            nodeinfo["hostkey"] = msg["hostkey"];
+            nodeinfo["started"] = false;
+            nodeinfo["dead"] = false;
+            nodeinfo["type"] = "nodeinfo";
+            nodeinfo["endpoints"] = Variant::ObjectType;
+            dbprintf(2, "Node %s created\n", nodename.c_str());
+            nodemap[nodename] = nodekey;
+            datamap[nodekey] = nodeinfo;
+            reply["success"] = true;
+            reply["nodeinfo"] = nodeinfo.Copy();
         }
-        Key_t nodekey = NewKey();
-        Variant nodeinfo(Variant::ObjectType);
-        nodeinfo["name"] = nodename;
-        nodeinfo["key"] = nodekey;
-        nodeinfo["hostkey"] = msg["hostkey"];
-        nodeinfo["started"] = false;
-        nodeinfo["dead"] = false;
-        nodeinfo["type"] = "nodeinfo";
-        nodeinfo["endpoints"] = Variant::ObjectType;
-        dbprintf(2, "Node %s created\n", nodename.c_str());
-        nodemap[nodename] = nodekey;
-        datamap[nodekey] = nodeinfo;
-        reply["success"] = true;
-        reply["nodeinfo"] = nodeinfo.Copy();
         SendMessage(sender, reply);
     }
 
@@ -273,13 +261,11 @@ namespace CPN {
             nodekey = msg["key"].AsNumber<Key_t>();
         }
         DataMap::iterator entry = datamap.find(nodekey);
-        if (entry == datamap.end()) {
-            SendMessage(sender, reply);
-            return;
+        if (entry != datamap.end()) {
+            reply["nodeinfo"] = entry->second.Copy();
+            ASSERT(reply["nodeinfo"]["type"].AsString() == "nodeinfo");
+            reply["success"] = true;
         }
-        reply["nodeinfo"] = entry->second.Copy();
-        ASSERT(reply["nodeinfo"]["type"].AsString() == "nodeinfo");
-        reply["success"] = true;
         SendMessage(sender, reply);
     }
 
@@ -294,48 +280,50 @@ namespace CPN {
 
     void RemoteDBServer::GetCreateEndpointKey(const std::string &sender, const Variant &msg) {
         std::string name = msg["name"].AsString();
-        Key_t nodekey = msg["nodekey"].AsNumber<Key_t>();
-        Variant nodeinfo = datamap[nodekey];
-        Variant epinfo;
-        Key_t epkey;
-        if (nodeinfo["endpoints"][name].IsNumber()) {
-            epkey = nodeinfo["endpoints"][name].AsNumber<Key_t>();
-            epinfo = datamap[epkey];
-            ASSERT(epinfo["type"].AsString() == "endpointinfo");
-        } else {
-            epkey = NewKey();
-            nodeinfo["endpoints"][name] = epkey;
-            epinfo = Variant(Variant::ObjectType);
-            epinfo["key"] = epkey;
-            epinfo["name"] = name;
-            epinfo["nodekey"] = nodekey;
-            epinfo["hostkey"] = nodeinfo["hostkey"];
-            epinfo["live"] = true;
-            epinfo["type"] = "endpointinfo";
-            datamap[epkey] = epinfo;
-        }
         Variant reply;
-        reply["endpointinfo"] = epinfo.Copy();
         reply["msgid"] = msg["msgid"];
         reply["msgtype"] = "reply";
-        reply["success"] = true;
+        reply["success"] = false;
+        Key_t nodekey = msg["nodekey"].AsNumber<Key_t>();
+        DataMap::iterator nodeentry = datamap.find(nodekey);
+        if (nodeentry != datamap.end()) {
+            Variant nodeinfo = nodeentry->second;
+            Variant epinfo;
+            Key_t epkey;
+            if (nodeinfo["endpoints"][name].IsNumber()) {
+                epkey = nodeinfo["endpoints"][name].AsNumber<Key_t>();
+                epinfo = datamap[epkey];
+                ASSERT(epinfo["type"].AsString() == "endpointinfo");
+            } else {
+                epkey = NewKey();
+                nodeinfo["endpoints"][name] = epkey;
+                epinfo = Variant(Variant::ObjectType);
+                epinfo["key"] = epkey;
+                epinfo["name"] = name;
+                epinfo["nodekey"] = nodekey;
+                epinfo["hostkey"] = nodeinfo["hostkey"];
+                epinfo["live"] = true;
+                epinfo["type"] = "endpointinfo";
+                datamap[epkey] = epinfo;
+            }
+            reply["endpointinfo"] = epinfo.Copy();
+            reply["success"] = true;
+        }
         SendMessage(sender, reply);
-    }
-
-    void RemoteDBServer::DestroyEndpointKey(const Variant &msg) {
-        Key_t epkey = msg["key"].AsNumber<Key_t>();
-        ASSERT(datamap[epkey]["type"].AsString() == "endpointinfo");
-        datamap[epkey]["live"] = false;
     }
 
     void RemoteDBServer::GetEndpointInfo(const std::string &sender, const Variant &msg) {
         Key_t epkey = msg["key"].AsNumber<Key_t>();
         Variant reply;
-        reply["endpointinfo"] = datamap[epkey].Copy();
-        ASSERT(reply["endpointinfo"]["type"].AsString() == "endpointinfo");
         reply["msgid"] = msg["msgid"];
         reply["msgtype"] = "reply";
-        reply["success"] = true;
+        reply["success"] = false;
+        DataMap::iterator entry = datamap.find(epkey);
+        if (entry != datamap.end()) {
+            reply["success"] = true;
+            reply["endpointinfo"] = entry->second.Copy();
+            ASSERT(reply["endpointinfo"]["type"].AsString() == "endpointinfo");
+        }
         SendMessage(sender, reply);
 
     }

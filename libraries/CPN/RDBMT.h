@@ -30,41 +30,59 @@ namespace CPN {
      * These are the message types that the remote database uses to send information back and forth.
      */
     enum RDBMT_t {
+        /**
+         * Commands for dealing with hosts.
+         * @{
+         */
         RDBMT_SETUP_HOST,
-        RDBMT_DESTROY_HOST_KEY,
-
         RDBMT_GET_HOST_INFO,
         RDBMT_SIGNAL_HOST_START,
+        RDBMT_SIGNAL_HOST_END,
+        /** @} */
 
+        /**
+         * Commands to tell other hosts to create objects.
+         * @{
+         */
         RDBMT_CREATE_WRITER,
         RDBMT_CREATE_READER,
         RDBMT_CREATE_QUEUE,
         RDBMT_CREATE_NODE,
+        /** @} */
 
+        /**
+         * Commands for creating nodes.
+         * @}
+         */
         RDBMT_CREATE_NODE_KEY,
         RDBMT_SIGNAL_NODE_START,
         RDBMT_SIGNAL_NODE_END,
-
         RDBMT_GET_NODE_INFO,
-
         RDBMT_GET_NUM_NODE_LIVE,
+        /** @} */
 
+        /**
+         * Commands for creating endpoints.
+         * @}
+         */
         RDBMT_GET_CREATE_READER_KEY,
-        RDBMT_DESTROY_READER_KEY,
-
         RDBMT_GET_READER_INFO,
-
         RDBMT_GET_CREATE_WRITER_KEY,
-        RDBMT_DESTROY_WRITER_KEY,
-
         RDBMT_GET_WRITER_INFO,
-
         RDBMT_CONNECT_ENDPOINTS,
         RDBMT_GET_READERS_WRITER,
         RDBMT_GET_WRITERS_READER,
+        /**
+         * @}
+         */
 
+        /**
+         * Database commands.
+         * @{
+         */
         RDBMT_TERMINATE,
         RDBMT_LOG
+        /** @} */
     };
 }
 #endif

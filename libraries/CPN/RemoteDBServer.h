@@ -145,7 +145,7 @@ namespace CPN {
 
         void SetupHost(const std::string &sender, const Variant &msg);
         void SignalHostStart(const Variant &msg);
-        void DestroyHostKey(const Variant &msg);
+        void SignalHostEnd(const Variant &msg);
         void GetHostInfo(const std::string &sender, const Variant &msg);
         void CreateNodeKey(const std::string &sender, const Variant &msg);
         void SignalNodeStart(const Variant &msg);
@@ -153,7 +153,6 @@ namespace CPN {
         void GetNodeInfo(const std::string &sender, const Variant &msg);
         void GetNumNodeLive(const std::string &sender, const Variant &msg);
         void GetCreateEndpointKey(const std::string &sender, const Variant &msg);
-        void DestroyEndpointKey(const Variant &msg);
         void GetEndpointInfo(const std::string &sender, const Variant &msg);
         void ConnectEndpoints(const Variant &msg);
 
