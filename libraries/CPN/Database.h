@@ -65,7 +65,7 @@ namespace CPN {
          * \param name the kernel name
          * \param hostname the hostname to use to connect to this kernel
          * \param servname the service name the kernel is listening on
-         * \param kmh callback reference
+         * \param kernel callback reference
          * \return the unique key for the new kernel
          * \throw ShutdownException
          * \throw std::invalid_argument
@@ -74,7 +74,7 @@ namespace CPN {
                 const std::string &servname, KernelBase *kernel) = 0;
         /** \brief Called by the kernel when it is not in remote mode.
          * \param name the kernel name
-         * \param kmh callback reference
+         * \param kernel callback reference
          * \return the unique key for the new kernel
          */
         virtual Key_t SetupHost(const std::string &name, KernelBase *kernel) = 0;
@@ -117,19 +117,19 @@ namespace CPN {
 
         /** \brief Tell a given host that it needs to create a queue write end.
          * \param hostkey the id of the host
-         * \parma attr the queue attribute
+         * \param attr the queue attribute
          * \throw ShutdownException
          */
         virtual void SendCreateWriter(Key_t hostkey, const SimpleQueueAttr &attr) = 0;
         /** \brief Tell a given host that it needs to create a queue read end.
          * \param hostkey the id of the host
-         * \parma attr the queue attribute
+         * \param attr the queue attribute
          * \throw ShutdownException
          */
         virtual void SendCreateReader(Key_t hostkey, const SimpleQueueAttr &attr) = 0;
         /** \brief Tell a given host that it needs to create a queue.
          * \param hostkey the id of the host
-         * \parma attr the queue attribute
+         * \param attr the queue attribute
          * \throw ShutdownException
          */
         virtual void SendCreateQueue(Key_t hostkey, const SimpleQueueAttr &attr) = 0;

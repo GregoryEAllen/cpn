@@ -25,6 +25,7 @@
 
 #ifndef CPN_LOCALDATABASE_H
 #define CPN_LOCALDATABASE_H
+#pragma once
 
 #include "CPNCommon.h"
 #include "Database.h"
@@ -36,10 +37,11 @@ namespace CPN {
 
     /** \brief A local implementation of the Database interface
      */
-    class LocalDatabase : public Database {
+    class CPN_LOCAL LocalDatabase : public Database {
     public:
         typedef std::map< std::string, Key_t > NameMap;
 
+        /** Struct to hold host information. */
         struct HostInfo {
             std::string name;
             std::string hostname;
@@ -50,6 +52,7 @@ namespace CPN {
             bool allowremote;
         };
 
+        /** Struct to hold the node information */
         struct NodeInfo {
             std::string name;
             Key_t hostkey;
@@ -59,6 +62,7 @@ namespace CPN {
             bool dead;
         };
 
+        /** Struct to hold the endpoint information */
         struct PortInfo {
             std::string name;
             Key_t nodekey;

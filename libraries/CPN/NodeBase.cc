@@ -26,13 +26,12 @@
 #include "Kernel.h"
 #include "Exceptions.h"
 #include "Database.h"
+#include "D4RNode.h"
 #include "QueueReader.h"
 #include "QueueWriter.h"
 #include "D4RDeadlockException.h"
 #include "ErrnoException.h"
 #include "PthreadFunctional.h"
-
-#include <vector>
 
 namespace CPN {
 

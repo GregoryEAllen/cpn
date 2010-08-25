@@ -36,7 +36,7 @@ namespace CPN {
      * \brief Template class to do type conversion for reader end of the queue.
      */
     template<class T>
-    class CPN_API QueueReaderAdapter {
+    class QueueReaderAdapter {
     public:
         QueueReaderAdapter() {}
         QueueReaderAdapter(shared_ptr<QueueReader> q) : queue(q) {

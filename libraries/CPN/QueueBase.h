@@ -260,6 +260,10 @@ namespace CPN {
         std::string datatype;
 	};
 
+    /**
+     * Abstract base class that the QueueReader and QueueWriter use to communicate
+     * with the NodeBase.
+     */
     class CPN_LOCAL QueueReleaser {
     public:
         virtual ~QueueReleaser();
@@ -268,5 +272,4 @@ namespace CPN {
     };
 
 }
-
 #endif

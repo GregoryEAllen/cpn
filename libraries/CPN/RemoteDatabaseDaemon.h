@@ -27,8 +27,6 @@
 #include "SocketHandle.h"
 #include "RemoteDBServer.h"
 #include "JSONToVariant.h"
-#include <list>
-#include <vector>
 #include <string>
 #include <tr1/memory>
 #include <memory>
@@ -37,7 +35,7 @@
  * the RemoteDatabaseDaemon is an implementation of RemoteDBServer that uses
  * simple tcp/ip and listens on an address you specify.
  */
-class RemoteDatabaseDaemon : public CPN::RemoteDBServer, public ServerSocketHandle {
+class CPN_API RemoteDatabaseDaemon : public CPN::RemoteDBServer, public ServerSocketHandle {
 public:
     RemoteDatabaseDaemon(const SocketAddress &addr);
     RemoteDatabaseDaemon(const SockAddrList &addrs);

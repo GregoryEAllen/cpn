@@ -33,9 +33,10 @@
 #include <sys/uio.h>
 
 namespace CPN {
-    // Take the various message types that can be sent over the wire
-    // and encode them into byte representation.
-    class PacketEncoder {
+    /** Take the various message types that can be sent over the wire
+     * and encode them into byte representation.
+     */
+    class CPN_LOCAL PacketEncoder {
     public:
         PacketEncoder();
         virtual ~PacketEncoder();
@@ -66,7 +67,7 @@ namespace CPN {
     private:
     };
 
-    class BufferedPacketEncoder : public PacketEncoder {
+    class CPN_LOCAL BufferedPacketEncoder : public PacketEncoder {
     public:
         BufferedPacketEncoder();
 

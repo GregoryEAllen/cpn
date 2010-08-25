@@ -31,6 +31,7 @@
 #define PACKET_H
 #pragma once
 
+#include "CPNCommon.h"
 #include <stdint.h>
 #include <cstring>
 
@@ -46,6 +47,9 @@ namespace CPN {
         PACKET_HEADERLENGTH = 64
     };
 
+    /**
+     * The packet types.
+     */
     enum PacketType_t {
         PACKET_ENQUEUE,
         PACKET_DEQUEUE,
@@ -60,7 +64,7 @@ namespace CPN {
         PACKET_ID_WRITER
     };
 
-    struct PacketHeader {
+    struct CPN_LOCAL PacketHeader {
         union {
             struct {
                 uint32_t syncWord;
@@ -86,18 +90,21 @@ namespace CPN {
         };
     };
 
-    inline bool ValidPacket(const PacketHeader *ph) {
+    inline bool ValidPacket(const PacketHeader *ph) CPN_LOCAL {
         return ph->syncWord == PACKET_SYNCWORD;
     }
 
-    inline void InitPacket(PacketHeader *ph, uint32_t datalen, PacketType_t type) {
+    inline void InitPacket(PacketHeader *ph, uint32_t datalen, PacketType_t type) CPN_LOCAL {
         memset(ph, 0, sizeof(PacketHeader));
         ph->syncWord = PACKET_SYNCWORD;
         ph->dataLength = datalen;
         ph->dataType = type;
     }
 
-    class Packet {
+    /**
+     * A class to make dealing with a packet easy.
+     */
+    class CPN_LOCAL Packet {
     public:
         Packet() { memset(&header, 0, sizeof(header)); }
         Packet(uint32_t datalen, PacketType_t type) { Init(datalen, type); }
@@ -142,7 +149,10 @@ namespace CPN {
         PacketHeader header;
     };
 
-    class PacketHandler {
+    /**
+     * This class makes it easy to process packets.
+     */
+    class CPN_LOCAL PacketHandler {
     public:
         virtual ~PacketHandler();
         void FirePacket(const Packet &packet);

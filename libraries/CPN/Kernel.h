@@ -30,21 +30,15 @@
 #include "KernelAttr.h"
 #include "NodeAttr.h"
 #include "QueueAttr.h"
-
 #include "KernelBase.h"
-#include "ConnectionServer.h"
-#include "RemoteQueueHolder.h"
-
 #include "ReentrantLock.h"
 #include "StatusHandler.h"
-
 #include "Logger.h"
-
-#include "Pthread.h"
-
 #include <string>
 #include <map>
 #include <vector>
+
+class Pthread;
 
 namespace CPN {
 

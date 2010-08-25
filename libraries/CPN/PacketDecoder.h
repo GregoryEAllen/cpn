@@ -37,7 +37,7 @@ namespace CPN {
      * delt with in the event function it will be lost.  This class is ment to
      * be enherited by some other class which implements the event functions.
      */
-    class PacketDecoder : public PacketHandler {
+    class CPN_LOCAL PacketDecoder : public PacketHandler {
     public:
         PacketDecoder();
         virtual ~PacketDecoder();

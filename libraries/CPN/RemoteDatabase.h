@@ -25,14 +25,15 @@
 #pragma once
 #include "RemoteDBClient.h"
 #include "SocketHandle.h"
-#include "Pthread.h"
 #include "JSONToVariant.h"
 #include <memory>
+
+class Pthread;
 
 /**
  * An implementation for the RemoteDBClient that is paired with RemoteDatabaseDaemon.
  */
-class RemoteDatabase : public CPN::RemoteDBClient, public SocketHandle {
+class CPN_API RemoteDatabase : public CPN::RemoteDBClient, public SocketHandle {
 public:
     RemoteDatabase(const SocketAddress &addr);
     RemoteDatabase(const SockAddrList &addrs);

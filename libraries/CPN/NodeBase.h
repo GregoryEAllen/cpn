@@ -27,17 +27,15 @@
 #pragma once
 
 #include "CPNCommon.h"
-#include "NodeAttr.h"
-#include "QueueBase.h"
 #include "NodeFactory.h"
-
 #include "ReentrantLock.h"
-
-#include "D4RNode.h"
-
-#include "Pthread.h"
-
+#include "QueueBase.h"
 #include <map>
+
+class Pthread;
+namespace D4R {
+    class Node;
+}
 
 namespace CPN {
 
@@ -106,6 +104,9 @@ namespace CPN {
          */
         void Start();
 
+        /**
+         * \brief For use by the CPN::Kernel when deleting the node.
+         */
         void Join();
         /** \brief Called by the kernel when it is shutting down */
         void NotifyTerminate();

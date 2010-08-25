@@ -76,6 +76,8 @@ namespace CPN {
     class Kernel;
     class KernelBase;
     class KernelAttr;
+    class ConnectionServer;
+    class RemoteQueueHolder;
 
     class QueueBase;
     class QueueReader;
@@ -93,9 +95,16 @@ namespace CPN {
     class ConnectionServer;
 
     // Global enums
+    /**
+     * Hints that can be given about what kind of queue
+     * should be used.
+     */
     enum QueueHint_t { QUEUEHINT_DEFAULT, QUEUEHINT_THRESHOLD };
 
     // Types
+    /**
+     * Key_t is used for all the keys for each of the objects.
+     */
     typedef uint64_t Key_t;
 
 }

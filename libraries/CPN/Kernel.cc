@@ -23,34 +23,25 @@
  */
 
 #include "Kernel.h"
-
 #include "Exceptions.h"
-
 #include "NodeFactory.h"
 #include "NodeBase.h"
-
 #include "ThresholdQueue.h"
-
+#include "ConnectionServer.h"
+#include "RemoteQueueHolder.h"
 #include "Database.h"
-
+#include "Pthread.h"
 #include "RemoteQueue.h"
-
 #include "SocketAddress.h"
-
 #include "Assert.h"
 #include "Logger.h"
 #include "ErrnoException.h"
 #include "PthreadFunctional.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
-
 #include <stdexcept>
-#include <cassert>
 
 //#define KERNEL_FUNC_TRACE
 #ifdef KERNEL_FUNC_TRACE
+#include <stdio.h>
 #define FUNCBEGIN printf("%s begin %s\n",__PRETTY_FUNCTION__, kernelname.c_str())
 #define FUNCEND printf("%s end %s\n",__PRETTY_FUNCTION__, kernelname.c_str())
 #else

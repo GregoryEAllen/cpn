@@ -30,7 +30,13 @@
 
 namespace CPN {
 
-    class KernelBase {
+    /**
+     * Base class for the kernel.
+     * This class contains all the methods that the database needs to call.
+     * This class is primiarly used so that
+     * the unit tests can provide a subclass to test the database functionality.
+     */
+    class CPN_API KernelBase {
     public:
         virtual ~KernelBase();
         virtual void RemoteCreateWriter(SimpleQueueAttr attr);
