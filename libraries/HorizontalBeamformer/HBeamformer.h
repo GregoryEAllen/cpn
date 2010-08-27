@@ -50,7 +50,7 @@ public:
      * \param inptr a pointer to a set a input values
      * \param instride the stride (in input samples) between staves
      * \param outptr a pointer to a buffer to put output data
-     * \parm outstride the stride (in samples) between output beams.
+     * \param outstride the stride (in samples) between output beams.
      */
     void Run(const std::complex<float> *inptr, unsigned instride, std::complex<float> *outptr, unsigned outstride);
 

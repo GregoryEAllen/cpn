@@ -24,16 +24,17 @@
 #define CPN_REMOTEDBCLIENT_H
 #pragma once
 
+#include "CPNCommon.h"
 #include "RDBMT.h"
 #include "Database.h"
 #include "QueueAttr.h"
 #include "NodeAttr.h"
-#include "Pthread.h"
 #include "PthreadMutex.h"
 #include "PthreadCondition.h"
 #include "Variant.h"
 #include <list>
-#include <tr1/memory>
+
+class Pthread;
 
 namespace CPN {
 
@@ -133,7 +134,7 @@ namespace CPN {
             PthreadCondition cond;
             std::list<Variant> messages;
         };
-        typedef std::tr1::shared_ptr<GenericWaiter> GenericWaiterPtr;
+        typedef shared_ptr<GenericWaiter> GenericWaiterPtr;
 
         void SendQueueMsg(CPN::Key_t hostkey, RDBMT_t msgtype, const CPN::SimpleQueueAttr &attr);
         unsigned NewTranID();
@@ -150,7 +151,7 @@ namespace CPN {
         auto_ptr<Pthread> terminateThread;
         typedef std::map<unsigned, WaiterInfo*> WaiterMap;
         WaiterMap callwaiters;
-        typedef std::list<std::tr1::weak_ptr<GenericWaiter> > WaiterList;
+        typedef std::list<weak_ptr<GenericWaiter> > WaiterList;
         WaiterList waiters;
         typedef std::map<CPN::Key_t, CPN::KernelBase*> KernelMap;
         KernelMap kernels;

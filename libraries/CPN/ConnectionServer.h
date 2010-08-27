@@ -61,7 +61,7 @@ namespace CPN {
         /**
          * Request the connectino server to connect the RemoteQueue which has
          * key writekey to its other endpoint.
-         * \param writekey the writekey of the endpoint.
+         * \param writerkey the writekey of the endpoint.
          * \return A Sync::Future which will contain the file descriptor
          * when finished
          */

@@ -522,12 +522,12 @@ namespace CPN {
 
     void RemoteDBClient::InternalTerminate() {
         shutdown = true;
-        std::map<unsigned, WaiterInfo*>::iterator cwitr = callwaiters.begin();
+        WaiterMap::iterator cwitr = callwaiters.begin();
         while (cwitr != callwaiters.end()) {
             cwitr->second->cond.Signal();
             ++cwitr;
         }
-        std::list<std::tr1::weak_ptr<GenericWaiter> >::iterator gwitr;
+        WaiterList::iterator gwitr;
         gwitr = waiters.begin();
         while (gwitr != waiters.end()) {
             GenericWaiterPtr ptr = gwitr->lock();
