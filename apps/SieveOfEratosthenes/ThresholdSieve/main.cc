@@ -4,15 +4,24 @@
 #include "Kernel.h"
 #include "ThresholdSieveOptions.h"
 #include "ThresholdSieveController.h"
-#include "Time.h"
+#include "ErrnoException.h"
 #include <sys/times.h>
+#include <sys/time.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
 
-const char* const VALID_OPTS = "Mm:q:t:hf:i:p:vw:rz:s";
-const char* const HELP_OPTS = "Usage: %s -hv -m maxprime -q queuesize -t threshold -f filename -p primes per filter -i iterations\n"
+static double getTime() {
+    timeval tv;
+    if (gettimeofday(&tv, 0) != 0) {
+        throw ErrnoException();
+    }
+    return static_cast<double>(tv.tv_sec) + 1e-6 * static_cast<double>(tv.tv_usec);
+}
+
+static const char* const VALID_OPTS = "Mm:q:t:hf:i:p:vw:rz:s";
+static const char* const HELP_OPTS = "Usage: %s -hv -m maxprime -q queuesize -t threshold -f filename -p primes per filter -i iterations\n"
 "\t-h\tPrint out this message\n"
 "\t-v\tBe verbose, print out the primes found\n"
 "\t-m\tSpecify the maximum number to consider for primes (default 100)\n"
@@ -205,14 +214,13 @@ TestResults SieveTest(ThresholdSieveOptions options) {
     tms tmsStart;
     tms tmsStop;
     times(&tmsStart);
-    Time start;
+    double start = getTime();
     kernel.CreateNode(attr);
     kernel.WaitNodeTerminate("controller");
-    Time stop;
+    double stop = getTime();
     times(&tmsStop);
     TestResults result;
-    TimeInterval rduration = start - stop;
-    result.realtime = rduration.Seconds() + (double)(rduration.Microseconds())/1000000.0;
+    result.realtime = stop - start;
     result.usertime = (double)(tmsStop.tms_utime - tmsStart.tms_utime)/(double)sysconf(_SC_CLK_TCK);
     result.systime = (double)(tmsStop.tms_stime - tmsStart.tms_stime)/(double)sysconf(_SC_CLK_TCK);
     return result;
