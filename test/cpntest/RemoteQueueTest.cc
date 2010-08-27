@@ -2,6 +2,7 @@
 #include "RemoteQueueTest.h"
 #include <cppunit/TestAssert.h>
 #include "QueueAttr.h"
+#include "ConnectionServer.h"
 #include "Database.h"
 #include "RemoteQueue.h"
 #include "PthreadFunctional.h"

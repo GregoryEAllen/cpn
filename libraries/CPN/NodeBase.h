@@ -27,6 +27,7 @@
 #pragma once
 
 #include "CPNCommon.h"
+#include "NodeAttr.h"
 #include "NodeFactory.h"
 #include "ReentrantLock.h"
 #include "QueueBase.h"
