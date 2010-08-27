@@ -27,6 +27,9 @@
 #include "FileHandle.h"
 #include "SocketAddress.h"
 
+/**
+ * Provides functionality for a server socket in a FileHandle
+ */
 class ServerSocketHandle : public FileHandle {
 public:
 

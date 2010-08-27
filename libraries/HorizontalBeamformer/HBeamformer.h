@@ -1,4 +1,25 @@
-
+//=============================================================================
+//	Computational Process Networks class library
+//	Copyright (C) 1997-2006  Gregory E. Allen and The University of Texas
+//
+//	This library is free software; you can redistribute it and/or modify it
+//	under the terms of the GNU Library General Public License as published
+//	by the Free Software Foundation; either version 2 of the License, or
+//	(at your option) any later version.
+//
+//	This library is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//	Library General Public License for more details.
+//
+//	The GNU Public License is available in the file LICENSE, or you
+//	can write to the Free Software Foundation, Inc., 59 Temple Place -
+//	Suite 330, Boston, MA 02111-1307, USA, or you can find it on the
+//	World Wide Web at http://www.fsf.org.
+//=============================================================================
+/** \file
+ * \author John Bridgman
+ */
 #ifndef HBEAMFORMER_H
 #define HBEAMFORMER_H
 #pragma once
@@ -6,9 +27,11 @@
 #include <complex>
 #include <xmmintrin.h>
 #include <vector>
-#include <memory>
 #include <string>
 
+/**
+ * A Basic horizontal beamformer for the fake array.
+ */
 class HBeamformer {
 public:
     HBeamformer(unsigned len, unsigned nStaves, unsigned nBeams,
@@ -22,6 +45,13 @@ public:
     unsigned NumVStaves() const { return numVStaves; }
     unsigned Length() const { return length; }
 
+    /**
+     * run one iteration of the beamformer algorithm
+     * \param inptr a pointer to a set a input values
+     * \param instride the stride (in input samples) between staves
+     * \param outptr a pointer to a buffer to put output data
+     * \parm outstride the stride (in samples) between output beams.
+     */
     void Run(const std::complex<float> *inptr, unsigned instride, std::complex<float> *outptr, unsigned outstride);
 
     // The output is a block which is length*numVStaves in size
