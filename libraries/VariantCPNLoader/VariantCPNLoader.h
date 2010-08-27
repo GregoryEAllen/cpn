@@ -20,11 +20,16 @@
 /** \file
  * \author John Bridgman
  */
+#ifndef VARIANTCPNLOADER_H
+#define VARIANTCPNLOADER_H
 #pragma once
 #include "Kernel.h"
 #include "Variant.h"
 #include <utility>
 
+/**
+ * Load a CPN network from a specially defined Variant
+ */
 class VariantCPNLoader {
 public:
     VariantCPNLoader();
@@ -68,4 +73,4 @@ public:
 private:
     Variant config;
 };
-
+#endif
