@@ -22,10 +22,17 @@
  * \author John Bridgman
  */
 
+#ifndef D4R_DEADLOCKEXCEPTION_H
+#define D4R_DEADLOCKEXCEPTION_H
+#pragma once
+
 #include <string>
 #include <exception>
 
 namespace D4R {
+    /**
+     * \brief The exception thrown when true deadlock is detected.
+     */
     class DeadlockException : public std::exception {
     public:
         DeadlockException(const std::string &msg) throw();
@@ -35,4 +42,4 @@ namespace D4R {
         const std::string message;
     };
 }
-
+#endif

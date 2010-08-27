@@ -30,12 +30,25 @@ namespace D4R {
 
     class Node;
 
+    /**
+     * The base class for the D4R queue.
+     * This class provides methods for the queue to block and
+     * override.
+     */
     class QueueBase {
     public:
         QueueBase();
         virtual ~QueueBase();
 
+        /**
+         * Set the node which is reading from this queue
+         * \param n the node
+         */
         void SetReaderNode(shared_ptr<Node> n);
+        /**
+         * Set the node which is writing to this queue.
+         * \param n the node
+         */
         void SetWriterNode(shared_ptr<Node> n);
 
     protected:
@@ -44,6 +57,7 @@ namespace D4R {
          * ReadBlock requires that you already hold the lock
          * and if it is reentrant then a single unlock will
          * release the lock.
+         * \throw D4R::DeadlockException
          */
         void ReadBlock();
 
@@ -55,23 +69,51 @@ namespace D4R {
          */
         void WriteBlock(unsigned qsize);
 
+        /**
+         * \return true if we are blocked
+         */
         virtual bool ReadBlocked() = 0;
+        /**
+         * \return true if we are blocked.
+         */
         virtual bool WriteBlocked() = 0;
 
+        /**
+         * Called by the D4R algorithm when it has detected
+         * an artificial deadlock and this queue should be changed.
+         */
         virtual void Detect() = 0;
 
     public:
+        /**
+         * These functions are to access the lock for the queue.
+         * @{
+         */
         virtual void Lock() const = 0;
         virtual void Unlock() const = 0;
+        /** @} */
 
+        /**
+         * These functions are called by the D4R::Node
+         * when thier tag changes.
+         * @{
+         */
         virtual void SignalReaderTagChanged();
         virtual void SignalWriterTagChanged();
+        /** @} */
     private:
         QueueBase(const QueueBase&);
         QueueBase &operator=(const QueueBase&);
 
     protected:
+        /**
+         * Wait untill Signal is called.
+         * Must be holding the lock to call.
+         */
         virtual void Wait() = 0;
+        /**
+         * Signal that Wait should return
+         */
         virtual void Signal() = 0;
 
         shared_ptr<Node> reader;

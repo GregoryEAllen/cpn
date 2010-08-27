@@ -30,6 +30,14 @@
  */
 namespace D4R {
 
+    /**
+     * A class to encapsulate the D4R tag.
+     *
+     * This is implemented with keys as the lower order bits and the counters
+     * and queue size as the higher order bits as suggested in the literature.
+     * This gives a total order to the Tags so that one and only one of the
+     * nodes in the deadlock will detect the deadlock.
+     */
     class Tag {
     public:
         Tag(uint64_t k) : label(0, k), priority(uint64_t(-1), k) {}
@@ -45,14 +53,23 @@ namespace D4R {
         bool operator==(const Tag &t) const;
         bool operator!=(const Tag &t) const { return !(*this == t); }
 
+        /** The D4R algorithm count @{ */
         uint64_t Count() const { return label.high; }
         uint64_t Count(uint64_t c) { return label.high = c; }
+        /** @} */
+        /** The key of the tag @{ */
         uint64_t Key() const { return label.low; }
         uint64_t Key(uint64_t k) { return label.low = k; }
+        /** @} */
+        /** The queue size of the tag. @{ */
         uint64_t QueueSize() const { return priority.high; }
         uint64_t QueueSize(uint64_t qs) { return priority.high = qs; }
+        /** @} */
+        /** The key of the node blocked on the queue,
+         * this provides a total order to the tags. @{ */
         uint64_t QueueKey() const { return priority.low; }
         uint64_t QueueKey(uint64_t k) { return priority.low = k; }
+        /** @} */
         const uint128_t &Label() const { return label; }
         const uint128_t &Label(const uint128_t &l) { return label = l; }
         const uint128_t &Priority() const { return priority; }

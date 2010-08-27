@@ -71,6 +71,15 @@ namespace D4R {
     using std::tr1::shared_ptr;
     class QueueBase;
 
+    /**
+     * The node for the D4R algorithm.
+     *
+     * Each node has a list of readers and writers.
+     * When an action that changes the Tag happens these
+     * readers and writers are notified.
+     * Note that SetPrivateTag and SetPublicTag do not notify
+     * the readers and writers.
+     */
     class Node {
     public:
 
@@ -83,10 +92,31 @@ namespace D4R {
         Tag GetPrivateTag() const;
         void SetPrivateTag(const Tag &t);
 
+        /**
+         * \param q add the q to the readers.
+         */
         void AddReader(weak_ptr<QueueBase> q);
+        /**
+         * \param q Add the q to the writers.
+         */
         void AddWriter(weak_ptr<QueueBase> q);
 
+        /**
+         * Perform the block operation.
+         * Note the caller cannot be holding any queue locks.
+         * \param t The tag of the node we are blocking on
+         * \param qsize The size of the queue if we are blocking
+         * on write or -1 if we are blocking on read.
+         */
         void Block(const Tag &t, unsigned qsize);
+        /**
+         * Called by the queue when the Tag on the node we
+         * are blocked on changes.
+         * Note the caller cannot be holding any queue locks.
+         * \param t The new tag.
+         * \return true if we have detected deadlock
+         * false otherwise.
+         */
         bool Transmit(const Tag &t);
 
     protected:
