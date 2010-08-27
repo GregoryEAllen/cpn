@@ -6,6 +6,7 @@ syntax: glob
 .svn
 _Darwin-powerpc
 _Darwin-i386
+_Darwin-x86_64
 _Linux-ppc
 _Linux-ppc64
 _Linux-i686
