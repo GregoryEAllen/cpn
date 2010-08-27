@@ -27,6 +27,10 @@
 #include "Exceptions.h"
 #include "AutoLock.h"
 #include "PthreadFunctional.h"
+#include "ConnectionServer.h"
+#include "ErrnoException.h"
+#include "Assert.h"
+#include "D4RNode.h"
 #include <errno.h>
 #include <algorithm>
 #include <sstream>

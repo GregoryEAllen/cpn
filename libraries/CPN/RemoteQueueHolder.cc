@@ -23,7 +23,6 @@
 #include "RemoteQueueHolder.h"
 #include "RemoteQueue.h"
 #include "AutoLock.h"
-#include <stdio.h>
 
 namespace CPN {
 
@@ -38,11 +37,6 @@ namespace CPN {
         if (entry != queuemap.end()) {
             queuelist.push_back(entry->second);
             queuemap.erase(entry);
-            /*
-            printf("CleanupQueue %llu\n", (unsigned long long)pthread_self());
-        } else {
-            printf("CleanupQueue %llu, already gone!?\n", (unsigned long long)pthread_self());
-            */
         }
         cond.Signal();
     }
@@ -59,17 +53,8 @@ namespace CPN {
         AutoLock<PthreadMutex> al(lock);
         QueueMap::iterator q = queuemap.begin();
         while (q != queuemap.end()) {
-            /*
-            if (!q->second->Running()) {
-                QueueMap::iterator entry = q;
-                ++q;
-                entry->second->LogState();
-                queuemap.erase(entry);
-            } else {
-            */
-                q->second->Shutdown();
-                ++q;
-            //}
+            q->second->Shutdown();
+            ++q;
         }
         wakeup.SendWakeup();
         while (!queuemap.empty()) {

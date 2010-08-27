@@ -32,7 +32,7 @@
 #include <memory>
 
 /**
- * the RemoteDatabaseDaemon is an implementation of RemoteDBServer that uses
+ * The RemoteDatabaseDaemon is an implementation of RemoteDBServer that uses
  * simple tcp/ip and listens on an address you specify.
  */
 class CPN_API RemoteDatabaseDaemon : public CPN::RemoteDBServer, public ServerSocketHandle {

@@ -98,12 +98,25 @@ namespace CPN {
 
         virtual bool RequireRemote();
 
+        /**
+         * Handle a message from the RemoteDBServer.
+         * \param msg the message
+         */
         void DispatchMessage(const Variant &msg);
     protected:
         RemoteDBClient();
+        /**
+         * Called by the functions to send a message to the
+         * RemoteDBServer.
+         * \param msg the message
+         */
         virtual void SendMessage(const Variant &msg) = 0;
     private:
 
+        /**
+         * Struct to hold information for a call to the RemoteDBServer
+         * which returns a result. This is used by RemoteCall.
+         */
         struct WaiterInfo {
             WaiterInfo(unsigned wid) : waiterid(wid), signaled(false) {}
             unsigned waiterid;
@@ -112,6 +125,10 @@ namespace CPN {
             Variant msg;
         };
 
+        /**
+         * Struct used to hold information for when we wish to
+         * listen to all incoming broadcasts.
+         */
         struct GenericWaiter {
             PthreadCondition cond;
             std::list<Variant> messages;

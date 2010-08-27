@@ -32,14 +32,46 @@
 #include <map>
 #include <vector>
 namespace CPN {
+    /**
+     * RemoteQueueHolder takes responsibility of holding references to the
+     * remote queues so that they can exist after the node has terminated.
+     * This is required because a node can terminate and the RemoteQueue has
+     * not finished sending all its data to the other side.
+     * This class also allows us to signal to the remote queues to shut down.
+     * Note that because closing a socket while selecting on that socket is a race
+     * condition and the only other good way of breaking out of the select is to
+     * also select on some other file, this holder provides a FileHandle that
+     * will cause select to return when shutting down.
+     */
     class RemoteQueueHolder {
     public:
         typedef std::map<Key_t, shared_ptr<RemoteQueue> > QueueMap;
         typedef std::vector<shared_ptr<RemoteQueue> > QueueList;
+        /**
+         * Add a queue.
+         * \param queue the queue to add
+         */
         void AddQueue(shared_ptr<RemoteQueue> queue);
+        /**
+         * Called by the RemoteQueue it self to say it has completed.
+         * \param key the endpoint key for the queue
+         */
         void CleanupQueue(Key_t key);
+        /**
+         * Called by the kernel periodically to clean up
+         * queues that are done.
+         */
         void Cleanup();
+        /**
+         * Call shutdown on each queue and cause the WakeupHandle to
+         * make select return.
+         */
         void Shutdown();
+        /**
+         * The WakeupHandle is used by all the RemoteQueues to break
+         * out of select when shutting down.
+         * \return A WakeupHandle pointer.
+         */
         WakeupHandle *GetWakeup() { return &wakeup; }
     private:
         void PrintState();

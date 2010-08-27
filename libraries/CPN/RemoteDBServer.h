@@ -25,7 +25,6 @@
 #pragma once
 #include "CPNCommon.h"
 #include "Variant.h"
-#include "PthreadMutex.h"
 
 /*
     All requests have a field named 'type' which contains a number from RDBMT_t.
@@ -115,7 +114,13 @@ namespace CPN {
     public:
         RemoteDBServer();
         virtual ~RemoteDBServer();
+        /**
+         * Cause the database to go into the shutdown state.
+         */
         virtual void Terminate();
+        /**
+         * \return whether or not the database is in the shutdown state.
+         */
         bool IsTerminated() const { return shutdown; }
         int DebugLevel() const { return debuglevel; }
         int DebugLevel(int level) { return debuglevel = level; }

@@ -29,7 +29,6 @@
 #include "CPNCommon.h"
 #include "ThresholdQueueBase.h"
 #include "QueueBase.h"
-#include "ReentrantLock.h"
 
 namespace CPN {
 
@@ -73,6 +72,9 @@ namespace CPN {
         virtual void Grow(unsigned queueLen, unsigned maxThresh);
 
     protected:
+        /**
+         * The actual queue implementation.
+         */
         class TQImpl : public ThresholdQueueBase {
         public:
             typedef ThresholdQueueBase::ulong ulong;

@@ -25,19 +25,27 @@
 #pragma once
 #include "CPNCommon.h"
 #include "ThresholdQueue.h"
-#include "Pthread.h"
 #include "PacketDecoder.h"
 #include "PacketEncoder.h"
 #include "LogicalClock.h"
-#include "ConnectionServer.h"
 #include "SocketHandle.h"
-#include "D4RNode.h"
-#include "Assert.h"
-#include "ErrnoException.h"
+
+/*
+ * Forward declarations.
+ */
+class ErrnoException;
+class Pthread;
+namespace D4R {
+    class Node;
+}
 
 namespace CPN {
     class RemoteQueueHolder;
 
+    /**
+     * The RemoteQueue is a specialization of the ThresholdQueue which is split in half
+     * across a socket. This class works closely with ConnectionServer and RemoteQueueHolder.
+     */
     class RemoteQueue
         : public ThresholdQueue,
         private PacketEncoder,
@@ -55,10 +63,17 @@ namespace CPN {
 
         ~RemoteQueue();
 
+        /**
+         * Start the internals of this queue.
+         */
         void Start();
 
         Mode_t GetMode() const { return mode; }
         Key_t GetKey() const { return mode == READ ? readerkey : writerkey; }
+        /**
+         * Tell the queue that CPN is shutting down and the queue
+         * should start cleaning up.
+         */
         void Shutdown();
 
         unsigned Count() const;
@@ -107,6 +122,7 @@ namespace CPN {
         void HandleError(const ErrnoException &e);
         static unsigned QueueLength(unsigned length, unsigned maxthresh, double alpha, Mode_t mode);
 
+        /// For debugging.
         std::string GetState();
 
         auto_ptr<Pthread> fileThread;
