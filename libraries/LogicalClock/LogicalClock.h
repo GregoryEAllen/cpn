@@ -22,6 +22,7 @@
  */
 #ifndef LOGICALCLOCK_H
 #define LOGICALCLOCK_H
+#pragma once
 
 /** \brief A simple implementation of Lamport's logical clock.
  */
