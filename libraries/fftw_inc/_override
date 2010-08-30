@@ -1,6 +1,6 @@
-INCLUDES += $(shell pkg-config --cflags fftw3f)
 USE_FFTW3=1
 ifdef USE_FFTW3
+    INCLUDES += $(shell pkg-config --cflags fftw3f)
     OS_LIBS += -lfftw3f_threads $(shell pkg-config --libs fftw3f)
 endif
 

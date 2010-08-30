@@ -1,6 +1,6 @@
 
 KERNEL:= $(shell uname -s)
-CHIP:=$(shell uname -p)
+CHIP:=$(shell uname -m)
 OS=$(KERNEL)-$(CHIP)
 OSDIR=_$(OS)
 
@@ -25,8 +25,10 @@ node.list:  $(NODELISTS) node.list.mk
 node.list.mk:
 	echo '#auto generator makefile' > $@
 	for dir in $(SUBDIRS); do\
-		echo -e "$$dir/$(OSDIR)/node.list: $$dir/*.cc\n\tpushd $$dir; jmake sharedlibs; popd;\n" >> $@;\
+		echo "$$dir/$(OSDIR)/node.list: $$dir/*.cc" >> $@;\
+		echo "	pushd $$dir; jmake sharedlibs; popd;" >> $@;\
+		echo >> $@;\
 	done
-	echo -e '\n_node.list.mk: $$(NODELISTS)\n' >> $@
+	echo '\n_node.list.mk: $$(NODELISTS)\n' >> $@
 
 -include node.list.mk

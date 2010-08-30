@@ -1,6 +1,9 @@
 
 CC_OTHER += -fPIC
 LD_OTHER += -fPIC
+ifeq ($(shell uname -s),Darwin)
+    LD_OTHER += -undefined dynamic_lookup
+endif
 
 sharedlibs: lib 
 	${LD} -shared -o ${SHAREDLIBRARY} ${LINKOBJECTS} ${LD_OTHER} ${OS_LIBS}
