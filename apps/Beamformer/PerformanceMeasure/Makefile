@@ -1,10 +1,10 @@
 
 DIR=..
 REPS=100
-VBF=$(DIR)/fvBeamformer $(DIR)/coeffs.vbf.dummy.data -i $(DIR)/input.vbftest.dummy.data -n -a 5 -r $(REPS)
-HBF=$(DIR)/hBeamformer $(DIR)/coeffs.hbf.data -i $(DIR)/input.hbftest.data -n -r $(REPS)
-OMPBF=$(DIR)/ompbf $(DIR)/coeffs.vbf.dummy.data $(DIR)/coeffs.hbf.data -i $(DIR)/input.vbftest.dummy.data -n -a 5 -r $(REPS)
-CPNBF=$(DIR)/cpnbf $(DIR)/coeffs.vbf.dummy.data $(DIR)/coeffs.hbf.data -i $(DIR)/input.vbftest.dummy.data -n -a 4 -r $(REPS)
+VBF=$(DIR)/fvBeamformer -v $(DIR)/coeffs.vbf.data -i $(DIR)/input.vbftest.data -n -a 5 -r $(REPS)
+HBF=$(DIR)/hBeamformer -h $(DIR)/coeffs.hbf.data -i $(DIR)/input.hbftest.data -n -r $(REPS)
+OMPBF=$(DIR)/ompbf -v $(DIR)/coeffs.vbf.data -h $(DIR)/coeffs.hbf.data -i $(DIR)/input.vbftest.data -n -a 5 -r $(REPS)
+CPNBF=$(DIR)/cpnbf -v $(DIR)/coeffs.vbf.data -h $(DIR)/coeffs.hbf.data -i $(DIR)/input.vbftest.data -n -a 4 -r $(REPS)
 
 define make_data
 	OMP_WAIT_POLICY=$(2) /usr/bin/time -v $($(1)) -p $(3) 2>&1 | tee $(4)

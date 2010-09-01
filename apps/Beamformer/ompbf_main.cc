@@ -26,7 +26,7 @@ static double getTime() {
 }
 
 
-static const char* const VALID_OPTS = "hi:o:er:na:p:";
+static const char* const VALID_OPTS = "h:v:i:o:er:na:p:";
 
 static const char* const HELP_OPTS = "Usage: %s <vertical coefficient file> <horizontal coefficient file>\n"
 "\t-i filename\t Use input file (default stdin)\n"
@@ -35,19 +35,24 @@ static const char* const HELP_OPTS = "Usage: %s <vertical coefficient file> <hor
 "\t-r num\t Run num times\n"
 "\t-a n\t Use algorithm n for vertical\n"
 "\t-n \t No output, just time\n"
+"\t-v file\t Use file for vertial coefficients.\n"
+"\t-h file\t Use file for horizontal coefficients.\n"
 ;
 
 
 int ompbf_main(int argc, char **argv) {
-    bool procOpts = true;
     std::string input_file;
     std::string output_file;
+    std::string vertical_config;
+    std::string horizontal_config;
     FanVBeamformer::Algorithm_t algo = FanVBeamformer::AUTO;
     bool estimate = false;
     unsigned repetitions = 1;
     bool nooutput = false;
-    while (procOpts) {
-        switch (getopt(argc, argv, VALID_OPTS)) {
+    while (true) {
+        int c = getopt(argc, argv, VALID_OPTS);
+        if (c == -1) break;
+        switch (c) {
         case 'i':
             input_file = optarg;
             break;
@@ -79,24 +84,26 @@ int ompbf_main(int argc, char **argv) {
         case 'n':
             nooutput = true;
             break;
-        case -1:
-            procOpts = false;
+        case 'v':
+            vertical_config = optarg;
             break;
         case 'h':
+            horizontal_config = optarg;
+            break;
         default:
             fprintf(stderr, HELP_OPTS, argv[0]);
             return 0;
         }
     }
 
-    if (argc <= optind + 1) {
+    if (vertical_config.empty() || horizontal_config.empty()) {
         fprintf(stderr, "Not enough parameters, need coefficient files\n");
         return 1;
     }
     fprintf(stderr, "Loading..");
-    std::auto_ptr<FanVBeamformer> vformer = FanVBLoadFromFile(argv[optind]);
+    std::auto_ptr<FanVBeamformer> vformer = FanVBLoadFromFile(vertical_config.c_str());
     vformer->SetAlgorithm(algo);
-    std::auto_ptr<HBeamformer> hformer = HBLoadFromFile(argv[optind + 1], estimate);
+    std::auto_ptr<HBeamformer> hformer = HBLoadFromFile(horizontal_config.c_str(), estimate);
     fprintf(stderr, ". Done\n");
 
 
@@ -106,6 +113,7 @@ int ompbf_main(int argc, char **argv) {
     if (!input_file.empty()) {
         fin = fopen(input_file.c_str(), "r");
         ASSERT(fin);
+        fprintf(stderr, "Using %s as input.\n", input_file.c_str());
     }
     if (!output_file.empty()) {
         fout = fopen(output_file.c_str(), "w");

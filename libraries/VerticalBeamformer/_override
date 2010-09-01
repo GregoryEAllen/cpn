@@ -5,8 +5,10 @@ _gen_FVBHardcode.cc: gen_fvhardcode.py
 OBJECTS += _gen_FVBHardcode.o
 LINKOBJECTS += $(OSDIR)/_gen_FVBHardcode.o
 
+ifneq ($(WITHOUT_OMP),1)
 CC_OTHER += -fopenmp
 USE_OMP=1
+endif
 ifdef USE_OMP
     OS_LIBS += -lgomp
 endif

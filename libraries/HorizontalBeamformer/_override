@@ -1,7 +1,10 @@
 INCLUDES += $(shell pkg-config --cflags fftw3f)
 
+ifneq ($(WITHOUT_OMP),1)
 CC_OTHER += -fopenmp
 USE_OMP=1
+endif
+#USE_OMP=1
 ifdef USE_OMP
     OS_LIBS += -lgomp
 endif

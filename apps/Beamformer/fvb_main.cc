@@ -24,27 +24,30 @@ static double getTime() {
     return static_cast<double>(tv.tv_sec) + 1e-6 * static_cast<double>(tv.tv_usec);
 }
 
-static const char* const VALID_OPTS = "hi:o:a:f:r:np:";
+static const char* const VALID_OPTS = "hi:o:a:f:r:np:v:";
 
-static const char* const HELP_OPTS = "Usage: %s <coefficient file>\n"
+static const char* const HELP_OPTS = "Usage: %s [options]\n"
 "\t-i filename\t Use input file (default stdin)\n"
 "\t-o filename\t Use output file (default stdout)\n"
 "\t-f n\t Do only the given fan\n"
 "\t-a n\t Use algorithm n\n"
 "\t-r n\t Repeat n times\n"
 "\t-n\t No output.\n"
+"\t-v file\t Coefficient file.\n"
 ;
 
 int fvb_main(int argc, char **argv) {
-    bool procOpts = true;
     std::string input_file;
     std::string output_file;
+    std::string vertical_config;
     FanVBeamformer::Algorithm_t algo = FanVBeamformer::AUTO;
     unsigned fan = -1;
     unsigned repetitions = 1;
     bool nooutput = false;
-    while (procOpts) {
-        switch (getopt(argc, argv, VALID_OPTS)) {
+    while (true) {
+        int c = getopt(argc, argv, VALID_OPTS);
+        if (c == -1) break;
+        switch (c) {
         case 'i':
             input_file = optarg;
             break;
@@ -76,8 +79,8 @@ int fvb_main(int argc, char **argv) {
         case 'n':
             nooutput = true;
             break;
-        case -1:
-            procOpts = false;
+        case 'v':
+            vertical_config = optarg;
             break;
         case 'h':
         default:
@@ -86,12 +89,13 @@ int fvb_main(int argc, char **argv) {
         }
     }
 
-    if (argc <= optind) {
+    if (vertical_config.empty()) {
+        fprintf(stderr, "Coefficient file required\n");
         fprintf(stderr, HELP_OPTS, argv[0]);
         return 1;
     }
     fprintf(stderr, "Loading..");
-    std::auto_ptr<FanVBeamformer> former = FanVBLoadFromFile(argv[optind]);
+    std::auto_ptr<FanVBeamformer> former = FanVBLoadFromFile(vertical_config.c_str());
     fprintf(stderr, ". Done\n");
     former->SetAlgorithm(algo);
 

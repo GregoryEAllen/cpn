@@ -24,7 +24,7 @@ static double getTime() {
     return static_cast<double>(tv.tv_sec) + 1e-6 * static_cast<double>(tv.tv_usec);
 }
 
-static const char* const VALID_OPTS = "hi:o:a:f:r:p:";
+static const char* const VALID_OPTS = "hi:o:a:f:r:p:v:";
 
 static const char* const HELP_OPTS = "Usage: %s <coefficient file>\n"
 "\t-i filename\t Use input file (default stdin)\n"
@@ -32,17 +32,20 @@ static const char* const HELP_OPTS = "Usage: %s <coefficient file>\n"
 "\t-f n\t Do only the given fan\n"
 "\t-a n\t Use algorithm n\n"
 "\t-r n\t Repeat n times\n"
+"\t-v file\t Coefficient file.\n"
 ;
 
 int vb_main(int argc, char **argv) {
-    bool procOpts = true;
     std::string input_file;
     std::string output_file;
+    std::string vertical_config;
     VBeamformer::Algorithm_t algo = VBeamformer::SSE_VECTOR;
     unsigned fan = -1;
     unsigned repetitions = 1;
-    while (procOpts) {
-        switch (getopt(argc, argv, VALID_OPTS)) {
+    while (true) {
+        int c = getopt(argc, argv, VALID_OPTS);
+        if (c == -1) break;
+        switch (c) {
         case 'i':
             input_file = optarg;
             break;
@@ -71,8 +74,8 @@ int vb_main(int argc, char **argv) {
         case 'r':
             repetitions = atoi(optarg);
             break;
-        case -1:
-            procOpts = false;
+        case 'v':
+            vertical_config = optarg;
             break;
         case 'h':
         default:
@@ -81,12 +84,13 @@ int vb_main(int argc, char **argv) {
         }
     }
 
-    if (argc <= optind) {
+    if (vertical_config.empty()) {
+        fprintf(stderr, "Coefficient file required\n");
         fprintf(stderr, HELP_OPTS, argv[0]);
         return 1;
     }
     fprintf(stderr, "Loading..");
-    std::auto_ptr<VBeamformer> former = VBLoadFromFile(argv[optind]);
+    std::auto_ptr<VBeamformer> former = VBLoadFromFile(vertical_config.c_str());
     fprintf(stderr, ". Done\n");
     former->SetAlgorithm(algo);
 

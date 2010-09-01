@@ -14,7 +14,7 @@
 
 using std::complex;
 
-static const char* const VALID_OPTS = "hi:o:er:np:";
+static const char* const VALID_OPTS = "h:i:o:er:np:";
 
 static const char* const HELP_OPTS = "Usage: %s <coefficient file>\n"
 "\t-i filename\t Use input file (default stdin)\n"
@@ -22,17 +22,20 @@ static const char* const HELP_OPTS = "Usage: %s <coefficient file>\n"
 "\t-e\t Estimate FFT algorithm rather than measure.\n"
 "\t-r num\t Run num times\n"
 "\t-n \t No output just time\n"
+"\t-h file\t Use file for horizontal coefficients.\n"
 ;
 
 int hb_main(int argc, char **argv) {
-    bool procOpts = true;
     std::string input_file;
     std::string output_file;
+    std::string horizontal_config;
     bool estimate = false;
     bool nooutput = false;
     unsigned repetitions = 1;
-    while (procOpts) {
-        switch (getopt(argc, argv, VALID_OPTS)) {
+    while (true) {
+        int c = getopt(argc, argv, VALID_OPTS);
+        if (c == -1) break;
+        switch (c) {
         case 'i':
             input_file = optarg;
             break;
@@ -57,22 +60,22 @@ int hb_main(int argc, char **argv) {
 #endif
             }
             break;
-        case -1:
-            procOpts = false;
-            break;
         case 'h':
+            horizontal_config = optarg;
+            break;
         default:
             fprintf(stderr, HELP_OPTS, argv[0]);
             return 0;
         }
     }
 
-    if (argc <= optind) {
+    if (horizontal_config.empty()) {
         fprintf(stderr, "Not enough parameters, need coefficient file\n");
+        fprintf(stderr, HELP_OPTS, argv[0]);
         return 1;
     }
     fprintf(stderr, "Loading..");
-    std::auto_ptr<HBeamformer> former = HBLoadFromFile(argv[optind], estimate);
+    std::auto_ptr<HBeamformer> former = HBLoadFromFile(horizontal_config.c_str(), estimate);
     fprintf(stderr, ". Done\n");
 
     FILE *fin = stdin;
