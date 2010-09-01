@@ -14,7 +14,7 @@
 
 using std::complex;
 
-static const char* const VALID_OPTS = "h:i:o:er:np:";
+static const char* const VALID_OPTS = "h:i:o:er:np:l";
 
 static const char* const HELP_OPTS = "Usage: %s <coefficient file>\n"
 "\t-i filename\t Use input file (default stdin)\n"
@@ -23,6 +23,7 @@ static const char* const HELP_OPTS = "Usage: %s <coefficient file>\n"
 "\t-r num\t Run num times\n"
 "\t-n \t No output just time\n"
 "\t-h file\t Use file for horizontal coefficients.\n"
+"\t-l \t Force the input to be the beamformer length by truncation or repetition, rather than zero extension.\n"
 ;
 
 int hb_main(int argc, char **argv) {
@@ -32,6 +33,7 @@ int hb_main(int argc, char **argv) {
     bool estimate = false;
     bool nooutput = false;
     unsigned repetitions = 1;
+    bool forced_length = false;
     while (true) {
         int c = getopt(argc, argv, VALID_OPTS);
         if (c == -1) break;
@@ -62,6 +64,9 @@ int hb_main(int argc, char **argv) {
             break;
         case 'h':
             horizontal_config = optarg;
+            break;
+        case 'l':
+            forced_length = true;
             break;
         default:
             fprintf(stderr, HELP_OPTS, argv[0]);
@@ -95,7 +100,14 @@ int hb_main(int argc, char **argv) {
     unsigned len = former->Length() * sizeof(complex<float>);
 
     fprintf(stderr, "Reading Input..");
-    DataFromFile(fin, &input[0], len, len, former->NumStaves());
+    unsigned data_len = DataFromFile(fin, &input[0], len, len, former->NumStaves());
+    if (forced_length) {
+        while (data_len < len) {
+            unsigned copy_len = std::min(data_len, len - data_len);
+            memcpy(&input[data_len], &input[0], copy_len);
+            data_len += copy_len;
+        }
+    }
 
     fprintf(stderr, ". Done\n");
 

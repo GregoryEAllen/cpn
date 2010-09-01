@@ -15,6 +15,8 @@
 #include <omp.h>
 #endif
 
+static const unsigned BLOCKSIZE = 8192;
+
 using std::complex;
 
 static double getTime() {
@@ -26,7 +28,7 @@ static double getTime() {
 }
 
 
-static const char* const VALID_OPTS = "h:v:i:o:er:na:p:";
+static const char* const VALID_OPTS = "h:v:i:o:er:na:p:l";
 
 static const char* const HELP_OPTS = "Usage: %s <vertical coefficient file> <horizontal coefficient file>\n"
 "\t-i filename\t Use input file (default stdin)\n"
@@ -37,6 +39,7 @@ static const char* const HELP_OPTS = "Usage: %s <vertical coefficient file> <hor
 "\t-n \t No output, just time\n"
 "\t-v file\t Use file for vertial coefficients.\n"
 "\t-h file\t Use file for horizontal coefficients.\n"
+"\t-l \t Force the input to be the full input length by repetition rather than zero fill.\n"
 ;
 
 
@@ -49,6 +52,7 @@ int ompbf_main(int argc, char **argv) {
     bool estimate = false;
     unsigned repetitions = 1;
     bool nooutput = false;
+    bool forced_length = false;
     while (true) {
         int c = getopt(argc, argv, VALID_OPTS);
         if (c == -1) break;
@@ -90,6 +94,9 @@ int ompbf_main(int argc, char **argv) {
         case 'h':
             horizontal_config = optarg;
             break;
+        case 'l':
+            forced_length = true;
+            break;
         default:
             fprintf(stderr, HELP_OPTS, argv[0]);
             return 0;
@@ -121,20 +128,31 @@ int ompbf_main(int argc, char **argv) {
     }
 
     unsigned numFans = vformer->NumFans();
-    unsigned stride = 8192 + vformer->FilterLen();
-    unsigned numSamples = stride;
+    unsigned stride = BLOCKSIZE + vformer->FilterLen();
+    unsigned numSamples = BLOCKSIZE;
     unsigned numElemsPerStave = vformer->NumElemsPerStave();
     unsigned numStaves = 256;
     unsigned numOutSamples = 0;
 
     std::vector< complex<short> > vinput( numSamples * numElemsPerStave * numStaves, 0);
-    std::vector< complex<float> > voutput( numFans * numSamples * numStaves, 0);
+    std::vector< complex<float> > voutput( numFans * stride * numStaves, 0);
     std::vector< complex<float> > houtput( numFans * hformer->Length() * hformer->NumBeams(), 0);
 
     fprintf(stderr, "Reading Input..");
     unsigned len = numSamples * sizeof(complex<short>);
     len = DataFromFile(fin, &vinput[0], len, len, numStaves * numElemsPerStave);
     numSamples = len / sizeof(complex<short>);
+    if (forced_length) {
+        while (numSamples < BLOCKSIZE) {
+            unsigned num_more = BLOCKSIZE - numSamples;
+            num_more = std::min(numSamples, num_more);
+            memcpy(&vinput[numSamples], &vinput[0], num_more * sizeof(complex<short>));
+            numSamples += num_more;
+        }
+    } else {
+        // std::vector zero fills on allocation
+        numSamples = BLOCKSIZE;
+    }
 
     fprintf(stderr, ". Done\n");
 

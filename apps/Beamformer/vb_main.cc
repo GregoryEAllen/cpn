@@ -14,6 +14,7 @@
 #include <omp.h>
 #endif
 
+static const unsigned BLOCKSIZE = 8192;
 using std::complex;
 
 static double getTime() {
@@ -24,7 +25,7 @@ static double getTime() {
     return static_cast<double>(tv.tv_sec) + 1e-6 * static_cast<double>(tv.tv_usec);
 }
 
-static const char* const VALID_OPTS = "hi:o:a:f:r:p:v:";
+static const char* const VALID_OPTS = "hi:o:a:f:r:p:v:ln";
 
 static const char* const HELP_OPTS = "Usage: %s <coefficient file>\n"
 "\t-i filename\t Use input file (default stdin)\n"
@@ -32,7 +33,9 @@ static const char* const HELP_OPTS = "Usage: %s <coefficient file>\n"
 "\t-f n\t Do only the given fan\n"
 "\t-a n\t Use algorithm n\n"
 "\t-r n\t Repeat n times\n"
+"\t-n\t No output.\n"
 "\t-v file\t Coefficient file.\n"
+"\t-l \t Force the input to be the full input length by repetition rather than zero fill.\n"
 ;
 
 int vb_main(int argc, char **argv) {
@@ -42,6 +45,8 @@ int vb_main(int argc, char **argv) {
     VBeamformer::Algorithm_t algo = VBeamformer::SSE_VECTOR;
     unsigned fan = -1;
     unsigned repetitions = 1;
+    bool forced_length = false;
+    bool nooutput = false;
     while (true) {
         int c = getopt(argc, argv, VALID_OPTS);
         if (c == -1) break;
@@ -74,8 +79,14 @@ int vb_main(int argc, char **argv) {
         case 'r':
             repetitions = atoi(optarg);
             break;
+        case 'n':
+            nooutput = true;
+            break;
         case 'v':
             vertical_config = optarg;
+            break;
+        case 'l':
+            forced_length = true;
             break;
         case 'h':
         default:
@@ -106,19 +117,30 @@ int vb_main(int argc, char **argv) {
         ASSERT(fout);
     }
     unsigned numFans = former->NumFans();
-    unsigned stride = 8192 + former->FilterLen();
-    unsigned numSamples = stride;
+    unsigned stride = BLOCKSIZE + former->FilterLen();
+    unsigned numSamples = BLOCKSIZE;
     unsigned numElemsPerStave = former->NumElemsPerStave();
     unsigned numStaves = 256;
     unsigned numOutSamples = 0;
 
     std::vector< complex<short> > input( numSamples * numElemsPerStave * numStaves, 0);
-    std::vector< complex<float> > output( numFans * numSamples * numStaves, 0);
+    std::vector< complex<float> > output( numFans * stride * numStaves, 0);
 
     fprintf(stderr, "Reading Input..");
     unsigned len = numSamples * sizeof(complex<short>);
     len = DataFromFile(fin, &input[0], len, len, numStaves * numElemsPerStave);
     numSamples = len / sizeof(complex<short>);
+    if (forced_length) {
+        while (numSamples < BLOCKSIZE) {
+            unsigned num_more = BLOCKSIZE - numSamples;
+            num_more = std::min(numSamples, num_more);
+            memcpy(&input[numSamples], &input[0], num_more * sizeof(complex<short>));
+            numSamples += num_more;
+        }
+    } else {
+        // std::vector zero fills on allocation
+        numSamples = BLOCKSIZE;
+    }
 
     fprintf(stderr, ". Done\n");
 
@@ -137,20 +159,22 @@ int vb_main(int argc, char **argv) {
                 numSamples, fan, &output[fan * stride * numStaves], stride);
         }
         fprintf(stderr, ". Done (%f ms)\n", (getTime() - start) * 1000);
-        measure.Tick(numOutSamples);
+        measure.Tick(numSamples);
     }
     fprintf(stderr, "Avg:\t%f Hz\nMax:\t%f Hz\nMin:\t%f Hz\n", measure.AverageRate(), measure.LargestRate(), measure.SmallestRate());
 
-    fprintf(stderr, "Writing Output..");
-    unsigned lenout = numOutSamples * sizeof(complex<float>);
-    if (fan > numFans) {
-        for (unsigned i = 0; i < numFans; ++i) {
-            DataToFile(fout, &output[i * stride * numStaves], lenout, stride*sizeof(complex<float>), numStaves);
+    if (!nooutput) {
+        fprintf(stderr, "Writing Output..");
+        unsigned lenout = numOutSamples * sizeof(complex<float>);
+        if (fan > numFans) {
+            for (unsigned i = 0; i < numFans; ++i) {
+                DataToFile(fout, &output[i * stride * numStaves], lenout, stride*sizeof(complex<float>), numStaves);
+            }
+        } else {
+            DataToFile(fout, &output[fan * stride * numStaves], lenout, stride*sizeof(complex<float>), numStaves);
         }
-    } else {
-        DataToFile(fout, &output[fan * stride * numStaves], lenout, stride*sizeof(complex<float>), numStaves);
+        fprintf(stderr, ". Done\n");
     }
-    fprintf(stderr, ". Done\n");
     fprintf(stderr, "Cleanup..");
     if (!input_file.empty()) {
         fclose(fin);

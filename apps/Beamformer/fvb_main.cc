@@ -14,6 +14,7 @@
 #include <omp.h>
 #endif
 
+static const unsigned BLOCKSIZE = 8192;
 using std::complex;
 
 static double getTime() {
@@ -24,7 +25,7 @@ static double getTime() {
     return static_cast<double>(tv.tv_sec) + 1e-6 * static_cast<double>(tv.tv_usec);
 }
 
-static const char* const VALID_OPTS = "hi:o:a:f:r:np:v:";
+static const char* const VALID_OPTS = "hi:o:a:f:r:np:v:l";
 
 static const char* const HELP_OPTS = "Usage: %s [options]\n"
 "\t-i filename\t Use input file (default stdin)\n"
@@ -34,6 +35,7 @@ static const char* const HELP_OPTS = "Usage: %s [options]\n"
 "\t-r n\t Repeat n times\n"
 "\t-n\t No output.\n"
 "\t-v file\t Coefficient file.\n"
+"\t-l \t Force the input to be the full input length by repetition rather than zero fill.\n"
 ;
 
 int fvb_main(int argc, char **argv) {
@@ -43,6 +45,7 @@ int fvb_main(int argc, char **argv) {
     FanVBeamformer::Algorithm_t algo = FanVBeamformer::AUTO;
     unsigned fan = -1;
     unsigned repetitions = 1;
+    bool forced_length = false;
     bool nooutput = false;
     while (true) {
         int c = getopt(argc, argv, VALID_OPTS);
@@ -82,6 +85,9 @@ int fvb_main(int argc, char **argv) {
         case 'v':
             vertical_config = optarg;
             break;
+        case 'l':
+            forced_length = true;
+            break;
         case 'h':
         default:
             fprintf(stderr, HELP_OPTS, argv[0]);
@@ -111,19 +117,30 @@ int fvb_main(int argc, char **argv) {
         ASSERT(fout);
     }
     unsigned numFans = former->NumFans();
-    unsigned stride = 8192 + former->FilterLen();
-    unsigned numSamples = stride;
+    unsigned stride = BLOCKSIZE + former->FilterLen();
+    unsigned numSamples = BLOCKSIZE;
     unsigned numElemsPerStave = former->NumElemsPerStave();
     unsigned numStaves = 256;
     unsigned numOutSamples = 0;
 
     std::vector< complex<short> > input( numSamples * numElemsPerStave * numStaves, 0);
-    std::vector< complex<float> > output( numFans * numSamples * numStaves, 0);
+    std::vector< complex<float> > output( numFans * stride * numStaves, 0);
 
     fprintf(stderr, "Reading Input..");
     unsigned len = numSamples * sizeof(complex<short>);
     len = DataFromFile(fin, &input[0], len, len, numStaves * numElemsPerStave);
     numSamples = len / sizeof(complex<short>);
+    if (forced_length) {
+        while (numSamples < BLOCKSIZE) {
+            unsigned num_more = BLOCKSIZE - numSamples;
+            num_more = std::min(numSamples, num_more);
+            memcpy(&input[numSamples], &input[0], num_more * sizeof(complex<short>));
+            numSamples += num_more;
+        }
+    } else {
+        // std::vector zero fills on allocation
+        numSamples = BLOCKSIZE;
+    }
 
     fprintf(stderr, ". Done\n");
 

@@ -27,6 +27,7 @@
 #include <omp.h>
 #endif
 
+static const unsigned BLOCKSIZE = 8192;
 using CPN::Database;
 using CPN::shared_ptr;
 using std::complex;
@@ -101,7 +102,7 @@ CPN_DECLARE_NODE_FACTORY(CPNBFOutputNode, CPNBFOutputNode);
 class CPNBFInputNode : public CPN::NodeBase {
 public:
     CPNBFInputNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)
-        : CPN::NodeBase(ker, attr)
+        : CPN::NodeBase(ker, attr), forced_length(false)
     {
         JSONToVariant parser;
         parser.Parse(attr.GetParam().data(), attr.GetParam().size());
@@ -113,6 +114,8 @@ public:
         if (param["repetitions"].IsNumber()) {
             repetitions = param["repetitions"].AsUnsigned();
         }
+        forced_length = param["forced_length"].AsBool();
+        blocksize = param["blocksize"].AsUnsigned();
     }
 
     void Process() {
@@ -131,14 +134,24 @@ public:
         }
         Variant header = parser.Get();
         while (in->get() != 0 && in->good());
-        const unsigned length = header["length"].AsUnsigned();
+        const unsigned data_length = header["length"].AsUnsigned();
         const unsigned numChans = header["numChans"].AsUnsigned();
+        const unsigned length = blocksize * sizeof(complex<short>);
         std::vector<char> data(length * numChans);
         for (unsigned i = 0; i < numChans; ++i) {
             unsigned numread = 0;
-            while (in->good() && numread < length) {
-                in->read(&data[i * length] + numread, length - numread);
+            while (in->good() && numread < data_length) {
+                in->read(&data[i * data_length] + numread, data_length - numread);
                 numread += in->gcount();
+            }
+        }
+        if (forced_length) {
+            unsigned d_len = data_length;
+            while (d_len < length) {
+                unsigned num_more = length - d_len;
+                num_more = std::min(length, num_more);
+                memcpy(&data[d_len], &data[0], num_more);
+                d_len += num_more;
             }
         }
         CPN::QueueWriterAdapter<void> out = GetWriter(outport);
@@ -167,10 +180,12 @@ public:
     std::string outport;
     std::string infile;
     unsigned repetitions;
+    unsigned blocksize;
+    bool forced_length;
 };
 CPN_DECLARE_NODE_FACTORY(CPNBFInputNode, CPNBFInputNode);
 
-static const char* const VALID_OPTS = "h:i:o:er:na:s:c:f:S:q:p:Cv:j:J:";
+static const char* const VALID_OPTS = "h:i:o:er:na:s:c:f:S:q:p:Cv:j:J:l";
 
 static const char* const HELP_OPTS = "Usage: %s [options]\n"
 "\t-a n\t Use algorithm n for vertical\n"
@@ -182,6 +197,7 @@ static const char* const HELP_OPTS = "Usage: %s [options]\n"
 "\t-i file\t Use input file\n"
 "\t-j file\t Load file as JSON and merge with config.\n"
 "\t-J JSON\t Load JSON and merge it with config. (allows overrides on the command line)\n"
+"\t-l \t Force the input to be the full input length by repetition rather than zero fill.\n"
 "\t-n \t No output, just time\n"
 "\t-o file\t Use output file\n"
 "\t-q xxx\t Set xxx as the queue type (default: threshold).\n"
@@ -213,6 +229,7 @@ int cpnbf_main(int argc, char **argv) {
     bool print_config = false;
     bool split_horizontal = true;
     bool load_internal_config = true;
+    bool forced_length = false;
     Variant config;
     config["name"] = "kernel";
     std::string nodelist = RealPath("node.list");
@@ -271,6 +288,9 @@ int cpnbf_main(int argc, char **argv) {
                 }
                 loader.MergeConfig(parser.Get());
             }
+            break;
+        case 'l':
+            forced_length = true;
             break;
         case 'n':
             nooutput = true;
@@ -343,7 +363,7 @@ int cpnbf_main(int argc, char **argv) {
         node["param"]["outports"][0] = "out1";
         node["param"]["outports"][1] = "out2";
         node["param"]["outports"][2] = "out3";
-        node["param"]["blocksize"] = 8192;
+        node["param"]["blocksize"] = BLOCKSIZE;
         node["param"]["file"] = vertical_config;
         node["param"]["algorithm"] = algo;
         loader.AddNode(node);
@@ -378,6 +398,8 @@ int cpnbf_main(int argc, char **argv) {
         node["param"]["outport"] = "output";
         node["param"]["infile"] = input_file;
         node["param"]["repetitions"] = repetitions;
+        node["param"]["forced_length"] = forced_length;
+        node["param"]["blocksize"] = BLOCKSIZE; //should be the same as the blocksize for the vertical beamformer.
         loader.AddNode(node);
         node = Variant::NullType;
 
@@ -386,15 +408,15 @@ int cpnbf_main(int argc, char **argv) {
         node["param"]["inports"][0] = "0";
         node["param"]["inports"][1] = "1";
         node["param"]["inports"][2] = "2";
-        node["param"]["blocksize"] = 8192;
+        node["param"]["blocksize"] = BLOCKSIZE;
         node["param"]["outfile"] = output_file;
         node["param"]["nooutput"] = nooutput;
         loader.AddNode(node);
         node = Variant::NullType;
 
         Variant queue;
-        queue["size"] = 8192*size_mult;
-        queue["threshold"] = 8192;
+        queue["size"] = BLOCKSIZE*size_mult;
+        queue["threshold"] = BLOCKSIZE;
         queue["type"] = queue_type;
         queue["datatype"] = "complex<float>";
         queue["numchannels"] = 256;
@@ -425,8 +447,8 @@ int cpnbf_main(int argc, char **argv) {
         else { queue["writernode"] = "hbf3"; }
         loader.AddQueue(queue);
         if (split_horizontal) {
-            queue["size"] = 8192*256*size_mult;
-            queue["threshold"] = 8192*256;
+            queue["size"] = BLOCKSIZE*256*size_mult;
+            queue["threshold"] = BLOCKSIZE*256;
             queue["numchannels"] = 1;
             queue["readerport"] = "input";
             queue["writernode"] = "hbf1";
@@ -439,8 +461,8 @@ int cpnbf_main(int argc, char **argv) {
             queue["readernode"] = "hbf3_2";
             loader.AddQueue(queue);
         }
-        queue["size"] = 8192*size_mult;
-        queue["threshold"] = 8192;
+        queue["size"] = BLOCKSIZE*size_mult;
+        queue["threshold"] = BLOCKSIZE;
         queue["numchannels"] = 256*12;
         queue["readernode"] = "vertical";
         queue["readerport"] = "input";
