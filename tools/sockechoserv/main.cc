@@ -5,6 +5,7 @@
 #include "StreamForwarder.h"
 #include "ErrnoException.h"
 
+#include <stdio.h>
 #include <list>
 #include <tr1/memory>
 

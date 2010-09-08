@@ -4,6 +4,7 @@
 #include "D4RTestNode.h"
 #include <vector>
 #include <iostream>
+#include <algorithm>
 
 namespace D4R {
 

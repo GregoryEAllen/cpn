@@ -1,6 +1,7 @@
 
 #include "StreamForwarder.h"
 #include "Assert.h"
+#include <stdio.h>
 
 StreamForwarder::StreamForwarder()
     : forward(0), buff(BUFF_SIZE)

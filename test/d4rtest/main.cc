@@ -6,6 +6,8 @@
 #include "Directory.h"
 #include "Logger.h"
 #include <vector>
+#include <stdlib.h>
+#include <stdio.h>
 
 const char VALID_OPS[] = "l:r";
 
@@ -64,7 +66,7 @@ int main(int argc, char **argv) {
                 JSONToVariant parse;
                 while (!feof(f)) {
                     unsigned numread = fread(&buf[0], 1, buf.size(), f);
-                    unsigned numparsed = parse.Parse(&buf[0], numread);
+                    parse.Parse(&buf[0], numread);
                     if (parse.Error()) {
                         printf("Unabled to parse line: %u column: %u\n", parse.GetLine(), parse.GetColumn());
                         break;

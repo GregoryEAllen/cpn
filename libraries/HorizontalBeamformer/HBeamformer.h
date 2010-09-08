@@ -28,6 +28,7 @@
 #include <xmmintrin.h>
 #include <vector>
 #include <string>
+#include <memory>
 
 /**
  * A Basic horizontal beamformer for the fake array.

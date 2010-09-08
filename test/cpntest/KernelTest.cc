@@ -11,6 +11,7 @@
 #include "VariantCPNLoader.h"
 #include <stdexcept>
 #include <string>
+#include <string.h>
 
 CPPUNIT_TEST_SUITE_REGISTRATION( KernelTest );
 

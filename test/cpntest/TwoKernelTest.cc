@@ -8,6 +8,7 @@
 #include "MockNode.h"
 #include "MockSyncNode.h"
 #include "ToString.h"
+#include <string.h>
 
 using CPN::Database;
 using CPN::Kernel;
