@@ -440,8 +440,8 @@ int cpnbf_main(int argc, char **argv) {
         }
 
         if (split_horizontal) {
-            queue["size"] = BLOCKSIZE*256*size_mult;
-            queue["threshold"] = BLOCKSIZE*256;
+            queue["size"] = BLOCKSIZE*560*size_mult;
+            queue["threshold"] = BLOCKSIZE*560;
             queue["numchannels"] = 1;
             queue["readerport"] = "input";
             for (unsigned i = 0; i < num_fans; ++i) {

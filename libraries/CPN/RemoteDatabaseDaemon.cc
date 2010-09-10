@@ -32,11 +32,13 @@ using std::auto_ptr;
 RemoteDatabaseDaemon::RemoteDatabaseDaemon(const SocketAddress &addr)
 {
     Listen(addr);
+    SetReuseAddr();
 }
 
 RemoteDatabaseDaemon::RemoteDatabaseDaemon(const SockAddrList &addrs)
 {
     Listen(addrs);
+    SetReuseAddr();
 }
 RemoteDatabaseDaemon::~RemoteDatabaseDaemon() {
 }
