@@ -29,6 +29,7 @@
 #endif
 
 static const unsigned BLOCKSIZE = 8192;
+static const unsigned OVERLAP = 2048;
 using CPN::Database;
 using CPN::shared_ptr;
 using std::complex;
@@ -186,7 +187,7 @@ public:
 };
 CPN_DECLARE_NODE_FACTORY(CPNBFInputNode, CPNBFInputNode);
 
-static const char* const VALID_OPTS = "h:i:o:er:na:s:c:f:F:S:q:p:Cv:j:J:l";
+static const char* const VALID_OPTS = "h:i:o:er:R:na:s:c:f:F:S:q:p:Cv:j:J:l";
 
 static const char* const HELP_OPTS = "Usage: %s [options]\n"
 "\t-a n\t Use algorithm n for vertical\n"
@@ -205,6 +206,7 @@ static const char* const HELP_OPTS = "Usage: %s [options]\n"
 "\t-q xxx\t Set xxx as the queue type (default: threshold).\n"
 "\t-p num\t Use num processors\n"
 "\t-r num\t Run num times\n"
+"\t-R num\t Round robin the horizontal num.\n"
 "\t-s n\t Scale queue sizes by n\n"
 "\t-S y|n\t Split the horizontal beamformer (default: yes).\n"
 "\t-v file\t Use file for vertial coefficients.\n"
@@ -225,6 +227,7 @@ int cpnbf_main(int argc, char **argv) {
     unsigned algo = 0;
     bool use_fan = true;
     unsigned num_fans = 3;
+    unsigned num_rr = 1;
     bool estimate = false;
     unsigned repetitions = 1;
     bool nooutput = false;
@@ -319,6 +322,9 @@ int cpnbf_main(int argc, char **argv) {
         case 'r':
             repetitions = atoi(optarg);
             break;
+        case 'R':
+            num_rr = atoi(optarg);
+            break;
         case 's':
             size_mult = atoi(optarg);
             break;
@@ -358,6 +364,14 @@ int cpnbf_main(int argc, char **argv) {
             return 1;
         }
 
+#define HBF_FMT "hbf_%u_%u"
+#define HBF_FMT2 HBF_FMT "_2"
+#define IN_FMT "in_%u"
+#define OUT_FMT "out_%u"
+#define FORK_FMT "fork_%u"
+#define JOIN_FMT "join_%u"
+#define INPUT "input"
+#define OUTPUT "output"
         Variant node;
         node["name"] = "vertical";
         if (use_fan) {
@@ -365,9 +379,9 @@ int cpnbf_main(int argc, char **argv) {
         } else {
             node["type"] = "VBeamformerNode";
         }
-        node["param"]["inport"] = "input";
+        node["param"]["inport"] = INPUT;
         for (unsigned i = 0; i < num_fans; ++i) {
-            node["param"]["outports"][i] = ToString("out%u", i);
+            node["param"]["outports"][i] = ToString(OUT_FMT, i);
         }
         node["param"]["blocksize"] = BLOCKSIZE;
         node["param"]["file"] = vertical_config;
@@ -375,27 +389,29 @@ int cpnbf_main(int argc, char **argv) {
         loader.AddNode(node);
         node = Variant::NullType;
         node["type"] = "HBeamformerNode";
-        node["param"]["inport"] = "input";
-        node["param"]["outport"] = "output";
+        node["param"]["inport"] = INPUT;
+        node["param"]["outport"] = OUTPUT;
         node["param"]["estimate"] = estimate;
         node["param"]["file"] = horizontal_config;
         for (unsigned i = 0; i < num_fans; ++i) {
-            if (split_horizontal) {
-                node["param"]["half"] = 1;
-            }
-            node["name"] = ToString("hbf%u", i);
-            loader.AddNode(node);
-            if (split_horizontal) {
-                node["param"]["half"] = 2;
-                node["name"] = ToString("hbf%u_2", i);
+            for (unsigned j = 0; j < num_rr; ++j) {
+                if (split_horizontal) {
+                    node["param"]["half"] = 1;
+                }
+                node["name"] = ToString(HBF_FMT, i, j);
                 loader.AddNode(node);
+                if (split_horizontal) {
+                    node["param"]["half"] = 2;
+                    node["name"] = ToString(HBF_FMT2, i, j);
+                    loader.AddNode(node);
+                }
             }
         }
 
         node = Variant::NullType;
         node["name"] = "input";
         node["type"] = "CPNBFInputNode";
-        node["param"]["outport"] = "output";
+        node["param"]["outport"] = OUTPUT;
         node["param"]["infile"] = input_file;
         node["param"]["repetitions"] = repetitions;
         node["param"]["forced_length"] = forced_length;
@@ -406,13 +422,37 @@ int cpnbf_main(int argc, char **argv) {
         node["name"] = "output";
         node["type"] = "CPNBFOutputNode";
         for (unsigned i = 0; i < num_fans; ++i) {
-            node["param"]["inports"][i] = ToString("%u", i);
+            node["param"]["inports"][i] = ToString(IN_FMT, i);
         }
         node["param"]["blocksize"] = BLOCKSIZE;
         node["param"]["outfile"] = output_file;
         node["param"]["nooutput"] = nooutput;
         loader.AddNode(node);
         node = Variant::NullType;
+        if (num_rr > 1) {
+            node["type"] = "ForkJoinNode";
+            node["param"]["inport"] = INPUT;
+            node["param"]["size"] = BLOCKSIZE;
+            node["param"]["overlap"] = OVERLAP;
+            for (unsigned j = 0; j < num_rr; ++j) {
+                node["param"]["outports"][j] = ToString(OUT_FMT, j);
+            }
+            for (unsigned i = 0; i < num_fans; ++i) {
+                node["name"] = ToString(FORK_FMT, i);
+                loader.AddNode(node);
+            }
+            node["param"]["overlap"] = 0;
+            node["param"]["outports"] = Variant::NullType;
+            node["param"]["inport"] = Variant::NullType;
+            node["param"]["outport"] = OUTPUT;
+            for (unsigned j = 0; j < num_rr; ++j) {
+                node["param"]["inports"][j] = ToString(IN_FMT, j);
+            }
+            for (unsigned i = 0; i < num_fans; ++i) {
+                node["name"] = ToString(JOIN_FMT, i);
+                loader.AddNode(node);
+            }
+        }
 
         Variant queue;
         queue["size"] = BLOCKSIZE*size_mult;
@@ -420,43 +460,72 @@ int cpnbf_main(int argc, char **argv) {
         queue["type"] = queue_type;
         queue["datatype"] = "complex<float>";
         queue["numchannels"] = 256;
-        queue["readerport"] = "input";
+        queue["readerport"] = INPUT;
         queue["writernode"] = "vertical";
         for (unsigned i = 0; i < num_fans; ++i) {
-            queue["writerport"] = ToString("out%u", i);
-            queue["readernode"] = ToString("hbf%u", i);
+            queue["writerport"] = ToString(OUT_FMT, i);
+            if (num_rr > 1) {
+                queue["readernode"] = ToString(FORK_FMT, i);
+            } else {
+                queue["readernode"] = ToString(HBF_FMT, i, 0);
+            }
             loader.AddQueue(queue);
+        }
+        if (num_rr > 1) {
+            for (unsigned i = 0; i < num_fans; ++i) {
+                queue["writernode"] = ToString(FORK_FMT, i);
+                for (unsigned j = 0; j < num_rr; ++j) {
+                    queue["writerport"] = ToString(OUT_FMT, j);
+                    queue["readernode"] = ToString(HBF_FMT, i, j);
+                    loader.AddQueue(queue);
+                }
+            }
         }
 
         queue["numchannels"] = 560;
         queue["readernode"] = "output";
-        queue["writerport"] = "output";
+        queue["writerport"] = OUTPUT;
 
+        const char *wn_fmt = HBF_FMT;
+        if (split_horizontal) { wn_fmt = HBF_FMT2; }
         for (unsigned i = 0; i < num_fans; ++i) {
-            queue["readerport"] = ToString("%u", i);
-            if (split_horizontal) { queue["writernode"] = ToString("hbf%u_2", i); }
-            else { queue["writernode"] = ToString("hbf%u", i); }
-            loader.AddQueue(queue);
+            queue["readerport"] = ToString(IN_FMT, i);
+            if (num_rr > 1) {
+                queue["readernode"] = "output";
+                queue["writernode"] = ToString(JOIN_FMT, i);
+                loader.AddQueue(queue);
+                queue["readernode"] = ToString(JOIN_FMT, i);
+                for (unsigned j = 0; j < num_rr; ++j) {
+                    queue["readerport"] = ToString(IN_FMT, j);
+                    queue["writernode"] = ToString(wn_fmt, i, j);
+                    loader.AddQueue(queue);
+                }
+            } else {
+                queue["writernode"] = ToString(wn_fmt, i, 0);
+                loader.AddQueue(queue);
+            }
         }
 
         if (split_horizontal) {
             queue["size"] = BLOCKSIZE*560*size_mult;
             queue["threshold"] = BLOCKSIZE*560;
             queue["numchannels"] = 1;
-            queue["readerport"] = "input";
+            queue["readerport"] = INPUT;
             for (unsigned i = 0; i < num_fans; ++i) {
-                queue["writernode"] = ToString("hbf%u", i);
-                queue["readernode"] = ToString("hbf%u_2", i);
-                loader.AddQueue(queue);
+                for (unsigned j = 0; j < num_rr; ++j) {
+                    queue["writernode"] = ToString(HBF_FMT, i, j);
+                    queue["readernode"] = ToString(HBF_FMT2, i, j);
+                    loader.AddQueue(queue);
+                }
             }
         }
         queue["size"] = BLOCKSIZE*size_mult;
         queue["threshold"] = BLOCKSIZE;
         queue["numchannels"] = 256*12;
         queue["readernode"] = "vertical";
-        queue["readerport"] = "input";
+        queue["readerport"] = INPUT;
         queue["writernode"] = "input";
-        queue["writerport"] = "output";
+        queue["writerport"] = OUTPUT;
         queue["datatype"] = "complex<int16_t>";
         loader.AddQueue(queue);
     }
