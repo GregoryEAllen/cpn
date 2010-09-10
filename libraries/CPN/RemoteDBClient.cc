@@ -521,6 +521,7 @@ namespace CPN {
     }
 
     void RemoteDBClient::InternalTerminate() {
+        if (shutdown) return;
         shutdown = true;
         WaiterMap::iterator cwitr = callwaiters.begin();
         while (cwitr != callwaiters.end()) {
