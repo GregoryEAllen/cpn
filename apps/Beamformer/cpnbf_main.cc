@@ -10,6 +10,7 @@
 #include "QueueReaderAdapter.h"
 #include "QueueWriterAdapter.h"
 #include "RemoteDatabase.h"
+#include "ToString.h"
 #include "VariantCPNLoader.h"
 #include "Variant.h"
 #include "VariantToJSON.h"
@@ -185,7 +186,7 @@ public:
 };
 CPN_DECLARE_NODE_FACTORY(CPNBFInputNode, CPNBFInputNode);
 
-static const char* const VALID_OPTS = "h:i:o:er:na:s:c:f:S:q:p:Cv:j:J:l";
+static const char* const VALID_OPTS = "h:i:o:er:na:s:c:f:F:S:q:p:Cv:j:J:l";
 
 static const char* const HELP_OPTS = "Usage: %s [options]\n"
 "\t-a n\t Use algorithm n for vertical\n"
@@ -193,6 +194,7 @@ static const char* const HELP_OPTS = "Usage: %s [options]\n"
 "\t-c y|n\t Load internal config. (default: yes)\n"
 "\t-e\t Estimate FFT algorithm rather than measure.\n"
 "\t-f y|n\t Use the 'fan' vertical beamformer (default: yes).\n"
+"\t-F num\t Only do num fans.\n"
 "\t-h file\t Use file for horizontal coefficients.\n"
 "\t-i file\t Use input file\n"
 "\t-j file\t Load file as JSON and merge with config.\n"
@@ -222,6 +224,7 @@ int cpnbf_main(int argc, char **argv) {
     std::string queue_type = "threshold";
     unsigned algo = 0;
     bool use_fan = true;
+    unsigned num_fans = 3;
     bool estimate = false;
     unsigned repetitions = 1;
     bool nooutput = false;
@@ -253,6 +256,9 @@ int cpnbf_main(int argc, char **argv) {
             break;
         case 'f':
             use_fan = ParseBool(optarg);
+            break;
+        case 'F':
+            num_fans = atoi(optarg);
             break;
         case 'h':
             horizontal_config = optarg;
@@ -360,9 +366,9 @@ int cpnbf_main(int argc, char **argv) {
             node["type"] = "VBeamformerNode";
         }
         node["param"]["inport"] = "input";
-        node["param"]["outports"][0] = "out1";
-        node["param"]["outports"][1] = "out2";
-        node["param"]["outports"][2] = "out3";
+        for (unsigned i = 0; i < num_fans; ++i) {
+            node["param"]["outports"][i] = ToString("out%u", i);
+        }
         node["param"]["blocksize"] = BLOCKSIZE;
         node["param"]["file"] = vertical_config;
         node["param"]["algorithm"] = algo;
@@ -373,23 +379,17 @@ int cpnbf_main(int argc, char **argv) {
         node["param"]["outport"] = "output";
         node["param"]["estimate"] = estimate;
         node["param"]["file"] = horizontal_config;
-        if (split_horizontal) {
-            node["param"]["half"] = 1;
-        }
-        node["name"] = "hbf1";
-        loader.AddNode(node);
-        node["name"] = "hbf2";
-        loader.AddNode(node);
-        node["name"] = "hbf3";
-        loader.AddNode(node);
-        if (split_horizontal) {
-            node["param"]["half"] = 2;
-            node["name"] = "hbf1_2";
+        for (unsigned i = 0; i < num_fans; ++i) {
+            if (split_horizontal) {
+                node["param"]["half"] = 1;
+            }
+            node["name"] = ToString("hbf%u", i);
             loader.AddNode(node);
-            node["name"] = "hbf2_2";
-            loader.AddNode(node);
-            node["name"] = "hbf3_2";
-            loader.AddNode(node);
+            if (split_horizontal) {
+                node["param"]["half"] = 2;
+                node["name"] = ToString("hbf%u_2", i);
+                loader.AddNode(node);
+            }
         }
 
         node = Variant::NullType;
@@ -405,9 +405,9 @@ int cpnbf_main(int argc, char **argv) {
 
         node["name"] = "output";
         node["type"] = "CPNBFOutputNode";
-        node["param"]["inports"][0] = "0";
-        node["param"]["inports"][1] = "1";
-        node["param"]["inports"][2] = "2";
+        for (unsigned i = 0; i < num_fans; ++i) {
+            node["param"]["inports"][i] = ToString("%u", i);
+        }
         node["param"]["blocksize"] = BLOCKSIZE;
         node["param"]["outfile"] = output_file;
         node["param"]["nooutput"] = nooutput;
@@ -421,45 +421,34 @@ int cpnbf_main(int argc, char **argv) {
         queue["datatype"] = "complex<float>";
         queue["numchannels"] = 256;
         queue["readerport"] = "input";
-        queue["writerport"] = "out1";
-        queue["readernode"] = "hbf1";
         queue["writernode"] = "vertical";
-        loader.AddQueue(queue);
-        queue["writerport"] = "out2";
-        queue["readernode"] = "hbf2";
-        loader.AddQueue(queue);
-        queue["writerport"] = "out3";
-        queue["readernode"] = "hbf3";
-        loader.AddQueue(queue);
+        for (unsigned i = 0; i < num_fans; ++i) {
+            queue["writerport"] = ToString("out%u", i);
+            queue["readernode"] = ToString("hbf%u", i);
+            loader.AddQueue(queue);
+        }
+
         queue["numchannels"] = 560;
         queue["readernode"] = "output";
-        queue["readerport"] = "0";
-        if (split_horizontal) { queue["writernode"] = "hbf1_2"; }
-        else { queue["writernode"] = "hbf1"; }
         queue["writerport"] = "output";
-        loader.AddQueue(queue);
-        queue["readerport"] = "1";
-        if (split_horizontal) { queue["writernode"] = "hbf2_2"; }
-        else { queue["writernode"] = "hbf2"; }
-        loader.AddQueue(queue);
-        queue["readerport"] = "2";
-        if (split_horizontal) { queue["writernode"] = "hbf3_2"; }
-        else { queue["writernode"] = "hbf3"; }
-        loader.AddQueue(queue);
+
+        for (unsigned i = 0; i < num_fans; ++i) {
+            queue["readerport"] = ToString("%u", i);
+            if (split_horizontal) { queue["writernode"] = ToString("hbf%u_2", i); }
+            else { queue["writernode"] = ToString("hbf%u", i); }
+            loader.AddQueue(queue);
+        }
+
         if (split_horizontal) {
             queue["size"] = BLOCKSIZE*256*size_mult;
             queue["threshold"] = BLOCKSIZE*256;
             queue["numchannels"] = 1;
             queue["readerport"] = "input";
-            queue["writernode"] = "hbf1";
-            queue["readernode"] = "hbf1_2";
-            loader.AddQueue(queue);
-            queue["writernode"] = "hbf2";
-            queue["readernode"] = "hbf2_2";
-            loader.AddQueue(queue);
-            queue["writernode"] = "hbf3";
-            queue["readernode"] = "hbf3_2";
-            loader.AddQueue(queue);
+            for (unsigned i = 0; i < num_fans; ++i) {
+                queue["writernode"] = ToString("hbf%u", i);
+                queue["readernode"] = ToString("hbf%u_2", i);
+                loader.AddQueue(queue);
+            }
         }
         queue["size"] = BLOCKSIZE*size_mult;
         queue["threshold"] = BLOCKSIZE;
