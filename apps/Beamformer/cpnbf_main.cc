@@ -118,6 +118,7 @@ public:
         }
         forced_length = param["forced_length"].AsBool();
         blocksize = param["blocksize"].AsUnsigned();
+        element_size = param["element_size"].AsUnsigned();
     }
 
     void Process() {
@@ -138,7 +139,7 @@ public:
         while (in->get() != 0 && in->good());
         const unsigned data_length = header["length"].AsUnsigned();
         const unsigned numChans = header["numChans"].AsUnsigned();
-        const unsigned length = blocksize * sizeof(complex<short>);
+        const unsigned length = blocksize * element_size;
         std::vector<char> data(length * numChans);
         for (unsigned i = 0; i < numChans; ++i) {
             unsigned numread = 0;
@@ -165,14 +166,14 @@ public:
         while (rep < repetitions && written < qsize) {
             unsigned len = std::min(qsize - written, length);
             out.Enqueue(&data[0], len, numChans, length);
-            measure.Tick(len / sizeof(complex<short>));
+            measure.Tick(len / element_size);
             written += len;
             ++rep;
         }
         for (; rep < repetitions; ++rep) {
             out.GetEnqueuePtr(length);
             out.Enqueue(length);
-            measure.Tick(length / sizeof(complex<short>));
+            measure.Tick(length / element_size);
         }
         fprintf(stderr,
                 "Input:\nAvg:\t%f hz\nMax:\t%f hz\nMin:\t%f hz\n",
@@ -183,11 +184,12 @@ public:
     std::string infile;
     unsigned repetitions;
     unsigned blocksize;
+    unsigned element_size;
     bool forced_length;
 };
 CPN_DECLARE_NODE_FACTORY(CPNBFInputNode, CPNBFInputNode);
 
-static const char* const VALID_OPTS = "h:i:o:er:R:na:s:c:f:F:S:q:p:Cv:j:J:l";
+static const char* const VALID_OPTS = "h:i:o:er:R:na:s:c:f:F:S:q:p:Cv:V:j:J:l";
 
 static const char* const HELP_OPTS = "Usage: %s [options]\n"
 "\t-a n\t Use algorithm n for vertical\n"
@@ -210,6 +212,7 @@ static const char* const HELP_OPTS = "Usage: %s [options]\n"
 "\t-s n\t Scale queue sizes by n\n"
 "\t-S y|n\t Split the horizontal beamformer (default: yes).\n"
 "\t-v file\t Use file for vertial coefficients.\n"
+"\t-V y|n\t Do vertical or not. If no, forces F to 1 and ignores -v.\n"
 ;
 
 
@@ -236,6 +239,7 @@ int cpnbf_main(int argc, char **argv) {
     bool split_horizontal = true;
     bool load_internal_config = true;
     bool forced_length = false;
+    bool do_vertical = true;
     Variant config;
     config["name"] = "kernel";
     std::string nodelist = RealPath("node.list");
@@ -334,6 +338,9 @@ int cpnbf_main(int argc, char **argv) {
         case 'v':
             vertical_config = optarg;
             break;
+        case 'V':
+            do_vertical = ParseBool(optarg);
+            break;
         case -1:
             procOpts = false;
             break;
@@ -343,12 +350,15 @@ int cpnbf_main(int argc, char **argv) {
         }
     }
     if (load_internal_config) {
+        if (!do_vertical) {
+            num_fans = 1;
+        }
         if (horizontal_config.empty()) {
             fprintf(stderr, "Must specify horitontal config.\n");
             fprintf(stderr, HELP_OPTS, argv[0]);
             return 1;
         }
-        if (vertical_config.empty()) {
+        if (vertical_config.empty() && do_vertical) {
             fprintf(stderr, "Must specify vertical config.\n");
             fprintf(stderr, HELP_OPTS, argv[0]);
             return 1;
@@ -373,20 +383,23 @@ int cpnbf_main(int argc, char **argv) {
 #define INPUT "input"
 #define OUTPUT "output"
         Variant node;
-        node["name"] = "vertical";
-        if (use_fan) {
-            node["type"] = "FanVBeamformerNode";
-        } else {
-            node["type"] = "VBeamformerNode";
+
+        if (do_vertical) {
+            node["name"] = "vertical";
+            if (use_fan) {
+                node["type"] = "FanVBeamformerNode";
+            } else {
+                node["type"] = "VBeamformerNode";
+            }
+            node["param"]["inport"] = INPUT;
+            for (unsigned i = 0; i < num_fans; ++i) {
+                node["param"]["outports"][i] = ToString(OUT_FMT, i);
+            }
+            node["param"]["blocksize"] = BLOCKSIZE;
+            node["param"]["file"] = vertical_config;
+            node["param"]["algorithm"] = algo;
+            loader.AddNode(node);
         }
-        node["param"]["inport"] = INPUT;
-        for (unsigned i = 0; i < num_fans; ++i) {
-            node["param"]["outports"][i] = ToString(OUT_FMT, i);
-        }
-        node["param"]["blocksize"] = BLOCKSIZE;
-        node["param"]["file"] = vertical_config;
-        node["param"]["algorithm"] = algo;
-        loader.AddNode(node);
         node = Variant::NullType;
         node["type"] = "HBeamformerNode";
         node["param"]["inport"] = INPUT;
@@ -416,6 +429,11 @@ int cpnbf_main(int argc, char **argv) {
         node["param"]["repetitions"] = repetitions;
         node["param"]["forced_length"] = forced_length;
         node["param"]["blocksize"] = BLOCKSIZE; //should be the same as the blocksize for the vertical beamformer.
+        if (do_vertical) {
+            node["param"]["element_size"] = sizeof(complex<short>);
+        } else {
+            node["param"]["element_size"] = sizeof(complex<float>);
+        }
         loader.AddNode(node);
         node = Variant::NullType;
 
@@ -455,15 +473,22 @@ int cpnbf_main(int argc, char **argv) {
         }
 
         Variant queue;
-        queue["size"] = BLOCKSIZE*size_mult;
-        queue["threshold"] = BLOCKSIZE;
+        queue["size"] = BLOCKSIZE*size_mult*sizeof(complex<float>);
+        queue["threshold"] = BLOCKSIZE*sizeof(complex<float>);
         queue["type"] = queue_type;
         queue["datatype"] = "complex<float>";
         queue["numchannels"] = 256;
         queue["readerport"] = INPUT;
-        queue["writernode"] = "vertical";
+        if (do_vertical) {
+            queue["writernode"] = "vertical";
+        } else {
+            queue["writernode"] = "input";
+            queue["writerport"] = OUTPUT;
+        }
         for (unsigned i = 0; i < num_fans; ++i) {
-            queue["writerport"] = ToString(OUT_FMT, i);
+            if (do_vertical) {
+                queue["writerport"] = ToString(OUT_FMT, i);
+            }
             if (num_rr > 1) {
                 queue["readernode"] = ToString(FORK_FMT, i);
             } else {
@@ -507,8 +532,8 @@ int cpnbf_main(int argc, char **argv) {
         }
 
         if (split_horizontal) {
-            queue["size"] = BLOCKSIZE*560*size_mult;
-            queue["threshold"] = BLOCKSIZE*560;
+            queue["size"] = BLOCKSIZE*560*size_mult*sizeof(complex<float>);
+            queue["threshold"] = BLOCKSIZE*560*sizeof(complex<float>);
             queue["numchannels"] = 1;
             queue["readerport"] = INPUT;
             for (unsigned i = 0; i < num_fans; ++i) {
@@ -519,15 +544,17 @@ int cpnbf_main(int argc, char **argv) {
                 }
             }
         }
-        queue["size"] = BLOCKSIZE*size_mult;
-        queue["threshold"] = BLOCKSIZE;
-        queue["numchannels"] = 256*12;
-        queue["readernode"] = "vertical";
-        queue["readerport"] = INPUT;
-        queue["writernode"] = "input";
-        queue["writerport"] = OUTPUT;
-        queue["datatype"] = "complex<int16_t>";
-        loader.AddQueue(queue);
+        if (do_vertical) {
+            queue["size"] = BLOCKSIZE*size_mult*sizeof(complex<int16_t>);
+            queue["threshold"] = BLOCKSIZE*sizeof(complex<int16_t>);
+            queue["numchannels"] = 256*12;
+            queue["readernode"] = "vertical";
+            queue["readerport"] = INPUT;
+            queue["writernode"] = "input";
+            queue["writerport"] = OUTPUT;
+            queue["datatype"] = "complex<int16_t>";
+            loader.AddQueue(queue);
+        }
     }
 
     if (print_config) {

@@ -196,7 +196,9 @@ namespace CPN {
         ASSERT(!writeshutdown);
         unsigned count = packet.Count();
         if (count > queue->Freespace() || count > queue->MaxThreshold()) {
-            logger.Warn("Enqueue packet too large, silently growing queue");
+            logger.Warn("Enqueue packet too large, silently growing queue. "
+                    "Packet size: %u, Freespace: %u, MaxThresh: %u, QueueLength: %u",
+                    count, queue->Freespace(), queue->MaxThreshold(), queue->QueueLength());
             ThresholdQueue::Grow(queue->Count() + count, count);
         }
         std::vector<iovec> iovs;
