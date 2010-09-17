@@ -189,7 +189,7 @@ public:
 };
 CPN_DECLARE_NODE_FACTORY(CPNBFInputNode, CPNBFInputNode);
 
-static const char* const VALID_OPTS = "h:i:o:er:R:na:s:c:f:F:S:q:p:Cv:V:j:J:l";
+static const char* const VALID_OPTS = "h:i:o:er:R:na:s:c:f:F:S:q:p:PCv:V:j:J:l";
 
 static const char* const HELP_OPTS = "Usage: %s [options]\n"
 "\t-a n\t Use algorithm n for vertical\n"
@@ -207,6 +207,7 @@ static const char* const HELP_OPTS = "Usage: %s [options]\n"
 "\t-o file\t Use output file\n"
 "\t-q xxx\t Set xxx as the queue type (default: threshold).\n"
 "\t-p num\t Use num processors\n"
+"\t-P\t Force a fork and join node to be added.\n"
 "\t-r num\t Run num times\n"
 "\t-R num\t Round robin the horizontal num.\n"
 "\t-s n\t Scale queue sizes by n\n"
@@ -240,6 +241,7 @@ int cpnbf_main(int argc, char **argv) {
     bool load_internal_config = true;
     bool forced_length = false;
     bool do_vertical = true;
+    bool rr_force = false;
     Variant config;
     config["name"] = "kernel";
     std::string nodelist = RealPath("node.list");
@@ -322,6 +324,9 @@ int cpnbf_main(int argc, char **argv) {
                 omp_set_num_threads(num_threads);
 #endif
             }
+            break;
+        case 'P':
+            rr_force = true;
             break;
         case 'r':
             repetitions = atoi(optarg);
@@ -447,7 +452,7 @@ int cpnbf_main(int argc, char **argv) {
         node["param"]["nooutput"] = nooutput;
         loader.AddNode(node);
         node = Variant::NullType;
-        if (num_rr > 1) {
+        if (num_rr > 1 || rr_force) {
             node["type"] = "ForkJoinNode";
             node["param"]["inport"] = INPUT;
             node["param"]["size"] = BLOCKSIZE;
@@ -489,14 +494,14 @@ int cpnbf_main(int argc, char **argv) {
             if (do_vertical) {
                 queue["writerport"] = ToString(OUT_FMT, i);
             }
-            if (num_rr > 1) {
+            if (num_rr > 1 || rr_force) {
                 queue["readernode"] = ToString(FORK_FMT, i);
             } else {
                 queue["readernode"] = ToString(HBF_FMT, i, 0);
             }
             loader.AddQueue(queue);
         }
-        if (num_rr > 1) {
+        if (num_rr > 1 || rr_force) {
             for (unsigned i = 0; i < num_fans; ++i) {
                 queue["writernode"] = ToString(FORK_FMT, i);
                 for (unsigned j = 0; j < num_rr; ++j) {
@@ -515,7 +520,7 @@ int cpnbf_main(int argc, char **argv) {
         if (split_horizontal) { wn_fmt = HBF_FMT2; }
         for (unsigned i = 0; i < num_fans; ++i) {
             queue["readerport"] = ToString(IN_FMT, i);
-            if (num_rr > 1) {
+            if (num_rr > 1 || rr_force) {
                 queue["readernode"] = "output";
                 queue["writernode"] = ToString(JOIN_FMT, i);
                 loader.AddQueue(queue);
