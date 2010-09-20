@@ -92,16 +92,12 @@ void ThresholdSieveProducer::Process(void) {
         out = GetWriter(OUT_PORT);
         unsigned roundLength = source.RoundLength();
         bool loop = true;
-        // TODO change to only top implementation when auto increasing of threshold
-        // is implemented!
-        // have enough threshold to send it all...
-        //if (roundLength <= threshold) {
-            while (loop) {
-                NumberT *outbuff = out.GetEnqueuePtr(roundLength);
-                unsigned len = source.GetNextRound(outbuff);
-                if (len != 0 && outbuff[len-1] > cutoff) {
-                    loop = false;
-                }
+        while (loop) {
+            NumberT *outbuff = out.GetEnqueuePtr(roundLength);
+            unsigned len = source.GetNextRound(outbuff);
+            if (len != 0 && outbuff[len-1] > cutoff) {
+                loop = false;
+            }
 #if _DEBUG
         {
             std::ostringstream oss;
@@ -110,29 +106,8 @@ void ThresholdSieveProducer::Process(void) {
             REPORT(oss.str().c_str());
         }
 #endif
-                out.Enqueue(len);
-            }
-        /*
-        } else {
-            while (loop) {
-                std::vector<NumberT> buff;
-                buff.resize(roundLength, 0);
-                unsigned len = source.GetNextRound(&buff[0]);
-                if (len != 0 && buff[len - 1] > cutoff) {
-                    loop = false;
-                }
-#if _DEBUG
-        {
-            std::ostringstream oss;
-            oss << GetName() << " candidates: ";
-            PrintArray(oss, &buff[0], len, ", ");
-            puts(oss.str().c_str());
+            out.Enqueue(len);
         }
-#endif
-                out.Enqueue(&buff[0], len);
-            }
-        }
-        */
     } else {
         DEBUG("%s using simple loop\n", GetName().c_str());
         out.Release();
