@@ -1,4 +1,24 @@
+//=============================================================================
+//	Computational Process Networks class library
+//	Copyright (C) 1997-2006  Gregory E. Allen and The University of Texas
+//
+//	This library is free software; you can redistribute it and/or modify it
+//	under the terms of the GNU Library General Public License as published
+//	by the Free Software Foundation; either version 2 of the License, or
+//	(at your option) any later version.
+//
+//	This library is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//	Library General Public License for more details.
+//
+//	The GNU Public License is available in the file LICENSE, or you
+//	can write to the Free Software Foundation, Inc., 59 Temple Place -
+//	Suite 330, Boston, MA 02111-1307, USA, or you can find it on the
+//	World Wide Web at http://www.fsf.org.
+//=============================================================================
 /** \file
+ * \author John Bridgman
  */
 
 #include "Kernel.h"
@@ -23,7 +43,7 @@ static double getTime() {
 static const char* const VALID_OPTS = "Mm:q:t:hf:i:p:vw:rz:s";
 static const char* const HELP_OPTS = "Usage: %s -hv -m maxprime -q queuesize -t threshold -f filename -p primes per filter -i iterations\n"
 "\t-h\tPrint out this message\n"
-"\t-v\tBe verbose, print out the primes found\n"
+"\t-v\tBe verbose, print out the primes found, goes to stdout even with -f\n"
 "\t-m\tSpecify the maximum number to consider for primes (default 100)\n"
 "\t-q\tSpecify the queue size to use (default 100)\n"
 "\t-t\tSpecify the threshold to use (default 2)\n"
@@ -47,7 +67,6 @@ struct TestResults {
 TestResults SieveTest(ThresholdSieveOptions options);
 
 int main(int argc, char **argv) {
-    std::vector<ThresholdSieveOptions::NumberT> results;
     std::vector<double> primesPerFilter;
     ThresholdSieveOptions options;
     options.maxprime = 100;
@@ -55,7 +74,7 @@ int main(int argc, char **argv) {
     options.threshold = 2;
     options.numPrimesSource = 0;
     options.queuehint = CPN::QUEUEHINT_THRESHOLD;
-    options.results = &results;
+    options.printprimes = false;
     options.report = false;
     options.zerocopy = 0;
     std::string ppf = "1";
@@ -111,6 +130,7 @@ int main(int argc, char **argv) {
             break;
         case 'v':
             verbose = true;
+            options.printprimes = true;
             break;
         case 'f':
             filename = optarg;
@@ -133,7 +153,7 @@ int main(int argc, char **argv) {
         }
     }
     options.primesPerFilter = primesPerFilter;
-    const char STDOUT_FORMAT[] = "{\n    \"maxprime\"        : %lu,\n"
+    const char STDOUT_FORMAT[] = "    \"maxprime\"        : %lu,\n"
         "    \"queuesize\"       : %lu,\n"
         "    \"threshold\"       : %lu,\n"
         "    \"primewheel\"      : %lu,\n"
@@ -142,7 +162,7 @@ int main(int argc, char **argv) {
         "    \"realtime\"        : %f,\n"
         "    \"usertime\"        : %f,\n"
         "    \"systime\"         : %f,\n"
-        "    \"numprimes\"       : %u";
+        "    \"numprimes\"       : %u\n";
     const char SIMPLE_FORMAT[] = "%lu, %lu, %lu, %lu, [%s], %d, %f, %f, %f, %u";
     const char *format_str;
     FILE *f = stdout;
@@ -159,7 +179,19 @@ int main(int argc, char **argv) {
         fprintf(f, "[\n");
     }
     for (int i = 0; i < numIterations; ++i) {
+        if (!simpleoutput) {
+            fprintf(f, "{\n");
+            if (verbose) {
+                fprintf(f, "    \"primes\": [");
+            }
+        }
         TestResults timeresults = SieveTest(options);
+        if (verbose) {
+            if (!simpleoutput) {
+                fprintf(f, "],");
+            }
+            fprintf(f, "\n");
+        }
         fprintf(f, format_str,
                 (unsigned long)options.maxprime,
                 options.queuesize,
@@ -170,32 +202,16 @@ int main(int argc, char **argv) {
                 timeresults.realtime,
                 timeresults.usertime,
                 timeresults.systime,
-                (unsigned)results.size());
-        if (verbose) {
-            if (!simpleoutput) {
-                fprintf(f, ",\n    \"primes\"          : [");
-            }
-            for (size_t j = 0; j < results.size(); ++j) {
-                if (j < results.size() -1) {
-                    fprintf(f, "%lu, ", (unsigned long)results[j]);
-                } else {
-                    fprintf(f, "%lu", (unsigned long)results[j]);
-                }
-            }
-            if (!simpleoutput) {
-                fprintf(f, "]\n");
-            } else {
-                fprintf(f, "\n");
-            }
-        } else { fprintf(f, "\n"); }
+                (unsigned)0);
         if (!simpleoutput) {
             if (i == numIterations - 1) {
                 fprintf(f, "}\n");
             } else {
                 fprintf(f, "},\n");
             }
+        } else {
+            fprintf(f, "\n");
         }
-        results.clear();
     }
     if (!simpleoutput) {
         fprintf(f, "]\n");
@@ -210,7 +226,7 @@ int main(int argc, char **argv) {
 TestResults SieveTest(ThresholdSieveOptions options) {
     CPN::Kernel kernel(CPN::KernelAttr("Kernel name"));
     CPN::NodeAttr attr("controller", THRESHOLDSIEVECONTROLLER_TYPENAME);
-    attr.SetParam(StaticBuffer(&options, sizeof(options)));
+    attr.SetParam(options.Serialize());
     tms tmsStart;
     tms tmsStop;
     times(&tmsStart);

@@ -1,15 +1,40 @@
-
+//=============================================================================
+//	Computational Process Networks class library
+//	Copyright (C) 1997-2006  Gregory E. Allen and The University of Texas
+//
+//	This library is free software; you can redistribute it and/or modify it
+//	under the terms of the GNU Library General Public License as published
+//	by the Free Software Foundation; either version 2 of the License, or
+//	(at your option) any later version.
+//
+//	This library is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//	Library General Public License for more details.
+//
+//	The GNU Public License is available in the file LICENSE, or you
+//	can write to the Free Software Foundation, Inc., 59 Temple Place -
+//	Suite 330, Boston, MA 02111-1307, USA, or you can find it on the
+//	World Wide Web at http://www.fsf.org.
+//=============================================================================
+/** \file
+ * \author John Bridgman
+ */
 #include "ThresholdSieveOptions.h"
 #include "ThresholdSieveFilter.h"
 #include "Kernel.h"
 #include "ToString.h"
+#include "Variant.h"
+#include "VariantToJSON.h"
+#include "JSONToVariant.h"
+#include "Assert.h"
 
 
 void CreateNewFilter(CPN::Kernel &kernel, ThresholdSieveOptions &opts, CPN::Key_t ourkey) {
     ++opts.filtercount;
     std::string nodename = ToString(FILTER_FORMAT, opts.filtercount);
     CPN::NodeAttr attr (nodename, THRESHOLDSIEVEFILTER_TYPENAME);
-    attr.SetParam(StaticBuffer(&opts, sizeof(opts)));
+    attr.SetParam(opts.Serialize());
     CPN::Key_t nodekey = kernel.CreateNode(attr);
 
     CPN::QueueAttr qattr(opts.queuesize * sizeof(ThresholdSieveOptions::NumberT),
@@ -24,3 +49,50 @@ void CreateNewFilter(CPN::Kernel &kernel, ThresholdSieveOptions &opts, CPN::Key_
     kernel.CreateQueue(qattr);
 }
 
+std::string ThresholdSieveOptions::Serialize() {
+    Variant v = Variant::ObjectType;
+    v["maxprime"] = maxprime;
+    v["filtercount"] = filtercount;
+    v["queuesize"] = queuesize;
+    v["threshold"] = threshold;
+    v["primesPerFilter"] = Variant::ArrayType;
+    std::vector<double>::iterator ppf_itr, ppf_end;
+    ppf_itr = primesPerFilter.begin();
+    ppf_end = primesPerFilter.end();
+    for (;ppf_itr != ppf_end; ++ppf_itr) {
+        v["primesPerFilter"].Append(*ppf_itr);
+    }
+    v["numPrimesSource"] = numPrimesSource;
+    v["queuehint"] = queuehint;
+    v["outputport"] = outputport;
+    v["printprimes"] = printprimes;
+    v["consumerkey"] = consumerkey;
+    v["report"] = report;
+    v["zerocopy"] = zerocopy;
+    return VariantToJSON(v);
+}
+
+ThresholdSieveOptions ThresholdSieveOptions::Deserialize(const std::string &str) {
+    JSONToVariant p;
+    p.Parse(str);
+    ASSERT(p.Done());
+    Variant v = p.Get();
+    ThresholdSieveOptions opts;
+    opts.maxprime = v["maxprime"].AsNumber<NumberT>();
+    opts.filtercount = v["filtercount"].AsNumber<NumberT>();
+    opts.queuesize = v["queuesize"].AsNumber<unsigned long>();
+    opts.threshold = v["threshold"].AsNumber<unsigned long>();
+    for (Variant::ListIterator i = v["primesPerFilter"].ListBegin(), e = v["primesPerFilter"].ListEnd();
+            i != e; ++i)
+    {
+        opts.primesPerFilter.push_back(i->AsNumber<double>());
+    }
+    opts.numPrimesSource = v["numPrimesSource"].AsNumber<unsigned long>();
+    opts.queuehint = v["queuehint"].AsNumber<CPN::QueueHint_t>();
+    opts.outputport = v["outputport"].AsString();
+    opts.printprimes = v["printprimes"].AsBool();
+    opts.consumerkey = v["consumerkey"].AsNumber<CPN::Key_t>();
+    opts.report = v["report"].AsBool();
+    opts.zerocopy = v["zerocopy"].AsInt();
+    return opts;
+}
