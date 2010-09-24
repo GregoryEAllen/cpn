@@ -1,6 +1,7 @@
 
 DIR=..
 REPS=100
+NUM_CORES=16
 VBF=$(DIR)/fvBeamformer -v $(DIR)/coeffs.vbf.data -i $(DIR)/input.vbftest.data -n -a 5 -r $(REPS)
 HBF=$(DIR)/hBeamformer -h $(DIR)/coeffs.hbf.data -i $(DIR)/input.hbftest.data -n -r $(REPS)
 OMPBF=$(DIR)/ompbf -v $(DIR)/coeffs.vbf.data -h $(DIR)/coeffs.hbf.data -i $(DIR)/input.vbftest.data -n -a 5 -r $(REPS)
@@ -39,7 +40,7 @@ real-clean: clean
 	$(RM) $(data_files) data.mk
 
 data.mk: gen_data_mk.py
-	python gen_data_mk.py > $@
+	python gen_data_mk.py $(NUM_CORES) > $@
 
 include data.mk
 

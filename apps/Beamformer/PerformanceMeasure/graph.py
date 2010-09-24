@@ -2,6 +2,9 @@ import numpy
 import pylab
 import sys
 
+num_cores = int(sys.argv[1])
+files = sys.argv[3:]
+outfile = sys.argv[2]
 params = {
 'text.fontsize': 10,
 'legend.fontsize': 10,
@@ -10,7 +13,7 @@ pylab.rcParams.update(params)
 
 def procfile(filen): 
     fid = open(filen)
-    data = numpy.zeros((16))
+    data = numpy.zeros((num_cores))
     for line in fid:
         l = line.strip().split(' ')
         #print l
@@ -22,15 +25,13 @@ def procfile(filen):
     #print data
     return data
 
-files = sys.argv[2:]
-outfile = sys.argv[1]
-data = numpy.zeros((16,len(files)))
+data = numpy.zeros((num_cores,len(files)))
 
 for f in range(len(files)):
     data[:,f] = procfile(files[f])
 
 #print data
-y = numpy.arange(1,17)
+y = numpy.arange(1,num_cores+1)
 #print y
 
 pylab.plot(y, data)
@@ -46,7 +47,7 @@ pylab.figure()
 data *= 577536
 data /= 1024*1024*1024
 
-tograph = numpy.zeros((16,2))
+tograph = numpy.zeros((num_cores,2))
 tograph[:,0] = data[:,0]
 tograph[:,1] = data[:,5]
 pylab.plot(y, tograph)

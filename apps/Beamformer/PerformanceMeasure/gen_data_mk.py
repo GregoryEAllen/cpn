@@ -1,9 +1,11 @@
 
 import sys
 
+#num_cores = 16
+num_cores = int(sys.argv[1]);
 wait_policies = [('passive', 'make_data'), ('active', 'make_data'), ('10000', 'make_data_spin')]
 stdout = sys.stdout
-for i in range(1,17):
+for i in range(1,num_cores + 1):
     for wait_policy in wait_policies:
         for oper in ['vbf', 'hbf', 'ompbf', 'cpnbf']:
             file = oper + '.' + str(i) + '.' + wait_policy[0]
@@ -19,7 +21,7 @@ for action_type in ['avg', 'min', 'max']:
             stdout.write(operation_type + '_' + action_type + '_files += ' + file + '\n')
             stdout.write('intermediate_files += ' + file + '\n')
             stdout.write(file + ':')
-            for i in range(1,17):
+            for i in range(1,num_cores + 1):
                 stdout.write(' ' + operation_type + '.' + str(i) + '.' + wait_policy[0])
             stdout.write('\n')
             stdout.write('\t$(call compute_' + action_type + ',$^,$@)\n\n')
@@ -34,4 +36,4 @@ for action_type in ['avg', 'min', 'max']:
     for type in ['full', 'half']:
         file = 'result.' +  type + '.' + action_type + '.%'
         stdout.write(file + ': $(' + type + '_' + action_type + '_files) graph.py\n')
-        stdout.write('\tpython graph.py $@ $(' + type + '_' + action_type + '_files)\n\n')
+        stdout.write('\tpython graph.py $(NUM_CORES) $@ $(' + type + '_' + action_type + '_files)\n\n')
