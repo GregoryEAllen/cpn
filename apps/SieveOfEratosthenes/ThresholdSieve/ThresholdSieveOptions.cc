@@ -34,6 +34,12 @@ void CreateNewFilter(CPN::Kernel &kernel, ThresholdSieveOptions &opts, CPN::Key_
     ++opts.filtercount;
     std::string nodename = ToString(FILTER_FORMAT, opts.filtercount);
     CPN::NodeAttr attr (nodename, THRESHOLDSIEVEFILTER_TYPENAME);
+    if (!opts.kernels.empty()) {
+        int num = opts.filtercount;
+        if (opts.divisor > 0) num /= opts.divisor;
+        num %= opts.kernels.size();
+        attr.SetHost(opts.kernels[num]);
+    }
     attr.SetParam(opts.Serialize());
     CPN::Key_t nodekey = kernel.CreateNode(attr);
 
@@ -69,6 +75,12 @@ std::string ThresholdSieveOptions::Serialize() {
     v["consumerkey"] = consumerkey;
     v["report"] = report;
     v["zerocopy"] = zerocopy;
+    v["kernels"] = Variant::ArrayType;
+    for (std::vector<std::string>::iterator i = kernels.begin(),
+            e = kernels.end(); i != e; ++i) {
+        v["kernels"].Append(*i);
+    }
+    v["divisor"] = divisor;
     return VariantToJSON(v);
 }
 
@@ -104,5 +116,13 @@ ThresholdSieveOptions ThresholdSieveOptions::Deserialize(const std::string &str)
     opts.consumerkey = v["consumerkey"].AsNumber<CPN::Key_t>();
     opts.report = v["report"].AsBool();
     opts.zerocopy = v["zerocopy"].AsInt();
+    for (Variant::ListIterator i = v["kernels"].ListBegin(),
+            e = v["kernels"].ListEnd();
+            i != e;
+            ++i)
+    {
+        opts.kernels.push_back(i->AsString());
+    }
+    opts.divisor = v["divisor"].AsInt();
     return opts;
 }

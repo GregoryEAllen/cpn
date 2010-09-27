@@ -42,6 +42,8 @@ struct ThresholdSieveOptions {
     CPN::Key_t consumerkey;
     bool report;
     int zerocopy;
+    std::vector<std::string> kernels;
+    int divisor;
 
     std::string Serialize();
     static ThresholdSieveOptions Deserialize(const std::string &str);

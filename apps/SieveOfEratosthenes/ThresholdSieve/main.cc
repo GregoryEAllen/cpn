@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
     bool internal_config = true;;
     std::string outfile = "";
     while (true) {
-        int c = getopt(argc, argv, "m:q:t:hf:i:p:vw:rz:j:J:c:C");
+        int c = getopt(argc, argv, "m:q:t:hf:i:p:vw:rz:j:J:c:CP:");
         if (c == -1) break;
         switch (c) {
         case 'c':
@@ -117,6 +117,29 @@ int main(int argc, char **argv) {
             break;
         case 'C':
             print_config = true;
+            break;
+        case 'P':
+            {
+                JSONToVariant parser;
+                std::ifstream f(optarg);
+                if (!f) {
+                    std::cerr << "Unable to open config file " << optarg << std::endl;
+                    return 1;
+                }
+                parser.ParseStream(f);
+                if (!parser.Done()) {
+                    std::cerr << "Error parsing config file " <<
+                        optarg << " on line " << parser.GetLine() <<
+                        " column " << parser.GetColumn() << std::endl;
+                    return 1;
+                }
+                Variant p = parser.Get();
+                for (Variant::MapIterator i = p.MapBegin(), e = p.MapEnd();
+                        i != e; ++i)
+                {
+                    param[i->first] = i->second;
+                }
+            }
             break;
         case 'j':
             {
