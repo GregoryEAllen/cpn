@@ -23,14 +23,19 @@
 
 #include "Kernel.h"
 #include "ThresholdSieveOptions.h"
-#include "ThresholdSieveController.h"
 #include "ErrnoException.h"
+#include "VariantCPNLoader.h"
+#include "ThresholdSieveDefaults.h"
+#include "JSONToVariant.h"
+#include "VariantToJSON.h"
+#include "ParseBool.h"
 #include <sys/times.h>
 #include <sys/time.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <stdio.h>
 #include <string.h>
+#include <iostream>
+#include <fstream>
 
 static double getTime() {
     timeval tv;
@@ -40,206 +45,206 @@ static double getTime() {
     return static_cast<double>(tv.tv_sec) + 1e-6 * static_cast<double>(tv.tv_usec);
 }
 
-static const char* const VALID_OPTS = "Mm:q:t:hf:i:p:vw:rz:s";
-static const char* const HELP_OPTS = "Usage: %s -hv -m maxprime -q queuesize -t threshold -f filename -p primes per filter -i iterations\n"
-"\t-h\tPrint out this message\n"
-"\t-v\tBe verbose, print out the primes found, goes to stdout even with -f\n"
-"\t-m\tSpecify the maximum number to consider for primes (default 100)\n"
-"\t-q\tSpecify the queue size to use (default 100)\n"
-"\t-t\tSpecify the threshold to use (default 2)\n"
-"\t-f\tSpecify a file to use instead of stdout (clobbers)\n"
-"\t-pa,b,c,...\tSpecify the number of primes per filter as a polynomial (default 1)\n"
-"\t-w\tSpecify the number of primes in the producer prime wheel (default 0)\n"
-"\t-i\tRerun the given number of times\n"
-"\t-r\tReport per filter statistics\n"
-"\n"
-"Note that when the number of primes in the prime wheel is not zero the maximum\n"
-"number to consider for primes is not exact.\n"
-"Also, If the queue size is the same as the threshold size the sieve may deadlock.\n"
-;
+static Variant GetDefaults() {
+    JSONToVariant p;
+    for (unsigned char *i = ThresholdSieveDefaults_json,
+            *e = ThresholdSieveDefaults_json + ThresholdSieveDefaults_json_len;
+            i != e; ++i)
+    {
+        p.Parse(*i);
+    }
+    if (!p.Done()) {
+        std::cerr << "Error parsing defaults, line " << p.GetLine() << " column " << p.GetColumn() << std::endl;
+        return Variant::ObjectType;
+    }
+    return p.Get();
+}
 
-struct TestResults {
-    double usertime;
-    double systime;
-    double realtime;
-};
+static void PrintHelp(const std::string &progname) {
+    std::cerr << "Usage: " << progname << " -hv -m maxprime -q queuesize -t threshold -f filename -p primes per filter -i iterations\n"
+        "\t-h\tPrint out this message\n"
+        "\t-v\tBe verbose, print out the primes found, goes to stdout even with -f\n"
+        "\t-m\tSpecify the maximum number to consider for primes (default 100)\n"
+        "\t-q\tSpecify the queue size to use (default 100)\n"
+        "\t-t\tSpecify the threshold to use (default 2)\n"
+        "\t-f\tSpecify a file to use instead of stdout (clobbers)\n"
+        "\t-pa,b,c,...\tSpecify the number of primes per filter as a polynomial (default 1)\n"
+        "\t-w\tSpecify the number of primes in the producer prime wheel (default 0)\n"
+        "\t-i\tRerun the given number of times\n"
+        "\t-r\tReport per filter statistics\n"
+        "\n"
+        "Note that when the number of primes in the prime wheel is not zero the maximum\n"
+        "number to consider for primes is not exact.\n"
+        "Also, If the queue size is the same as the threshold size the sieve may deadlock.\n"
+        ;
+}
 
-TestResults SieveTest(ThresholdSieveOptions options);
+static Variant SieveTest(VariantCPNLoader &loader) {
+    CPN::Kernel kernel(loader.GetKernelAttr());
+    tms tmsStart;
+    tms tmsStop;
+    times(&tmsStart);
+    double start = getTime();
+    loader.Setup(&kernel);
+    kernel.WaitNodeTerminate(CONTROL_NAME);
+    double stop = getTime();
+    times(&tmsStop);
+    Variant result = Variant::ObjectType;
+    result["realtime"] = stop - start;
+    result["usertime"] = (double)(tmsStop.tms_utime - tmsStart.tms_utime)/(double)sysconf(_SC_CLK_TCK);
+    result["systime"] = (double)(tmsStop.tms_stime - tmsStart.tms_stime)/(double)sysconf(_SC_CLK_TCK);
+    return result;
+}
+
+
 
 int main(int argc, char **argv) {
-    std::vector<double> primesPerFilter;
-    ThresholdSieveOptions options;
-    options.maxprime = 100;
-    options.queuesize = 100;
-    options.threshold = 2;
-    options.numPrimesSource = 0;
-    options.queuehint = CPN::QUEUEHINT_THRESHOLD;
-    options.printprimes = false;
-    options.report = false;
-    options.zerocopy = 0;
-    std::string ppf = "1";
+    VariantCPNLoader loader;
+    loader.KernelName("ThresholdSieve");
+    Variant param = GetDefaults();
+
     int numIterations = 1;
-    bool multitest = false;
     bool verbose = false;
-    bool tofile = false;
-    bool simpleoutput = false;
-    std::string filename = "";
-    bool procOpts = true;
-    while (procOpts) {
-        switch (getopt(argc, argv, VALID_OPTS)) {
+    bool print_config = false;
+    bool internal_config = true;;
+    std::string outfile = "";
+    while (true) {
+        int c = getopt(argc, argv, "m:q:t:hf:i:p:vw:rz:j:J:c:C");
+        if (c == -1) break;
+        switch (c) {
+        case 'c':
+            internal_config = ParseBool(optarg);
+            break;
+        case 'C':
+            print_config = true;
+            break;
+        case 'j':
+            {
+                JSONToVariant parser;
+                std::ifstream f(optarg);
+                if (!f) {
+                    std::cerr << "Unable to open config file " << optarg << std::endl;
+                    return 1;
+                }
+                parser.ParseStream(f);
+                if (!parser.Done()) {
+                    std::cerr << "Error parsing config file " <<
+                        optarg << " on line " << parser.GetLine() <<
+                        " column " << parser.GetColumn() << std::endl;
+                    return 1;
+                }
+                loader.MergeConfig(parser.Get());
+            }
+            break;
+        case 'J':
+            {
+                JSONToVariant parser;
+                parser.Parse(optarg, strlen(optarg));
+                if (!parser.Done()) {
+                    std::cerr << "Error parsing command line JSON on line "
+                        << parser.GetLine() << " column " << parser.GetColumn() << std::endl;
+                    return 1;
+                }
+                loader.MergeConfig(parser.Get());
+            }
+            break;
         case 'w':
-            options.numPrimesSource = atoi(optarg);
-            if (options.numPrimesSource < 0) { options.numPrimesSource = 0; }
-            if (options.numPrimesSource >= 8) { options.numPrimesSource = 8; }
+            {
+                int nps = atoi(optarg);
+                if (nps < 0) { nps = 0; }
+                if (nps >= 8) { nps = 8; }
+                param["primewheel"] = nps;
+            }
             break;
         case 'm':
-            options.maxprime = atoi(optarg);
-            if (options.maxprime < 2) options.maxprime = 2;
-            break;
-        case 'M':
-            multitest = true;
+            {
+                int maxprime = atoi(optarg);
+                if (maxprime < 2) maxprime = 2;
+                param["maxprime"] = maxprime;
+            }
             break;
         case 'q':
-            options.queuesize = atoi(optarg);
-            if (options.queuesize < 1) options.queuesize = 1;
+            {
+                int queuesize = atoi(optarg);
+                if (queuesize < 1) queuesize = 1;
+                param["queuesize"] = queuesize;
+            }
             break;
         case 't':
-            options.threshold = atoi(optarg);
-            if (options.threshold < 2) options.threshold = 2;
+            {
+                int threshold = atoi(optarg);
+                if (threshold < 2) threshold = 2;
+                param["threshold"] = threshold;
+            }
             break;
         case 'r':
-            options.report = true;
-            break;
-        case 's':
-            simpleoutput = true;
+            param["report"] = true;
             break;
         case 'z':
-            {
-                options.zerocopy = atoi(optarg);
-            }
+            param["zerocopy"] = atoi(optarg);
             break;
         case 'p':
             {
-                ppf = optarg;
+                Variant ppf = Variant::ArrayType;
                 char *num = strtok(optarg, ", ");
                 while (num != 0) {
-                    primesPerFilter.push_back(atof(num));
+                    ppf.Append(atof(num));
                     num = strtok(0, ", ");
                 }
+                param["ppf"] = ppf;
             }
             break;
         case 'v':
             verbose = true;
-            options.printprimes = true;
             break;
         case 'f':
-            filename = optarg;
-            tofile = true;
+            outfile = optarg;
             break;
         case 'i':
             numIterations = atoi(optarg);
             if (numIterations < 0) numIterations = 1;
             break;
         case 'h':
-            printf(HELP_OPTS, argv[0]);
+            PrintHelp(argv[0]);
             return 0;
-        case -1:
-            procOpts = false;
-            break;
         default:
-            printf("Invalid option\n");
-            printf(HELP_OPTS, argv[0]);
+            std::cerr << "Invalid Option: " << c << std::endl;
+            PrintHelp(argv[0]);
             return 0;
         }
     }
-    options.primesPerFilter = primesPerFilter;
-    const char STDOUT_FORMAT[] = "    \"maxprime\"        : %lu,\n"
-        "    \"queuesize\"       : %lu,\n"
-        "    \"threshold\"       : %lu,\n"
-        "    \"primewheel\"      : %lu,\n"
-        "    \"ppf\"             : [%s],\n"
-        "    \"zerocopy\"        : %d,\n"
-        "    \"realtime\"        : %f,\n"
-        "    \"usertime\"        : %f,\n"
-        "    \"systime\"         : %f,\n"
-        "    \"numprimes\"       : %u\n";
-    const char SIMPLE_FORMAT[] = "%lu, %lu, %lu, %lu, [%s], %d, %f, %f, %f, %u";
-    const char *format_str;
-    FILE *f = stdout;
-    if (simpleoutput) {
-        format_str = SIMPLE_FORMAT;
-    } else {
-        format_str = STDOUT_FORMAT;
+
+    if (internal_config) {
+        Variant node = Variant::ObjectType;
+        node["name"] = CONTROL_NAME;
+        node["type"] = "ThresholdSieveController";
+        node["param"] = param;
+        loader.AddNode(node);
     }
-    if (tofile) {
-        f = fopen(filename.c_str(), "w");
-        if (!f) f = stdout;
+    if (print_config) {
+        std::cout << PrettyJSON(loader.GetConfig(), true) << std::endl;
+        return 0;
     }
-    if (!simpleoutput) {
-        fprintf(f, "[\n");
-    }
+
+    Variant output = Variant::ArrayType;
     for (int i = 0; i < numIterations; ++i) {
-        if (!simpleoutput) {
-            fprintf(f, "{\n");
-            if (verbose) {
-                fprintf(f, "    \"primes\": [");
-            }
-        }
-        TestResults timeresults = SieveTest(options);
-        if (verbose) {
-            if (!simpleoutput) {
-                fprintf(f, "],");
-            }
-            fprintf(f, "\n");
-        }
-        fprintf(f, format_str,
-                (unsigned long)options.maxprime,
-                options.queuesize,
-                options.threshold,
-                options.numPrimesSource,
-                ppf.c_str(),
-                options.zerocopy,
-                timeresults.realtime,
-                timeresults.usertime,
-                timeresults.systime,
-                (unsigned)0);
-        if (!simpleoutput) {
-            if (i == numIterations - 1) {
-                fprintf(f, "}\n");
-            } else {
-                fprintf(f, "},\n");
-            }
-        } else {
-            fprintf(f, "\n");
-        }
+        Variant result = SieveTest(loader);
+        result["maxprime"] = param["maxprime"];
+        result["queuesize"] = param["queuesize"];
+        result["threshold"] = param["threshold"];
+        result["primewheel"] = param["primewheel"];
+        result["ppf"] = param["ppf"];
+        result["zerocopy"] = param["zerocopy"];
+        output.Append(result);
     }
-    if (!simpleoutput) {
-        fprintf(f, "]\n");
-    }
-    if (f != stdout) {
-        fclose(f);
+    if (!outfile.empty()) {
+        std::ofstream out(outfile.c_str());
+        out << PrettyJSON(output, true) << std::endl;
+    } else {
+        std::cout << PrettyJSON(output, true) << std::endl;
     }
     return 0;
 }
 
-
-TestResults SieveTest(ThresholdSieveOptions options) {
-    CPN::Kernel kernel(CPN::KernelAttr("Kernel name"));
-    CPN::NodeAttr attr("controller", THRESHOLDSIEVECONTROLLER_TYPENAME);
-    attr.SetParam(options.Serialize());
-    tms tmsStart;
-    tms tmsStop;
-    times(&tmsStart);
-    double start = getTime();
-    kernel.CreateNode(attr);
-    kernel.WaitNodeTerminate("controller");
-    double stop = getTime();
-    times(&tmsStop);
-    TestResults result;
-    result.realtime = stop - start;
-    result.usertime = (double)(tmsStop.tms_utime - tmsStart.tms_utime)/(double)sysconf(_SC_CLK_TCK);
-    result.systime = (double)(tmsStop.tms_stime - tmsStart.tms_stime)/(double)sysconf(_SC_CLK_TCK);
-    return result;
-}
 
 

@@ -39,6 +39,10 @@ public:
     Variant &GetConfig() { return config; }
     void MergeConfig(Variant v);
 
+    void KernelName(const std::string &name);
+    void KernelHost(const std::string &host);
+    void KernelPort(const std::string &port);
+
     // Database functions
     void UseD4R(bool value);
     void GrowQueueMaxThreshold(bool value);

@@ -55,14 +55,14 @@ std::string ThresholdSieveOptions::Serialize() {
     v["filtercount"] = filtercount;
     v["queuesize"] = queuesize;
     v["threshold"] = threshold;
-    v["primesPerFilter"] = Variant::ArrayType;
+    v["ppf"] = Variant::ArrayType;
     std::vector<double>::iterator ppf_itr, ppf_end;
     ppf_itr = primesPerFilter.begin();
     ppf_end = primesPerFilter.end();
     for (;ppf_itr != ppf_end; ++ppf_itr) {
-        v["primesPerFilter"].Append(*ppf_itr);
+        v["ppf"].Append(*ppf_itr);
     }
-    v["numPrimesSource"] = numPrimesSource;
+    v["primewheel"] = numPrimesSource;
     v["queuehint"] = queuehint;
     v["outputport"] = outputport;
     v["printprimes"] = printprimes;
@@ -82,14 +82,24 @@ ThresholdSieveOptions ThresholdSieveOptions::Deserialize(const std::string &str)
     opts.filtercount = v["filtercount"].AsNumber<NumberT>();
     opts.queuesize = v["queuesize"].AsNumber<unsigned long>();
     opts.threshold = v["threshold"].AsNumber<unsigned long>();
-    for (Variant::ListIterator i = v["primesPerFilter"].ListBegin(), e = v["primesPerFilter"].ListEnd();
+    for (Variant::ListIterator i = v["ppf"].ListBegin(), e = v["ppf"].ListEnd();
             i != e; ++i)
     {
         opts.primesPerFilter.push_back(i->AsNumber<double>());
     }
-    opts.numPrimesSource = v["numPrimesSource"].AsNumber<unsigned long>();
-    opts.queuehint = v["queuehint"].AsNumber<CPN::QueueHint_t>();
-    opts.outputport = v["outputport"].AsString();
+    opts.numPrimesSource = v["primewheel"].AsNumber<unsigned long>();
+    if (v["queuehint"].IsString()) {
+        if (v["queuehint"].AsString() == "threshold") {
+            opts.queuehint = CPN::QUEUEHINT_THRESHOLD;
+        } else {
+            opts.queuehint = CPN::QUEUEHINT_DEFAULT;
+        }
+    } else {
+        opts.queuehint = v["queuehint"].AsNumber<CPN::QueueHint_t>();
+    }
+    if (v["outputport"].IsString()) {
+        opts.outputport = v["outputport"].AsString();
+    }
     opts.printprimes = v["printprimes"].AsBool();
     opts.consumerkey = v["consumerkey"].AsNumber<CPN::Key_t>();
     opts.report = v["report"].AsBool();

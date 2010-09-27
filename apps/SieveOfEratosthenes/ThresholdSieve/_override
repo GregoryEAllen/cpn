@@ -1,0 +1,5 @@
+
+$(OSDIR)/main.o: ThresholdSieveDefaults.h
+
+ThresholdSieveDefaults.h: ThresholdSieveDefaults.json; xxd -i $^ $@
+

@@ -189,6 +189,18 @@ shared_ptr<Database> VariantCPNLoader::LoadDatabase(Variant v) {
     return database;
 }
 
+void VariantCPNLoader::KernelName(const std::string &name) {
+    config["name"] = name;
+}
+
+void VariantCPNLoader::KernelHost(const std::string &host) {
+    config["host"] = host;
+}
+
+void VariantCPNLoader::KernelPort(const std::string &port) {
+    config["port"] = port;
+}
+
 CPN::KernelAttr VariantCPNLoader::GetKernelAttr(Variant args) {
     CPN::KernelAttr attr(args["name"].AsString());
     if (!args["database"].IsNull()) {

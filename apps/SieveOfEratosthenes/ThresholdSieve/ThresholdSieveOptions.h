@@ -49,6 +49,7 @@ struct ThresholdSieveOptions {
 
 const int WRITE_COPY = 1;
 const int READ_COPY = 2;
+const char* const CONTROL_NAME = "Controller";
 const char* const PRODUCER_NAME = "Producer";
 const char* const FILTER_FORMAT = "Filter: %lu";
 const char* const QUEUE_FORMAT = "Queue: %lu";
