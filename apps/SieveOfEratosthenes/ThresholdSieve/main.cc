@@ -22,10 +22,12 @@
  */
 
 #include "Kernel.h"
+#include "QueueReaderAdapter.h"
 #include "ThresholdSieveOptions.h"
 #include "ErrnoException.h"
 #include "VariantCPNLoader.h"
 #include "ThresholdSieveDefaults.h"
+#include "ThresholdSieveOptions.h"
 #include "JSONToVariant.h"
 #include "VariantToJSON.h"
 #include "ParseBool.h"
@@ -36,6 +38,8 @@
 #include <string.h>
 #include <iostream>
 #include <fstream>
+
+typedef ThresholdSieveOptions::NumberT NumberT;
 
 static double getTime() {
     timeval tv;
@@ -79,17 +83,34 @@ static void PrintHelp(const std::string &progname) {
         ;
 }
 
-static Variant SieveTest(VariantCPNLoader &loader) {
+using CPN::QueueReaderAdapter;
+
+static Variant SieveTest(VariantCPNLoader &loader, bool verbose) {
     CPN::Kernel kernel(loader.GetKernelAttr());
+    CPN::Key_t pseudokey = 0;
+    Variant result = Variant::ObjectType;
     tms tmsStart;
     tms tmsStop;
     times(&tmsStart);
     double start = getTime();
+    if (verbose) {
+        pseudokey = kernel.CreatePseudoNode(VERBOSE_NAME);
+    }
     loader.Setup(&kernel);
+    if (verbose) {
+        result["result"] = Variant::ArrayType;
+        QueueReaderAdapter<NumberT> out = kernel.GetPseudoReader(pseudokey, IN_PORT);
+        NumberT value = 0;
+        while (out.Dequeue(&value, 1)) {
+            result["result"].Append(value);
+        }
+        out.Release();
+        kernel.DestroyPseudoNode(pseudokey);
+        result["numprimes"] = result["result"].Size();
+    }
     kernel.WaitNodeTerminate(CONTROL_NAME);
     double stop = getTime();
     times(&tmsStop);
-    Variant result = Variant::ObjectType;
     result["realtime"] = stop - start;
     result["usertime"] = (double)(tmsStop.tms_utime - tmsStart.tms_utime)/(double)sysconf(_SC_CLK_TCK);
     result["systime"] = (double)(tmsStop.tms_stime - tmsStart.tms_stime)/(double)sysconf(_SC_CLK_TCK);
@@ -105,11 +126,12 @@ int main(int argc, char **argv) {
 
     int numIterations = 1;
     bool verbose = false;
+    bool prettyprint = false;
     bool print_config = false;
     bool internal_config = true;;
     std::string outfile = "";
     while (true) {
-        int c = getopt(argc, argv, "m:q:t:hf:i:p:vw:rz:j:J:c:CP:");
+        int c = getopt(argc, argv, "m:q:t:hf:i:p:vVw:rz:j:J:c:CP:");
         if (c == -1) break;
         switch (c) {
         case 'c':
@@ -220,6 +242,9 @@ int main(int argc, char **argv) {
         case 'v':
             verbose = true;
             break;
+        case 'V':
+            prettyprint = true;
+            break;
         case 'f':
             outfile = optarg;
             break;
@@ -238,6 +263,18 @@ int main(int argc, char **argv) {
     }
 
     if (internal_config) {
+        if (verbose) {
+            param["outputport"] = OUT_PORT;
+
+            Variant queue = Variant::ObjectType;
+            queue["size"] = param["queuesize"];
+            queue["threshold"] = param["threshold"];
+            queue["writernode"] = CONTROL_NAME;
+            queue["writerport"] = OUT_PORT;
+            queue["readerport"] = IN_PORT;
+            queue["readernode"] = VERBOSE_NAME;
+            loader.AddQueue(queue);
+        }
         Variant node = Variant::ObjectType;
         node["name"] = CONTROL_NAME;
         node["type"] = "ThresholdSieveController";
@@ -251,7 +288,7 @@ int main(int argc, char **argv) {
 
     Variant output = Variant::ArrayType;
     for (int i = 0; i < numIterations; ++i) {
-        Variant result = SieveTest(loader);
+        Variant result = SieveTest(loader, verbose);
         result["maxprime"] = param["maxprime"];
         result["queuesize"] = param["queuesize"];
         result["threshold"] = param["threshold"];
@@ -262,9 +299,9 @@ int main(int argc, char **argv) {
     }
     if (!outfile.empty()) {
         std::ofstream out(outfile.c_str());
-        out << PrettyJSON(output, true) << std::endl;
+        out << PrettyJSON(output, prettyprint) << std::endl;
     } else {
-        std::cout << PrettyJSON(output, true) << std::endl;
+        std::cout << PrettyJSON(output, prettyprint) << std::endl;
     }
     return 0;
 }

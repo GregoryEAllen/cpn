@@ -53,6 +53,7 @@ const int WRITE_COPY = 1;
 const int READ_COPY = 2;
 const char* const CONTROL_NAME = "Controller";
 const char* const PRODUCER_NAME = "Producer";
+const char* const VERBOSE_NAME = "output";
 const char* const FILTER_FORMAT = "Filter: %lu";
 const char* const QUEUE_FORMAT = "Queue: %lu";
 const char* const CONTROL_PORT = "Control Port";
