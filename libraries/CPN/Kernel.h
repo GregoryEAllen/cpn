@@ -92,6 +92,12 @@ namespace CPN {
          */
         Key_t CreateNode(const NodeAttr &attr);
 
+        Key_t CreatePseudoNode(const std::string &nodename);
+        Key_t GetPseudoNode(const std::string &nodename);
+        shared_ptr<QueueWriter> GetPseudoWriter(Key_t key, const std::string &portname);
+        shared_ptr<QueueReader> GetPseudoReader(Key_t key, const std::string &portname);
+        void DestroyPseudoNode(Key_t key);
+
         /**
          * Check for the existance of the given node. Returns
          * when it detects that the given node does not exist.
@@ -176,8 +182,8 @@ namespace CPN {
         auto_ptr<RemoteQueueHolder> remotequeueholder;
         bool useremote;
 
-        typedef std::map<Key_t, shared_ptr<NodeBase> > NodeMap;
-        typedef std::vector< shared_ptr<NodeBase> > NodeList;
+        typedef std::map<Key_t, shared_ptr<PseudoNode> > NodeMap;
+        typedef std::vector< shared_ptr<PseudoNode> > NodeList;
         NodeMap nodemap;
         NodeList garbagenodes;
     };

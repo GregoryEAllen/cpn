@@ -87,6 +87,7 @@ namespace CPN {
 
     class NodeAttr;
     class NodeBase;
+    class PseudoNode;
     class NodeFactory;
 
     class Database;

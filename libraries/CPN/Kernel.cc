@@ -148,6 +148,61 @@ namespace CPN {
         return nodekey;
     }
 
+    Key_t Kernel::CreatePseudoNode(const std::string &nodename) {
+        Sync::AutoReentrantLock arlock(lock);
+        Key_t ourkey = hostkey;
+        arlock.Unlock();
+        Key_t nodekey = database->CreateNodeKey(ourkey, nodename);
+        shared_ptr<PseudoNode> pnode;
+        pnode.reset(new PseudoNode(nodename, nodekey, database));
+        arlock.Lock();
+        nodemap.insert(std::make_pair(nodekey, pnode));
+        arlock.Unlock();
+        database->SignalNodeStart(nodekey);
+        return nodekey;
+    }
+
+    Key_t Kernel::GetPseudoNode(const std::string &nodename) {
+        Key_t nodekey = database->GetNodeKey(nodename);
+        Sync::AutoReentrantLock arlock(lock);
+        NodeMap::iterator entry = nodemap.find(nodekey);
+        if (entry == nodemap.end() || !entry->second->IsPurePseudo()) {
+            throw std::invalid_argument("Not a valid PseudoNode.");
+        }
+        return nodekey;
+    }
+
+    shared_ptr<QueueWriter> Kernel::GetPseudoWriter(Key_t key, const std::string &portname) {
+        Sync::AutoReentrantLock arlock(lock);
+        NodeMap::iterator entry = nodemap.find(key);
+        if (entry == nodemap.end() || !entry->second->IsPurePseudo()) {
+            throw std::invalid_argument("Not a valid PseudoNode.");
+        }
+        shared_ptr<PseudoNode> pnode = entry->second;
+        arlock.Unlock();
+        return pnode->GetWriter(portname);
+    }
+
+    shared_ptr<QueueReader> Kernel::GetPseudoReader(Key_t key, const std::string &portname) {
+        Sync::AutoReentrantLock arlock(lock);
+        NodeMap::iterator entry = nodemap.find(key);
+        if (entry == nodemap.end() || !entry->second->IsPurePseudo()) {
+            throw std::invalid_argument("Not a valid PseudoNode.");
+        }
+        shared_ptr<PseudoNode> pnode = entry->second;
+        arlock.Unlock();
+        return pnode->GetReader(portname);
+    }
+
+    void Kernel::DestroyPseudoNode(Key_t key) {
+        Sync::AutoReentrantLock arlock(lock);
+        NodeMap::iterator entry = nodemap.find(key);
+        if (entry == nodemap.end() || !entry->second->IsPurePseudo()) {
+            throw std::invalid_argument("Not a valid PseudoNode.");
+        }
+        NodeTerminated(key);
+    }
+
     void Kernel::WaitNodeTerminate(const std::string &nodename) {
         FUNCBEGIN;
         database->WaitForNodeEnd(nodename);
@@ -256,7 +311,7 @@ namespace CPN {
 
         NodeMap::iterator entry = nodemap.find(attr.GetReaderNodeKey());
         ASSERT(entry != nodemap.end(), "Node not found!?");
-        shared_ptr<NodeBase> node = entry->second;
+        shared_ptr<PseudoNode> node = entry->second;
         remotequeueholder->AddQueue(endp);
         endp->Start();
         arlock.Unlock();
@@ -279,7 +334,7 @@ namespace CPN {
 
         NodeMap::iterator entry = nodemap.find(attr.GetWriterNodeKey());
         ASSERT(entry != nodemap.end(), "Node not found!?");
-        shared_ptr<NodeBase> node = entry->second;
+        shared_ptr<PseudoNode> node = entry->second;
         remotequeueholder->AddQueue(endp);
         endp->Start();
         arlock.Unlock();
@@ -293,11 +348,11 @@ namespace CPN {
         Sync::AutoReentrantLock arlock(lock);
         NodeMap::iterator readentry = nodemap.find(attr.GetReaderNodeKey());
         ASSERT(readentry != nodemap.end(), "Tried to connect a queue to a node that doesn't exist.");
-        shared_ptr<NodeBase> readnode = readentry->second;
+        shared_ptr<PseudoNode> readnode = readentry->second;
 
         NodeMap::iterator writeentry = nodemap.find(attr.GetWriterNodeKey());
         ASSERT(writeentry != nodemap.end(), "Tried to connect a queue to a node that doesn't exist.");
-        shared_ptr<NodeBase> writenode = writeentry->second;
+        shared_ptr<PseudoNode> writenode = writeentry->second;
         arlock.Unlock();
 
         writenode->CreateWriter(queue);
@@ -319,6 +374,7 @@ namespace CPN {
     }
 
     void Kernel::NodeTerminated(Key_t key) {
+        database->SignalNodeEnd(key);
         Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
         if (status.Get() == DONE) {
@@ -326,7 +382,7 @@ namespace CPN {
         } else {
             NodeMap::iterator entry = nodemap.find(key);
             ASSERT(entry != nodemap.end());
-            shared_ptr<NodeBase> node = entry->second;
+            shared_ptr<PseudoNode> node = entry->second;
             nodemap.erase(entry);
             garbagenodes.push_back(node);
             SendWakeup();
@@ -338,7 +394,7 @@ namespace CPN {
         Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
         while (!garbagenodes.empty()) {
-            garbagenodes.back()->Join();
+            garbagenodes.back()->Shutdown();
             garbagenodes.pop_back();
         }
     }
