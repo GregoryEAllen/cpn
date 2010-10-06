@@ -131,9 +131,12 @@ int main(int argc, char **argv) {
     bool internal_config = true;;
     std::string outfile = "";
     while (true) {
-        int c = getopt(argc, argv, "m:q:t:hf:i:p:vVw:rz:j:J:c:CP:");
+        int c = getopt(argc, argv, "m:q:t:hf:i:p:vVw:rz:j:J:c:CP:d:");
         if (c == -1) break;
         switch (c) {
+        case 'd':
+            param["divisor"] = strtod(optarg,0);
+            break;
         case 'c':
             internal_config = ParseBool(optarg);
             break;
@@ -286,22 +289,27 @@ int main(int argc, char **argv) {
         return 0;
     }
 
-    Variant output = Variant::ArrayType;
-    for (int i = 0; i < numIterations; ++i) {
-        Variant result = SieveTest(loader, verbose);
-        result["maxprime"] = param["maxprime"];
-        result["queuesize"] = param["queuesize"];
-        result["threshold"] = param["threshold"];
-        result["primewheel"] = param["primewheel"];
-        result["ppf"] = param["ppf"];
-        result["zerocopy"] = param["zerocopy"];
-        output.Append(result);
-    }
-    if (!outfile.empty()) {
-        std::ofstream out(outfile.c_str());
-        out << PrettyJSON(output, prettyprint) << std::endl;
+    if (internal_config) {
+        Variant output = Variant::ArrayType;
+        for (int i = 0; i < numIterations; ++i) {
+            Variant result = SieveTest(loader, verbose);
+            result["maxprime"] = param["maxprime"];
+            result["queuesize"] = param["queuesize"];
+            result["threshold"] = param["threshold"];
+            result["primewheel"] = param["primewheel"];
+            result["ppf"] = param["ppf"];
+            result["zerocopy"] = param["zerocopy"];
+            output.Append(result);
+        }
+        if (!outfile.empty()) {
+            std::ofstream out(outfile.c_str());
+            out << PrettyJSON(output, prettyprint) << std::endl;
+        } else {
+            std::cout << PrettyJSON(output, prettyprint) << std::endl;
+        }
     } else {
-        std::cout << PrettyJSON(output, prettyprint) << std::endl;
+        CPN::Kernel kernel(loader.GetKernelAttr());
+        kernel.Wait();
     }
     return 0;
 }
