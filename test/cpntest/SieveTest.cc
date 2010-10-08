@@ -8,7 +8,9 @@
 #include "QueueReaderAdapter.h"
 #include "Database.h"
 #include "ToString.h"
-#include "AutoBuffer.h"
+#include "Variant.h"
+#include "VariantToJSON.h"
+#include "JSONToVariant.h"
 #include <cppunit/TestAssert.h>
 #include <cmath>
 
@@ -50,18 +52,11 @@ const char QUEUE_FORMAT[] = "Queue %llu";
 
 class SieveResultNode : public CPN::NodeBase {
 public:
-    struct Param {
-        SieveNumber* result;
-        SieveNumber resultsize;
-        std::vector<std::string> *hosts;
-    };
     SieveResultNode(CPN::Kernel& ker, const CPN::NodeAttr& attr);
     void Process();
     void CreateNextFilter(SieveNumber filternum);
 private:
-    SieveNumber* result;
-    SieveNumber resultsize;
-    std::vector<std::string> *hosts;
+    std::vector<std::string> hosts;
 };
 
 CPN_DECLARE_NODE_FACTORY(SieveResultNode, SieveResultNode);
@@ -69,19 +64,26 @@ CPN_DECLARE_NODE_FACTORY(SieveResultNode, SieveResultNode);
 SieveResultNode::SieveResultNode(CPN::Kernel& ker, const CPN::NodeAttr& attr)
     : CPN::NodeBase(ker, attr)
 {
-    Param *param = (Param*)attr.GetArg().GetBuffer();
-    result = param->result;
-    resultsize = param->resultsize;
-    hosts = param->hosts;
+    if (!attr.GetParam().empty()) {
+        JSONToVariant p;
+        p.Parse(attr.GetParam());
+        ASSERT(p.Done());
+        Variant param = p.Get();
+        for (Variant::ListIterator i = param.ListBegin(), e = param.ListEnd();
+                i != e; ++i) {
+            hosts.push_back(i->AsString());
+        }
+    }
 }
 
 void SieveResultNode::Process() {
     std::string ourname = GetName();
     SieveNumber portnum = 0;
     CPN::QueueReaderAdapter<SieveNumber> in = GetReader(ToString(PORT_FORMAT, portnum));
+    CPN::QueueWriterAdapter<SieveNumber> out = GetWriter(PORT_RESULT);
     DBPRINT("Result node %s started (in %llu)\n", ourname.c_str(), in.GetKey());
     SieveNumber index = 0;
-    while (index < resultsize) {
+    while (index < NUMPRIMES) {
         SieveNumber value;
         ENSURE(in.Dequeue(&value, 1));
         if (value == 0) {
@@ -91,7 +93,7 @@ void SieveResultNode::Process() {
             in = GetReader(ToString(PORT_FORMAT, portnum));
             DBPRINT("Result swapped port to %llu (%llu)\n", portnum, in.GetKey());
         } else {
-            result[index] = value;
+            out.Enqueue(&value, 1);
             DBPRINT("Result[%llu] = %llu\n", index, value);
             ++index;
         }
@@ -106,8 +108,8 @@ void SieveResultNode::Process() {
 void SieveResultNode::CreateNextFilter(SieveNumber filternum) {
     std::string nodename = ToString(FILTER_FORMAT, filternum); 
     CPN::NodeAttr nattr(nodename, "SieveFilterNode");
-    if (hosts) {
-        nattr.SetHost(hosts->at(filternum%hosts->size()));
+    if (!hosts.empty()) {
+        nattr.SetHost(hosts[filternum%hosts.size()]);
     }
     kernel.CreateNode(nattr);
     // A queue between us and next
@@ -227,8 +229,6 @@ void SieveTest::RunTest(void) {
 
     nattr.SetName("TheResult");
     nattr.SetTypeName("SieveResultNode");
-    SieveResultNode::Param resultparam = { &result[0], result.size(), 0 };
-    nattr.SetParam(StaticBuffer(&resultparam, sizeof(resultparam)));
     kernel.CreateNode(nattr);
 
     CPN::QueueAttr qattr(100, 100);
@@ -241,6 +241,14 @@ void SieveTest::RunTest(void) {
     qattr.SetWriter(filtername, PORT_RESULT);
     qattr.SetReader("TheResult", portname);
     kernel.CreateQueue(qattr);
+    CPN::Key_t pseudokey = kernel.CreatePseudoNode("output");
+    qattr.SetWriter("TheResult", PORT_RESULT);
+    qattr.SetReader("output", PORT_RESULT);
+    kernel.CreateQueue(qattr);
+    CPN::QueueReaderAdapter<SieveNumber> in = kernel.GetPseudoReader(pseudokey, PORT_RESULT);
+    in.Dequeue(&result[0], result.size());
+    in.Release();
+    kernel.DestroyPseudoNode(pseudokey);
 
     kernel.WaitNodeTerminate("TheResult");
     for (SieveNumber i = 0; i < NUMPRIMES; i++) {
@@ -256,9 +264,9 @@ void SieveTest::RunTwoKernelTest() {
     database->UseD4R(false);
     CPN::Kernel kone(CPN::KernelAttr("one").SetDatabase(database).SetRemoteEnabled(true));
     CPN::Kernel ktwo(CPN::KernelAttr("two").SetDatabase(database).SetRemoteEnabled(true));
-    std::vector<std::string> hosts;
-    hosts.push_back("one");
-    hosts.push_back("two");
+    Variant hosts;
+    hosts.Append("one");
+    hosts.Append("two");
 
     CPN::NodeAttr nattr("TheProducer", "SieveProducerNode");
     kone.CreateNode(nattr);
@@ -271,8 +279,7 @@ void SieveTest::RunTwoKernelTest() {
 
     nattr.SetName("TheResult");
     nattr.SetTypeName("SieveResultNode");
-    SieveResultNode::Param resultparam = { &result[0], result.size(), &hosts };
-    nattr.SetParam(StaticBuffer(&resultparam, sizeof(resultparam)));
+    nattr.SetParam(VariantToJSON(hosts));
     kone.CreateNode(nattr);
 
     CPN::QueueAttr qattr(100, 100);
@@ -285,6 +292,15 @@ void SieveTest::RunTwoKernelTest() {
     qattr.SetWriter(filtername, PORT_RESULT);
     qattr.SetReader("TheResult", portname);
     kone.CreateQueue(qattr);
+
+    CPN::Key_t pseudokey = kone.CreatePseudoNode("output");
+    qattr.SetWriter("TheResult", PORT_RESULT);
+    qattr.SetReader("output", PORT_RESULT);
+    kone.CreateQueue(qattr);
+    CPN::QueueReaderAdapter<SieveNumber> in = kone.GetPseudoReader(pseudokey, PORT_RESULT);
+    in.Dequeue(&result[0], result.size());
+    in.Release();
+    kone.DestroyPseudoNode(pseudokey);
 
     kone.WaitNodeTerminate("TheResult");
     for (SieveNumber i = 0; i < NUMPRIMES; i++) {
