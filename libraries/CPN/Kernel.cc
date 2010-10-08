@@ -29,7 +29,6 @@
 #include "ThresholdQueue.h"
 #include "ConnectionServer.h"
 #include "RemoteQueueHolder.h"
-#include "Database.h"
 #include "Pthread.h"
 #include "RemoteQueue.h"
 #include "SocketAddress.h"

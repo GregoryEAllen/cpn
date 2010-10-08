@@ -28,8 +28,6 @@ using CPN::KernelAttr;
 using CPN::NodeAttr;
 using CPN::QueueAttr;
 using CPN::NodeBase;
-using CPN::FunctionNode;
-using CPN::MemberFunction;
 
 void KernelTest::setUp() {
 }
@@ -130,25 +128,14 @@ void KernelTest::TestSync() {
 #define SINKNAME "sinkname"
 #define SOURCENAME "sourcename"
 
-static void DoSyncTest(void (SyncSource::*fun1)(NodeBase*),
-        void (SyncSink::*fun2)(NodeBase*)) {
+static void DoSyncTest(void (*fun1)(NodeBase*, std::string),
+        void (*fun2)(NodeBase*, std::string)) {
 
     CPN::Kernel kernel(KernelAttr("test"));
     kernel.GetDatabase()->UseD4R(false);
-    FunctionNode<MemberFunction<SyncSource> >::RegisterType(kernel.GetDatabase(), SOURCENAME);
-    FunctionNode<MemberFunction<SyncSink> >::RegisterType(kernel.GetDatabase(), SINKNAME);
 
-    NodeAttr attr(SOURCENAME, SOURCENAME);
-    SyncSource syncsource = SyncSource(SINKNAME);
-    MemberFunction<SyncSource> memfun1(&syncsource, fun1);
-    attr.SetParam(StaticConstBuffer(&memfun1, sizeof(memfun1)));
-    kernel.CreateNode(attr);
-
-    attr.SetName(SINKNAME).SetTypeName(SINKNAME);
-    SyncSink syncsink = SyncSink(SOURCENAME);
-    MemberFunction<SyncSink> memfun2(&syncsink, fun2);
-    attr.SetParam(StaticConstBuffer(&memfun2, sizeof(memfun2)));
-    kernel.CreateNode(attr);
+    kernel.CreateFunctionNode(SOURCENAME, fun1, SINKNAME);
+    kernel.CreateFunctionNode(SINKNAME, fun2, SOURCENAME);
 
     kernel.WaitNodeTerminate(SINKNAME);
     kernel.WaitNodeTerminate(SOURCENAME);

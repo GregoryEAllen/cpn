@@ -36,8 +36,8 @@ public:
     void QueueShutdownTest();
 
 private:
-    void DoSyncTest(void (SyncSource::*fun1)(CPN::NodeBase*),
-        void (SyncSink::*fun2)(CPN::NodeBase*), unsigned run,
+    void DoSyncTest(void (*fun1)(CPN::NodeBase*, std::string),
+        void (*fun2)(CPN::NodeBase*, std::string), unsigned run,
         bool swap);
     CPN::Kernel *kone;
     CPN::Kernel *ktwo;

@@ -17,8 +17,6 @@ using CPN::KernelAttr;
 using CPN::shared_ptr;
 using CPN::NodeAttr;
 using CPN::QueueAttr;
-using CPN::FunctionNode;
-using CPN::MemberFunction;
 
 #if _DEBUG
 #define DEBUG(frmt, ...) printf(frmt, __VA_ARGS__)
@@ -85,33 +83,19 @@ void TwoKernelTest::TestSync() {
 
 
 
-void TwoKernelTest::DoSyncTest(void (SyncSource::*fun1)(CPN::NodeBase*),
-        void (SyncSink::*fun2)(CPN::NodeBase*), unsigned run, bool swap) {
+void TwoKernelTest::DoSyncTest(void (*fun1)(CPN::NodeBase*, std::string),
+        void (*fun2)(CPN::NodeBase*, std::string), unsigned run, bool swap) {
 
     DEBUG(">>DoSyncTest run %u\n", run);
     std::string sourcename = ToString("source %u", run);
     std::string sinkname = ToString("sink %u", run);
-    FunctionNode<MemberFunction<SyncSource> >::RegisterType(database, sourcename);
-    FunctionNode<MemberFunction<SyncSink> >::RegisterType(database, sinkname);
-
-    // Create local to kone
-    NodeAttr attrsource(sourcename, sourcename);
-    SyncSource syncsource = SyncSource(sinkname);
-    MemberFunction<SyncSource> memfun1(&syncsource, fun1);
-    attrsource.SetParam(StaticConstBuffer(&memfun1, sizeof(memfun1)));
-
-    // Create local to ktwo
-    NodeAttr attrsink(sinkname, sinkname);
-    SyncSink syncsink = SyncSink(sourcename);
-    MemberFunction<SyncSink> memfun2(&syncsink, fun2);
-    attrsink.SetParam(StaticConstBuffer(&memfun2, sizeof(memfun2)));
 
     if (!swap) {
-        kone->CreateNode(attrsource);
-        ktwo->CreateNode(attrsink);
+        kone->CreateFunctionNode(sourcename, fun1, sinkname);
+        ktwo->CreateFunctionNode(sinkname, fun2, sourcename);
     } else {
-        ktwo->CreateNode(attrsink);
-        kone->CreateNode(attrsource);
+        ktwo->CreateFunctionNode(sourcename, fun1, sinkname);
+        kone->CreateFunctionNode(sinkname, fun2, sourcename);
     }
 
     kone->WaitNodeTerminate(sinkname);
