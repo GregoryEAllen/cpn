@@ -19,7 +19,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION( D4RTest );
 #include "PthreadMutex.h"
 #include <cppunit/extensions/HelperMacros.h>
 #include <vector>
-class D4RTest : public CppUnit::TestFixture, D4R::TesterBase {
+class D4RTest : public CppUnit::TestFixture, public D4R::TesterBase {
 public:
 	void setUp();
 

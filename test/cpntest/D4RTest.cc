@@ -38,24 +38,20 @@ using D4R::TesterBase;
 
 #define TESTNODETYPE "D4RTestNodeType"
 
-class TestNode : public NodeBase, public TestNodeBase {
+class TestNode : public TestNodeBase {
 public:
-    TestNode(Kernel &ker, const NodeAttr &attr)
-        : NodeBase(ker, attr),
-        TestNodeBase(*reinterpret_cast<TesterBase**>(const_cast<void*>(attr.GetArg().GetBuffer())))
+    TestNode(NodeBase *n, TesterBase *testbase, Variant noded)
+        : TestNodeBase(testbase),
+        node(n)
     {
-        Logger::Name(NodeBase::GetName());
-        JSONToVariant parse;
-        parse.Parse(attr.GetParam().data(), attr.GetParam().size());
-        ASSERT(parse.Done());
-        Variant noded = parse.Get();
+        Logger::Name(node->GetName());
         Variant::ConstListIterator itr = noded["instructions"].ListBegin();
         while (itr != noded["instructions"].ListEnd()) {
             AddOp(*itr);
             ++itr;
         }
     }
-    const std::string &GetName() const { return NodeBase::GetName(); }
+    const std::string &GetName() const { return node->GetName(); }
 
     void Process() {
         Output(testerbase);
@@ -64,7 +60,7 @@ public:
     }
 
     void Enqueue(const std::string &qname, unsigned amount) {
-        QueueWriterAdapter<unsigned> out = GetWriter(qname);
+        QueueWriterAdapter<unsigned> out = node->GetWriter(qname);
         Trace("Enqueue %s(%llu): %u", qname.c_str(), out.GetKey(), amount);
 #if 0
         std::vector<unsigned> buf;
@@ -80,7 +76,7 @@ public:
     }
 
     void Dequeue(const std::string &qname, unsigned amount) {
-        QueueReaderAdapter<unsigned> in = GetReader(qname);
+        QueueReaderAdapter<unsigned> in = node->GetReader(qname);
         Trace("Dequeue %s(%llu): %u", qname.c_str(), in.GetKey(), amount);
 #if 0
         std::vector<unsigned> buf(amount);
@@ -94,7 +90,7 @@ public:
     }
 
     void VerifyReaderSize(const std::string &qname, unsigned amount) {
-        QueueReaderAdapter<unsigned> in = GetReader(qname);
+        QueueReaderAdapter<unsigned> in = node->GetReader(qname);
         Trace("%s %u ?= %u", qname.c_str(), in.QueueLength(), amount);
         if (in.QueueLength() != amount) {
             testerbase->Failure(this, "Queuesize is not expected size");
@@ -102,15 +98,20 @@ public:
     }
 
     void VerifyWriterSize(const std::string &qname, unsigned amount) {
-        QueueWriterAdapter<unsigned> out = GetWriter(qname);
+        QueueWriterAdapter<unsigned> out = node->GetWriter(qname);
         Trace("%s %u ?= %u", qname.c_str(), out.QueueLength(), amount);
         if (out.QueueLength() != amount) {
             testerbase->Failure(this, "Queuesize is not expected size");
         }
     }
+
+    NodeBase *node;
 };
 
-CPN_DECLARE_NODE_FACTORY(D4RTestNodeType, TestNode);
+void RunNode(NodeBase *node, TesterBase *testbase, Variant param) {
+    TestNode testnode(node, testbase, param);
+    testnode.Process();
+}
 
 void D4RTest::setUp() {
     PthreadMutexProtected al(lock);
@@ -207,8 +208,7 @@ void D4RTest::RunTwoKernelTest() {
 }
 
 void D4RTest::Deadlock(TestNodeBase *tnb) {
-    NodeBase *n = dynamic_cast<NodeBase*>(tnb);
-    Info("%s detected deadlock correctly", n->GetName().c_str());
+    Info("%s detected deadlock correctly", tnb->GetName().c_str());
     {
         PthreadMutexProtected al(lock);
         successes++;
@@ -217,24 +217,20 @@ void D4RTest::Deadlock(TestNodeBase *tnb) {
 }
 
 void D4RTest::Failure(TestNodeBase *tnb, const std::string &msg) {
-    NodeBase *n = dynamic_cast<NodeBase*>(tnb);
-    Error("%s: %s", n->GetName().c_str(), msg.c_str());
+    Error("%s: %s", tnb->GetName().c_str(), msg.c_str());
     D4R::TesterBase::Failure(tnb, msg);
 }
 
 void D4RTest::Complete(TestNodeBase *tnb) {
-    NodeBase *n = dynamic_cast<NodeBase*>(tnb);
-    Info("%s completed correctly", n->GetName().c_str());
+    Info("%s completed correctly", tnb->GetName().c_str());
     PthreadMutexProtected al(lock);
     successes++;
 }
 
 void D4RTest::CreateNode(const Variant &noded) {
-    NodeAttr attr(noded["name"].AsString(), TESTNODETYPE);
-    attr.SetParam(VariantToJSON(noded));
-    TesterBase *tb = this;
-    attr.SetParam(StaticConstBuffer(&tb, sizeof(tb)));
-    kernels[noded["key"].AsInt() % kernels.size()]->CreateNode(attr);
+    kernels[noded["key"].AsInt() % kernels.size()]->
+        CreateFunctionNode(noded["name"].AsString(),
+                RunNode, this, noded.Copy());
 }
 
 void D4RTest::CreateQueue(const Variant &queued) {
