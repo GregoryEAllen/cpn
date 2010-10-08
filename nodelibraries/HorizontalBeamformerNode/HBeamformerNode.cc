@@ -47,22 +47,8 @@ HBeamformerNode::HBeamformerNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)
         half = param["half"].AsInt();
     }
     bool estimate = param["estimate"].AsBool();
-    if (param["file"].IsString()) {
-        std::auto_ptr<HBeamformer> hbf = HBLoadFromFile(param["file"].AsString(), estimate);
-        hbeam = hbf.release();
-    } else {
-        unsigned numStaves = param["numStaves"].AsUnsigned();
-        unsigned numBeams = param["numBeams"].AsUnsigned();
-        unsigned length = param["length"].AsUnsigned();
-        ASSERT(attr.GetArg().GetSize() == (sizeof(complex<float>) * 2 * length * numBeams),
-               "Wrong sized coefficients."); 
-        complex<float> *coeffs = (complex<float>*)attr.GetArg().GetBuffer();
-        complex<float> *replicas = coeffs + length * numBeams;
-        std::vector<unsigned> staveIndexes(param["staveIndexes"].Size());
-        std::transform(param["staveIndexes"].ListBegin(), param["staveIndexes"].ListEnd(),
-                staveIndexes.begin(), std::mem_fun_ref(&Variant::AsUnsigned));
-        hbeam = new HBeamformer(length, numStaves, numBeams, coeffs, replicas, &staveIndexes[0], estimate);
-    }
+    std::auto_ptr<HBeamformer> hbf = HBLoadFromFile(param["file"].AsString(), estimate);
+    hbeam = hbf.release();
 }
 
 HBeamformerNode::~HBeamformerNode() {

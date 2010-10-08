@@ -8,7 +8,7 @@
 #include "NodeBase.h"
 #include "SieveControllerNode.h"
 
-#define SIEVE_PRODUCERNODE_TYPENAME "SieveProducerNodeTypeName"
+#define SIEVE_PRODUCERNODE_TYPENAME "SieveProducerNode"
 
 /**
  * \brief The producer node for the simple sieve.
@@ -29,13 +29,10 @@
  */
 class ProducerNode : public CPN::NodeBase {
 public:
-	ProducerNode(CPN::Kernel& ker, const CPN::NodeAttr& attr,
-			SieveControllerNode::Param &param_)
-		: CPN::NodeBase(ker, attr), param(param_) {}
-	void Process(void);
-
+	ProducerNode(CPN::Kernel& ker, const CPN::NodeAttr& attr);
 private:
-	SieveControllerNode::Param param;
+	void Process(void);
+    unsigned long numberBound;
 };
 
 #endif

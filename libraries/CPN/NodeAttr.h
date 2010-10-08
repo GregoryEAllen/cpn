@@ -26,7 +26,6 @@
 #pragma once
 
 #include "CPNCommon.h"
-#include "AutoBuffer.h"
 #include <string>
 
 namespace CPN {
@@ -49,9 +48,8 @@ namespace CPN {
      * See SetHost and SetHostKey.
      *
      *
-     * The parameters sent to the node. This can be either or both
-     * a string or a StaticConstBuffer which is copied.
-     * See SetParam and GetParam and GetArg
+     * The parameters sent to the node.
+     * See SetParam and GetParam
      *
      * Note that the key and database attribute are set by the kernel
      * when the node is to be created and such are overwritten.
@@ -65,7 +63,6 @@ namespace CPN {
             name(name_),
             nodetype(nodetype_),
             param(""),
-            arg(0),
             key(0),
             database()
         {}
@@ -78,20 +75,6 @@ namespace CPN {
             name(name_),
             nodetype(nodetype_),
             param(param_),
-            arg(0),
-            key(0),
-            database()
-        {}
-
-        NodeAttr(const std::string &name_,
-                const std::string &nodetype_,
-                const StaticConstBuffer &arg_)
-            : host(),
-            hostkey(0),
-            name(name_),
-            nodetype(nodetype_),
-            param(),
-            arg(arg_),
             key(0),
             database()
         {}
@@ -121,11 +104,6 @@ namespace CPN {
             return *this;
         }
 
-        NodeAttr &SetParam(const StaticConstBuffer &arg_) {
-            arg.Put(arg_);
-            return *this;
-        }
-
         NodeAttr &SetKey(Key_t key_) {
             key = key_;
             return *this;
@@ -145,8 +123,6 @@ namespace CPN {
 
         const std::string &GetParam() const { return param; }
 
-        const AutoBuffer &GetArg() const { return arg; }
-
         Key_t GetKey() const { return key; }
 
         shared_ptr<Database> GetDatabase() const { return database; }
@@ -156,7 +132,6 @@ namespace CPN {
         std::string name;
         std::string nodetype;
         std::string param;
-        AutoBuffer arg;
         Key_t key;
         shared_ptr<Database> database;
     };

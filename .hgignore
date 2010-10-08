@@ -24,6 +24,7 @@ documentation
 # individual executables
 
 apps/SieveOfEratosthenes/ThresholdSievePerformance/result*
+apps/SieveOfEratosthenes/ThresholdSieve/ThresholdSieveDefaults.h
 
 nodelibraries/node.list*
 

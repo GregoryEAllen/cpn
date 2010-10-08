@@ -7,7 +7,7 @@
 
 #include "NodeBase.h"
 
-#define SIEVE_FILTERNODE_TYPENAME "SieveFilterNodeTypeName"
+#define SIEVE_FILTERNODE_TYPENAME "SieveFilterNode"
 
 /**
  * \brief This node implements the filter for the
@@ -24,18 +24,11 @@
  */
 class FilterNode : public CPN::NodeBase {
 public:
-	struct Param {
-		unsigned long filterval;
-		unsigned long threshold;
-	};
-	FilterNode(CPN::Kernel& ker, const CPN::NodeAttr& attr, unsigned long filterval_,
-			unsigned long threshold_)
-		: CPN::NodeBase(ker, attr), filterval(filterval_),
-       		threshold(threshold_) {}
-	void Process(void);
+	FilterNode(CPN::Kernel& ker, const CPN::NodeAttr& attr);
 private:
-	const unsigned long filterval;
-	const unsigned long threshold;
+	void Process(void);
+	unsigned long filterval;
+	unsigned long threshold;
 };
 
 #endif

@@ -202,9 +202,6 @@ namespace CPN {
         nodeattr["name"] = attr.GetName();
         nodeattr["nodetype"] = attr.GetTypeName();
         nodeattr["param"] = attr.GetParam();
-        Base64Encoder encode(0);
-        encode.EncodeBlock(attr.GetArg().GetBuffer(), attr.GetArg().GetSize());
-        nodeattr["arg"] = encode.BlockEnd();
         nodeattr["key"] = attr.GetKey();
         msg["nodeattr"] = nodeattr;
         SendMessage(msg);
@@ -213,10 +210,6 @@ namespace CPN {
     NodeAttr MsgToNodeAttr(const Variant &msg) {
         NodeAttr attr(msg["name"].AsString(), msg["nodetype"].AsString());
         attr.SetHost(msg["host"].AsString()).SetParam(msg["param"].AsString());
-        Base64Decoder decode;
-        decode.DecodeBlock(msg["arg"].AsString());
-        std::vector<char> arg = decode.BlockEnd();
-        attr.SetParam(StaticConstBuffer(&arg[0], arg.size()));
         attr.SetKey(msg["key"].AsNumber<Key_t>());
         return attr;
     }

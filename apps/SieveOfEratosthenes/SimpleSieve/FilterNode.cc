@@ -7,6 +7,7 @@
 #include "QueueWriterAdapter.h"
 #include "QueueReaderAdapter.h"
 #include "NodeFactory.h"
+#include "JSONToVariant.h"
 #include <stdexcept>
 
 #if _DEBUG
@@ -22,17 +23,18 @@
 #define DBPRINT(frmt, ...)
 #endif
 
-class FilterFactory : public CPN::NodeFactory {
-public:
-	FilterFactory() : CPN::NodeFactory(SIEVE_FILTERNODE_TYPENAME) {}
-    CPN::shared_ptr<CPN::NodeBase> Create(CPN::Kernel& ker, const CPN::NodeAttr& attr) {
-        ASSERT(attr.GetArg().GetBuffer());
-        ASSERT(attr.GetArg().GetSize() == sizeof(FilterNode::Param));
-		FilterNode::Param* p = (FilterNode::Param*)attr.GetArg().GetBuffer();
-		return CPN::shared_ptr<CPN::NodeBase>(new FilterNode(ker, attr, p->filterval, p->threshold));
-	}
-};
+CPN_DECLARE_NODE_FACTORY(SieveFilterNode, FilterNode);
 
+FilterNode::FilterNode(CPN::Kernel& ker, const CPN::NodeAttr& attr)
+    : CPN::NodeBase(ker, attr)
+{
+    JSONToVariant p;
+    p.Parse(attr.GetParam());
+    ASSERT(p.Done());
+    Variant param = p.Get();
+    filterval = param["filterval"].AsNumber<unsigned long>();
+    threshold = param["filterval"].AsNumber<unsigned long>();
+}
 
 void FilterNode::Process(void) {
 	DEBUG("FilterNode %s start\n", GetName().c_str());
@@ -64,11 +66,4 @@ void FilterNode::Process(void) {
 	DEBUG("FilterNode %s end\n", GetName().c_str());
 }
 
-extern "C" {
-    CPN::shared_ptr<CPN::NodeFactory> cpninitSieveFilterNodeTypeName(void);
-}
-
-CPN::shared_ptr<CPN::NodeFactory> cpninitSieveFilterNodeTypeName(void) {
-	return (CPN::shared_ptr<CPN::NodeFactory>(new FilterFactory));
-}
 

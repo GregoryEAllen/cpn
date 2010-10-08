@@ -46,19 +46,8 @@ VBeamformerNode::VBeamformerNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)
     std::transform(param["outports"].ListBegin(), param["outports"].ListEnd(),
             outports.begin(), std::mem_fun_ref(&Variant::AsString));
     blocksize = param["blocksize"].AsUnsigned();
-    if (param["file"].IsString()) {
-        std::auto_ptr<VBeamformer> vbf = VBLoadFromFile(param["file"].AsString());
-        vbeam = vbf.release();
-    } else {
-        unsigned numFans = param["numFans"].AsUnsigned();
-        unsigned numStaveTypes = param["numStaveTypes"].AsUnsigned();
-        unsigned numElemsPerStave = param["numElemsPerStave"].AsUnsigned();
-        unsigned filterLen = param["filterLen"].AsUnsigned();
-        float *filter = (float*)attr.GetArg().GetBuffer();
-        complex<float> *bbcor = (complex<float>*)(filter + filterLen * numStaveTypes * numElemsPerStave * numFans);
-        vbeam = new VBeamformer(numFans, numStaveTypes, numElemsPerStave, filterLen,
-                    filter, bbcor);
-    }
+    std::auto_ptr<VBeamformer> vbf = VBLoadFromFile(param["file"].AsString());
+    vbeam = vbf.release();
     if (param["algorithm"].IsNumber()) {
         vbeam->SetAlgorithm(param["algorithm"].AsNumber<VBeamformer::Algorithm_t>());
     }

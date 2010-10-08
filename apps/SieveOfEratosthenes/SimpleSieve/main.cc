@@ -3,6 +3,8 @@
 #include "Kernel.h"
 #include "SieveControllerNode.h"
 #include "ErrnoException.h"
+#include "VariantToJSON.h"
+#include "QueueReaderAdapter.h"
 #include <sys/time.h>
 #include <unistd.h>
 #include <vector>
@@ -46,24 +48,35 @@ int main(int argc, char **argv) {
 	}
 	CPN::Kernel kernel(CPN::KernelAttr("SimpleSieveKernel"));
 	std::vector<unsigned long> results;
-	SieveControllerNode::Param param;
-	param.results = &results;
-	param.primeBound = maxprime;
-	param.numberBound = maxprime;
-	param.queueSize = queueSize;
+    Variant param;
+    param["primeBound"] = maxprime;
+    param["numberBound"] = maxprime;
+    param["queueSize"] = queueSize;
 	if (threshold == 1) {
-		param.queuehint = CPN::QUEUEHINT_DEFAULT;
+        param["queuehint"] = CPN::QUEUEHINT_DEFAULT;
 	} else {
-		param.queuehint = CPN::QUEUEHINT_THRESHOLD;
+		param["queuehint"] = CPN::QUEUEHINT_THRESHOLD;
 	}
-	param.threshold = threshold;
+	param["threshold"] = threshold;
     CPN::NodeAttr attr("controller", SIEVECONTROLLERNODE_TYPENAME);
-    attr.SetParam(StaticBuffer(&param, sizeof(param)));
+    attr.SetParam(VariantToJSON(param));
 	kernel.CreateNode(attr);
+    CPN::Key_t pseudokey = kernel.CreatePseudoNode("output");
+    CPN::QueueAttr qattr(100*sizeof(unsigned long), 100*sizeof(unsigned long));
+    qattr.SetHint(threshold == 1 ? CPN::QUEUEHINT_DEFAULT : CPN::QUEUEHINT_THRESHOLD);
+    qattr.SetWriter("controller", "output");
+    qattr.SetReader("output", "out");
+    kernel.CreateQueue(qattr);
     double start = getTime();
+    CPN::QueueReaderAdapter<unsigned long> in = kernel.GetPseudoReader(pseudokey, "out");
+    unsigned long val;
+    while (in.Dequeue(&val, 1)) {
+        results.push_back(val);
+    }
+    kernel.DestroyPseudoNode(pseudokey);
 	kernel.WaitNodeTerminate("controller");
     double stop = getTime();
-	printf("Duration: %f\n", (start - stop));
+	printf("Duration: %f\n", (stop - start));
 	for (unsigned i = 0; i < results.size(); i++) {
 		printf(" %lu,", results[i]);
 	}

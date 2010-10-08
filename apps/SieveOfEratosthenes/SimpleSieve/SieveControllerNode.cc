@@ -11,6 +11,8 @@
 #include "NodeFactory.h"
 #include "ToString.h"
 #include "Assert.h"
+#include "JSONToVariant.h"
+#include "VariantToJSON.h"
 #include <cmath>
 #include <stdexcept>
 
@@ -30,18 +32,22 @@
 using CPN::NodeAttr;
 using CPN::QueueAttr;
 
-class SCNFactory : public CPN::NodeFactory {
-public:
-	SCNFactory() : CPN::NodeFactory(SIEVECONTROLLERNODE_TYPENAME) {}
+CPN_DECLARE_NODE_FACTORY(SieveControllerNode, SieveControllerNode);
 
-    CPN::shared_ptr<CPN::NodeBase> Create(CPN::Kernel& ker, const CPN::NodeAttr &attr) {
-        ASSERT(attr.GetArg().GetSize() == sizeof(SieveControllerNode::Param));
-        return CPN::shared_ptr<CPN::NodeBase>(
-                new SieveControllerNode(ker, attr,
-                    *((SieveControllerNode::Param*)attr.GetArg().GetBuffer())));
-	}
+SieveControllerNode::SieveControllerNode(CPN::Kernel& ker, const CPN::NodeAttr& attr)
+    : CPN::NodeBase(ker, attr), lastprime(0)
+{
+    JSONToVariant p;
+    p.Parse(attr.GetParam());
+    ASSERT(p.Done());
+    Variant param = p.Get();
+    primeBound = param["primeBound"].AsNumber<unsigned long>();
+    numberBound = param["numberBound"].AsNumber<unsigned long>();
+    queuehint = param["queuehint"].AsNumber<CPN::QueueHint_t>();
+    queueSize = param["queueSize"].AsNumber<unsigned long>();
+    threshold = param["threshold"].AsNumber<unsigned long>();
+}
 
-};
 
 static const char* const PRODUCER_NAME = "ProducerName";
 static const char* const FILTER_FORMAT = "Filter: %lu";
@@ -56,13 +62,14 @@ void SieveControllerNode::Process(void) {
 	Initialize();
     bool finaltransition = true;
 	unsigned long readVal = 0;
-	const unsigned long stopVal = (unsigned long)std::ceil(std::sqrt((double) param.primeBound));
+	const unsigned long stopVal = (unsigned long)std::ceil(std::sqrt((double) primeBound));
 	CPN::QueueReaderAdapter<unsigned long> in = GetReader(ToString(RESULT_IN, lastprime));
+    CPN::QueueWriterAdapter<unsigned long> out = GetWriter("output");
 	do {
 		in.Dequeue(&readVal, 1);
         DBPRINT("Result got %lu\n", readVal);
 		if (readVal != 0) {
-			param.results->push_back(readVal);
+            out.Enqueue(&readVal, 1);
             if (readVal != lastprime) {
                 if (readVal < stopVal) {
                     DBPRINT("Created new filter %lu\n", readVal);
@@ -78,30 +85,25 @@ void SieveControllerNode::Process(void) {
                 }
             }
 		}
-	} while (readVal != 0 && param.primeBound > readVal);
-	kernel.Terminate();
+	} while (readVal != 0 && primeBound > readVal);
 	DEBUG("SieveControllerNode %s end\n", GetName().c_str());
 }
 
-extern "C" {
-    CPN::shared_ptr<CPN::NodeFactory> cpninitSieveControllerNodeTypeName(void);
-}
-
-CPN::shared_ptr<CPN::NodeFactory> cpninitSieveControllerNodeTypeName(void) {
-	return (CPN::shared_ptr<CPN::NodeFactory>(new SCNFactory));
-}
 
 void SieveControllerNode::Initialize(void) {
 
     NodeAttr producerattr(PRODUCER_NAME, SIEVE_PRODUCERNODE_TYPENAME);
-    producerattr.SetParam(StaticConstBuffer(&param, sizeof(param)));
+    Variant param;
+    param["numberBound"] = numberBound;
+    producerattr.SetParam(VariantToJSON(param));
 	kernel.CreateNode(producerattr);
 
     lastprime = 2;
     std::string filtername = ToString(FILTER_FORMAT, lastprime);
     NodeAttr filterattr(filtername, SIEVE_FILTERNODE_TYPENAME);
-	FilterNode::Param p = { lastprime, param.threshold };
-    filterattr.SetParam(StaticConstBuffer(&p, sizeof(p)));
+    param["filterval"] = lastprime;
+    param["threshold"] = threshold;
+    filterattr.SetParam(VariantToJSON(param));
     kernel.CreateNode(filterattr);
 
     QueueAttr qattr = GetQueueAttr();
@@ -117,8 +119,10 @@ void SieveControllerNode::Initialize(void) {
 void SieveControllerNode::CreateFilter(const unsigned long prime) {
 	std::string nodename = ToString(FILTER_FORMAT, prime);
     NodeAttr attr(nodename, SIEVE_FILTERNODE_TYPENAME);
-	FilterNode::Param p = { prime, param.threshold };
-    attr.SetParam(StaticConstBuffer(&p, sizeof(p)));
+    Variant param;
+    param["filterval"] = prime;
+    param["threshold"] = threshold;
+    attr.SetParam(VariantToJSON(param));
 	kernel.CreateNode(attr);
 
     QueueAttr qattr = GetQueueAttr();
@@ -133,9 +137,9 @@ void SieveControllerNode::CreateFilter(const unsigned long prime) {
 }
 
 QueueAttr SieveControllerNode::GetQueueAttr() {
-    QueueAttr qattr(param.queueSize * sizeof(unsigned long),
-            param.threshold * sizeof(unsigned long));
-    qattr.SetHint(param.queuehint).SetDatatype<unsigned long>();
+    QueueAttr qattr(queueSize * sizeof(unsigned long),
+            threshold * sizeof(unsigned long));
+    qattr.SetHint(queuehint).SetDatatype<unsigned long>();
     return qattr;
 }
 
