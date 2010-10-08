@@ -43,13 +43,10 @@ const SieveNumber MAX_PRIME_VALUE = 100;
 
 const char PORT_IN[] = "x";
 const char PORT_OUT[] = "y";
+const char PORT_RESULT[] = "res";
 const char PORT_FORMAT[] = "Result: %llu";
 const char FILTER_FORMAT[] = "Filter: %llu";
 const char QUEUE_FORMAT[] = "Queue %llu";
-
-const char FILTER_TYPE[] = "SieveFilterType";
-const char RESULT_TYPE[] = "SieveResultType";
-const char PRODUCER_TYPE[] = "SieveProducerType";
 
 class SieveResultNode : public CPN::NodeBase {
 public:
@@ -66,12 +63,15 @@ private:
     SieveNumber resultsize;
     std::vector<std::string> *hosts;
 };
+
+CPN_DECLARE_NODE_FACTORY(SieveResultNode, SieveResultNode);
+
 SieveResultNode::SieveResultNode(CPN::Kernel& ker, const CPN::NodeAttr& attr)
     : CPN::NodeBase(ker, attr)
 {
     Param *param = (Param*)attr.GetArg().GetBuffer();
     result = param->result;
-    resultsize = param->resultsize/sizeof(SieveNumber);
+    resultsize = param->resultsize;
     hosts = param->hosts;
 }
 
@@ -83,7 +83,7 @@ void SieveResultNode::Process() {
     SieveNumber index = 0;
     while (index < resultsize) {
         SieveNumber value;
-        ASSERT(in.Dequeue(&value, 1));
+        ENSURE(in.Dequeue(&value, 1));
         if (value == 0) {
             ++portnum;
             CreateNextFilter(portnum);
@@ -97,7 +97,7 @@ void SieveResultNode::Process() {
         }
     }
     SieveNumber val = -1;
-    ASSERT(in.Dequeue(&val, 1));
+    ENSURE(in.Dequeue(&val, 1));
     ASSERT(0 == val);
     in.Release();
     DBPRINT("%s stopped\n", ourname.c_str());
@@ -105,8 +105,7 @@ void SieveResultNode::Process() {
 
 void SieveResultNode::CreateNextFilter(SieveNumber filternum) {
     std::string nodename = ToString(FILTER_FORMAT, filternum); 
-    CPN::NodeAttr nattr(nodename, FILTER_TYPE);
-    nattr.SetParam(StaticBuffer(&filternum, sizeof(SieveNumber)));
+    CPN::NodeAttr nattr(nodename, "SieveFilterNode");
     if (hosts) {
         nattr.SetHost(hosts->at(filternum%hosts->size()));
     }
@@ -119,7 +118,7 @@ void SieveResultNode::CreateNextFilter(SieveNumber filternum) {
     kernel.CreateQueue(qattr);
     // A queue between next and result
     std::string portname = ToString(PORT_FORMAT, filternum);
-    qattr.SetWriter(nodename, portname);
+    qattr.SetWriter(nodename, PORT_RESULT);
     qattr.SetReader("TheResult", portname);
     kernel.CreateQueue(qattr);
 }
@@ -129,24 +128,23 @@ public:
     SieveFilterNode(CPN::Kernel& ker, const CPN::NodeAttr& attr);
     void Process();
 private:
-    SieveNumber nodenum;
 };
+
+CPN_DECLARE_NODE_FACTORY(SieveFilterNode, SieveFilterNode);
 
 SieveFilterNode::SieveFilterNode(CPN::Kernel& ker, const CPN::NodeAttr& attr)
     : CPN::NodeBase(ker, attr) {
-    nodenum = *((SieveNumber*)attr.GetArg().GetBuffer());
 }
 
 void SieveFilterNode::Process() {
     std::string ourname = GetName();
     CPN::QueueReaderAdapter<SieveNumber> in = GetReader(PORT_IN);
-    std::string portname = ToString(PORT_FORMAT, nodenum);
-    CPN::QueueWriterAdapter<SieveNumber> result = GetWriter(portname);
+    CPN::QueueWriterAdapter<SieveNumber> result = GetWriter(PORT_RESULT);
     CPN::QueueWriterAdapter<SieveNumber> out;
     DBPRINT("Filter node %s started (in %llu result %llu)\n", ourname.c_str(), in.GetKey(), result.GetKey());
     SieveNumber input = 0;
     SieveNumber value = 0;
-    ASSERT(in.Dequeue(&input, 1));
+    ENSURE(in.Dequeue(&input, 1));
     result.Enqueue(&input, 1);
     if (0 == input) {
         DBPRINT("%s stopped early\n", ourname.c_str());
@@ -163,7 +161,7 @@ void SieveFilterNode::Process() {
         out = result;
     }
     while (true) {
-        ASSERT(in.Dequeue(&input, 1));
+        ENSURE(in.Dequeue(&input, 1));
         if (input%value != 0) {
             out.Enqueue(&input, 1);
         }
@@ -183,9 +181,12 @@ public:
     void Process(void);
 };
 
+CPN_DECLARE_NODE_FACTORY(SieveProducerNode, SieveProducerNode);
+
 SieveProducerNode::SieveProducerNode(CPN::Kernel& ker, const CPN::NodeAttr& attr)
     : CPN::NodeBase(ker, attr) {
 }
+
 void SieveProducerNode::Process(void) {
     std::string ourname = GetName();
     CPN::QueueWriterAdapter<SieveNumber> out = GetWriter(PORT_OUT);
@@ -202,49 +203,6 @@ void SieveProducerNode::Process(void) {
     DBPRINT("%s stopped\n", ourname.c_str());
 }
 
-class SieveNodeFactory : public CPN::NodeFactory {
-public:
-    enum Type {
-        FILTER, RESULT, PRODUCER
-    };
-    SieveNodeFactory(std::string name_, Type t) : CPN::NodeFactory(name_), type(t) {
-    }
-    CPN::shared_ptr<CPN::NodeBase> Create(CPN::Kernel &ker, const CPN::NodeAttr &attr) {
-        switch (type) {
-        case FILTER:
-            return CPN::shared_ptr<CPN::NodeBase>(new SieveFilterNode(ker, attr));
-        case PRODUCER:
-            return CPN::shared_ptr<CPN::NodeBase>(new SieveProducerNode(ker, attr));
-        case RESULT:
-            return CPN::shared_ptr<CPN::NodeBase>(new SieveResultNode(ker, attr));
-        default:
-            CPPUNIT_FAIL("Unspecified Sieve node type");
-            return CPN::shared_ptr<CPN::NodeBase>();
-        }
-    }
-
-private:
-    Type type;
-};
-
-extern "C" {
-    CPN::shared_ptr<CPN::NodeFactory> cpninitSieveFilterType(void);
-    CPN::shared_ptr<CPN::NodeFactory> cpninitSieveResultType(void);
-    CPN::shared_ptr<CPN::NodeFactory> cpninitSieveProducerType(void);
-}
-CPN::shared_ptr<CPN::NodeFactory> cpninitSieveFilterType(void) {
-    return CPN::shared_ptr<CPN::NodeFactory>(new SieveNodeFactory(FILTER_TYPE, SieveNodeFactory::FILTER));
-}
-
-CPN::shared_ptr<CPN::NodeFactory> cpninitSieveResultType(void) {
-    return CPN::shared_ptr<CPN::NodeFactory>(new SieveNodeFactory(RESULT_TYPE, SieveNodeFactory::RESULT));
-
-}
-
-CPN::shared_ptr<CPN::NodeFactory> cpninitSieveProducerType(void) {
-    return CPN::shared_ptr<CPN::NodeFactory>(new SieveNodeFactory(PRODUCER_TYPE, SieveNodeFactory::PRODUCER));
-}
-
 void SieveTest::setUp(void) {
 }
 
@@ -256,22 +214,20 @@ void SieveTest::RunTest(void) {
     DEBUG("%s\n",__PRETTY_FUNCTION__);
     CPN::Kernel kernel(CPN::KernelAttr("Testing"));
     kernel.GetDatabase()->UseD4R(false);
-    AutoBuffer buffer(NUMPRIMES*sizeof(SieveNumber));
-    CPPUNIT_ASSERT(buffer.GetBuffer());
+    std::vector<SieveNumber> result(NUMPRIMES);
 
-    CPN::NodeAttr nattr("TheProducer", PRODUCER_TYPE);
+    CPN::NodeAttr nattr("TheProducer", "SieveProducerNode");
     kernel.CreateNode(nattr);
 
     SieveNumber nodenum = 0;
     std::string filtername = ToString(FILTER_FORMAT, nodenum);
     nattr.SetName(filtername);
-    nattr.SetTypeName(FILTER_TYPE);
-    nattr.SetParam(StaticBuffer(&nodenum, sizeof(SieveNumber)));
+    nattr.SetTypeName("SieveFilterNode");
     kernel.CreateNode(nattr);
 
     nattr.SetName("TheResult");
-    nattr.SetTypeName(RESULT_TYPE);
-    SieveResultNode::Param resultparam = { (SieveNumber*)buffer.GetBuffer(), buffer.GetSize(), 0 };
+    nattr.SetTypeName("SieveResultNode");
+    SieveResultNode::Param resultparam = { &result[0], result.size(), 0 };
     nattr.SetParam(StaticBuffer(&resultparam, sizeof(resultparam)));
     kernel.CreateNode(nattr);
 
@@ -282,12 +238,11 @@ void SieveTest::RunTest(void) {
     kernel.CreateQueue(qattr);
 
     std::string portname = ToString(PORT_FORMAT, nodenum);
-    qattr.SetWriter(filtername, portname);
+    qattr.SetWriter(filtername, PORT_RESULT);
     qattr.SetReader("TheResult", portname);
     kernel.CreateQueue(qattr);
 
     kernel.WaitNodeTerminate("TheResult");
-    SieveNumber* result = (SieveNumber*) buffer.GetBuffer();
     for (SieveNumber i = 0; i < NUMPRIMES; i++) {
         CPPUNIT_ASSERT_EQUAL(result[i], PRIMES[i]);
     }
@@ -295,8 +250,7 @@ void SieveTest::RunTest(void) {
 
 void SieveTest::RunTwoKernelTest() {
     DEBUG("%s\n",__PRETTY_FUNCTION__);
-    AutoBuffer buffer(NUMPRIMES*sizeof(SieveNumber));
-    CPPUNIT_ASSERT(buffer.GetBuffer());
+    std::vector<SieveNumber> result(NUMPRIMES);
     CPN::shared_ptr<CPN::Database> database = CPN::Database::Local();
     database->LogLevel(Logger::WARNING);
     database->UseD4R(false);
@@ -306,19 +260,18 @@ void SieveTest::RunTwoKernelTest() {
     hosts.push_back("one");
     hosts.push_back("two");
 
-    CPN::NodeAttr nattr("TheProducer", PRODUCER_TYPE);
+    CPN::NodeAttr nattr("TheProducer", "SieveProducerNode");
     kone.CreateNode(nattr);
 
     SieveNumber nodenum = 0;
     std::string filtername = ToString(FILTER_FORMAT, nodenum);
     nattr.SetName(filtername);
-    nattr.SetTypeName(FILTER_TYPE);
-    nattr.SetParam(StaticBuffer(&nodenum, sizeof(SieveNumber)));
+    nattr.SetTypeName("SieveFilterNode");
     ktwo.CreateNode(nattr);
 
     nattr.SetName("TheResult");
-    nattr.SetTypeName(RESULT_TYPE);
-    SieveResultNode::Param resultparam = { (SieveNumber*)buffer.GetBuffer(), buffer.GetSize(), &hosts };
+    nattr.SetTypeName("SieveResultNode");
+    SieveResultNode::Param resultparam = { &result[0], result.size(), &hosts };
     nattr.SetParam(StaticBuffer(&resultparam, sizeof(resultparam)));
     kone.CreateNode(nattr);
 
@@ -329,12 +282,11 @@ void SieveTest::RunTwoKernelTest() {
     ktwo.CreateQueue(qattr);
 
     std::string portname = ToString(PORT_FORMAT, nodenum);
-    qattr.SetWriter(filtername, portname);
+    qattr.SetWriter(filtername, PORT_RESULT);
     qattr.SetReader("TheResult", portname);
     kone.CreateQueue(qattr);
 
     kone.WaitNodeTerminate("TheResult");
-    SieveNumber* result = (SieveNumber*) buffer.GetBuffer();
     for (SieveNumber i = 0; i < NUMPRIMES; i++) {
         CPPUNIT_ASSERT_EQUAL(result[i], PRIMES[i]);
     }
