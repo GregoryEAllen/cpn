@@ -5,21 +5,27 @@
 #include "NodeFactory.h"
 #include "Kernel.h"
 #include "Assert.h"
+#include "JSONToVariant.h"
 
 
 MockSyncNode::MockSyncNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)
     : CPN::NodeBase(ker, attr)
 {
-    param = *(Param*)attr.GetArg().GetBuffer();
+    JSONToVariant p;
+    p.Parse(attr.GetParam());
+    ASSERT(p.Done());
+    Variant param = p.Get();
+    mode = param["mode"].AsNumber<Mode_t>();
+    othernode = param["other"].AsString();
 }
 
 void MockSyncNode::Process() {
-    switch (param.mode) {
+    switch (mode) {
     case MODE_SOURCE:
         {
-            kernel.WaitNodeStart(param.othernode);
+            kernel.WaitNodeStart(othernode);
             CPN::QueueAttr qattr(sizeof(unsigned long), sizeof(unsigned long));
-            qattr.SetReader(param.othernode, "x").SetWriter(GetName(), "y");
+            qattr.SetReader(othernode, "x").SetWriter(GetName(), "y");
             qattr.SetDatatype<unsigned long>();
             kernel.CreateQueue(qattr);
             CPN::QueueWriterAdapter<unsigned long> out = GetWriter("y");
@@ -30,7 +36,7 @@ void MockSyncNode::Process() {
         break;
     case MODE_SINK:
         {
-            kernel.WaitNodeTerminate(param.othernode);
+            kernel.WaitNodeTerminate(othernode);
             CPN::QueueReaderAdapter<unsigned long> in = GetReader("x");
             unsigned long val;
             ASSERT(in.Dequeue(&val, 1));

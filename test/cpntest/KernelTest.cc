@@ -9,6 +9,7 @@
 #include "MockNode.h"
 #include "MockSyncNode.h"
 #include "VariantCPNLoader.h"
+#include "VariantToJSON.h"
 #include <stdexcept>
 #include <string>
 #include <string.h>
@@ -113,15 +114,15 @@ void KernelTest::TestSync() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
     CPN::Kernel kernel(KernelAttr("test"));
     kernel.GetDatabase()->UseD4R(false);
-    MockSyncNode::Param param;
+    Variant param;
+    param["mode"] = MockSyncNode::MODE_SOURCE;
+    param["other"] = "sync2";
     NodeAttr attr("sync1", MOCKSYNCNODE_TYPENAME);
-    strncpy(param.othernode, "sync2", 50);
-    param.mode = MockSyncNode::MODE_SOURCE;
-    attr.SetParam(StaticConstBuffer(&param, sizeof(param)));
+    attr.SetParam(VariantToJSON(param));
     kernel.CreateNode(attr);
-    strncpy(param.othernode, "sync1", 50);
-    param.mode = MockSyncNode::MODE_SINK;
-    attr.SetName("sync2").SetParam(StaticConstBuffer(&param, sizeof(param)));
+    param["mode"] = MockSyncNode::MODE_SINK;
+    param["other"] = "sync1";
+    attr.SetName("sync2").SetParam(VariantToJSON(param));
     kernel.CreateNode(attr);
     kernel.WaitNodeTerminate("sync2");
 }

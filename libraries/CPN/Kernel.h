@@ -92,10 +92,45 @@ namespace CPN {
          */
         Key_t CreateNode(const NodeAttr &attr);
 
+        /**
+         * \brief Create a new Pseudo node.
+         *
+         * A pseudo node is a handle that can be used to create endpoints
+         * for applications to use outside of the network to input and output
+         * data
+         * 
+         * Note that a pseudo node can only be used on the kernel it is created on.
+         *
+         * \param nodename The name of the pseudo node
+         * \return a unique key for the pseudo node to use in other pseudo functions.
+         */
         Key_t CreatePseudoNode(const std::string &nodename);
+        /**
+         * Get the key for an already created pseudo node.
+         * \param nodename the name
+         * \return the key
+         */
         Key_t GetPseudoNode(const std::string &nodename);
+        /**
+         * Get a writer for the given pseudo node.
+         * \param key the pseudo key
+         * \param portname the name of the port
+         * \return a QueueWriter
+         */
         shared_ptr<QueueWriter> GetPseudoWriter(Key_t key, const std::string &portname);
+        /**
+         * Get a reader for the given pseudo node.
+         * \param key the pseudo key
+         * \param portname the name of the port
+         * \return a QueueReader
+         */
         shared_ptr<QueueReader> GetPseudoReader(Key_t key, const std::string &portname);
+        /**
+         * Mark the end of the pseudo node.
+         * Anybody waiting on it will then return.
+         * Note that calling WaitForAllNodeEnd will block
+         * until all pseudo nodes have died or Terminate is called.
+         */
         void DestroyPseudoNode(Key_t key);
 
         /**
@@ -114,6 +149,9 @@ namespace CPN {
         void WaitNodeStart(const std::string &nodename);
 
         /** \brief Create a new queue
+         *
+         * Note that the nodes for the queue must already exist.
+         *
          * \param attr the attribute to use to create the queu
          * \see QueueAttr
          */

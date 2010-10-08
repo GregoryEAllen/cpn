@@ -17,16 +17,12 @@ public:
         MODE_SOURCE,
         MODE_SINK
     };
-    struct Param {
-        // Bleh, param needs to be memcpy able
-        char othernode[50];
-        Mode_t mode;
-    };
 	MockSyncNode(CPN::Kernel &ker, const CPN::NodeAttr &attr);
 
 	void Process();
 private:
-    Param param;
+    Mode_t mode;
+    std::string othernode;
 };
 
 struct SyncSource {

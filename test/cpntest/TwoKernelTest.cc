@@ -8,6 +8,7 @@
 #include "MockNode.h"
 #include "MockSyncNode.h"
 #include "ToString.h"
+#include "VariantToJSON.h"
 #include <string.h>
 
 using CPN::Database;
@@ -69,15 +70,15 @@ void TwoKernelTest::SimpleTwoNodeTest() {
 
 void TwoKernelTest::TestSync() {
 	DEBUG("%s\n",__PRETTY_FUNCTION__);
-    MockSyncNode::Param param;
+    Variant param;
+    param["mode"] = MockSyncNode::MODE_SOURCE;
+    param["other"] = "sync2";
     NodeAttr attr("sync1", MOCKSYNCNODE_TYPENAME);
-    strncpy(param.othernode, "sync2", 50);
-    param.mode = MockSyncNode::MODE_SOURCE;
-    attr.SetParam(StaticConstBuffer(&param, sizeof(param)));
+    attr.SetParam(VariantToJSON(param));
     kone->CreateNode(attr);
-    strncpy(param.othernode, "sync1", 50);
-    param.mode = MockSyncNode::MODE_SINK;
-    attr.SetName("sync2").SetParam(StaticConstBuffer(&param, sizeof(param)));
+    param["mode"] = MockSyncNode::MODE_SINK;
+    param["other"] = "sync1";
+    attr.SetName("sync2").SetParam(VariantToJSON(param));
     ktwo->CreateNode(attr);
     ktwo->WaitNodeTerminate("sync2");
 }
