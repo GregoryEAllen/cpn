@@ -51,7 +51,7 @@ void MockSyncNode::Process() {
 
 class MockSyncNodeFactory : public CPN::NodeFactory {
 public:
-	MockSyncNodeFactory() : CPN::NodeFactory(MOCKSYNCNODE_TYPENAME) {}
+    MockSyncNodeFactory() : CPN::NodeFactory(MOCKSYNCNODE_TYPENAME) {}
 
     CPN::shared_ptr<CPN::NodeBase> Create(CPN::Kernel &ker, const CPN::NodeAttr &attr) {
         return CPN::shared_ptr<CPN::NodeBase>(new MockSyncNode(ker, attr));

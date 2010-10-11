@@ -23,21 +23,21 @@ class LocalRDBServ;
 
 class RemoteDBTest: public CppUnit::TestFixture, public CPN::KernelBase {
 public:
-	void setUp();
+    void setUp();
 
-	void tearDown();
+    void tearDown();
 
-	CPPUNIT_TEST_SUITE( RemoteDBTest );
-	CPPUNIT_TEST( HostSetupTest );
-	CPPUNIT_TEST( WaitForHostTest );
-	CPPUNIT_TEST( CreateNodeTest );
-	CPPUNIT_TEST( WaitForNodeTest );
-	CPPUNIT_TEST( ReaderTest );
-	CPPUNIT_TEST( WriterTest );
-	CPPUNIT_TEST( ConnectTest );
-	CPPUNIT_TEST_SUITE_END();
+    CPPUNIT_TEST_SUITE( RemoteDBTest );
+    CPPUNIT_TEST( HostSetupTest );
+    CPPUNIT_TEST( WaitForHostTest );
+    CPPUNIT_TEST( CreateNodeTest );
+    CPPUNIT_TEST( WaitForNodeTest );
+    CPPUNIT_TEST( ReaderTest );
+    CPPUNIT_TEST( WriterTest );
+    CPPUNIT_TEST( ConnectTest );
+    CPPUNIT_TEST_SUITE_END();
 
-	void HostSetupTest();
+    void HostSetupTest();
     void WaitForHostTest();
 
     void *WaitForHostSetup();

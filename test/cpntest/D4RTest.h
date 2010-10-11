@@ -21,16 +21,16 @@ CPPUNIT_TEST_SUITE_REGISTRATION( D4RTest );
 #include <vector>
 class D4RTest : public CppUnit::TestFixture, public D4R::TesterBase {
 public:
-	void setUp();
+    void setUp();
 
-	void tearDown();
+    void tearDown();
 
-	CPPUNIT_TEST_SUITE( D4RTest );
-	CPPUNIT_TEST( RunOneKernelTest );
-	CPPUNIT_TEST( RunTwoKernelTest );
-	CPPUNIT_TEST_SUITE_END();
+    CPPUNIT_TEST_SUITE( D4RTest );
+    CPPUNIT_TEST( RunOneKernelTest );
+    CPPUNIT_TEST( RunTwoKernelTest );
+    CPPUNIT_TEST_SUITE_END();
 
-	void RunTest(int numkernels);
+    void RunTest(int numkernels);
     void RunOneKernelTest();
     void RunTwoKernelTest();
 

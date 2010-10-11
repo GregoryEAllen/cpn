@@ -1,21 +1,21 @@
 //=============================================================================
-//	Computational Process Networks class library
-//	Copyright (C) 1997-2006  Gregory E. Allen and The University of Texas
+//  Computational Process Networks class library
+//  Copyright (C) 1997-2006  Gregory E. Allen and The University of Texas
 //
-//	This library is free software; you can redistribute it and/or modify it
-//	under the terms of the GNU Library General Public License as published
-//	by the Free Software Foundation; either version 2 of the License, or
-//	(at your option) any later version.
+//  This library is free software; you can redistribute it and/or modify it
+//  under the terms of the GNU Library General Public License as published
+//  by the Free Software Foundation; either version 2 of the License, or
+//  (at your option) any later version.
 //
-//	This library is distributed in the hope that it will be useful,
-//	but WITHOUT ANY WARRANTY; without even the implied warranty of
-//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-//	Library General Public License for more details.
+//  This library is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//  Library General Public License for more details.
 //
-//	The GNU Public License is available in the file LICENSE, or you
-//	can write to the Free Software Foundation, Inc., 59 Temple Place -
-//	Suite 330, Boston, MA 02111-1307, USA, or you can find it on the
-//	World Wide Web at http://www.fsf.org.
+//  The GNU Public License is available in the file LICENSE, or you
+//  can write to the Free Software Foundation, Inc., 59 Temple Place -
+//  Suite 330, Boston, MA 02111-1307, USA, or you can find it on the
+//  World Wide Web at http://www.fsf.org.
 //=============================================================================
 /** \file
  * \brief Top Representations of generic queues for the CPN library.
@@ -31,13 +31,13 @@
 
 namespace CPN {
 
-	/**
-	 * \brief The base class for all queues in the CPN library.
-	 */
-	class CPN_LOCAL QueueBase : public D4R::QueueBase {
-	public:
+    /**
+     * \brief The base class for all queues in the CPN library.
+     */
+    class CPN_LOCAL QueueBase : public D4R::QueueBase {
+    public:
 
-		virtual ~QueueBase();
+        virtual ~QueueBase();
 
         /**
          * Get a pointer to a buffer containing elements.
@@ -84,49 +84,49 @@ namespace CPN {
         bool RawDequeue(void *data, unsigned count);
 
         /**
-		 * Return a pointer to a buffer of memory that contains
-		 * thresh entries that we can write into.
-		 *
-		 * \note A call to this function without an accompanying call to
-		 * Enqueue is undefined.
-		 * \note An access to the memory locations defined by the return
-		 * value is undefined after a call to Enqueue.
-		 *
-		 * \param thresh the number bytes we need in the returned buffer.
-		 * \param chan the channel to use
-		 * \return void* to the memory buffer, 0 if not enough space available
-		 */
-		void *GetRawEnqueuePtr(unsigned thresh, unsigned chan);
+         * Return a pointer to a buffer of memory that contains
+         * thresh entries that we can write into.
+         *
+         * \note A call to this function without an accompanying call to
+         * Enqueue is undefined.
+         * \note An access to the memory locations defined by the return
+         * value is undefined after a call to Enqueue.
+         *
+         * \param thresh the number bytes we need in the returned buffer.
+         * \param chan the channel to use
+         * \return void* to the memory buffer, 0 if not enough space available
+         */
+        void *GetRawEnqueuePtr(unsigned thresh, unsigned chan);
 
-		/**
-		 * This function is used to release the buffer obtained with
-		 * GetRawEnqueuePtr. The count specifies the number of 
-		 * entries that we want to be placed in the buffer.
-		 *
-		 * \note A call to this function without an accompanying call
-		 * to GetRawEnqueuePtr is undefined.
-		 *
-		 * \param count the number of bytes to be placed in the buffer
-		 * \invariant count <= thresh from GetRawEnqueuePtr
-		 */
-		void Enqueue(unsigned count);
+        /**
+         * This function is used to release the buffer obtained with
+         * GetRawEnqueuePtr. The count specifies the number of 
+         * entries that we want to be placed in the buffer.
+         *
+         * \note A call to this function without an accompanying call
+         * to GetRawEnqueuePtr is undefined.
+         *
+         * \param count the number of bytes to be placed in the buffer
+         * \invariant count <= thresh from GetRawEnqueuePtr
+         */
+        void Enqueue(unsigned count);
 
-		/**
-		 * This function shall be equivalent to
-		 * a call to GetRqwEnqueuePtr and a memcpy and then
-		 * a call to Enqueue
-		 *
-		 * The underlying implementatin may implement ether the
-		 * GetRawEnqueuePtr and Enqueue or RawEnqueue and
-		 * then implement the other in terms of the one implemented.
-		 *
-		 * \param data pointer to the memory to enqueue
-		 * \param count the number of bytes to enqueue
+        /**
+         * This function shall be equivalent to
+         * a call to GetRqwEnqueuePtr and a memcpy and then
+         * a call to Enqueue
+         *
+         * The underlying implementatin may implement ether the
+         * GetRawEnqueuePtr and Enqueue or RawEnqueue and
+         * then implement the other in terms of the one implemented.
+         *
+         * \param data pointer to the memory to enqueue
+         * \param count the number of bytes to enqueue
          * \param numChans the number of channels to write to
          * \param chanStride the distance in bytes between the beginning of
          * the channels in data.
-		 */
-		void RawEnqueue(const void *data, unsigned count,
+         */
+        void RawEnqueue(const void *data, unsigned count,
                 unsigned numChans, unsigned chanStride);
 
         /**
@@ -134,7 +134,7 @@ namespace CPN {
          * \param data pointer to the memory to enqueue
          * \param count the number of bytes to enqueue
          */
-		void RawEnqueue(const void *data, unsigned count);
+        void RawEnqueue(const void *data, unsigned count);
 
 
         /**
@@ -152,16 +152,16 @@ namespace CPN {
          */
         virtual bool Empty() const = 0;
 
-		/**
-		 * \return the number of bytes we can add to the queue without
-		 * blocking.
-		 */
-		virtual unsigned Freespace() const = 0;
+        /**
+         * \return the number of bytes we can add to the queue without
+         * blocking.
+         */
+        virtual unsigned Freespace() const = 0;
 
-		/**
-		 * \return true if the queue is full, false otherwise
-		 */
-		virtual bool Full() const = 0;
+        /**
+         * \return true if the queue is full, false otherwise
+         */
+        virtual bool Full() const = 0;
 
         /**
          * \return the maximum threshold this queue supports
@@ -221,8 +221,8 @@ namespace CPN {
 
         virtual unsigned NumEnqueued() const = 0;
         virtual unsigned NumDequeued() const = 0;
-	protected:
-		QueueBase(shared_ptr<Database> db, const SimpleQueueAttr &attr);
+    protected:
+        QueueBase(shared_ptr<Database> db, const SimpleQueueAttr &attr);
 
         virtual void WaitForData();
         virtual bool ReadBlocked();
@@ -254,11 +254,11 @@ namespace CPN {
         shared_ptr<Database> database;
         bool useD4R;
         Logger logger;
-	private:
+    private:
         Sync::ReentrantLock lock;
         Sync::ReentrantCondition cond;
         std::string datatype;
-	};
+    };
 
     /**
      * Abstract base class that the QueueReader and QueueWriter use to communicate

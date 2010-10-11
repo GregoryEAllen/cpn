@@ -29,9 +29,9 @@
  */
 class ProducerNode : public CPN::NodeBase {
 public:
-	ProducerNode(CPN::Kernel& ker, const CPN::NodeAttr& attr);
+    ProducerNode(CPN::Kernel& ker, const CPN::NodeAttr& attr);
 private:
-	void Process(void);
+    void Process(void);
     unsigned long numberBound;
 };
 

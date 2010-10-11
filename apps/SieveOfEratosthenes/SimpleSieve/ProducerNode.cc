@@ -36,18 +36,18 @@ ProducerNode::ProducerNode(CPN::Kernel& ker, const CPN::NodeAttr& attr)
 CPN_DECLARE_NODE_FACTORY(SieveProducerNode, ProducerNode);
 
 void ProducerNode::Process(void) {
-	DEBUG("ProducerNode %s start\n", GetName().c_str());
-	CPN::QueueWriterAdapter<unsigned long> out = GetWriter("y");
-	const unsigned long cutoff = numberBound;
-	unsigned long counter = 2;
-	while (cutoff == 0 || counter < cutoff) {
+    DEBUG("ProducerNode %s start\n", GetName().c_str());
+    CPN::QueueWriterAdapter<unsigned long> out = GetWriter("y");
+    const unsigned long cutoff = numberBound;
+    unsigned long counter = 2;
+    while (cutoff == 0 || counter < cutoff) {
         DBPRINT("ProducerNode: enqueue(%lu)\n", counter);
-		out.Enqueue(&counter, 1);
-		++counter;
-	}
-	// Ending marker
-	counter = 0;
-	out.Enqueue(&counter, 1);
-	DEBUG("ProducerNode %s end\n", GetName().c_str());
+        out.Enqueue(&counter, 1);
+        ++counter;
+    }
+    // Ending marker
+    counter = 0;
+    out.Enqueue(&counter, 1);
+    DEBUG("ProducerNode %s end\n", GetName().c_str());
 }
 

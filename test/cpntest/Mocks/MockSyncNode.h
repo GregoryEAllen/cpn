@@ -17,9 +17,9 @@ public:
         MODE_SOURCE,
         MODE_SINK
     };
-	MockSyncNode(CPN::Kernel &ker, const CPN::NodeAttr &attr);
+    MockSyncNode(CPN::Kernel &ker, const CPN::NodeAttr &attr);
 
-	void Process();
+    void Process();
 private:
     Mode_t mode;
     std::string othernode;

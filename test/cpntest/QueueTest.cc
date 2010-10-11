@@ -136,12 +136,12 @@ void QueueTest::tearDown() {
 
 
 void QueueTest::SimpleQueueTest() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     shared_ptr<Database> database = shared_ptr<Database>(new MockDatabase);
     SimpleQueueAttr attr;
     attr.SetLength(309).SetMaxThreshold(10).SetNumChannels(1)
         .SetReaderKey(RKEY).SetWriterKey(WKEY);
-	//DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
+    //DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
     queue = new ThresholdQueue(database, attr);
     TestBulk();
     delete queue;
@@ -149,7 +149,7 @@ void QueueTest::SimpleQueueTest() {
     //queue = shared_ptr<QueueBase>(new SimpleQueue(database, attr));
     //TestDirect(queue.get());
     attr.SetNumChannels(10);
-	//DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
+    //DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
     queue = new ThresholdQueue(database, attr);
     TestBulk();
     delete queue;
@@ -175,13 +175,13 @@ void QueueTest::SimpleQueueTest() {
 }
 
 void QueueTest::ThresholdQueueTest() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     shared_ptr<Database> database = shared_ptr<Database>(new MockDatabase);
     SimpleQueueAttr attr;
     attr.SetLength(30).SetMaxThreshold(10).SetNumChannels(1)
         .SetReaderKey(RKEY).SetWriterKey(WKEY)
         .SetHint(CPN::QUEUEHINT_THRESHOLD);
-	//DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
+    //DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
     queue = new ThresholdQueue(database, attr);
     TestBulk();
     delete queue;
@@ -189,7 +189,7 @@ void QueueTest::ThresholdQueueTest() {
     //queue = shared_ptr<QueueBase>(new ThresholdQueue(database, attr));
     //TestDirect(queue.get());
     attr.SetNumChannels(10);
-	//DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
+    //DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
     queue = new ThresholdQueue(database, attr);
     CommunicationTest();
     delete queue;
@@ -203,7 +203,7 @@ void QueueTest::ThresholdQueueTest() {
 }
 
 void QueueTest::TestBulk() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     unsigned maxthresh = queue->MaxThreshold();
     unsigned channels = queue->NumChannels();
     //printf("Size %u, Thresh %u, Chans %u\n", queue->QueueLength(), maxthresh, channels);
@@ -261,7 +261,7 @@ void QueueTest::TestBulk() {
 }
 
 void QueueTest::TestDirect() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     unsigned maxthresh = queue->MaxThreshold();
     unsigned channels = queue->NumChannels();
     unsigned qsize = queue->QueueLength();
@@ -303,7 +303,7 @@ void QueueTest::TestDirect() {
 
 // Tests normal communication and blocking on the enqueue side
 void QueueTest::CommunicationTest() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     Reset();
     std::auto_ptr<Pthread> enqueuer = std::auto_ptr<Pthread>(
             CreatePthreadFunctional(this, &QueueTest::EnqueueData));
@@ -334,7 +334,7 @@ void QueueTest::CommunicationTest() {
 // Test that dequeue will block and then test that enqueue properly
 // dies when the dequeue side shuts down.
 void QueueTest::DequeueBlockTest() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     Reset();
     std::auto_ptr<Pthread> enqueuer = std::auto_ptr<Pthread>(
             CreatePthreadFunctional(this, &QueueTest::EnqueueData));
@@ -356,7 +356,7 @@ void QueueTest::DequeueBlockTest() {
 }
 
 void QueueTest::MaxThreshGrowTest() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     unsigned maxthresh = queue->MaxThreshold();
     unsigned numchan = queue->NumChannels();
     char *ptr = 0;
@@ -398,7 +398,7 @@ void QueueTest::MaxThreshGrowTest() {
 }
 
 void QueueTest::GrowTest() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     unsigned maxthresh = queue->MaxThreshold();
     unsigned numchan = queue->NumChannels();
     char *ptr = 0;

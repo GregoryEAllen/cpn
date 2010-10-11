@@ -27,26 +27,26 @@ void NodeFactoryTest::tearDown(void) {
 
 /// Test that a factory was stored correctly
 void NodeFactoryTest::TestFactoryStore(void) {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     shared_ptr<Database> db = Database::Local();
-	NodeFactory *fact = db->GetNodeFactory(MOCKNODE_TYPENAME);
-	CPPUNIT_ASSERT(fact != 0);
+    NodeFactory *fact = db->GetNodeFactory(MOCKNODE_TYPENAME);
+    CPPUNIT_ASSERT(fact != 0);
 }
 
 /// Test that an invalid name returns the expected value
 void NodeFactoryTest::TestInvalidName(void) {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     shared_ptr<Database> db = Database::Local();
-	NodeFactory *fact = 0;
+    NodeFactory *fact = 0;
     CPPUNIT_ASSERT_THROW(db->GetNodeFactory("AnInvalidName1234556"), std::runtime_error);
     CPPUNIT_ASSERT(fact == 0);
 }
 
 void NodeFactoryTest::TestCleanUp(void) {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
-	shared_ptr<NodeFactory> fact = shared_ptr<NodeFactory>(new MockNodeFactory("Testing12345"));
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
+    shared_ptr<NodeFactory> fact = shared_ptr<NodeFactory>(new MockNodeFactory("Testing12345"));
     shared_ptr<Database> db = Database::Local();
     db->RegisterNodeFactory(fact);
-	CPPUNIT_ASSERT_EQUAL(fact.get(), db->GetNodeFactory("Testing12345"));
+    CPPUNIT_ASSERT_EQUAL(fact.get(), db->GetNodeFactory("Testing12345"));
 }
 

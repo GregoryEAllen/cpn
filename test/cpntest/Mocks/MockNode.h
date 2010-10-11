@@ -12,16 +12,16 @@
  */
 class MockNode : public CPN::NodeBase {
 public:
-	enum Mode_t { MODE_SOURCE = 1, MODE_TRANSMUTE, MODE_SINK, MODE_NOP };
+    enum Mode_t { MODE_SOURCE = 1, MODE_TRANSMUTE, MODE_SINK, MODE_NOP };
 
-	MockNode(CPN::Kernel &ker, const CPN::NodeAttr &attr);
+    MockNode(CPN::Kernel &ker, const CPN::NodeAttr &attr);
 
-	void Process();
+    void Process();
 
     static std::string GetModeName(Mode_t mode);
     static Mode_t GetMode(const std::string &param);
 private:
-	Mode_t mode;
+    Mode_t mode;
 };
 
 

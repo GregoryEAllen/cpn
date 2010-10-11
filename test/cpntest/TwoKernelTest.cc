@@ -52,7 +52,7 @@ void TwoKernelTest::tearDown() {
 
 
 void TwoKernelTest::SimpleTwoNodeTest() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     NodeAttr attr("source", "MockNode");
     attr.SetParam(MockNode::GetModeName(MockNode::MODE_SOURCE));
     kone->CreateNode(attr);
@@ -67,7 +67,7 @@ void TwoKernelTest::SimpleTwoNodeTest() {
 }
 
 void TwoKernelTest::TestSync() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     Variant param;
     param["mode"] = MockSyncNode::MODE_SOURCE;
     param["other"] = "sync2";
@@ -103,7 +103,7 @@ void TwoKernelTest::DoSyncTest(void (*fun1)(CPN::NodeBase*, std::string),
 }
 
 void TwoKernelTest::TestSyncSourceSink() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     unsigned run = 0;
     bool swap = false;
     for (unsigned i = 0; i < 2; ++i) {
@@ -124,7 +124,7 @@ void TwoKernelTest::TestSyncSourceSink() {
 }
 
 void TwoKernelTest::QueueShutdownTest() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     NodeAttr attr("source", "MockNode");
     attr.SetParam(MockNode::GetModeName(MockNode::MODE_SOURCE));
     kone->CreateNode(attr);

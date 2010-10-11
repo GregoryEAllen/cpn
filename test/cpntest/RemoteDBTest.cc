@@ -144,7 +144,7 @@ void RemoteDBTest::tearDown() {
 }
 
 void RemoteDBTest::HostSetupTest() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     LocalRDBClient lrdbc(serv, __PRETTY_FUNCTION__);
     std::string hostname = "bogus1";
     std::string servname = "bogus2";
@@ -164,7 +164,7 @@ void RemoteDBTest::HostSetupTest() {
 }
 
 void RemoteDBTest::WaitForHostTest() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     LocalRDBClient lrdbc(serv, __PRETTY_FUNCTION__);
     std::string hostname = "bogus1";
     std::string servname = "bogus2";
@@ -199,7 +199,7 @@ void *RemoteDBTest::WaitForHostSetup() {
 }
 
 void RemoteDBTest::CreateNodeTest() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     LocalRDBClient lrdbc(serv, __PRETTY_FUNCTION__);
     m_nodename = "bogus node";
     m_nodekey = lrdbc.CreateNodeKey(1234, m_nodename);
@@ -214,7 +214,7 @@ void RemoteDBTest::CreateNodeTest() {
 }
 
 void RemoteDBTest::WaitForNodeTest() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     LocalRDBClient lrdbc(serv, __PRETTY_FUNCTION__);
     m_nodename = "bogus node";
     Pthread *waiter = CreatePthreadFunctional(this, &RemoteDBTest::WaitForNode);
@@ -248,7 +248,7 @@ void *RemoteDBTest::WaitForNode() {
 }
 
 void RemoteDBTest::ReaderTest() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     LocalRDBClient lrdbc(serv, __PRETTY_FUNCTION__);
 
     m_nodename = "bogus node";
@@ -262,7 +262,7 @@ void RemoteDBTest::ReaderTest() {
 }
 
 void RemoteDBTest::WriterTest() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     LocalRDBClient lrdbc(serv, __PRETTY_FUNCTION__);
 
     m_nodename = "bogus node";
@@ -276,7 +276,7 @@ void RemoteDBTest::WriterTest() {
 }
 
 void RemoteDBTest::ConnectTest() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     LocalRDBClient lrdbc(serv, __PRETTY_FUNCTION__);
     m_nodename = "bogus node";
     m_nodekey = lrdbc.CreateNodeKey(4321, m_nodename);

@@ -38,12 +38,12 @@ MockNode::Mode_t MockNode::GetMode(const std::string &param) {
     else return MODE_NOP;
 }
 void MockNode::Process() {
-	std::string ourname = GetName();
-	DEBUG("%s started\n", ourname.c_str());
-	unsigned long counter = 0;
-	unsigned long threshold = 20;
-	switch (mode) {
-		case MODE_SOURCE:
+    std::string ourname = GetName();
+    DEBUG("%s started\n", ourname.c_str());
+    unsigned long counter = 0;
+    unsigned long threshold = 20;
+    switch (mode) {
+        case MODE_SOURCE:
             {
                 CPN::QueueWriterAdapter<unsigned long> out = GetWriter("y");
                 DEBUG("%s acting as producer\n", ourname.c_str());
@@ -54,8 +54,8 @@ void MockNode::Process() {
                 }
                 out.Release();
             }
-			break;
-		case MODE_TRANSMUTE:
+            break;
+        case MODE_TRANSMUTE:
             {
                 CPN::QueueWriterAdapter<unsigned long> out = GetWriter("y");
                 CPN::QueueReaderAdapter<unsigned long> in = GetReader("x");
@@ -72,11 +72,11 @@ void MockNode::Process() {
                 out.Release();
                 in.Release();
             }
-			break;
-		case MODE_SINK:
+            break;
+        case MODE_SINK:
             {
                 CPN::QueueReaderAdapter<unsigned long> in = GetReader("x");
-		    	DEBUG("%s acting as sink\n", ourname.c_str());
+                DEBUG("%s acting as sink\n", ourname.c_str());
                 while (true) {
                     unsigned long value = 0;
                     if (!in.Dequeue(&value, 1)) {
@@ -87,14 +87,14 @@ void MockNode::Process() {
                 }
                 in.Release();
             }
-			break;
-		case MODE_NOP:
-		    	DEBUG("%s acting as nop\n", ourname.c_str());
-			// Do nothing!
-			break;
-		default:
-			break;
-	}
-	DEBUG("%s stopped\n", ourname.c_str());
+            break;
+        case MODE_NOP:
+                DEBUG("%s acting as nop\n", ourname.c_str());
+            // Do nothing!
+            break;
+        default:
+            break;
+    }
+    DEBUG("%s stopped\n", ourname.c_str());
 }
 

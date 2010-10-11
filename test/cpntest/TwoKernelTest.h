@@ -19,16 +19,16 @@ CPPUNIT_TEST_SUITE_REGISTRATION( TwoKernelTest );
 class TwoKernelTest : public CppUnit::TestFixture {
 public:
     TwoKernelTest() : kone(0), ktwo(0) {}
-	void setUp();
+    void setUp();
 
-	void tearDown();
+    void tearDown();
 
-	CPPUNIT_TEST_SUITE( TwoKernelTest );
-	CPPUNIT_TEST( SimpleTwoNodeTest );
-	CPPUNIT_TEST( TestSync );
-	CPPUNIT_TEST( TestSyncSourceSink );
+    CPPUNIT_TEST_SUITE( TwoKernelTest );
+    CPPUNIT_TEST( SimpleTwoNodeTest );
+    CPPUNIT_TEST( TestSync );
+    CPPUNIT_TEST( TestSyncSourceSink );
     CPPUNIT_TEST( QueueShutdownTest );
-	CPPUNIT_TEST_SUITE_END();
+    CPPUNIT_TEST_SUITE_END();
 
     void SimpleTwoNodeTest();
     void TestSync();

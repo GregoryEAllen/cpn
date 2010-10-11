@@ -37,33 +37,33 @@ FilterNode::FilterNode(CPN::Kernel& ker, const CPN::NodeAttr& attr)
 }
 
 void FilterNode::Process(void) {
-	DEBUG("FilterNode %s start\n", GetName().c_str());
-	CPN::QueueWriterAdapter<unsigned long> out = GetWriter("prodport");
-	CPN::QueueReaderAdapter<unsigned long> in = GetReader("x");
+    DEBUG("FilterNode %s start\n", GetName().c_str());
+    CPN::QueueWriterAdapter<unsigned long> out = GetWriter("prodport");
+    CPN::QueueReaderAdapter<unsigned long> in = GetReader("x");
     bool sendtoresult = true;
-	unsigned long nextFilter = filterval;
-	unsigned long readVal = 0;
-	do {
-		in.Dequeue(&readVal, 1);
+    unsigned long nextFilter = filterval;
+    unsigned long readVal = 0;
+    do {
+        in.Dequeue(&readVal, 1);
         DBPRINT("Filter %s got %lu\n", GetName().c_str(), readVal);
         if (readVal == filterval) {
             DBPRINT("Filter %s passed on %lu\n", GetName().c_str(), readVal);
-			out.Enqueue(&readVal, 1);
+            out.Enqueue(&readVal, 1);
         } else if (readVal == nextFilter) {
-			nextFilter += filterval;
-		} else {
-			if (readVal > nextFilter) {
-				nextFilter += filterval;
-			}
+            nextFilter += filterval;
+        } else {
+            if (readVal > nextFilter) {
+                nextFilter += filterval;
+            }
             DBPRINT("Filter %s put %lu\n", GetName().c_str(), readVal);
-			out.Enqueue(&readVal, 1);
+            out.Enqueue(&readVal, 1);
             if (sendtoresult) {
                 out = GetWriter("y");
                 sendtoresult = false;
             }
-		}
-	} while (readVal != 0);
-	DEBUG("FilterNode %s end\n", GetName().c_str());
+        }
+    } while (readVal != 0);
+    DEBUG("FilterNode %s end\n", GetName().c_str());
 }
 
 

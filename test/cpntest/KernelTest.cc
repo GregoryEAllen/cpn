@@ -36,27 +36,27 @@ void KernelTest::tearDown() {
 }
 
 void KernelTest::TestInvalidNodeCreationType() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     CPN::Kernel kernel(KernelAttr("test"));
     NodeAttr attr = NodeAttr("invalid", "invalid");
-	CPPUNIT_ASSERT_THROW(kernel.CreateNode(attr), std::runtime_error);
+    CPPUNIT_ASSERT_THROW(kernel.CreateNode(attr), std::runtime_error);
 }
 
 void KernelTest::TestInvalidQueueCreationType() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     CPN::Kernel kernel(KernelAttr("test"));
     QueueAttr attr = QueueAttr(1024, 1024);
-	CPPUNIT_ASSERT_THROW(kernel.CreateQueue(attr), std::invalid_argument);
+    CPPUNIT_ASSERT_THROW(kernel.CreateQueue(attr), std::invalid_argument);
 }
 
 void KernelTest::TestCreateNodes() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     CPN::Kernel kernel(KernelAttr("test"));
-	AddNoOps(kernel);
+    AddNoOps(kernel);
 }
 
 void KernelTest::SimpleTwoNodeTest() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     CPN::Kernel kernel(KernelAttr("test"));
     kernel.GetDatabase()->UseD4R(false);
     NodeAttr attr("source", MOCKNODE_TYPENAME);
@@ -73,7 +73,7 @@ void KernelTest::SimpleTwoNodeTest() {
 }
 
 void KernelTest::SimpleTwoNodeTestFromVariant() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     Variant args;
     args["name"] = "test";
     args["nodes"][0]["name"] = "source";
@@ -99,17 +99,17 @@ void KernelTest::AddNoOps(CPN::Kernel &kernel) {
 
     NodeAttr attr = NodeAttr("no op 1", MOCKNODE_TYPENAME);
     attr.SetParam(MockNode::GetModeName(MockNode::MODE_NOP));
-	// Create some nodes...
-	kernel.CreateNode(attr);
+    // Create some nodes...
+    kernel.CreateNode(attr);
     attr.SetName("no op 2");
-	kernel.CreateNode(attr);
+    kernel.CreateNode(attr);
     attr.SetName("no op 3");
-	kernel.CreateNode(attr);
+    kernel.CreateNode(attr);
 }
 
 
 void KernelTest::TestSync() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     CPN::Kernel kernel(KernelAttr("test"));
     kernel.GetDatabase()->UseD4R(false);
     Variant param;
@@ -142,7 +142,7 @@ static void DoSyncTest(void (*fun1)(NodeBase*, std::string),
 }
 
 void KernelTest::TestSyncSourceSink() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     DoSyncTest(&SyncSource::Run1, &SyncSink::Run1);
     DoSyncTest(&SyncSource::Run2, &SyncSink::Run1);
     DoSyncTest(&SyncSource::Run3, &SyncSink::Run1);

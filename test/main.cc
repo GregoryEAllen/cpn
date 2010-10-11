@@ -12,7 +12,7 @@ const char VALID_OPS[] = "pr";
  */
 int main(int argc, char **argv) {
     // Ignore sigpipe
-	signal(SIGPIPE,SIG_IGN);
+    signal(SIGPIPE,SIG_IGN);
     bool pause = false;
     bool repeat = false;
     bool procOpts = true;

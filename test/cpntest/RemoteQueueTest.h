@@ -11,11 +11,11 @@
 #include "Pthread.h"
 class RemoteQueueTest : public CppUnit::TestFixture, CPN::KernelBase {
 public:
-	void setUp();
+    void setUp();
 
-	void tearDown();
+    void tearDown();
 
-	CPPUNIT_TEST_SUITE( RemoteQueueTest );
+    CPPUNIT_TEST_SUITE( RemoteQueueTest );
     CPPUNIT_TEST( CommunicationTest );
     CPPUNIT_TEST( EndOfWriteQueueTest );
     CPPUNIT_TEST( EndOfReadQueueTest );
@@ -24,7 +24,7 @@ public:
     CPPUNIT_TEST( WriteEndWithNoFDTest );
     CPPUNIT_TEST( MaxThreshGrowTest );
     CPPUNIT_TEST( GrowTest );
-	CPPUNIT_TEST_SUITE_END();
+    CPPUNIT_TEST_SUITE_END();
 
     void CommunicationTest();
     void EndOfWriteQueueTest();

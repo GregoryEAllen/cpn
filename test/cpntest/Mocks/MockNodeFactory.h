@@ -6,7 +6,7 @@
 
 class MockNodeFactory : public CPN::NodeFactory {
 public:
-	MockNodeFactory(std::string name) : CPN::NodeFactory(name) {}
+    MockNodeFactory(std::string name) : CPN::NodeFactory(name) {}
 
     CPN::shared_ptr<CPN::NodeBase> Create(CPN::Kernel &ker, const CPN::NodeAttr &attr);
 

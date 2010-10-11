@@ -22,23 +22,23 @@ namespace CPN {
 };
 class PacketEDTest : public CppUnit::TestFixture {
 public:
-	void setUp();
+    void setUp();
 
-	void tearDown();
+    void tearDown();
 
-	CPPUNIT_TEST_SUITE( PacketEDTest );
-	CPPUNIT_TEST( EnqueueTest );
-	CPPUNIT_TEST( DequeueTest );
-	CPPUNIT_TEST( ReadBlockTest );
-	CPPUNIT_TEST( WriteBlockTest );
+    CPPUNIT_TEST_SUITE( PacketEDTest );
+    CPPUNIT_TEST( EnqueueTest );
+    CPPUNIT_TEST( DequeueTest );
+    CPPUNIT_TEST( ReadBlockTest );
+    CPPUNIT_TEST( WriteBlockTest );
     CPPUNIT_TEST( EndOfWriteTest );
     CPPUNIT_TEST( EndOfReadTest );
-	CPPUNIT_TEST( ReaderIDTest );
-	CPPUNIT_TEST( WriterIDTest );
-	CPPUNIT_TEST_SUITE_END();
+    CPPUNIT_TEST( ReaderIDTest );
+    CPPUNIT_TEST( WriterIDTest );
+    CPPUNIT_TEST_SUITE_END();
 
-	void EnqueueTest();
-	void DequeueTest();
+    void EnqueueTest();
+    void DequeueTest();
 
     void ReadBlockTest();
     void WriteBlockTest();

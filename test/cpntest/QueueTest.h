@@ -23,14 +23,14 @@ namespace CPN {
 
 class QueueTest : public CppUnit::TestFixture {
 public:
-	void setUp();
+    void setUp();
 
-	void tearDown();
+    void tearDown();
 
-	CPPUNIT_TEST_SUITE( QueueTest );
-	CPPUNIT_TEST( SimpleQueueTest );
-	CPPUNIT_TEST( ThresholdQueueTest );
-	CPPUNIT_TEST_SUITE_END();
+    CPPUNIT_TEST_SUITE( QueueTest );
+    CPPUNIT_TEST( SimpleQueueTest );
+    CPPUNIT_TEST( ThresholdQueueTest );
+    CPPUNIT_TEST_SUITE_END();
 
     void SimpleQueueTest();
     void ThresholdQueueTest();

@@ -112,7 +112,7 @@ void RemoteQueueTest::tearDown() {
 }
 
 void RemoteQueueTest::CommunicationTest() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     // Send data across and wait for it at the other end.
     // Then verify that reading more blocks.
     // then verify that filling up the queue and then some will block the writer.
@@ -212,7 +212,7 @@ void *RemoteQueueTest::DequeueData() {
 // Test what happens when we write a bunch of stuff then
 // shutdown
 void RemoteQueueTest::EndOfWriteQueueTest() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
 
     server->Enable();
     auto_ptr<Pthread> enqueuer = auto_ptr<Pthread>(
@@ -244,7 +244,7 @@ void RemoteQueueTest::EndOfWriteQueueTest() {
 }
 
 void RemoteQueueTest::EndOfReadQueueTest() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
 
     server->Enable();
     rqueue->ShutdownReader();
@@ -258,7 +258,7 @@ void RemoteQueueTest::EndOfReadQueueTest() {
 // Test that the connection aborts correctly for end of read
 // with data in the queue
 void RemoteQueueTest::EndOfReadQueueTest2() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
 
     server->Enable();
     auto_ptr<Pthread> enqueuer = auto_ptr<Pthread>(
@@ -278,7 +278,7 @@ void RemoteQueueTest::EndOfReadQueueTest2() {
 }
 
 void RemoteQueueTest::WriteBlockWithNoFDTest() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     auto_ptr<Pthread> enqueuer = auto_ptr<Pthread>(
             CreatePthreadFunctional(this, &RemoteQueueTest::EnqueueData));
     CPPUNIT_ASSERT_EQUAL(0, enqueuer->Error());
@@ -310,7 +310,7 @@ void RemoteQueueTest::WriteBlockWithNoFDTest() {
 }
 
 void RemoteQueueTest::WriteEndWithNoFDTest() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     auto_ptr<Pthread> enqueuer = auto_ptr<Pthread>(
             CreatePthreadFunctional(this, &RemoteQueueTest::EnqueueData));
     CPPUNIT_ASSERT_EQUAL(0, enqueuer->Error());
@@ -350,7 +350,7 @@ void RemoteQueueTest::WriteEndWithNoFDTest() {
 }
 
 void RemoteQueueTest::MaxThreshGrowTest() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     server->Enable();
     unsigned maxthresh = wqueue->MaxThreshold();
     unsigned numchan = wqueue->NumChannels();
@@ -408,7 +408,7 @@ void RemoteQueueTest::MaxThreshGrowTest() {
 }
 
 void RemoteQueueTest::GrowTest() {
-	DEBUG("%s\n",__PRETTY_FUNCTION__);
+    DEBUG("%s\n",__PRETTY_FUNCTION__);
     server->Enable();
     unsigned maxthresh = wqueue->MaxThreshold();
     unsigned numchan = wqueue->NumChannels();

@@ -1,21 +1,21 @@
 //=============================================================================
-//	Computational Process Networks class library
-//	Copyright (C) 1997-2006  Gregory E. Allen and The University of Texas
+//  Computational Process Networks class library
+//  Copyright (C) 1997-2006  Gregory E. Allen and The University of Texas
 //
-//	This library is free software; you can redistribute it and/or modify it
-//	under the terms of the GNU Library General Public License as published
-//	by the Free Software Foundation; either version 2 of the License, or
-//	(at your option) any later version.
+//  This library is free software; you can redistribute it and/or modify it
+//  under the terms of the GNU Library General Public License as published
+//  by the Free Software Foundation; either version 2 of the License, or
+//  (at your option) any later version.
 //
-//	This library is distributed in the hope that it will be useful,
-//	but WITHOUT ANY WARRANTY; without even the implied warranty of
-//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-//	Library General Public License for more details.
+//  This library is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//  Library General Public License for more details.
 //
-//	The GNU Public License is available in the file LICENSE, or you
-//	can write to the Free Software Foundation, Inc., 59 Temple Place -
-//	Suite 330, Boston, MA 02111-1307, USA, or you can find it on the
-//	World Wide Web at http://www.fsf.org.
+//  The GNU Public License is available in the file LICENSE, or you
+//  can write to the Free Software Foundation, Inc., 59 Temple Place -
+//  Suite 330, Boston, MA 02111-1307, USA, or you can find it on the
+//  World Wide Web at http://www.fsf.org.
 //=============================================================================
 /** \file
  * \author John Bridgman
@@ -520,17 +520,17 @@ void transpose_matrix(__m128d *in, __m128d *out, int M, int N, int blockM, int b
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (int i = 0; i < M/2; i += blockM/2) {
-		for (int j = 0; j < N/2; j += blockN/2) {
-			for (int ii = i; ii < i + blockM/2; ii+=1) {
-				for (int jj = j; jj < j + blockN/2; jj+=1 ) {
-					__m128d x, y;
-					x = in[jj + ii*N];
-					y = in[jj + (ii*N) + N/2];
-					out[ii + jj*M] =  _mm_unpacklo_pd(x, y);
-					out[ii + (jj*M)+M/2] = _mm_unpackhi_pd(x, y);
-				}
-			}
-		}
-	}
+    for (int i = 0; i < M/2; i += blockM/2) {
+        for (int j = 0; j < N/2; j += blockN/2) {
+            for (int ii = i; ii < i + blockM/2; ii+=1) {
+                for (int jj = j; jj < j + blockN/2; jj+=1 ) {
+                    __m128d x, y;
+                    x = in[jj + ii*N];
+                    y = in[jj + (ii*N) + N/2];
+                    out[ii + jj*M] =  _mm_unpacklo_pd(x, y);
+                    out[ii + (jj*M)+M/2] = _mm_unpackhi_pd(x, y);
+                }
+            }
+        }
+    }
 }

@@ -23,19 +23,19 @@
  */
 class SieveControllerNode : public CPN::NodeBase {
 public:
-	SieveControllerNode(CPN::Kernel& ker, const CPN::NodeAttr& attr);
-	void Process(void);
+    SieveControllerNode(CPN::Kernel& ker, const CPN::NodeAttr& attr);
+    void Process(void);
 private:
-	void Initialize(void);
-	void SetupQueue(const std::string& nodename);
-	void CreateFilter(const unsigned long prime);
+    void Initialize(void);
+    void SetupQueue(const std::string& nodename);
+    void CreateFilter(const unsigned long prime);
     CPN::QueueAttr GetQueueAttr();
     unsigned long primeBound;
     unsigned long numberBound;
     CPN::QueueHint_t queuehint;
     unsigned long queueSize;
     unsigned long threshold;
-	unsigned long lastprime;
+    unsigned long lastprime;
 };
 
 #endif
