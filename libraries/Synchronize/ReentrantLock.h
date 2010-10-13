@@ -29,6 +29,9 @@
 #include "AutoLock.h"
 #include "Assert.h"
 #include <pthread.h>
+#ifdef SYNC_PROFILE
+#include <sys/time.h>
+#endif
 
 namespace Sync {
 
@@ -37,12 +40,13 @@ namespace Sync {
     class ReentrantCondition;
 
     namespace Internal {
-        class ScopeMutex {
-        public:
-            ScopeMutex(pthread_mutex_t &l) : lock(l) { ENSURE_ABORT(!pthread_mutex_lock(&lock)); }
-            ~ScopeMutex() { ENSURE_ABORT(!pthread_mutex_unlock(&lock)); }
-            pthread_mutex_t &lock;
-        };
+#ifdef SYNC_PROFILE
+        inline double getTime() {
+            timeval tv;
+            gettimeofday(&tv, 0);
+            return static_cast<double>(tv.tv_sec) + 1e-6 * static_cast<double>(tv.tv_usec);
+        }
+#endif
     }
 
     /**
@@ -56,20 +60,54 @@ namespace Sync {
             pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
             ENSURE(!pthread_mutex_init(&lock, &attr));
             pthread_mutexattr_destroy(&attr);
+#ifdef SYNC_PROFILE
+            wait_time = 0;
+            lock_time = 0;
+            lock_count = 0;
+#endif
         }
         ~ReentrantLock() {
             ENSURE_ABORT(!pthread_mutex_destroy(&lock));
         }
 
         void Unlock() const {
+#ifdef SYNC_PROFILE
+            lock_count--;
+            if (lock_count == 0) {
+                lock_time += Internal::getTime() - lock_last;
+            }
+#endif
             ENSURE_ABORT(!pthread_mutex_unlock(&lock));
         }
 
         void Lock() const {
+#ifdef SYNC_PROFILE
+            double start = Internal::getTime();
+#endif
             ENSURE_ABORT(!pthread_mutex_lock(&lock));
+#ifdef SYNC_PROFILE
+            double time = Internal::getTime();
+            if (lock_count == 0) {
+                lock_last = time;
+            }
+            lock_count++;
+            wait_time += time - start;
+#endif
         }
 
+#ifdef SYNC_PROFILE
+        double GetWaitTime() const { return wait_time; }
+        double GetLockTime() const { return lock_time; }
+#endif
+
     private:
+#ifdef SYNC_PROFILE
+        mutable double wait_time;
+        mutable double lock_time;
+        mutable double lock_last;
+        mutable unsigned lock_count;
+#endif
+
         mutable pthread_mutex_t lock;
 
         template<class T> friend class StatusHandler;
@@ -84,14 +122,37 @@ namespace Sync {
      */
     class ReentrantCondition {
     public:
-        ReentrantCondition() { ENSURE(!pthread_cond_init(&cond, 0)); }
+        ReentrantCondition() {
+            ENSURE(!pthread_cond_init(&cond, 0));
+#ifdef SYNC_PROFILE
+            wait_time = 0;
+#endif
+        }
         ~ReentrantCondition() { ENSURE_ABORT(!pthread_cond_destroy(&cond)); }
         void Signal() { pthread_cond_signal(&cond); }
         void Broadcast() { pthread_cond_broadcast(&cond); }
         void Wait(ReentrantLock &lock) const {
+#ifdef SYNC_PROFILE
+            double time = Internal::getTime();
+            unsigned lock_count = lock.lock_count;
+            lock.lock_count = 0;
+            lock.lock_time += time - lock.lock_last;
+#endif
             pthread_cond_wait(&cond, &lock.lock);
+#ifdef SYNC_PROFILE
+            double end = Internal::getTime();
+            lock.lock_count = lock_count;
+            lock.lock_last = end;
+            wait_time += end - time;
+#endif
         }
+#ifdef SYNC_PROFILE
+        double GetWaitTime() const { return wait_time; }
+#endif
     private:
+#ifdef SYNC_PROFILE
+        mutable double wait_time;
+#endif
         mutable pthread_cond_t cond;
     };
 }

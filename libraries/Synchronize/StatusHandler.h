@@ -30,6 +30,16 @@
 #include "Assert.h"
 
 namespace Sync {
+
+    namespace Internal {
+        class ScopeMutex {
+        public:
+            ScopeMutex(pthread_mutex_t &l) : lock(l) { ENSURE_ABORT(!pthread_mutex_lock(&lock)); }
+            ~ScopeMutex() { ENSURE_ABORT(!pthread_mutex_unlock(&lock)); }
+            pthread_mutex_t &lock;
+        };
+    }
+
     /**
      * The StatusHandler template is meant to be used to simplify
      * having a status variable in a multi threaded application.
