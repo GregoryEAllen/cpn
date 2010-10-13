@@ -314,4 +314,20 @@ double SocketHandle::GetSendTimeout() {
     return ((double)tv.tv_sec) + (((double)tv.tv_usec)*1e-6);
 }
 
+void SocketHandle::GetNoDelay(bool nodelay) {
+    int flag = nodelay ? 1 : 0;
+    if (setsockopt(FD(), IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag)) < 0) {
+        throw ErrnoException();
+    }
+}
+
+bool SocketHandle::GetNoDelay() {
+    int flag = 0;
+    if (getsockopt(FD(), IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag)) < 0) {
+        throw ErrnoException();
+    }
+    return flag == 0 ? false : true;
+}
+
+
 

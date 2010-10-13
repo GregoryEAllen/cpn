@@ -130,6 +130,10 @@ public:
     void SetSendTimeout(double timeout);
     double GetReceiveTimeout();
     double GetSendTimeout();
+
+    void SetNoDelay(bool nodelay);
+    bool GetNoDelay();
+
 private:
     bool Connect(const SocketAddress &addr, int &error);
 };
