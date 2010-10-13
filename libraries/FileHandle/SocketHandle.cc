@@ -27,6 +27,8 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 
 void SocketHandle::CreatePair(SocketHandle &sock1, SocketHandle &sock2) {
     ASSERT(sock1.FD() == -1, "sock1 already connected");
@@ -314,7 +316,7 @@ double SocketHandle::GetSendTimeout() {
     return ((double)tv.tv_sec) + (((double)tv.tv_usec)*1e-6);
 }
 
-void SocketHandle::GetNoDelay(bool nodelay) {
+void SocketHandle::SetNoDelay(bool nodelay) {
     int flag = nodelay ? 1 : 0;
     if (setsockopt(FD(), IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag)) < 0) {
         throw ErrnoException();
@@ -323,7 +325,8 @@ void SocketHandle::GetNoDelay(bool nodelay) {
 
 bool SocketHandle::GetNoDelay() {
     int flag = 0;
-    if (getsockopt(FD(), IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag)) < 0) {
+    socklen_t len = sizeof(flag);
+    if (getsockopt(FD(), IPPROTO_TCP, TCP_NODELAY, &flag, &len) < 0) {
         throw ErrnoException();
     }
     return flag == 0 ? false : true;
