@@ -1,4 +1,5 @@
 
+#include "ExtraVerboseTerminationHandler.h"
 #include <cppunit/extensions/TestFactoryRegistry.h>
 #include <cppunit/ui/text/TestRunner.h>
 #include <unistd.h>
@@ -13,6 +14,7 @@ const char VALID_OPS[] = "pr";
 int main(int argc, char **argv) {
     // Ignore sigpipe
     signal(SIGPIPE,SIG_IGN);
+    std::set_terminate(extra_verbose_termination_handler);
     bool pause = false;
     bool repeat = false;
     bool procOpts = true;

@@ -29,7 +29,11 @@ CPPUNIT_TEST_SUITE_REGISTRATION( TwoKernelTest );
 
 void TwoKernelTest::setUp() {
     database = Database::Local();
+#ifdef _DEBUG
+    database->LogLevel(Logger::TRACE);
+#else
     database->LogLevel(Logger::WARNING);
+#endif
     database->UseD4R(false);
     database->SwallowBrokenQueueExceptions(true);
     KernelAttr kattrone("one");
