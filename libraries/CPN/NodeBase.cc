@@ -48,8 +48,8 @@ namespace CPN {
     }
 
     void NodeBase::Shutdown() {
-        PseudoNode::Shutdown();
         thread->Join();
+        PseudoNode::Shutdown();
     }
 
     void* NodeBase::EntryPoint() {
