@@ -70,6 +70,7 @@ namespace CPN {
             if (thresh > MaxThreshold() && database->GrowQueueMaxThreshold()) {
                 //printf("Grow(%u, %u)\n", 2*thresh, thresh);
                 Grow(2*thresh, thresh);
+                Signal();
             } else {
                 readrequest = thresh;
                 WaitForData();
