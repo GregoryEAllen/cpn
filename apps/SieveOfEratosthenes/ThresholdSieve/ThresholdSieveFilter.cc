@@ -32,6 +32,8 @@
 #include <stdexcept>
 #include <sstream>
 #include <cstdio>
+#include <sys/time.h>
+#include "ErrnoException.h"
 
 #if _DEBUG
 #define DEBUG(frmt, ...) printf(frmt, __VA_ARGS__)
@@ -44,6 +46,15 @@
 #else
 #define REPORT(fmt, ...)
 #endif
+
+
+static double getTime() {
+    timeval tv;
+    if (gettimeofday(&tv, 0) != 0) {
+        throw ErrnoException();
+    }
+    return static_cast<double>(tv.tv_sec) + 1e-6 * static_cast<double>(tv.tv_usec);
+}
 
 using CPN::shared_ptr;
 
@@ -109,13 +120,25 @@ void ThresholdSieveFilter::ReportCandidates(
 
 void ThresholdSieveFilter::Process() {
     DEBUG("%s started\n", GetName().c_str());
+    double total_start = getTime();
+    CPN::Key_t control_key = 0, in_key = 0, out_key = 0;
     CPN::QueueReaderAdapter<NumberT> in = GetReader(IN_PORT);
     CPN::QueueWriterAdapter<NumberT> out = GetWriter(CONTROL_PORT);
+    in_key = in.GetKey();
+    control_key = out.GetKey();
     const bool zerocopy = opts.zerocopy;
     const unsigned long threshold = opts.threshold;
     const NumberT cutoff = (NumberT)(ceil(sqrt(opts.maxprime)));
     unsigned long long tot_processed = 0;
     unsigned long long tot_passed = 0;
+    double calc_last = 0;
+    double calc_time = 0;
+    double enqueue_last = 0;
+    double enqueue_time = 0;
+    double enqueue_control_last = 0;
+    double enqueue_control_time = 0;
+    double dequeue_last = 0;
+    double dequeue_time = 0;
     NumberT buffer[threshold];
     NumberT buffer2[threshold];
     NumberT buffer3[threshold];
@@ -133,26 +156,36 @@ void ThresholdSieveFilter::Process() {
     bool loop = true;
     while (loop && (numPassed == 0) ) {
         incount = threshold;
+        dequeue_last = getTime();
         const NumberT *inbuff = GetDequeueCount(in, incount, (zerocopy & READ_COPY ? buffer3_ptr : 0));
+        dequeue_time += getTime() - dequeue_last;
         if (!inbuff) {
             loop = false;
         } else {
             tot_processed += incount;
             if (!(zerocopy & WRITE_COPY)) {
+                enqueue_control_last = getTime();
                 outbuff = out.GetEnqueuePtr(incount);
+                enqueue_control_time += getTime() - enqueue_control_last;
             }
+            calc_last = getTime();
             sieve.TryCandidates(inbuff, incount, outbuff, numPrimes, buffer, numPassed);
 #if _DEBUG
             ReportCandidates(inbuff, incount, outbuff, numPrimes, buffer, numPassed);
 #endif
             tot_passed += numPrimes;
+            calc_time += getTime() - calc_last;
+            enqueue_control_last = getTime();
             if (zerocopy & WRITE_COPY) {
                 out.Enqueue(outbuff, numPrimes);
             } else {
                 out.Enqueue(numPrimes);
             }
+            enqueue_control_time += getTime() - enqueue_control_last;
             if (!(zerocopy & READ_COPY)) {
+                dequeue_last = getTime();
                 in.Dequeue(incount);
+                dequeue_time += getTime() - dequeue_last;
             }
             REPORT("%s processed primes %u -> %u (%u)\n", GetName().c_str(), incount, numPrimes, numPassed);
         }
@@ -163,31 +196,44 @@ void ThresholdSieveFilter::Process() {
             CreateNewFilter();
             DEBUG("%s created new filter\n", GetName().c_str());
             out = GetWriter(OUT_PORT);
+            out_key = out.GetKey();
         }
         tot_passed += numPassed;
+        enqueue_last = getTime();
         out.Enqueue(buffer, numPassed);
+        enqueue_time += getTime() - enqueue_last;
     }
     while (loop) {
         incount = threshold;
+        dequeue_last = getTime();
         const NumberT *inbuff = GetDequeueCount(in, incount, (zerocopy & READ_COPY ? buffer3_ptr : 0));
+        dequeue_time += getTime() - dequeue_last;
         if (!inbuff) {
             loop = false;
         } else {
             if (!(zerocopy & WRITE_COPY)) {
+                enqueue_last = getTime();
                 outbuff = out.GetEnqueuePtr(incount);
+                enqueue_time += getTime() - enqueue_last;
             }
+            calc_last = getTime();
             sieve.TryCandidates(inbuff, incount, buffer, numPrimes, outbuff, numPassed);
 #if _DEBUG
             ReportCandidates(inbuff, incount, buffer, numPrimes, outbuff, numPassed);
 #endif
             ASSERT(numPrimes == 0);
+            calc_time += getTime() - calc_last;
+            enqueue_last = getTime();
             if (zerocopy & WRITE_COPY) {
                 out.Enqueue(outbuff, numPassed);
             } else {
                 out.Enqueue(numPassed);
             }
+            enqueue_time += getTime() - enqueue_last;
             if (!(zerocopy & READ_COPY)) {
+                dequeue_last = getTime();
                 in.Dequeue(incount);
+                dequeue_time += getTime() - dequeue_last;
             }
             tot_processed += incount;
             tot_passed += numPassed;
@@ -196,9 +242,14 @@ void ThresholdSieveFilter::Process() {
     }
     out.Release();
     in.Release();
+    double total_time = getTime() - total_start;
     if (opts.report) {
-        printf("%s statistics: PPF: %llu\n\tProcessed:\t%llu\n\tPassed:  \t%llu\n\tStopped:\t%llu\n",
-            GetName().c_str(), ppf, tot_processed, tot_passed, tot_processed - tot_passed);
+        fprintf(stderr, "%s: PPF: %llu, Processed: %llu, Passed: %llu, Stopped: %llu,\n"
+               "\tCalctime: %f, Enqueue: %f, Enqueue Control: %f, Dequeue: %f, Total: %f\n"
+               "\tinkey: %llu, controlkey: %llu, outkey: %llu\n",
+            GetName().c_str(), ppf, tot_processed, tot_passed, tot_processed - tot_passed,
+            calc_time, enqueue_time, enqueue_control_time, dequeue_time, total_time,
+            (unsigned long long)in_key, (unsigned long long)control_key, (unsigned long long)out_key);
     }
     DEBUG("%s stopped\n", GetName().c_str());
 }

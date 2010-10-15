@@ -117,6 +117,7 @@ static Variant SieveTest(VariantCPNLoader &loader, bool verbose) {
         result["numprimes"] = result["result"].Size();
     }
     kernel.WaitNodeTerminate(CONTROL_NAME);
+    kernel.WaitForAllNodeEnd();
     double stop = getTime();
     times(&tmsStop);
     result["realtime"] = stop - start;
@@ -139,7 +140,7 @@ int main(int argc, char **argv) {
     bool internal_config = true;;
     std::string outfile = "";
     while (true) {
-        int c = getopt(argc, argv, "m:q:t:hf:i:p:vVw:rz:j:J:c:CP:d:");
+        int c = getopt(argc, argv, "m:q:t:hf:i:p:vVw:rz:j:J:c:CP:d:l:");
         if (c == -1) break;
         switch (c) {
         case 'd':
@@ -150,6 +151,9 @@ int main(int argc, char **argv) {
             break;
         case 'C':
             print_config = true;
+            break;
+        case 'l':
+            loader.LogLevel(atoi(optarg));
             break;
         case 'P':
             {
