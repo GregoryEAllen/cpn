@@ -32,6 +32,7 @@ RemoteDatabase::RemoteDatabase(const SocketAddress &addr)
 { 
     thread.reset(CreatePthreadFunctional(this, &RemoteDatabase::EntryPoint));
     Connect(addr);
+    SetNoDelay(true);
     thread->Start();
 }
 
@@ -39,6 +40,7 @@ RemoteDatabase::RemoteDatabase(const SockAddrList &addrs)
 { 
     thread.reset(CreatePthreadFunctional(this, &RemoteDatabase::EntryPoint));
     Connect(addrs);
+    SetNoDelay(true);
     thread->Start();
 }
 

@@ -490,6 +490,7 @@ namespace CPN {
                         } else {
                             logger.Debug("Connected (c: %llu)", clock.Get());
                             actionThread->Start();
+                            sock.SetNoDelay(true);
                         }
                     } else {
                         FileHandle *fds[2];

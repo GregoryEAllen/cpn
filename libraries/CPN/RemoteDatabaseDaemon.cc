@@ -144,6 +144,7 @@ RemoteDatabaseDaemon::Client::Client(RemoteDatabaseDaemon *d, int nfd)
     : SocketHandle(nfd), daemon(d)
 {
     Readable(false);
+    SetNoDelay(true);
     SocketAddress addr;
     addr.SetFromPeerName(FD());
     name = addr.GetHostName() + ":" + addr.GetServName();
