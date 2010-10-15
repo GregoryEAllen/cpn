@@ -82,7 +82,7 @@ void TwoKernelTest::TestSync() {
     param["other"] = "sync1";
     attr.SetName("sync2").SetParam(VariantToJSON(param));
     ktwo->CreateNode(attr);
-    ktwo->WaitNodeTerminate("sync2");
+    ktwo->WaitForAllNodeEnd();
 }
 
 
