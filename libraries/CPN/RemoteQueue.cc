@@ -82,6 +82,8 @@ namespace CPN {
         ASSERT_ABORT(dead, "Shutdown but not dead!?");
         Signal();
         logger.Trace("Destructed (c: %llu)", clock.Get());
+        fileThread->Join();
+        actionThread->Join();
         fileThread.reset();
         actionThread.reset();
     }

@@ -40,6 +40,9 @@ namespace CPN {
     }
 
     RemoteDBClient::~RemoteDBClient() {
+        if (terminateThread.get()) {
+            terminateThread->Join();
+        }
     }
 
     int RemoteDBClient::LogLevel() const {
