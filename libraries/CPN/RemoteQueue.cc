@@ -506,6 +506,11 @@ namespace CPN {
             logger.Debug("Forced Shutdown (c: %llu)", clock.Get());
             // Do nothing, this just breaks us out of the loop
             // Can be thrown from ConnectWriter or ConnectReader
+        } catch (const ErrnoException &e) {
+            logger.Error(e.what());
+            ShutdownReader();
+            ShutdownWriter();
+            Shutdown();
         } catch (...) {
             holder->CleanupQueue(GetKey());
             throw;
