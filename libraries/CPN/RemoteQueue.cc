@@ -51,7 +51,7 @@ namespace CPN {
         alpha(attr.GetAlpha()),
         server(s),
         holder(h),
-        mocknode(new D4R::Node(mode_ == READ ? attr.GetReaderNodeKey() : attr.GetWriterNodeKey())),
+        mocknode(new D4R::Node(mode_ == READ ? attr.GetWriterNodeKey() : attr.GetReaderNodeKey())),
         readerlength(QueueLength(attr.GetLength(), attr.GetMaxThreshold(), attr.GetAlpha(), READ)),
         writerlength(QueueLength(attr.GetLength(), attr.GetMaxThreshold(), attr.GetAlpha(), WRITE)),
         bytecount(0),
@@ -125,6 +125,7 @@ namespace CPN {
 
     void RemoteQueue::Grow(unsigned queueLen, unsigned maxThresh) {
         AutoLock<QueueBase> al(*this);
+        FUNC_TRACE(logger);
         const unsigned maxthresh = std::max<unsigned>(queue->MaxThreshold(), maxThresh);
         readerlength = QueueLength(queueLen, maxthresh, alpha, READ);
         writerlength = QueueLength(queueLen, maxthresh, alpha, WRITE);
@@ -135,6 +136,7 @@ namespace CPN {
     }
 
     void RemoteQueue::WaitForData() {
+        FUNC_TRACE(logger);
         ASSERT(mode == READ);
         pendingBlock = true;
         tagUpdated = false;
@@ -148,6 +150,7 @@ namespace CPN {
     }
 
     void RemoteQueue::WaitForFreespace() {
+        FUNC_TRACE(logger);
         ASSERT(mode == WRITE);
         pendingBlock = true;
         tagUpdated = false;
@@ -176,6 +179,7 @@ namespace CPN {
 
     void RemoteQueue::SignalReaderTagChanged() {
         AutoLock<QueueBase> al(*this);
+        FUNC_TRACE(logger);
         ASSERT(mode == READ);
         pendingD4RTag = true;
         ThresholdQueue::SignalReaderTagChanged();
@@ -183,6 +187,7 @@ namespace CPN {
 
     void RemoteQueue::SignalWriterTagChanged() {
         AutoLock<QueueBase> al(*this);
+        FUNC_TRACE(logger);
         ASSERT(mode == WRITE);
         pendingD4RTag = true;
         ThresholdQueue::SignalWriterTagChanged();
@@ -281,7 +286,6 @@ namespace CPN {
                 pendingD4RTag = true;
             }
         }
-        Signal();
     }
 
     void RemoteQueue::SendReadBlockPacket() {
@@ -303,7 +307,6 @@ namespace CPN {
                 pendingD4RTag = true;
             }
         }
-        Signal();
     }
 
     void RemoteQueue::SendWriteBlockPacket() {

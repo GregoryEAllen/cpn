@@ -83,8 +83,6 @@ namespace CPN {
                 };
                 uint32_t numChans;
                 uint64_t clock;
-                uint8_t mode;
-                uint8_t status;
             };
             uint8_t pad[PACKET_HEADERLENGTH];
         };
@@ -127,8 +125,6 @@ namespace CPN {
         uint32_t Count() const { return header.count; }
         uint32_t NumChannels() const { return header.numChans; }
         uint64_t Clock() const { return header.clock; }
-        uint8_t Mode() const { return header.mode; }
-        uint8_t Status() const { return header.status; }
         bool Valid() const { return ValidPacket(&header); }
 
         Packet &DataLength(uint32_t dl) { header.dataLength = dl; return *this; }
@@ -142,8 +138,6 @@ namespace CPN {
         Packet &Count(uint32_t cnt) { header.count = cnt; return *this; }
         Packet &NumChannels(uint32_t nc) { header.numChans = nc; return *this; }
         Packet &Clock(uint64_t c) { header.clock = c; return *this; }
-        Packet &Mode(uint8_t m) { header.mode = m; return *this; }
-        Packet &Status(uint8_t s) { header.status = s; return *this; }
 
     public:
         PacketHeader header;

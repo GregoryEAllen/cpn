@@ -193,7 +193,7 @@ void D4RTest::RunTest(int numkernels) {
         database.reset();
         if (!success) {
             failures++;
-            printf("*************** Failure! ******************\n");
+            printf("*************** %s Failure! ******************\n", dir.BaseName().c_str());
         }
         CPPUNIT_ASSERT(failures == 0);
     }

@@ -121,8 +121,7 @@ void PacketEDTest::EnqueueTest() {
         queue.Enqueue(sizeof(int)*i);
         Packet header(sizeof(int)*i*chans, CPN::PACKET_ENQUEUE);
         header.Count(sizeof(int)*i).NumChannels(chans);
-        header.BytesQueued(rand()).SourceKey(rand()).DestinationKey(rand())
-            .Mode(rand()).Status(rand());
+        header.BytesQueued(rand()).SourceKey(rand()).DestinationKey(rand());
         encoder.SendEnqueue(header, queue);
         numpkts++;
         Transfer(&encoder, &decoder);
@@ -149,8 +148,7 @@ void PacketEDTest::DoTest(Packet &header) {
     MockDecoder decoder(queue, encoder);
 
     header.Count(rand()).NumChannels(rand());
-    header.BytesQueued(rand()).SourceKey(rand()).DestinationKey(rand())
-        .Mode(rand()).Status(rand());
+    header.BytesQueued(rand()).SourceKey(rand()).DestinationKey(rand());
 
     encoder.SendPacket(header);
 
