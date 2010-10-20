@@ -70,19 +70,24 @@ namespace CPN {
                 uint32_t syncWord;
                 uint32_t dataLength;
                 uint32_t dataType;
+
                 union {
-                    uint32_t bytesQueued;
-                    uint32_t queueSize;
+                    uint32_t requested; // read/write block packets
+                    uint32_t maxThresh; // Only for grow packet
+                    uint32_t count; // Enqueue/Dequeue packets
                 };
-                uint64_t srckey;
-                uint64_t dstkey;
                 union {
-                    uint32_t requested;
-                    uint32_t maxThresh;
-                    uint32_t count;
+                    struct { // For ID packet
+                        uint64_t srckey;
+                        uint64_t dstkey;
+                    };
+                    struct {
+                        uint64_t readclock;
+                        uint64_t writeclock;
+                    };
                 };
-                uint32_t numChans;
-                uint64_t clock;
+
+                uint32_t queueSize; // only used for grow packet
             };
             uint8_t pad[PACKET_HEADERLENGTH];
         };
@@ -116,28 +121,26 @@ namespace CPN {
 
         uint32_t DataLength() const { return header.dataLength; }
         PacketType_t Type() const { return static_cast<PacketType_t>(header.dataType); }
-        uint32_t BytesQueued() const { return header.bytesQueued; }
         uint32_t QueueSize() const { return header.queueSize; }
         uint64_t SourceKey() const { return header.srckey; }
         uint64_t DestinationKey() const { return header.dstkey; }
         uint32_t Requested() const { return header.requested; }
         uint32_t MaxThreshold() const { return header.maxThresh; }
         uint32_t Count() const { return header.count; }
-        uint32_t NumChannels() const { return header.numChans; }
-        uint64_t Clock() const { return header.clock; }
+        uint64_t ReadClock() const { return header.readclock; }
+        uint64_t WriteClock() const { return header.writeclock; }
         bool Valid() const { return ValidPacket(&header); }
 
         Packet &DataLength(uint32_t dl) { header.dataLength = dl; return *this; }
         Packet &Type(PacketType_t t) { header.dataType = t; return *this; }
-        Packet &BytesQueued(uint32_t bq) { header.bytesQueued = bq; return *this; }
         Packet &QueueSize(uint32_t qs) { header.queueSize = qs; return *this; }
         Packet &SourceKey(uint64_t k) { header.srckey = k; return *this; }
         Packet &DestinationKey(uint64_t k) { header.dstkey = k; return *this; }
         Packet &Requested(uint32_t r) { header.requested = r; return *this; }
         Packet &MaxThreshold(uint32_t mt) { header.maxThresh = mt; return *this; }
         Packet &Count(uint32_t cnt) { header.count = cnt; return *this; }
-        Packet &NumChannels(uint32_t nc) { header.numChans = nc; return *this; }
-        Packet &Clock(uint64_t c) { header.clock = c; return *this; }
+        Packet &ReadClock(uint64_t c) { header.readclock = c; return *this; }
+        Packet &WriteClock(uint64_t c) { header.writeclock = c; return *this; }
 
     public:
         PacketHeader header;

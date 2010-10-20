@@ -35,7 +35,7 @@ protected:
     void EnqueuePacket(const Packet &packet) {
         header = packet;
         ++numevents;
-        for (unsigned chan = 0; chan < packet.NumChannels(); ++chan) {
+        for (unsigned chan = 0; chan < queue.NumChannels(); ++chan) {
             unsigned count = packet.Count();
             void *ptr = queue.GetRawEnqueuePtr(count, chan);
             while (count > 0) {
@@ -120,8 +120,8 @@ void PacketEDTest::EnqueueTest() {
         }
         queue.Enqueue(sizeof(int)*i);
         Packet header(sizeof(int)*i*chans, CPN::PACKET_ENQUEUE);
-        header.Count(sizeof(int)*i).NumChannels(chans);
-        header.BytesQueued(rand()).SourceKey(rand()).DestinationKey(rand());
+        header.Count(sizeof(int)*i);
+        header.SourceKey(rand()).DestinationKey(rand());
         encoder.SendEnqueue(header, queue);
         numpkts++;
         Transfer(&encoder, &decoder);
@@ -147,8 +147,8 @@ void PacketEDTest::DoTest(Packet &header) {
     BufferedPacketEncoder encoder;
     MockDecoder decoder(queue, encoder);
 
-    header.Count(rand()).NumChannels(rand());
-    header.BytesQueued(rand()).SourceKey(rand()).DestinationKey(rand());
+    header.Count(rand());
+    header.SourceKey(rand()).DestinationKey(rand());
 
     encoder.SendPacket(header);
 

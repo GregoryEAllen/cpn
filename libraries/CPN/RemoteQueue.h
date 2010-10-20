@@ -27,7 +27,6 @@
 #include "ThresholdQueue.h"
 #include "PacketDecoder.h"
 #include "PacketEncoder.h"
-#include "LogicalClock.h"
 #include "SocketHandle.h"
 
 /*
@@ -118,6 +117,8 @@ namespace CPN {
         void *FileThreadEntryPoint();
         void *ActionThreadEntryPoint();
         void InternalCheckStatus();
+        void UpdateClock(const Packet &packet);
+        void TickClock();
 
         void HandleError(const ErrnoException &e);
         static unsigned QueueLength(unsigned length, unsigned maxthresh, double alpha, Mode_t mode);
@@ -135,7 +136,8 @@ namespace CPN {
         RemoteQueueHolder *const holder;
         SocketHandle sock;
         shared_ptr<D4R::Node> mocknode;
-        LogicalClock clock;
+        uint64_t readclock;
+        uint64_t writeclock;
 
         unsigned readerlength;
         unsigned writerlength;
