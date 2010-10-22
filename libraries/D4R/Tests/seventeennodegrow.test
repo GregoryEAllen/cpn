@@ -1,4 +1,7 @@
 {
+/* Came from "Efficient execution of process networks"
+by Basten and Hoogerbrugge
+*/
     "nodes" : [
         {
             "name" : "a",

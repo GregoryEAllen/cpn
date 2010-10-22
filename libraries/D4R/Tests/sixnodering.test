@@ -1,4 +1,7 @@
 {
+/* Came from "An O(n) distributed deadlock resolution algorithm"
+by Prieto, Valladangos, Farina, and Cordoba
+*/
     "nodes" : [
         {
             "name" : "1",

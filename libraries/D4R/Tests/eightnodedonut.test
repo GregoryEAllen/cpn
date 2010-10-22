@@ -1,5 +1,7 @@
 {
- "comment" : " mjson doesn't seem to support comments...  /* this test is designed after the example in // A Local Deadlock Detection and Resolution Algorithm for Process Networks // by Wei Huang and Deyu Qi */",
+/* this test is designed after the example in 
+A Local Deadlock Detection and Resolution Algorithm for Process Networks
+by Wei Huang and Deyu Qi */
     "nodes" : [
         {
             "name" : "1",
