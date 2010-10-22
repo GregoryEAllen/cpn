@@ -52,6 +52,7 @@ namespace CPN {
         server(s),
         holder(h),
         mocknode(new D4R::Node(mode_ == READ ? attr.GetWriterNodeKey() : attr.GetReaderNodeKey())),
+        clock(0),
         readclock(0),
         writeclock(0),
         readerlength(QueueLength(attr.GetLength(), attr.GetMaxThreshold(), attr.GetAlpha(), READ)),
@@ -77,13 +78,15 @@ namespace CPN {
         else { oss << "w"; }
         oss << ", r:" << readerkey << ", w:" << writerkey << ")";
         logger.Name(oss.str());
-        logger.Trace("Constructed (c: <%llu,%llu>)", readclock, writeclock);
+        logger.Trace("Constructed");
     }
 
     RemoteQueue::~RemoteQueue() {
         ASSERT_ABORT(dead, "Shutdown but not dead!?");
         Signal();
-        logger.Trace("Destructed (c: <%llu,%llu>)", readclock, writeclock);
+        FUNC_TRACE(logger);
+        std::string clockstr = ClockString();
+        logger.Trace("Destructed (c: %s)", clockstr.c_str());
         fileThread->Start();
         fileThread->Join();
         actionThread->Start();
@@ -98,6 +101,7 @@ namespace CPN {
 
     void RemoteQueue::Shutdown() {
         AutoLock<const QueueBase> al(*this);
+        FUNC_TRACE(logger);
         dead = true;
         Signal();
     }
@@ -142,8 +146,9 @@ namespace CPN {
         ASSERT(mode == READ);
         pendingBlock = true;
         tagUpdated = false;
+        uint64_t saveclock = clock + 1;
         Signal();
-        while (ReadBlocked() && !tagUpdated) {
+        while (ReadBlocked() && (!tagUpdated || saveclock > readclock)) {
             Wait();
         }
         if (ReadBlocked() && tagUpdated) {
@@ -156,8 +161,9 @@ namespace CPN {
         ASSERT(mode == WRITE);
         pendingBlock = true;
         tagUpdated = false;
+        uint64_t saveclock = clock + 1;
         Signal();
-        while (WriteBlocked() && !tagUpdated) {
+        while (WriteBlocked() && (!tagUpdated || saveclock > writeclock)) {
             Wait();
         }
         if (WriteBlocked() && tagUpdated) {
@@ -197,7 +203,11 @@ namespace CPN {
 
     void RemoteQueue::SetupPacket(Packet &packet) {
         TickClock();
-        packet.ReadClock(readclock).WriteClock(writeclock);
+        if (mode == READ) {
+            packet.ReadClock(clock).WriteClock(writeclock);
+        } else {
+            packet.ReadClock(readclock).WriteClock(clock);
+        }
     }
 
     void RemoteQueue::EnqueuePacket(const Packet &packet) {
@@ -217,7 +227,7 @@ namespace CPN {
         for (unsigned i = 0; i < numchannels; ++i) {
             iovec iov;
             iov.iov_base = queue->GetRawEnqueuePtr(count, i);
-            ASSERT(iov.iov_base, "Internal throttle failed! (c: <%llu,%llu>)", readclock, writeclock);
+            ASSERT(iov.iov_base, "Internal throttle failed! (c: <%llu,%llu,%llu>)", clock, readclock, writeclock);
             iov.iov_len = count;
             iovs.push_back(iov);
         }
@@ -469,18 +479,20 @@ namespace CPN {
             while (true) {
                 try {
                     if (database->IsTerminated()) {
-                        logger.Debug("Forced Shutdown (c: <%llu,%llu>)", readclock, writeclock);
+                        std::string clockstr = ClockString();
+                        logger.Debug("Forced Shutdown (c: %s)", clockstr.c_str());
                         Shutdown();
                     }
                     {
                         AutoLock<QueueBase> al(*this);
                         if (dead) {
-                            logger.Debug("Shutdown (c: <%llu,%llu>)", readclock, writeclock);
+                            std::string clockstr = ClockString();
+                            logger.Debug("Shutdown (c: %s)", clockstr.c_str());
                             break;
                         }
                     }
                     if (sock.Closed()) {
-                        logger.Debug("Connecting (c: <%llu,%llu>)", readclock, writeclock);
+                        logger.Debug("Connecting");
                         shared_ptr<Sync::Future<int> > conn;
                         if (mode == WRITE) {
                             conn = server->ConnectWriter(GetKey());
@@ -492,9 +504,9 @@ namespace CPN {
                             sock.FD(conn->Get());
                         }
                         if (sock.Closed()) {
-                            logger.Debug("Connection Failed (c: <%llu,%llu>)", readclock, writeclock);
+                            logger.Debug("Connection Failed");
                         } else {
-                            logger.Debug("Connected (c: <%llu,%llu>)", readclock, writeclock);
+                            logger.Debug("Connected");
                             actionThread->Start();
                             sock.SetNoDelay(true);
                         }
@@ -514,7 +526,8 @@ namespace CPN {
                 }
             }
         } catch (const ShutdownException &e) {
-            logger.Debug("Forced Shutdown (c: <%llu,%llu>)", readclock, writeclock);
+            std::string clockstr = ClockString();
+            logger.Debug("Forced Shutdown thrue exception (c: %s)", clockstr.c_str());
             // Do nothing, this just breaks us out of the loop
             // Can be thrown from ConnectWriter or ConnectReader
         } catch (const ErrnoException &e) {
@@ -564,8 +577,9 @@ namespace CPN {
                 Shutdown();
                 return;
             }
-            logger.Error("Eof detected but not shutdown! (c: <%llu,%llu>)", readclock, writeclock);
-            ASSERT(false, "EOF detected but not shutdown! (c: <%llu,%llu>)", readclock, writeclock);
+            std::string clockstr = ClockString();
+            logger.Error("Eof detected but not shutdown! (c: %s)", clockstr.c_str());
+            ASSERT(false, "EOF detected but not shutdown! (c: %s)", clockstr.c_str());
         }
 
         try {
@@ -613,7 +627,10 @@ namespace CPN {
                         SendEndOfWritePacket();
                         sentEnd = true;
                     }
-                    logger.Debug("Closing the socket (c: <%llu,%llu>)", readclock, writeclock);
+                    if (logger.LogLevel() <= Logger::DEBUG) {
+                        std::string clockstr = ClockString();
+                        logger.Debug("Closing the socket (c: %s)", clockstr.c_str());
+                    }
                     sock.Close();
                     dead = true;
                 }
@@ -650,7 +667,10 @@ namespace CPN {
                         SendEndOfReadPacket();
                         sentEnd = true;
                     }
-                    logger.Debug("Closing the socket (c: <%llu,%llu>)", readclock, writeclock);
+                    if (logger.LogLevel() <= Logger::DEBUG) {
+                        std::string clockstr = ClockString();
+                        logger.Debug("Closing the socket (c: %s)", clockstr.c_str());
+                    }
                     sock.Close();
                     dead = true;
                 }
@@ -661,21 +681,23 @@ namespace CPN {
     }
 
     void RemoteQueue::UpdateClock(const Packet &packet) {
+        writeclock = packet.WriteClock();
+        readclock = packet.ReadClock();
         if (mode == READ) {
-            writeclock = packet.WriteClock();
-            readclock = std::max(writeclock, readclock) + 1;
+            clock = std::max(writeclock, clock) + 1;
         } else {
-            readclock = packet.ReadClock();
-            writeclock = std::max(writeclock, readclock) + 1;
+            clock = std::max(readclock, clock) + 1;
         }
     }
 
     void RemoteQueue::TickClock() {
-        if (mode == READ) {
-            ++readclock;
-        } else {
-            ++writeclock;
-        }
+        ++clock;
+    }
+
+    std::string RemoteQueue::ClockString() const {
+        std::ostringstream oss;
+        oss << "<" << clock << "," << readclock << "," << writeclock << ">";
+        return oss.str();
     }
 
     void RemoteQueue::HandleError(const ErrnoException &e) {
@@ -693,8 +715,11 @@ namespace CPN {
             dead = true;
             break;
         default:
-            logger.Error("Exception in RemoteQueue rethrowing (c: <%llu,%llu> e: %d): %s",
-                    readclock, writeclock, e.Error(), e.what());
+            {
+                std::string clockstr = ClockString();
+                logger.Error("Exception in RemoteQueue rethrowing (c: %s e: %d): %s",
+                        clockstr.c_str(), e.Error(), e.what());
+            }
             throw;
             break;
         }
@@ -711,9 +736,9 @@ namespace CPN {
 
     const char *BoolString(bool tf) {
         if (tf) {
-            return "true";
+            return "t";
         } else {
-            return "false";
+            return "f";
         }
     }
 
@@ -724,7 +749,7 @@ namespace CPN {
             << ",f: " << Freespace() << ",rr: " << readrequest << ",wr: " << writerequest
             << ",te: " << NumEnqueued() << ",td: " << NumDequeued()
             << ",M: " << (mode == READ ? "r" : "w") << ",rl: " << readerlength
-            << ",wl: " << writerlength << ",c: <" << readclock << "," << writeclock << ">,bc: "
+            << ",wl: " << writerlength << ",c: " << ClockString() << ",bc: "
             << bytecount << ",pb: " << pendingBlock << ",se: " << sentEnd
             << ",pg: " << pendingGrow << ",pd4r: " << pendingD4RTag
             << ",d: " << dead;
@@ -739,8 +764,9 @@ namespace CPN {
 
     void RemoteQueue::LogState() {
         ThresholdQueue::LogState();
-        logger.Error("Mode: %s, Readerlength: %u, Writerlength %u, Clock: <%llu,%llu>, bytecount: %u",
-                mode == READ ? "read" : "write", readerlength, writerlength, readclock, writeclock, bytecount);
+        std::string clockstr = ClockString();
+        logger.Error("Mode: %s, Readerlength: %u, Writerlength %u, Clock: %s, bytecount: %u",
+                mode == READ ? "read" : "write", readerlength, writerlength, clockstr.c_str(), bytecount);
         logger.Error("PendingBlock: %s, SentEnd: %s, PendingGrow: %s, PendingD4R: %s, Dead: %s",
                 BoolString(pendingBlock), BoolString(sentEnd), BoolString(pendingGrow),
                 BoolString(pendingD4RTag), BoolString(dead));

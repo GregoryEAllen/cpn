@@ -44,7 +44,7 @@ public:
         : TestNodeBase(testbase),
         node(n)
     {
-        Logger::Name(node->GetName());
+        Logger::Name(ToString("(%s,%llu)", node->GetName().c_str(), node->GetKey()));
         Variant::ConstListIterator itr = noded["instructions"].ListBegin();
         while (itr != noded["instructions"].ListEnd()) {
             AddOp(*itr);

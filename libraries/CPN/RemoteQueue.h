@@ -119,6 +119,7 @@ namespace CPN {
         void InternalCheckStatus();
         void UpdateClock(const Packet &packet);
         void TickClock();
+        std::string ClockString() const;
 
         void HandleError(const ErrnoException &e);
         static unsigned QueueLength(unsigned length, unsigned maxthresh, double alpha, Mode_t mode);
@@ -136,8 +137,9 @@ namespace CPN {
         RemoteQueueHolder *const holder;
         SocketHandle sock;
         shared_ptr<D4R::Node> mocknode;
-        uint64_t readclock;
-        uint64_t writeclock;
+        uint64_t clock; // Our clock value
+        uint64_t readclock; // Last knowledge of the reader clock
+        uint64_t writeclock; // Last knowledge of the writer clock
 
         unsigned readerlength;
         unsigned writerlength;
