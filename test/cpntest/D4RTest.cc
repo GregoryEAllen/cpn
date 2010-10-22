@@ -91,7 +91,7 @@ public:
 
     void VerifyReaderSize(const std::string &qname, unsigned amount) {
         QueueReaderAdapter<unsigned> in = node->GetReader(qname);
-        Trace("%s %u ?= %u", qname.c_str(), in.QueueLength(), amount);
+        Trace("%s (%llu) %u ?= %u", qname.c_str(), in.GetKey(), in.QueueLength(), amount);
         if (in.QueueLength() != amount) {
             testerbase->Failure(this, "Queuesize is not expected size");
         }
@@ -99,7 +99,7 @@ public:
 
     void VerifyWriterSize(const std::string &qname, unsigned amount) {
         QueueWriterAdapter<unsigned> out = node->GetWriter(qname);
-        Trace("%s %u ?= %u", qname.c_str(), out.QueueLength(), amount);
+        Trace("%s (%llu) %u ?= %u", qname.c_str(), out.GetKey(), out.QueueLength(), amount);
         if (out.QueueLength() != amount) {
             testerbase->Failure(this, "Queuesize is not expected size");
         }

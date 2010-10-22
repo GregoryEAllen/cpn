@@ -253,13 +253,13 @@ namespace CPN {
     }
 
     void RemoteQueue::SendEnqueuePacket() {
-        FUNC_TRACE(logger);
         unsigned count = queue->Count();
         const unsigned maxthresh = queue->MaxThreshold();
         const unsigned expectedfree = std::max(readerlength, maxthresh) - bytecount;
         if (count > maxthresh) { count = maxthresh; }
         if (count > expectedfree) { count = expectedfree; }
         if (count == 0) { return; }
+        FUNC_TRACE(logger);
         const unsigned datalength = count * queue->NumChannels();
         Packet packet(datalength, PACKET_ENQUEUE);
         SetupPacket(packet);
@@ -276,6 +276,9 @@ namespace CPN {
         ASSERT(!readshutdown);
         readrequest = 0;
         bytecount -= packet.Count();
+        if (!sentEnd) {
+            SendEnqueuePacket();
+        }
     }
 
     void RemoteQueue::SendDequeuePacket() {
@@ -744,8 +747,7 @@ namespace CPN {
 
     std::string RemoteQueue::GetState() {
         std::ostringstream oss;
-        oss << std::boolalpha
-            << "s: " << QueueLength() << ",mt: " << MaxThreshold() << ",c: " << Count()
+        oss << "s: " << QueueLength() << ",mt: " << MaxThreshold() << ",c: " << Count()
             << ",f: " << Freespace() << ",rr: " << readrequest << ",wr: " << writerequest
             << ",te: " << NumEnqueued() << ",td: " << NumDequeued()
             << ",M: " << (mode == READ ? "r" : "w") << ",rl: " << readerlength
