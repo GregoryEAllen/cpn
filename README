@@ -59,4 +59,55 @@ Known issues:
       box.
 
 
+About pseudo nodes
+
+Pseudo nodes are a special handle to a node which doesn't have a thread.  This
+is useful for the case where you want to input or output data to the network of
+nodes.  For example, instantiate some network of nodes, then create two speudo
+nodes to be input and output.  Then this allows for the application to grab
+endpoints for those pseudo nodes outside of a node for putting data in and out.
+One has to be careful though as all the same rules apply for determinism and
+deadlock. The idea behind this was that CPN could be used in a larger
+application where CPN is just a library used to compute some intermediate value
+for the application.  One of the design goals in mind while writing CPN was
+that it should be useable in as many types of situations as possible.
+
+Example:
+
+CPN::Key_t pnodekey = kernel.CreatePseudoNode("Pseudo node name");
+... generate queues...
+CPN::WriteQueueAdapter<int> out = kernel.GetPseudoWriter(pnodekey, "endpoint name");
+while (data) {
+    ...
+    out.Enqueue(...);
+    ...
+}
+out.Release();
+...
+
+kernel.DestroyPseudoNode(pnodekey);
+
+
+About Functional Nodes
+
+This is very similar to pseudo nodes. These are special nodes that can be
+created by passing a function or function object to the kernel. It is setup
+with templates to allow for the passing of up to 9 parameters to a function
+node.  The idea here is that sometimes one wants a simple node where writing
+all the machinary for a full blown node would be overkill.  This feature is
+used in the tests in several places where writing a full node would have been
+painfully verbose.
+
+Example:
+
+void testnode(CPN::NodeBase *node, std::string endpoint) {
+    CPN::QueueReaderAdapter<int> in = node->GetReader(endpoint);
+    ... read from in
+}
+
+...
+in setup do
+...
+kernel.CreateFunctionNode("node name", testnode, std::string("endpoint name"));
+
 
