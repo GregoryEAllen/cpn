@@ -1,46 +1,74 @@
 
+This is a research and development release. There may be problems and things
+may change.  If you find this useful or find a bug let us know.
+
+Contact:
+    John Bridgman johnfb@arlut.utexas.edu
+    Greg Allen    gallen@arlut.utexas.edu
+
+* Tests
+
 To build the unit tests cppunit must be installed and pkg-config must know how
 to get its compiler flags.  All the tests are in the test directory.  All tests
-dealing with the CPN library are in cpntest. Some of the other libraries have a test directory.
-The XML features require libxml++.
+dealing with the CPN library are in cpntest. Some of the other libraries have a
+test directory.  The XML features require libxml++.
 
-Dependent libraries:
+* Library dependencies
     * cppunit
     * libxml++
     * fftw
 
-Seive of Eratosthenes
+* Case studies and Applications
+
+These are contained in the apps directory. Some are very simple test
+applications like XML-JSON which will read in an XML or JSON file into the
+Variant type then output it back as XML or JSON.  Some of these require the
+nodelibraries be built.
+
+** CPNKernel
+
+A loader application which takes a set of command line options and
+configuration files and loads up a CPN network. This expects that all the nodes
+can be looked up with the node loader. (See ``Node Library'')
+
+** Seive of Eratosthenes
 
 There are two versions of this, the first is called SimpleSieve and the second
 is called ThresholdSieve.  To run these go either
-apps/SieveOfEratosthenes/SimpleSeive or /ThresholdSieve and execute jmake. Then run
-the resulting executable with the -h option to get specific options.
+apps/SieveOfEratosthenes/SimpleSeive or /ThresholdSieve and execute jmake. Then
+run the resulting executable with the -h option to get specific options.
 
-Random Instruction
+** Random Instruction
 
-There are two ways to run the random instruction test.
-The first is all in one process. Go to apps/RandomInstruction and jmake.
-Then run with -h to get a list of options.
+There are two ways to run the random instruction test.  The first is all in one
+process. Go to apps/RandomInstruction and jmake.  Then run with -h to get a
+list of options.
 
-The second one is on multiple processes and requires more setup.
-First build apps/RemoteRandomInstruction then build apps/RemoteDatabase.
-Then create a config file for the RemoteRandomInstruction, (the -h
-option prints out a description of what the config is supposed to look like.
-As well, there is an example config file in that directory).
-Now run the RemoteDatabase with the listening host and port set in the config.
-Then run each of the RemoteRandomInstruction with parameters of config then
-the name, database host and database port.
+The second one is on multiple processes and requires more setup.  First build
+apps/RemoteRandomInstruction then build apps/RemoteDatabase.  Then create a
+config file for the RemoteRandomInstruction, (the -h option prints out a
+description of what the config is supposed to look like.  As well, there is an
+example config file in that directory).  Now run the RemoteDatabase specifying
+listening host and port.  Then run each of the RemoteRandomInstruction with
+parameters of config then the name, database host and database port.
 
 For the given example config it would be:
 Run on zeus: RemoteDatabase zeus 12345
 Run: RemoteRandomInstruction configk2n100i100 kone zeus 12345
 Run: RemoteRandomInstruction configk2n100i100 ktwo zeus 12345
 
+** Beamformer
 
-Added features:
+There are several implementations in one directory. This app requires that
+nodelibraries be built and working. (See ``Node Library'')  These provide basic
+command line driven ways of running the different parts of the beamformer and
+several different tests.  Use the -h option on each symlink after it has been
+built for options on how to run them.
+
+* Added features:
     * D4R
-    * Pseudo nodes
-    * Functional nodes
+    * Pseudo nodes (see ``About Pseudo Nodes'' below)
+    * Functional nodes (see ``About Function Nodes'' below)
     * Beamformer case study
     * General cleanup and restructure of libraries
     * Most of the remote queue stuff has been rewritten
@@ -52,25 +80,25 @@ Added features:
     * Made node loading be through symbol name lookup
     * Updated sieve case studies
 
-Known issues:
+* Known issues:
     * Possible for D4R implementation to transmit a tag while unblocking, this
-      can cause D4R to think a deadlock occures when there is no deadlock. I
+      can cause D4R to think a deadlock has occurred when there is no deadlock. I
       have only seen this happen when running tests for hours on a fully loaded
       box.
 
 
-About pseudo nodes
+* About Pseudo Nodes
 
 Pseudo nodes are a special handle to a node which doesn't have a thread.  This
 is useful for the case where you want to input or output data to the network of
-nodes.  For example, instantiate some network of nodes, then create two speudo
+nodes.  For example, instantiate some network of nodes, then create two pseudo
 nodes to be input and output.  Then this allows for the application to grab
 endpoints for those pseudo nodes outside of a node for putting data in and out.
 One has to be careful though as all the same rules apply for determinism and
 deadlock. The idea behind this was that CPN could be used in a larger
 application where CPN is just a library used to compute some intermediate value
 for the application.  One of the design goals in mind while writing CPN was
-that it should be useable in as many types of situations as possible.
+that it should be usable in as many types of situations as possible.
 
 Example:
 
@@ -88,13 +116,13 @@ out.Release();
 kernel.DestroyPseudoNode(pnodekey);
 
 
-About Functional Nodes
+* About Function Nodes
 
 This is very similar to pseudo nodes. These are special nodes that can be
 created by passing a function or function object to the kernel. It is setup
 with templates to allow for the passing of up to 9 parameters to a function
 node.  The idea here is that sometimes one wants a simple node where writing
-all the machinary for a full blown node would be overkill.  This feature is
+all the machinery for a full blown node would be overkill.  This feature is
 used in the tests in several places where writing a full node would have been
 painfully verbose.
 
@@ -109,5 +137,29 @@ void testnode(CPN::NodeBase *node, std::string endpoint) {
 in setup do
 ...
 kernel.CreateFunctionNode("node name", testnode, std::string("endpoint name"));
+
+* Node Library
+
+One of the additions has been dynamic node type loading. The way this works is
+that there is a node loader class which has a list of places to search for
+nodes.  The first thing the node loader does is look through the symbol table
+of the program for a symbol which is a mangling of the node type name.  If this
+symbol is found it will call it as a function to get a node factory for that
+node type.  If it is not found then it will look into an internal dictionary to
+see if some dynamic library can be loaded which will provide the symbol.  The
+way the node loader knows if there is a library it can load is by telling it
+with a node list file.  The node list file has a very simple syntax.  There are
+two kinds of directives, include and defining a node type name and its library.
+The include is simply the keyword include followed by arbitrary white space
+then a list of files to include separated by white space. All commands end in a
+semicolon.  The library node type name is the keyword lib followed by white
+space then the name of the dynamic library to load followed by white space then
+the mangled node type name and finished with a semicolon.
+
+* Defining A Node
+
+To define a node, subclass CPN::NodeBase. Then somewhere in the implementation
+file put the macro CPN_DECLARE_NODE_FACTORY(typename, classname);. Note that
+typename must be a valid as a symbol name.
 
 

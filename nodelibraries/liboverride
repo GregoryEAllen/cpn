@@ -17,3 +17,5 @@ $(OSDIR)/node.list:$(LIBRARY)
 	echo ';' >> $@
 
 lib :: $(OSDIR)/node.list
+
+-include override

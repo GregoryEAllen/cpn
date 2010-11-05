@@ -26,6 +26,7 @@
 #include "fftw_inc.h"
 #include <complex>
 #include <xmmintrin.h>
+#include <pmmintrin.h>
 #include <vector>
 #include <string>
 #include <memory>
