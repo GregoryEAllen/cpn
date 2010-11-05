@@ -32,6 +32,7 @@
 #include "Assert.h"
 #include <stdexcept>
 #include <cmath>
+#include <stdio.h>
 
 #if _DEBUG
 #include <cstdio>

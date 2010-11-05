@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 StreamForwarder::StreamForwarder()
-    : forward(0), buff(BUFF_SIZE)
+    : forward(0), buff(BUFF_SIZE, BUFF_SIZE, 1)
 {
     printf("%s\n",__PRETTY_FUNCTION__);
     handle.Writeable(true);
@@ -15,7 +15,7 @@ void StreamForwarder::Read() {
     while (handle.Readable()) {
         printf("%s\n",__PRETTY_FUNCTION__);
         unsigned numtoread = 0;
-        char* in = forward->AllocatePut(buff.MaxSize(), numtoread);
+        char* in = forward->AllocatePut(buff.MaxThreshold(), numtoread);
         if (numtoread == 0) { break; }
         unsigned numread = handle.Read(in, numtoread);
         if (numread == 0) {
@@ -34,10 +34,10 @@ void StreamForwarder::Write() {
     while (handle.Writeable()) {
         printf("%s\n",__PRETTY_FUNCTION__);
         unsigned numtowrite = 0;
-        char* out = buff.AllocateGet(buff.Size(), numtowrite);
+        const char* out = AllocateGet(buff.MaxThreshold(), numtowrite);
         if (numtowrite > 0) {
             unsigned numwritten = handle.Write(out, numtowrite);
-            buff.ReleaseGet(numwritten);
+            ReleaseGet(numwritten);
         } else { break; }
     }
 }
