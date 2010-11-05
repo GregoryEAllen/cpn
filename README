@@ -6,6 +6,12 @@ Contact:
     John Bridgman johnfb@arlut.utexas.edu
     Greg Allen    gallen@arlut.utexas.edu
 
+* Documentation
+
+An effort to use doxygen documentation syntax was used throughout. A lot of
+additional documentation can be obtained by running doxygen doxygen.conf in the
+repository root. This will generate a set of html pages.
+
 * Tests
 
 To build the unit tests cppunit must be installed and pkg-config must know how
