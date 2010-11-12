@@ -1,6 +1,9 @@
 
-This is a research and development release. There may be problems and things
-may change.  If you find this useful or find a bug let us know.
+* Computational Process Networks
+
+This is a research and development release. There may be bugs and things
+may change in future releases.  If you find this useful or find a bug let us
+know.
 
 Contact:
     John Bridgman johnfb@arlut.utexas.edu
@@ -12,6 +15,11 @@ An effort to use doxygen documentation syntax was used throughout. A lot of
 additional documentation can be obtained by running doxygen doxygen.conf in the
 repository root. This will generate a set of html pages.
 
+* Library dependencies
+    * cppunit
+    * libxml++
+    * fftw
+
 * Tests
 
 To build the unit tests cppunit must be installed and pkg-config must know how
@@ -19,10 +27,26 @@ to get its compiler flags.  All the tests are in the test directory.  All tests
 dealing with the CPN library are in cpntest. Some of the other libraries have a
 test directory.  The XML features require libxml++.
 
-* Library dependencies
-    * cppunit
-    * libxml++
-    * fftw
+* Added features sense last release:
+    * D4R
+    * Pseudo nodes (see ``About Pseudo Nodes'' below)
+    * Functional nodes (see ``About Function Nodes'' below)
+    * Beamformer case study
+    * General cleanup and restructure of libraries
+    * Most of the remote queue stuff has been rewritten
+    * Fixed several issues in PthreadLib
+    * Most of the queue stuff has been rewritten
+    * Added the ability to load a network from a Variant config
+    * Added a loader from XML to Variant
+    * Added node library (see ``Node Library'' below)
+    * Made node loading be through symbol name lookup
+    * Updated sieve case studies
+
+* Known issues:
+    * Possible for D4R implementation to transmit a tag while unblocking, this
+      can cause D4R to think a deadlock has occurred when there is no deadlock. I
+      have only seen this happen when running tests for hours on a fully loaded
+      box.
 
 * Case studies and Applications
 
@@ -40,7 +64,7 @@ can be looked up with the node loader. (See ``Node Library'')
 ** Seive of Eratosthenes
 
 There are two versions of this, the first is called SimpleSieve and the second
-is called ThresholdSieve.  To run these go either
+is called ThresholdSieve.  To run these go to either
 apps/SieveOfEratosthenes/SimpleSeive or /ThresholdSieve and execute jmake. Then
 run the resulting executable with the -h option to get specific options.
 
@@ -71,27 +95,14 @@ command line driven ways of running the different parts of the beamformer and
 several different tests.  Use the -h option on each symlink after it has been
 built for options on how to run them.
 
-* Added features:
-    * D4R
-    * Pseudo nodes (see ``About Pseudo Nodes'' below)
-    * Functional nodes (see ``About Function Nodes'' below)
-    * Beamformer case study
-    * General cleanup and restructure of libraries
-    * Most of the remote queue stuff has been rewritten
-    * Fixed several issues in PthreadLib
-    * Most of the queue stuff has been rewritten
-    * Added the ability to load a network from a Variant config
-    * Added a loader from XML to Variant
-    * Added node library
-    * Made node loading be through symbol name lookup
-    * Updated sieve case studies
+** RemoteDatabase
 
-* Known issues:
-    * Possible for D4R implementation to transmit a tag while unblocking, this
-      can cause D4R to think a deadlock has occurred when there is no deadlock. I
-      have only seen this happen when running tests for hours on a fully loaded
-      box.
+This is a realization of the remote database daemon.
 
+** XML-JSON
+
+This is a simple test application for converting between the JSON and XML
+syntaxes supported by the Variant class.
 
 * About Pseudo Nodes
 
