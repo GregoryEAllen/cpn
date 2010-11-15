@@ -202,7 +202,7 @@ namespace CPN {
         SimpleQueueAttr()
             : queuehint(QUEUEHINT_DEFAULT),
             queueLength(0), maxThreshold(0),
-            numChannels(0), alpha(0)
+            numChannels(0), alpha(0.5)
         {}
         SimpleQueueAttr(const QueueAttr &attr)
             : queuehint(attr.GetHint()),

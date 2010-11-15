@@ -232,6 +232,7 @@ namespace CPN {
         queueattr["writerkey"] = attr.GetWriterKey();
         queueattr["readernodekey"] = attr.GetReaderNodeKey();
         queueattr["writernodekey"] = attr.GetWriterNodeKey();
+        queueattr["alpha"] = attr.GetAlpha();
         msg["queueattr"] = queueattr;
         SendMessage(msg);
     }
@@ -247,6 +248,7 @@ namespace CPN {
         attr.SetWriterKey(msg["writerkey"].AsNumber<Key_t>());
         attr.SetReaderNodeKey(msg["readernodekey"].AsNumber<Key_t>());
         attr.SetWriterNodeKey(msg["writernodekey"].AsNumber<Key_t>());
+        attr.SetAlpha(msg["alpha"].AsDouble());
         return attr;
     }
 
