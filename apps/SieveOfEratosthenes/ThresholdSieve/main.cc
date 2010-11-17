@@ -131,6 +131,7 @@ static Variant SieveTest(VariantCPNLoader &loader, bool verbose) {
 int main(int argc, char **argv) {
     VariantCPNLoader loader;
     loader.KernelName("ThresholdSieve");
+    loader.UseD4R(false);
     Variant param = GetDefaults();
 
     int numIterations = 1;
