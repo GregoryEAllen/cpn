@@ -71,6 +71,9 @@ namespace CPN {
                 //printf("Grow(%u, %u)\n", 2*thresh, thresh);
                 Grow(2*thresh, thresh);
                 Signal();
+            } else if (WriteBlocked() && database->GrowQueueMaxThreshold()) {
+                Grow(writerequest + thresh, thresh);
+                Signal();
             } else {
                 readrequest = thresh;
                 WaitForData();
@@ -122,6 +125,9 @@ namespace CPN {
             if (thresh > MaxThreshold() && database->GrowQueueMaxThreshold()) {
                 //printf("Grow(%u, %u)\n", 2*thresh, thresh);
                 Grow(2*thresh, thresh);
+                Signal();
+            } else if (ReadBlocked() && database->GrowQueueMaxThreshold()) {
+                Grow(readrequest + thresh, thresh);
                 Signal();
             } else {
                 writerequest = thresh;
