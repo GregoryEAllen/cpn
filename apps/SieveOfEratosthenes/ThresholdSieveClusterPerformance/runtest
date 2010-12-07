@@ -1,0 +1,19 @@
+#!/bin/sh
+
+port=`echo 1024+$RANDOM | bc`
+database='{\"database\":{\"port\":'$port'\,\"host\":\"192.168.1.1\"\,\"loglevel\":0}}'
+#database='{\"database\":{\"port\":'$port'\,\"host\":\"192.168.1.1\"}}'
+common="-j \$HOSTNAME -J $database"
+command='~/bin/runsub ~/cpn/apps/SieveOfEratosthenes/ThresholdSieve/ThresholdSieve'
+#command=/bin/echo 
+
+~/cpn/apps/RemoteDatabase/RemoteDatabase 192.168.1.1 $port &
+ssh -n node002 $command $common $* &
+ssh -n node003 $command -cno $common &
+ssh -n node004 $command -cno $common &
+ssh -n node005 $command -cno $common &
+ssh -n node006 $command -cno $common &
+ssh -n node007 $command -cno $common &
+ssh -n node008 $command -cno $common &
+
+wait
