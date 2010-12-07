@@ -132,6 +132,9 @@ namespace CPN {
     void RemoteQueue::Grow(unsigned queueLen, unsigned maxThresh) {
         AutoLock<QueueBase> al(*this);
         FUNC_TRACE(logger);
+        while (pendingGrow && !dead) {
+            Wait();
+        }
         const unsigned maxthresh = std::max<unsigned>(queue->MaxThreshold(), maxThresh);
         readerlength = QueueLength(queueLen, maxthresh, alpha, READ);
         writerlength = QueueLength(queueLen, maxthresh, alpha, WRITE);

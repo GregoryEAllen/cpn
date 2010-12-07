@@ -115,6 +115,7 @@ namespace CPN {
         AutoLock al(*this);
         if (inenqueue) { ASSERT(enqueuethresh >= thresh); }
         else { enqueuethresh = thresh; }
+        bool grown = false;
         while (true) {
             void *ptr = InternalGetRawEnqueuePtr(thresh, chan);
             if (ptr) {
@@ -126,9 +127,10 @@ namespace CPN {
                 //printf("Grow(%u, %u)\n", 2*thresh, thresh);
                 Grow(2*thresh, thresh);
                 Signal();
-            } else if (ReadBlocked() && database->GrowQueueMaxThreshold()) {
+            } else if (!grown && ReadBlocked() && database->GrowQueueMaxThreshold()) {
                 Grow(readrequest + thresh, thresh);
                 Signal();
+                grown = true;
             } else {
                 writerequest = thresh;
                 WaitForFreespace();
