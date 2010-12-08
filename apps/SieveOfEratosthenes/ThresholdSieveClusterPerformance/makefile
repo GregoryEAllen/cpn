@@ -3,7 +3,7 @@ CONFIG = conf.json
 
 .SECONDEXPANSION:
 
-all:
+all: results.pdf
 
 results: $$(all_results)
 

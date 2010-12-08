@@ -10,9 +10,9 @@ results = {}
 
 for f in sys.argv[1:]:
     fid = open(f)
-    r = json.load(f)
+    r = json.load(fid)
     fid.close()
     for k, v in r.items():
         results[k] = v
 
-json.dump(results, sys.stdout)
+json.dump(results, sys.stdout, indent=4, sort_keys=True)

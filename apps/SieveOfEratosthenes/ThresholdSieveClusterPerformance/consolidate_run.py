@@ -14,7 +14,14 @@ for f in sys.argv[2:]:
     fid.close()
     results += result
 
-results.sort(lambda x, y: x['realtime'] - y['realtime'])
+def cmp(x, y):
+    if x['realtime'] < y['realtime']:
+        return -1
+    if x['realtime'] > y['realtime']:
+        return 1
+    return 0
+
+results.sort(cmp)
 
 json.dump({sys.argv[1]: results[0] }, sys.stdout)
 

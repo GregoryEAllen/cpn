@@ -3,17 +3,9 @@
 
     "gen_conf": "./gen_run_conf.py",
     "iterations": 5,
-    "runs": {
-        "run1": {
-            "divisor": 0,
-            "maxprime": 1000000, 
-            "ppf": [-10, 0, 0, 0.01 ], 
-            "primewheel": 5, 
-            "queuehint": "threshold", 
-            "queuesize": 5000, 
-            "report": false, 
-            "threshold": 2500, 
-            "zerocopy": 0
-        }
-    }
+    "runs": [
+        "run1",
+        "run2",
+        "run3"
+    ]
 }
