@@ -1,0 +1,358 @@
+\documentclass{article}
+\usepackage{fullpage}
+\usepackage{listings}
+\usepackage{graphicx}
+
+\begin{document}
+
+\lstset{language=c++}
+
+This tutorial aims to give a basic walk through of how to use the Computational Process Network (CPN) library.
+
+There are three different ways to define or create a node.
+The first way is to derive a node from \lstinline!CPN::NodeBase!. This method is rather verbose but allows one to load
+the node through the \lstinline!VariantCPNLoader!. The second way is by asking the kernel to create a function node.
+A function node is a node which calls a function with a pointer to the \lstinline!CPN::NodeBase! and any additional supplied parameters.
+The final way of creating a node is to create a pseudo node.
+A pseudo node is a handle that one can use to get queue endpoints.
+This facility is designed for when your data source or sink is some other application where you provide callback functions.
+So, by providing the right kind of callback functions you easily turn that source or sink into a source or sink node in CPN.
+
+For most of the examples in this document the same example process network (PN) will be used.
+This is so that you may see several different ways of implementing the same thing.
+The example process network is very simple and requires only two types of nodes.
+The first type of node is a summing node that takes some number of inputs and one output.
+The summing node takes one token from each input, sums them together and then enqueues the result
+on the output.
+The second type of node is called a delay node in the code.
+This particular PN can be implemented as a synchronous data flow graph and in a synchronous data flow
+the node would be a delay.
+This node has an initial value, and input, and several outputs.
+The current value is set to the initial value.
+Then the node proceeds by enqueueing its current value to all outputs.
+The node sets its current value from the input and repeat.
+All the examples will use the pseudo node interface for the collection of the PN output.
+The topology of the example PN is in Figure \ref{fig:fibinocci}.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{fib}
+\label{fig:fibinocci}
+\caption{Process network to generate Fibonacci numbers}
+\end{figure}
+
+\section{Derived Node Example}
+\label{Derived Node Example}
+
+The full source code for this example is in section \ref{derived source}.
+
+To construct a derived node one must pass a \lstinline!CPN::NodeAttr! object to the kernel.
+The node attribute object requires a node name and a node type name as constructor arguments.
+The methods of interest are \lstinline!NodeAttr::SetParam!, \lstinline!NodeAttr::GetParam! and \lstinline!NodeAttr::SetHost!.
+The \lstinline!NodeAttr::SetHost! is used when distributing the process network.
+See section \ref{Distributing}.
+To be able to construct a node in this fashion the node loader must be able to find the node factory.
+See section \ref{Node Loader} for more details.
+
+In order to provide a derived node one must inherit from \lstinline!CPN::NodeBase!.
+Also, if the standard node factory declaration macro is used the constructor must take a reference
+to the \lstinline!CPN::Kernel! as the first parameter and a const reference to the \lstinline!CPN::NodeAttr!
+as the second parameter.
+These are the parameters that the constructor for \lstinline!CPN::NodeBase! takes.
+The declaration for the summing node is in Listing \ref{summer declaration}
+
+\begin{figure}[htbp]
+\begin{lstlisting}[caption=Declaration for the summing node,label=summer declaration]{}
+class Summer : public NodeBase {
+public:
+    Summer(Kernel &ker, const NodeAttr &attr);
+private:
+    void Process();
+    vector<string> inputs;
+    string output;
+};
+\end{lstlisting}
+\end{figure}
+
+\lstinline!CPN::NodeBase! has one purely virtual method with the signature \lstinline!void Process()!.
+This method will be called in a separate thread to execute the node.
+When this method returns the kernel assumes the node has finished and starts freeing resources.
+
+The \lstinline!NodeAttr::SetParam! and \lstinline!NodeAttr::GetParam! methods allow the passing of a
+string parameter to the node.
+The parameter is only available in the constructor as the \lstinline!NodeAttr! is not kept around.
+In our example we shall use the \lstinline!Variant! class and the JSON parser to tern the
+string into a \lstinline!Variant! data structure which is then queried to initialize the
+node variables.
+The constructor is in Listing \ref{summer constructor}
+
+\begin{lstlisting}[caption=Summing node constructor declaration,label=summer constructor]{}
+Summer::Summer(Kernel &ker, const NodeAttr &attr)
+    : NodeBase(ker, attr)
+{
+    JSONToVariant p;
+    p.Parse(attr.GetParam());
+    if (!p.Done()) {
+        throw std::runtime_error("Could not parse parameters");
+    }
+    Variant param = p.Get();
+    Variant inp = param["inputs"];
+    std::transform(inp.ListBegin(), inp.ListEnd(),
+            std::back_inserter(inputs),
+            std::mem_fun_ref(&Variant::AsString));
+    output = param["output"].AsString();
+}
+\end{lstlisting}
+
+The first thing the constructor does it pass its parameters on to \lstinline!CPN::NodeBase! so that
+the base class may initialize it self.
+Then it parses the parameter string.
+If unsuccessful the constructor throws a \lstinline!std::runtime_error!.
+Then the constructor sets its member method values from the parsed parameters.
+
+When the kernel starts the node the \lstinline!Process()! method is called in a separate thread.
+The code for the summing node's \lstinline!Process()! method is in Listing \ref{summer process}.
+
+\begin{lstlisting}[caption=Summing node process declaration,label=summer process]{}
+void Summer::Process() {
+    typedef vector< QueueReaderAdapter<uint64_t> > Inport_t;
+    Inport_t inports;
+    for (vector<string>::iterator i = inputs.begin(), e = inputs.end();
+            i != e; ++i) {
+        inports.push_back(GetReader(*i));
+    }
+    QueueWriterAdapter<uint64_t> outport = GetWriter(output);
+    bool loop = true;
+    while (true) {
+        uint64_t sum = 0;
+        for (Inport_t::iterator i = inports.begin(), e = inports.end();
+                i != e; ++i) {
+            uint64_t val = 0;
+            if (i->Dequeue(&val, 1)) {
+                sum += val;
+            } else {
+                loop = false;
+                break;
+            }
+        }
+        if (!loop) break;
+        outport.Enqueue(&sum, 1);
+    }
+}
+\end{lstlisting}
+
+Note that the raw underlying queue is typeless and simply does a blind bit wise copy of the data.
+This means that only plain old data (POD) types can be sent over the queues in CPN.
+The \lstinline!CPN::QueueReaderAdapter<T>! and \lstinline!CPN::QueueWriterAdapter<T>! provide
+type checking and type conversion for the raw queue interface.
+Each queue has associated with it a string identifying the type that that queue should handle.
+The adapter check this string and throw an exception on assignment if the types do not match.
+
+First, the summer node gets all its input and output queues ends and places them in adapters.
+Then it reads from all its inputs, sum them and enqueues the result.
+Note that the \lstinline!QueueReaderAdapter<T>::Dequeue(T *, unsigned)! function will return
+\lstinline!false! when the other end of the queue disconnects.
+There are two ways to disconnect. The first is to call \lstinline!Release! on the queue endpoint
+and the second is to return from \lstinline!Process()!.
+Trying to enqueue to a disconnected queue will result in a \lstinline!CPN::BrokenQueueException!
+being thrown.
+
+The very final thing in the file is the node factory declaration.
+This uses the macro \lstinline!CPN_DECLARE_NODE_FACTORY(class, typename)!.
+This macro defines a node factory and then the special symbol that the node loader uses to look up
+the node type at run time.
+Note that the type name must be a valid symbol (limited to alphanumeric and underscore).
+Usually it is the same as the node class name.
+
+Full code for the summing node is available in Listing \ref{lst:summer}.
+The delay nodes are for the most part very similar. Full code for the delay node is in Listing \ref{lst:delay}.
+
+Now on to instantiating and running the nodes.
+Full code for the main function to run this example is in Listing \ref{lst:dn main}.
+
+First we have to create a \lstinline!CPN::Kernel!.
+For this example we will create the kernel on the stack.
+The constructor requires a \lstinline!CPN::KernelAttr! object as a parameter object.
+The kernel attribute object only has one required parameter and that is a name for the kernel.
+Most of the parameters deal with options for distributing the PN.
+We set two flags on the database object that the kernel created for us.
+The first is to not use the D4R algorithm.
+The second is swallow broken queue exceptions.
+By default the broken queue exceptions are left unhandled and end up with a call to \lstinline!std::terminate! ending in application termination.
+
+\begin{lstlisting}{}
+    Kernel kernel(KernelAttr("kernel"));
+    kernel.GetDatabase()->UseD4R(false);
+    kernel.GetDatabase()->SwallowBrokenQueueExceptions(true);
+\end{lstlisting}
+
+Next, the nodes need to be created. It is important to notice that the nodes for a queue must exist before
+the queue can be created.
+
+\begin{lstlisting}{}
+    NodeAttr nattr("summer", "Summer", "{\"inputs\":[ \"A\","
+           " \"B\"], \"output\": \"C\"}");
+    kernel.CreateNode(nattr);
+    nattr = NodeAttr("Delay 1", "Delay", "{\"input\": \"in\","
+           " \"outputs\":[ \"A\", \"B\" ], \"initial\": 1}");
+    kernel.CreateNode(nattr);
+    nattr.SetName("Delay 2");
+    kernel.CreateNode(nattr);
+    Key_t pkey = kernel.CreatePseudoNode("result");
+\end{lstlisting}
+
+Then the queues can be created.
+
+\begin{lstlisting}{}
+    QueueAttr qattr(2*sizeof(uint64_t), sizeof(uint64_t));
+    qattr.SetDatatype<uint64_t>();
+    qattr.SetWriter("Delay 1", "A").SetReader("summer", "A");
+    kernel.CreateQueue(qattr);
+    qattr.SetWriter("Delay 2", "A").SetReader("summer", "B");
+    kernel.CreateQueue(qattr);
+    qattr.SetWriter("summer", "C").SetReader("Delay 1", "in");
+    kernel.CreateQueue(qattr);
+    qattr.SetWriter("Delay 1", "B").SetReader("Delay 2", "in");
+    kernel.CreateQueue(qattr);
+    qattr.SetWriter("Delay 2", "B").SetReader("result", "in");
+    kernel.CreateQueue(qattr);
+\end{lstlisting}
+
+Finally, use the created pseudo node to gather the results.
+Notice that we must explicitly destroy the pseudo node.
+When the endpoint is released the queues on the other nodes get shut down, causing all the nodes to exit.
+We set the swallow broken queue exceptions flag in the database of the kernel above so that we would obtain this behavior.
+By default this flag is off.
+
+\begin{lstlisting}{}
+    QueueReaderAdapter<uint64_t> result = kernel.GetPseudoReader(pkey, "in");
+    uint64_t value;
+    do {
+        result.Dequeue(&value, 1);
+        std::cout << "- " << value << std::endl;
+    } while (value < max_fib);
+    result.Release();
+    kernel.DestroyPseudoNode(pkey);
+    kernel.WaitForAllNodeEnd();
+\end{lstlisting}
+
+This gathering of results gives a simple example of how to use the pseudo nodes.
+The pseudo nodes where added for the explicit reason of having outside code that needed
+to act as a source or sink into the PN.
+For example if you where using CPN as processing glue between two independent subsystems that both used
+callbacks.
+You could supply the pseudo node key and the kernel to each callback and the two systems could
+then work as sources and sinks in the PN.
+
+\section{Function Node Example}
+\label{Function Node Example}
+
+Function nodes are useful when you want to have a simple one off node and/or don't need auto
+loading.
+Function nodes cannot be automatically loaded by the node loader.
+This means that the VariantCPNLoader can't specify these nodes and they must be done manually.
+Using function nodes can make a simple PN much easier to write.
+You can still use the VariantCPNLoader to load the queue descriptions once the nodes are created.
+The kernel has a set of overloaded template functions which take as the first parameter the new node
+name, the second parameter is function object to call, and optional additional arguments are captured and
+passed to the function object.
+
+To create Fibonacci generator we have been discussing we need two nodes. This time we will use
+functions for the nodes. The functions should take as the first argument a pointer to a \lstinline!CPN::NodeBase!.
+The summer and delay node functions are defined as:
+
+\begin{lstlisting}{}
+static void Summer(NodeBase *node, string input_a, string input_b,
+        string output) {
+    QueueReaderAdapter<uint64_t> in_a = node->GetReader(input_a);
+    QueueReaderAdapter<uint64_t> in_b = node->GetReader(input_b);
+    QueueWriterAdapter<uint64_t> out = node->GetWriter(output);
+    while (true) {
+        uint64_t val_a, val_b, sum;
+        if (!in_a.Dequeue(&val_a, 1)) break;
+        if (!in_b.Dequeue(&val_b, 1)) break;
+        sum = val_a + val_b;
+        out.Enqueue(&sum, 1);
+    }
+}
+static void Delay(NodeBase *node, string input, string output_a,
+        string output_b, uint64_t initial) {
+    QueueReaderAdapter<uint64_t> in = node->GetReader(input);
+    QueueWriterAdapter<uint64_t> out_a = node->GetWriter(output_a);
+    QueueWriterAdapter<uint64_t> out_b = node->GetWriter(output_b);
+    uint64_t current = initial;
+    while (true) {
+        out_a.Enqueue(&current, 1);
+        out_b.Enqueue(&current, 1);
+        if (!in.Dequeue(&current, 1)) break;
+    }
+}
+\end{lstlisting}
+
+Then to create the nodes we have:
+\begin{lstlisting}{}
+    kernel.CreateFunctionNode("summer", Summer, string("A"), string("B"),
+            string("C"));
+    kernel.CreateFunctionNode("Delay 1", Delay, string("in"), string("A"),
+            string("B"), 1ull);
+    kernel.CreateFunctionNode("Delay 2", Delay, string("in"), string("A"),
+            string("B"), 1ull);
+    Key_t pkey = kernel.CreatePseudoNode("result");
+\end{lstlisting}
+Everything else is the same as the other example.
+The full example is in Listin \ref{lst:function node}.
+
+
+\section{Node Loader}
+\label{Node Loader}
+
+When you ask the kernel to create a node by type name, it asks the database
+for a node factory that can create a node of that type.
+The database has an internal map between type names and factories.
+If there is a factory in that map it will return it.
+If not then there are several places the database will look to see if it can
+find one.
+The first thing the database will do is search the executable for a symbol which is
+the type name added to an identifier.
+If a symbol with that name is found it is treated as a function that will return
+a factory that can create nodes of that type.
+If such a symbol is not found then the database will look if there is any node list that has
+information about that type.
+If so, it will look through it to see if there is a shared library that can be loaded to get a 
+function that can supply it with a factory for that node type.
+If all of these fail then the database throws an exception indicating that node creation has failed.
+
+A node list is a file that has a very simple format.
+The format is a directive followed by parameters then a semicolon.
+Newlines and spaces and tabs etc, are all considered white space and are collapsed unless they are inside of quotations.
+The supported directives are ``lib'' and ``include''.
+lib has two parameters, the first being the type symbol name, and the second being a shared library object that can be loaded to get that symbol name.
+The include directive has one parameter and that is a file name that should be recursively loaded for more definitions.
+
+One consequence of this loading scheme is that in general nodes will not have any referenced symbols in them.
+This is not normally a problem except when one tries to put a node in a library and use a tool like jmake.
+jmake collects objects into archives and then uses the linker to load that together.
+The problem with this is that the linker will prune out object files in archives that have no references.
+This causes objects in which we want to dynamically call symbols in to not be linked into the executable.
+
+
+\section{Distributing}
+\label{Distributing}
+
+In order to use the distributed features you need to have setup a remote database daemon.
+The daemon in in the apps directory.
+When setting up you then have to use a remote database instance to the kernel attribute and possibly set the host name in the attribute.
+Then when creating nodes you specify which kernel that node should be created on using the \lstinline!NodeAttr::SetHost! method.
+
+
+\section{Appendix A}
+
+\subsection{Derived Node}
+\label{derived source}
+\lstinputlisting[caption=The Summing Node,label=lst:summer]{code/derived_node/Fib_Summer.cc}
+\lstinputlisting[caption=The Delay Node,label=lst:delay]{code/derived_node/Fib_Delay.cc}
+\lstinputlisting[caption=Instantiating the declared nodes and running them,label=lst:dn main]{code/derived_node/main.cc}
+\subsection{Function Node}
+\lstinputlisting[caption=Example of function nodes,label=lst:function node]{code/function_node/main.cc}
+
+\end{document}

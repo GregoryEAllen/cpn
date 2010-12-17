@@ -19,6 +19,14 @@ _gen_*
 # not interested in the hg backup files
 *.orig
 
+*.log
+*.make
+*.cookie
+*.d
+*.fls
+*.aux
+*.pdf
+
 # Ignore the documentation directory
 documentation
 # individual executables
