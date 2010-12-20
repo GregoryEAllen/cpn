@@ -1,0 +1,7 @@
+{
+    "nodemap": {
+        "summer": "kernel_1",
+        "Delay 1": "kernel_2",
+        "Delay 2": "kernel_3"
+    }
+}

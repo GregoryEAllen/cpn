@@ -145,7 +145,7 @@ void VariantCPNLoader::AddNodeMapping(const std::string &noden, const std::strin
         config["nodemap"] = Variant::ObjectType;
     }
     Variant nodemap = config["nodemap"];
-    nodemap["noden"] = kernn;
+    nodemap[noden] = kernn;
 }
 
 shared_ptr<Database> VariantCPNLoader::LoadDatabase(Variant v) {

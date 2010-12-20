@@ -1,0 +1,94 @@
+{
+    "nodes": [
+        {
+            "name": "summer",
+            "type": "Summer",
+            "param": {
+                "inputs": [ "A", "B" ],
+                "output": "C"
+            }
+        },
+        {
+            "name": "Delay 1",
+            "type": "Delay",
+            "param": {
+                "input": "in",
+                "outputs": [ "A", "B" ],
+                "initial": 1
+            }
+        },
+        {
+            "name": "Delay 2",
+            "type": "Delay",
+            "param": {
+                "input": "in",
+                "outputs": [ "A", "B" ],
+                "initial": 1
+            }
+        }
+    ],
+
+    "queues": [
+        {
+            "size": 16,
+            "threshold": 8,
+            "type": "default",
+            "datatype": "uint64_t",
+            "numchannels": 1,
+            "alpha": 0.5,
+            "readernode": "summer",
+            "readerport": "A",
+            "writernode": "Delay 1",
+            "writerport": "A"
+        },
+        {
+            "size": 16,
+            "threshold": 8,
+            "type": "default",
+            "datatype": "uint64_t",
+            "numchannels": 1,
+            "alpha": 0.5,
+            "readernode": "summer",
+            "readerport": "B",
+            "writernode": "Delay 2",
+            "writerport": "A"
+        },
+        {
+            "size": 16,
+            "threshold": 8,
+            "type": "default",
+            "datatype": "uint64_t",
+            "numchannels": 1,
+            "alpha": 0.5,
+            "readernode": "Delay 1",
+            "readerport": "in",
+            "writernode": "summer",
+            "writerport": "C"
+        },
+        {
+            "size": 16,
+            "threshold": 8,
+            "type": "default",
+            "datatype": "uint64_t",
+            "numchannels": 1,
+            "alpha": 0.5,
+            "readernode": "Delay 2",
+            "readerport": "in",
+            "writernode": "Delay 1",
+            "writerport": "B"
+        },
+        {
+            "size": 16,
+            "threshold": 8,
+            "type": "default",
+            "datatype": "uint64_t",
+            "numchannels": 1,
+            "alpha": 0.5,
+            "readernode": "result",
+            "readerport": "in",
+            "writernode": "Delay 2",
+            "writerport": "B"
+        }
+    ]
+
+}

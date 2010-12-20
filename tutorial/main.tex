@@ -18,7 +18,7 @@ A pseudo node is a handle that one can use to get queue endpoints.
 This facility is designed for when your data source or sink is some other application where you provide callback functions.
 So, by providing the right kind of callback functions you easily turn that source or sink into a source or sink node in CPN.
 
-For most of the examples in this document the same example process network (PN) will be used.
+For most of the examples in this document the same toy example process network (PN) will be used.
 This is so that you may see several different ways of implementing the same thing.
 The example process network is very simple and requires only two types of nodes.
 The first type of node is a summing node that takes some number of inputs and one output.
@@ -328,22 +328,52 @@ Newlines and spaces and tabs etc, are all considered white space and are collaps
 The supported directives are ``lib'' and ``include''.
 lib has two parameters, the first being the type symbol name, and the second being a shared library object that can be loaded to get that symbol name.
 The include directive has one parameter and that is a file name that should be recursively loaded for more definitions.
+Filenames with spaces and other special characters may be quoted.
+The format also supports backslashes to escape any special meaning of the next character in unquoted strings and the \# character for single line comments.
+See the file \url{libraries/CPN/NodeLoader.cc} for details.
 
 One consequence of this loading scheme is that in general nodes will not have any referenced symbols in them.
 This is not normally a problem except when one tries to put a node in a library and use a tool like jmake.
 jmake collects objects into archives and then uses the linker to load that together.
 The problem with this is that the linker will prune out object files in archives that have no references.
 This causes objects in which we want to dynamically call symbols in to not be linked into the executable.
+So, when using tools like jmake a manual effort to ensure that there is a referenced symbol in for all the nodes to be linked statically needs to be made.
+Also, if no nodes are statically linked efforts needs to be made to ensure that the linker does not prune out typeinfo symbols for the nodes need in the CPN library.
+On systems with the GNU linker this can be done by ensuring your tool uses the whole archive flag around the CPN library archives and the node archive files.
+Even more linkers support the `-u' option which tells them to consider the given symbol name to be undefined and search through and load objects that define that symbol.
 
+\section{Variant}
+
+Before we talk about the distributed framework a little knowledge of some of the supporting classes is needed.
+The Variant class is a simple container that can represent a set of data structures.
+What Variant can represent is directly mappable into the JSON specification and back again.
+There are a set of classes and functions for parsing JSON to a Variant and back again.
+There is also a set of classes and functions for parsing to an XML format and back again.
+This means that an application that is setup right with Variant can accept both JSON and XML
+input. More details on the JSON format can be found at www.json.org.
+There is an example application in the apps/XML-JSON which reads in JSON or XML and then outputs JSON or XML.
+
+\section{VariantCPNLoader}
+
+The VariantCPNLoader is a class and a set of static methods that take a Variant object with data in a specific format and
+use that data to call methods on a kernel object.
+The VariantCPNLoader also has a method for constructing a KernelAttr object from a Variant object.
+An example of the loaders usage is given in the distributed section.
 
 \section{Distributing}
 \label{Distributing}
 
+This section assumes you have read the sections on Variant and the VariantCPNLoader.
 In order to use the distributed features you need to have setup a remote database daemon.
-The daemon in in the apps directory.
+A simple daemon implementation is in \url{apps/RemoteDatabase}.
 When setting up you then have to use a remote database instance to the kernel attribute and possibly set the host name in the attribute.
 Then when creating nodes you specify which kernel that node should be created on using the \lstinline!NodeAttr::SetHost! method.
+If everything works right, then that's all that additional things that must be done over running on a single kernel.
+You OFC have to ensure that every process possesses the node definitions that you try to load on it.
+The usual method of ensuring this used in the examples so far is to make all processes the same executable and the difference
+in behavior between them is decided by command line arguments and configuration files.
 
+Example of Fibonacci generator using distributed and the loader.
 
 \section{Appendix A}
 
