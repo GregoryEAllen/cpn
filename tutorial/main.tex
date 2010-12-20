@@ -2,6 +2,7 @@
 \usepackage{fullpage}
 \usepackage{listings}
 \usepackage{graphicx}
+\usepackage{url}
 
 \begin{document}
 
@@ -359,6 +360,9 @@ The VariantCPNLoader is a class and a set of static methods that take a Variant 
 use that data to call methods on a kernel object.
 The VariantCPNLoader also has a method for constructing a KernelAttr object from a Variant object.
 An example of the loaders usage is given in the distributed section.
+The VariantCPNLoader has a validator that goes through the configuration and ensures that all required fields are present
+and that there are no obvious errors like two nodes with the same name.
+At this point it may be constructive to take a look at \url{apps/CPNKernel/main.cc}.
 
 \section{Distributing}
 \label{Distributing}
@@ -369,11 +373,76 @@ A simple daemon implementation is in \url{apps/RemoteDatabase}.
 When setting up you then have to use a remote database instance to the kernel attribute and possibly set the host name in the attribute.
 Then when creating nodes you specify which kernel that node should be created on using the \lstinline!NodeAttr::SetHost! method.
 If everything works right, then that's all that additional things that must be done over running on a single kernel.
-You OFC have to ensure that every process possesses the node definitions that you try to load on it.
+You of course have to ensure that every process possesses the node definitions that you try to load on it.
 The usual method of ensuring this used in the examples so far is to make all processes the same executable and the difference
 in behavior between them is decided by command line arguments and configuration files.
 
-Example of Fibonacci generator using distributed and the loader.
+Next is an example of the Fibonacci number generator using the distributed features of CPN.
+The summing and delay node are the same and are symbolic links in the code directory.
+This example also uses the VariantCPNLoader to load the PN.
+
+A special note that the listing in this section will omit much of the error checking.
+Full error checking is included in the full listing.
+
+Let us look at the configuration files.
+Notice that the configuration is split between multiple files.
+This allows for certain parts of the configuration to be reused and combined in different ways.
+Many times just a small part of the configuration needs to be different for each kernel.
+Once the distributed example is built there is a option `-C' which causes the program
+to load all configuration data then print that data out in JSON format and exit.
+This can give a good idea of what the loader is doing and you can see how the command line options change
+what goes into the loader.
+
+The configuration is a key value map at the base. There are four keys that specify options for the KernelAttr and three
+that specify how to load the PN.
+The three options for the KernelAttr are:
+\begin{description}
+\item[``name''] The name that the kernel will use (required).
+\item[``host''] The host name that the kernel will use to listen on (optional).
+\item[``port''] The port number or name that the kernel will use to listen on (optional).
+\item[``database''] A sub-map that describes options for what kind of database to load and what options on the database to set. Those options are:
+\begin{description}
+\item[``host''] What host name the database daemon is listening on (optional, if present ``port'' must also be specified, else the local database implementation will be used).
+\item[``port''] What port number or name the database daemon is listening on.
+\item[``d4r''] Whether to use the D4R algorithm or not (optional, default true).
+\item[``swallow-broken-queue-exceptions''] Whether to swallow the BrokenQueueException that can be emitted from an enqueue (optional, default false).
+\item[``grow-queue-max-threshold''] Whether to automatically grow the queue if a larger threshold is asked for than the queue can handle (optional, default true)
+\item[``libs''] A list of shared libraries that contain node definitions that the database should load up immediately.
+\item[``liblist''] A list of node list files that contain information about where to find the shared libraries for nodes that are not statically linked in or manually loaded.
+\item[``loglevel''] Specify the logging level for the internal CPN logger.
+\end{description}
+\end{description}
+
+The three keys that specify how to load the PN are:
+\begin{description}
+\item[``nodes''] A list of node definitions.
+\item[``queues''] A list of queue definitions.
+\item[``nodemap''] A key value map with node names as keys and the kernel name which that node should be run on as values.
+\end{description}
+
+A node definition is a map with the following fields:
+\begin{description}
+\item[``name''] The unique name for the node (required).
+\item[``type''] The type name of this node (required).
+\item[``param''] Parameters to pass to this node (optional). If parameters is a Variant then it will be serialized as JSON.
+\item[``host''] The name of the host that this node should be loaded on (optional). The nodemap overrides this option.
+\end{description}
+
+The queue definition is a map with the following fields:
+\begin{description}
+\item[``size''] The size in bytes of this queue (required).
+\item[``threshold''] The size in bytes of the threshold (required).
+\item[``readernode''] The name of the node that will read from this queue (required).
+\item[``readerport''] The port name that the reader node will use (required).
+\item[``writernode''] The name of the node that will write to this queue (required).
+\item[``writerport''] The port name that the writer node will use (required).
+\item[``type''] The type of queue, either ``threshold'' or ``default'' (optional, default is ``default'').
+\item[``datatype''] A string that specifies the data type for the queue (optional, default ``void''). 
+Some valid types are ``void'', and the various types names defined in ``stdint.h'' like ``int32_t'' as well as ``float'', ``double'', and ``complex<T>'' where ``T'' is any of the previous types.
+\item[``numchannels''] The number of channels for this queue (optional, default 1).
+\item[``alpha''] A parameter used only by the remote queue allowing one to specify how much space to split between the two sides (optional, default 0.5).
+\end{description}
+
 
 \section{Appendix A}
 

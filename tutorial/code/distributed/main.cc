@@ -133,6 +133,13 @@ int main(int argc, char **argv) {
         return 0;
     }
 
+    std::pair<bool, std::string> validate_result = loader.Validate();
+    if (!validate_result.first) {
+        std::cout << "Configuration did not validate:\n\t" << validate_result.second
+            << std::endl;
+        return 1;
+    }
+
     Key_t pkey = 0;
 
     Kernel kernel(loader.GetKernelAttr());
