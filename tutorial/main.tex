@@ -11,9 +11,9 @@
 This tutorial aims to give a basic walk through of how to use the Computational Process Network (CPN) library.
 
 There are three different ways to define or create a node.
-The first way is to derive a node from \lstinline!CPN::NodeBase!. This method is rather verbose but allows one to load
-the node through the \lstinline!VariantCPNLoader!. The second way is by asking the kernel to create a function node.
-A function node is a node which calls a function with a pointer to the \lstinline!CPN::NodeBase! and any additional supplied parameters.
+The first way is to derive a node from \verb!CPN::NodeBase!. This method is rather verbose but allows one to load
+the node through the \newline\verb!VariantCPNLoader!. The second way is by asking the kernel to create a function node.
+A function node is a node which calls a function with a pointer to the \verb!CPN::NodeBase! and any additional supplied parameters.
 The final way of creating a node is to create a pseudo node.
 A pseudo node is a handle that one can use to get queue endpoints.
 This facility is designed for when your data source or sink is some other application where you provide callback functions.
@@ -47,19 +47,19 @@ The topology of the example PN is in Figure \ref{fig:fibinocci}.
 
 The full source code for this example is in section \ref{derived source}.
 
-To construct a derived node one must pass a \lstinline!CPN::NodeAttr! object to the kernel.
+To construct a derived node one must pass a \verb!CPN::NodeAttr! object to the kernel.
 The node attribute object requires a node name and a node type name as constructor arguments.
-The methods of interest are \lstinline!NodeAttr::SetParam!, \lstinline!NodeAttr::GetParam! and \lstinline!NodeAttr::SetHost!.
-The \lstinline!NodeAttr::SetHost! is used when distributing the process network.
+The methods of interest are \verb!NodeAttr::SetParam!, \verb!NodeAttr::GetParam! and \verb!NodeAttr::SetHost!.
+The \verb!NodeAttr::SetHost! is used when distributing the process network.
 See section \ref{Distributing}.
 To be able to construct a node in this fashion the node loader must be able to find the node factory.
 See section \ref{Node Loader} for more details.
 
-In order to provide a derived node one must inherit from \lstinline!CPN::NodeBase!.
+In order to provide a derived node one must inherit from \verb!CPN::NodeBase!.
 Also, if the standard node factory declaration macro is used the constructor must take a reference
-to the \lstinline!CPN::Kernel! as the first parameter and a const reference to the \lstinline!CPN::NodeAttr!
+to the \verb!CPN::Kernel! as the first parameter and a const reference to the \verb!CPN::NodeAttr!
 as the second parameter.
-These are the parameters that the constructor for \lstinline!CPN::NodeBase! takes.
+These are the parameters that the constructor for \verb!CPN::NodeBase! takes.
 The declaration for the summing node is in Listing \ref{summer declaration}
 
 \begin{figure}[htbp]
@@ -75,15 +75,15 @@ private:
 \end{lstlisting}
 \end{figure}
 
-\lstinline!CPN::NodeBase! has one purely virtual method with the signature \lstinline!void Process()!.
+\verb!CPN::NodeBase! has one purely virtual method with the signature \verb!void Process()!.
 This method will be called in a separate thread to execute the node.
 When this method returns the kernel assumes the node has finished and starts freeing resources.
 
-The \lstinline!NodeAttr::SetParam! and \lstinline!NodeAttr::GetParam! methods allow the passing of a
+The \verb!NodeAttr::SetParam! and \verb!NodeAttr::GetParam! methods allow the passing of a
 string parameter to the node.
-The parameter is only available in the constructor as the \lstinline!NodeAttr! is not kept around.
-In our example we shall use the \lstinline!Variant! class and the JSON parser to tern the
-string into a \lstinline!Variant! data structure which is then queried to initialize the
+The parameter is only available in the constructor as the \verb!NodeAttr! is not kept around.
+In our example we shall use the \verb!Variant! class and the JSON parser to tern the
+string into a \verb!Variant! data structure which is then queried to initialize the
 node variables.
 The constructor is in Listing \ref{summer constructor}
 
@@ -105,14 +105,14 @@ Summer::Summer(Kernel &ker, const NodeAttr &attr)
 }
 \end{lstlisting}
 
-The first thing the constructor does it pass its parameters on to \lstinline!CPN::NodeBase! so that
+The first thing the constructor does it pass its parameters on to \verb!CPN::NodeBase! so that
 the base class may initialize it self.
 Then it parses the parameter string.
-If unsuccessful the constructor throws a \lstinline!std::runtime_error!.
+If unsuccessful the constructor throws a \verb!std::runtime_error!.
 Then the constructor sets its member method values from the parsed parameters.
 
-When the kernel starts the node the \lstinline!Process()! method is called in a separate thread.
-The code for the summing node's \lstinline!Process()! method is in Listing \ref{summer process}.
+When the kernel starts the node the \verb!Process()! method is called in a separate thread.
+The code for the summing node's \verb!Process()! method is in Listing \ref{summer process}.
 
 \begin{lstlisting}[caption=Summing node process declaration,label=summer process]{}
 void Summer::Process() {
@@ -144,22 +144,22 @@ void Summer::Process() {
 
 Note that the raw underlying queue is typeless and simply does a blind bit wise copy of the data.
 This means that only plain old data (POD) types can be sent over the queues in CPN.
-The \lstinline!CPN::QueueReaderAdapter<T>! and \lstinline!CPN::QueueWriterAdapter<T>! provide
+The \newline\verb!CPN::QueueReaderAdapter<T>! and \verb!CPN::QueueWriterAdapter<T>! provide
 type checking and type conversion for the raw queue interface.
 Each queue has associated with it a string identifying the type that that queue should handle.
 The adapter check this string and throw an exception on assignment if the types do not match.
 
 First, the summer node gets all its input and output queues ends and places them in adapters.
 Then it reads from all its inputs, sum them and enqueues the result.
-Note that the \lstinline!QueueReaderAdapter<T>::Dequeue(T *, unsigned)! function will return
-\lstinline!false! when the other end of the queue disconnects.
-There are two ways to disconnect. The first is to call \lstinline!Release! on the queue endpoint
-and the second is to return from \lstinline!Process()!.
-Trying to enqueue to a disconnected queue will result in a \lstinline!CPN::BrokenQueueException!
+Note that the \newline\verb!QueueReaderAdapter<T>::Dequeue(T *, unsigned)! function will return
+\verb!false! when the other end of the queue disconnects.
+There are two ways to disconnect. The first is to call \verb!Release! on the queue endpoint
+and the second is to return from \verb!Process()!.
+Trying to enqueue to a disconnected queue will result in a \verb!CPN::BrokenQueueException!
 being thrown.
 
 The very final thing in the file is the node factory declaration.
-This uses the macro \lstinline!CPN_DECLARE_NODE_FACTORY(class, typename)!.
+This uses the macro \newline\verb!CPN_DECLARE_NODE_FACTORY(class, typename)!.
 This macro defines a node factory and then the special symbol that the node loader uses to look up
 the node type at run time.
 Note that the type name must be a valid symbol (limited to alphanumeric and underscore).
@@ -171,15 +171,15 @@ The delay nodes are for the most part very similar. Full code for the delay node
 Now on to instantiating and running the nodes.
 Full code for the main function to run this example is in Listing \ref{lst:dn main}.
 
-First we have to create a \lstinline!CPN::Kernel!.
+First we have to create a \verb!CPN::Kernel!.
 For this example we will create the kernel on the stack.
-The constructor requires a \lstinline!CPN::KernelAttr! object as a parameter object.
+The constructor requires a \verb!CPN::KernelAttr! object as a parameter object.
 The kernel attribute object only has one required parameter and that is a name for the kernel.
 Most of the parameters deal with options for distributing the PN.
 We set two flags on the database object that the kernel created for us.
 The first is to not use the D4R algorithm.
 The second is swallow broken queue exceptions.
-By default the broken queue exceptions are left unhandled and end up with a call to \lstinline!std::terminate! ending in application termination.
+By default the broken queue exceptions are left unhandled and end up with a call to \verb!std::terminate! ending in application termination.
 
 \begin{lstlisting}{}
     Kernel kernel(KernelAttr("kernel"));
@@ -259,7 +259,7 @@ name, the second parameter is function object to call, and optional additional a
 passed to the function object.
 
 To create Fibonacci generator we have been discussing we need two nodes. This time we will use
-functions for the nodes. The functions should take as the first argument a pointer to a \lstinline!CPN::NodeBase!.
+functions for the nodes. The functions should take as the first argument a pointer to a \verb!CPN::NodeBase!.
 The summer and delay node functions are defined as:
 
 \begin{lstlisting}{}
@@ -351,49 +351,21 @@ What Variant can represent is directly mappable into the JSON specification and 
 There are a set of classes and functions for parsing JSON to a Variant and back again.
 There is also a set of classes and functions for parsing to an XML format and back again.
 This means that an application that is setup right with Variant can accept both JSON and XML
-input. More details on the JSON format can be found at www.json.org.
-There is an example application in the apps/XML-JSON which reads in JSON or XML and then outputs JSON or XML.
+input. More details on the JSON format can be found at \url{www.json.org}.
+There is an example application in the \url{apps/XML-JSON} which reads in JSON or XML and then outputs JSON or XML.
 
 \section{VariantCPNLoader}
 
-The VariantCPNLoader is a class and a set of static methods that take a Variant object with data in a specific format and
+The \verb!VariantCPNLoader! is a class and a set of static methods that take a Variant object with data in a specific format and
 use that data to call methods on a kernel object.
-The VariantCPNLoader also has a method for constructing a KernelAttr object from a Variant object.
+The \verb!VariantCPNLoader! also has a method for constructing a KernelAttr object from a Variant object.
 An example of the loaders usage is given in the distributed section.
-The VariantCPNLoader has a validator that goes through the configuration and ensures that all required fields are present
+The \verb!VariantCPNLoader! has a validator that goes through the configuration and ensures that all required fields are present
 and that there are no obvious errors like two nodes with the same name.
 At this point it may be constructive to take a look at \url{apps/CPNKernel/main.cc}.
 
-\section{Distributing}
-\label{Distributing}
-
-This section assumes you have read the sections on Variant and the VariantCPNLoader.
-In order to use the distributed features you need to have setup a remote database daemon.
-A simple daemon implementation is in \url{apps/RemoteDatabase}.
-When setting up you then have to use a remote database instance to the kernel attribute and possibly set the host name in the attribute.
-Then when creating nodes you specify which kernel that node should be created on using the \lstinline!NodeAttr::SetHost! method.
-If everything works right, then that's all that additional things that must be done over running on a single kernel.
-You of course have to ensure that every process possesses the node definitions that you try to load on it.
-The usual method of ensuring this used in the examples so far is to make all processes the same executable and the difference
-in behavior between them is decided by command line arguments and configuration files.
-
-Next is an example of the Fibonacci number generator using the distributed features of CPN.
-The summing and delay node are the same and are symbolic links in the code directory.
-This example also uses the VariantCPNLoader to load the PN.
-
-A special note that the listing in this section will omit much of the error checking.
-Full error checking is included in the full listing.
-
-Let us look at the configuration files.
-Notice that the configuration is split between multiple files.
-This allows for certain parts of the configuration to be reused and combined in different ways.
-Many times just a small part of the configuration needs to be different for each kernel.
-Once the distributed example is built there is a option `-C' which causes the program
-to load all configuration data then print that data out in JSON format and exit.
-This can give a good idea of what the loader is doing and you can see how the command line options change
-what goes into the loader.
-
-The configuration is a key value map at the base. There are four keys that specify options for the KernelAttr and three
+The configuration that the \verb!VariantCPNLoader! wants to see 
+is a key value map at the base. There are four keys that specify options for the KernelAttr and three
 that specify how to load the PN.
 The three options for the KernelAttr are:
 \begin{description}
@@ -438,10 +410,110 @@ The queue definition is a map with the following fields:
 \item[``writerport''] The port name that the writer node will use (required).
 \item[``type''] The type of queue, either ``threshold'' or ``default'' (optional, default is ``default'').
 \item[``datatype''] A string that specifies the data type for the queue (optional, default ``void''). 
-Some valid types are ``void'', and the various types names defined in ``stdint.h'' like ``int32_t'' as well as ``float'', ``double'', and ``complex<T>'' where ``T'' is any of the previous types.
+Some valid types are ``void'', and the various types names defined in ``stdint.h'' like ``int32\_t'' as well as ``float'', ``double'', and ``complex$<$T$>$'' where ``T'' is any of the previous types.
 \item[``numchannels''] The number of channels for this queue (optional, default 1).
 \item[``alpha''] A parameter used only by the remote queue allowing one to specify how much space to split between the two sides (optional, default 0.5).
 \end{description}
+
+
+\section{Distributing}
+\label{Distributing}
+
+This section assumes you have read the sections on \verb!Variant! and the \verb!VariantCPNLoader!.
+In order to use the distributed features you need to have setup a remote database daemon.
+A simple daemon implementation is in \url{apps/RemoteDatabase}.
+When setting up you then have to use a remote database instance to the kernel attribute and possibly set the host name in the attribute.
+Then when creating nodes you specify which kernel that node should be created on using the \verb!NodeAttr::SetHost! method.
+If everything works right, then that's all that additional things that must be done over running on a single kernel.
+You of course have to ensure that every process possesses the node definitions that you try to load on it.
+The usual method of ensuring this used in the examples so far is to make all processes the same executable and the difference
+in behavior between them is decided by command line arguments and configuration files.
+
+Next is an example of the Fibonacci number generator using the distributed features of CPN.
+The summing and delay node are the same and are symbolic links in the code directory.
+This example also uses the \verb!VariantCPNLoader! to load the PN.
+
+A special note that the listing in this section will omit much of the error checking.
+Full error checking is included in the full listing.
+
+Let us look at the configuration files.
+Notice that the configuration is split between multiple files.
+This allows for certain parts of the configuration to be reused and combined in different ways.
+Many times just a small part of the configuration needs to be different for each kernel.
+Once the distributed example is built there is a option `-C' which causes the program
+to load all configuration data then print that data out in JSON format and exit.
+This can give a good idea of what the loader is doing and you can see how the command line options change
+what goes into the loader.
+
+Now a description of the program.
+The first thing the program does is setup some default values and instantiates a VariantCPNLoader and calls it \verb|loader|.
+Then it loads in the file \verb!db_def.json! for the default database options.
+
+\begin{lstlisting}{}
+    uint64_t max_fib = 100;
+    bool load_config = true;
+    bool print_config = false;
+    VariantCPNLoader loader;
+    std::ifstream db_def("db_def.json");
+    JSONToVariant parser;
+    parser.ParseStream(db_def);
+    loader.MergeConfig(parser.Get());
+\end{lstlisting}
+
+Then the command line options are parsed. Several of the command line optoins are not optional.
+This example will not run correctly without them.
+The validator should catch any options that are left out that are absolutely required.
+For example, the \verb!--name! option must be specified.
+Use the \verb!run! script to run this example.
+After the command line options are parsed and the corresponding data is set, then the default configuration is loaded
+if it was set to do so from the command line options.
+
+\begin{lstlisting}{}
+    if (load_config) {
+        std::ifstream pn_def("pn_def.json");
+        JSONToVariant pn_parser;
+        pn_parser.ParseStream(pn_def);
+        loader.MergeConfig(pn_parser.Get());
+        std::ifstream nodemap("nodemap.json");
+        JSONToVariant nm_parser;
+        nm_parser.ParseStream(nodemap);
+        loader.MergeConfig(nm_parser.Get());
+    }
+\end{lstlisting}
+
+Now that we finished loading the configuration comes the easy part, running the configuration.
+First we get the loader to create a \verb!KernelAttr! for us.
+\begin{lstlisting}{}
+    Kernel kernel(loader.GetKernelAttr());
+\end{lstlisting}
+Then if we are the loading kernel we will first create a pseudo node to get the results and then
+load up the configuration.
+\begin{lstlisting}{}
+    if (load_config) {
+        pkey = kernel.CreatePseudoNode("result");
+    }
+    loader.Setup(&kernel);
+\end{lstlisting}
+Once the configuration is done, we read out the results and clean up.
+\begin{lstlisting}{}
+    if (load_config) {
+        QueueReaderAdapter<uint64_t> result = kernel.GetPseudoReader(pkey, "in");
+        uint64_t value;
+        do {
+            result.Dequeue(&value, 1);
+            std::cout << "- " << value << std::endl;
+        } while (value < max_fib);
+        result.Release();
+        kernel.DestroyPseudoNode(pkey);
+    } else {
+        kernel.WaitNodeTerminate("result");
+    }
+    kernel.WaitForAllNodeEnd();
+\end{lstlisting}
+Notice that the kernels not reading out the configuration wait for the result pseudo node to terminate.
+This ensures that the other kernels will stick around until we are done with the PN.
+We also could have called the \verb!Kernel::Wait()! function on the kernel and in the kernel that loaded to configuration
+call \verb!Kernel::Terminate()!. This would have had almost the same effect.
 
 
 \section{Appendix A}
