@@ -3,32 +3,24 @@
 \usepackage{listings}
 \usepackage{graphicx}
 \usepackage{url}
-
+\title{Tutorial on CPN}
 \begin{document}
-
+\maketitle
 \lstset{language=c++}
 
+\section{Introduction}
 This tutorial aims to give a basic walk through of how to use the Computational Process Network (CPN) library.
-
-There are three different ways to define or create a node.
-The first way is to derive a node from \verb!CPN::NodeBase!. This method is rather verbose but allows one to load
-the node through the \newline\verb!VariantCPNLoader!. The second way is by asking the kernel to create a function node.
-A function node is a node which calls a function with a pointer to the \verb!CPN::NodeBase! and any additional supplied parameters.
-The final way of creating a node is to create a pseudo node.
-A pseudo node is a handle that one can use to get queue endpoints.
-This facility is designed for when your data source or sink is some other application where you provide callback functions.
-So, by providing the right kind of callback functions you easily turn that source or sink into a source or sink node in CPN.
-
 For most of the examples in this document the same toy example process network (PN) will be used.
 This is so that you may see several different ways of implementing the same thing.
-The example process network is very simple and requires only two types of nodes.
+The example process network is a Fibonacci number generator.
+This is a very simple PN and requires only two types of nodes.
 The first type of node is a summing node that takes some number of inputs and one output.
 The summing node takes one token from each input, sums them together and then enqueues the result
 on the output.
-The second type of node is called a delay node in the code.
+We shall call the second type of node the delay node.
 This particular PN can be implemented as a synchronous data flow graph and in a synchronous data flow
-the node would be a delay.
-This node has an initial value, and input, and several outputs.
+the delay node would be a time delay.
+The delay node has an initial value, and input, and several outputs.
 The current value is set to the initial value.
 Then the node proceeds by enqueueing its current value to all outputs.
 The node sets its current value from the input and repeat.
@@ -42,7 +34,18 @@ The topology of the example PN is in Figure \ref{fig:fibinocci}.
 \caption{Process network to generate Fibonacci numbers}
 \end{figure}
 
-\section{Derived Node Example}
+\section{Nodes}
+There are three different ways to define or create a node.
+The first way is to derive a node from \verb!CPN::NodeBase!. This method is rather verbose but allows one to load
+the node through the \newline\verb!VariantCPNLoader!. The second way is by asking the kernel to create a function node.
+A function node is a node which calls a function with a pointer to the \verb!CPN::NodeBase! and any additional supplied parameters.
+The final way of creating a node is to create a pseudo node.
+A pseudo node is a handle that one can use to get queue endpoints.
+This facility is designed for when your data source or sink is some other library where you provide callback functions.
+So, by providing the right kind of callback functions you easily turn that source or sink into a source or sink node in CPN.
+
+
+\subsection{Derived Node Example}
 \label{Derived Node Example}
 
 The full source code for this example is in section \ref{derived source}.
@@ -82,7 +85,7 @@ When this method returns the kernel assumes the node has finished and starts fre
 The \verb!NodeAttr::SetParam! and \verb!NodeAttr::GetParam! methods allow the passing of a
 string parameter to the node.
 The parameter is only available in the constructor as the \verb!NodeAttr! is not kept around.
-In our example we shall use the \verb!Variant! class and the JSON parser to tern the
+In our example we shall use the \verb!Variant! class and the JSON parser to turn the
 string into a \verb!Variant! data structure which is then queried to initialize the
 node variables.
 The constructor is in Listing \ref{summer constructor}
@@ -105,8 +108,8 @@ Summer::Summer(Kernel &ker, const NodeAttr &attr)
 }
 \end{lstlisting}
 
-The first thing the constructor does it pass its parameters on to \verb!CPN::NodeBase! so that
-the base class may initialize it self.
+The first thing the constructor does is it passes its parameters on to \verb!CPN::NodeBase! so that
+the base class may initialize itself.
 Then it parses the parameter string.
 If unsuccessful the constructor throws a \verb!std::runtime_error!.
 Then the constructor sets its member method values from the parsed parameters.
@@ -223,7 +226,6 @@ Finally, use the created pseudo node to gather the results.
 Notice that we must explicitly destroy the pseudo node.
 When the endpoint is released the queues on the other nodes get shut down, causing all the nodes to exit.
 We set the swallow broken queue exceptions flag in the database of the kernel above so that we would obtain this behavior.
-By default this flag is off.
 
 \begin{lstlisting}{}
     QueueReaderAdapter<uint64_t> result = kernel.GetPseudoReader(pkey, "in");
@@ -245,7 +247,7 @@ callbacks.
 You could supply the pseudo node key and the kernel to each callback and the two systems could
 then work as sources and sinks in the PN.
 
-\section{Function Node Example}
+\subsection{Function Node Example}
 \label{Function Node Example}
 
 Function nodes are useful when you want to have a simple one off node and/or don't need auto
@@ -258,7 +260,7 @@ The kernel has a set of overloaded template functions which take as the first pa
 name, the second parameter is function object to call, and optional additional arguments are captured and
 passed to the function object.
 
-To create Fibonacci generator we have been discussing we need two nodes. This time we will use
+To create the Fibonacci generator we have been discussing we need two nodes. This time we will use
 functions for the nodes. The functions should take as the first argument a pointer to a \verb!CPN::NodeBase!.
 The summer and delay node functions are defined as:
 
@@ -339,7 +341,7 @@ jmake collects objects into archives and then uses the linker to load that toget
 The problem with this is that the linker will prune out object files in archives that have no references.
 This causes objects in which we want to dynamically call symbols in to not be linked into the executable.
 So, when using tools like jmake a manual effort to ensure that there is a referenced symbol in for all the nodes to be linked statically needs to be made.
-Also, if no nodes are statically linked efforts needs to be made to ensure that the linker does not prune out typeinfo symbols for the nodes need in the CPN library.
+Also, if no nodes are statically linked efforts needs to be made to ensure that the linker does not prune out typeinfo symbols that the nodes need in the CPN library.
 On systems with the GNU linker this can be done by ensuring your tool uses the whole archive flag around the CPN library archives and the node archive files.
 Even more linkers support the `-u' option which tells them to consider the given symbol name to be undefined and search through and load objects that define that symbol.
 
@@ -352,7 +354,8 @@ There are a set of classes and functions for parsing JSON to a Variant and back 
 There is also a set of classes and functions for parsing to an XML format and back again.
 This means that an application that is setup right with Variant can accept both JSON and XML
 input. More details on the JSON format can be found at \url{www.json.org}.
-There is an example application in the \url{apps/XML-JSON} which reads in JSON or XML and then outputs JSON or XML.
+There is an example application in the \url{apps/XML-JSON} which reads in JSON to Variant and then outputs in our XML format
+or reads in or XML format and outputs JSON.
 
 \section{VariantCPNLoader}
 
@@ -424,13 +427,13 @@ In order to use the distributed features you need to have setup a remote databas
 A simple daemon implementation is in \url{apps/RemoteDatabase}.
 When setting up you then have to use a remote database instance to the kernel attribute and possibly set the host name in the attribute.
 Then when creating nodes you specify which kernel that node should be created on using the \verb!NodeAttr::SetHost! method.
-If everything works right, then that's all that additional things that must be done over running on a single kernel.
+If everything works right, then that's all the additional things that must be done over running on a single kernel.
 You of course have to ensure that every process possesses the node definitions that you try to load on it.
 The usual method of ensuring this used in the examples so far is to make all processes the same executable and the difference
 in behavior between them is decided by command line arguments and configuration files.
 
-Next is an example of the Fibonacci number generator using the distributed features of CPN.
-The summing and delay node are the same and are symbolic links in the code directory.
+Next is the example of the Fibonacci number generator using the distributed features of CPN.
+The summing and delay node are the same as in the first example on derived nodes and are symbolic links in the code directory.
 This example also uses the \verb!VariantCPNLoader! to load the PN.
 
 A special note that the listing in this section will omit much of the error checking.
@@ -510,7 +513,7 @@ Once the configuration is done, we read out the results and clean up.
     }
     kernel.WaitForAllNodeEnd();
 \end{lstlisting}
-Notice that the kernels not reading out the configuration wait for the result pseudo node to terminate.
+Notice that the kernels not reading out the result wait for the result pseudo node to terminate.
 This ensures that the other kernels will stick around until we are done with the PN.
 We also could have called the \verb!Kernel::Wait()! function on the kernel and in the kernel that loaded to configuration
 call \verb!Kernel::Terminate()!. This would have had almost the same effect.
