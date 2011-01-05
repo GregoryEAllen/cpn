@@ -43,7 +43,7 @@ A function node is a node which calls a function with a pointer to the \verb!CPN
 The final way of creating a node is to create a pseudo node.
 A pseudo node is a handle that one can use to get queue endpoints.
 This facility is designed for when your data source or sink is some other library where you provide callback functions.
-So, by providing the right kind of callback functions you easily turn that source or sink into a source or sink node in CPN.
+So, by providing the right kind of callback functions you can easily turn that source or sink into a source or sink node in CPN.
 
 
 \subsection{Derived Node Example}
@@ -151,9 +151,9 @@ This means that only plain old data (POD) types can be sent over the queues in C
 The \newline\verb!CPN::QueueReaderAdapter<T>! and \verb!CPN::QueueWriterAdapter<T>! provide
 type checking and type conversion for the raw queue interface.
 Each queue has associated with it a string identifying the type that that queue should handle.
-The adapter check this string and throw an exception on assignment if the types do not match.
+The adapters check this string and throw an exception on assignment if the types do not match.
 
-First, the summer node gets all its input and output queues ends and places them in adapters.
+First, the summer node gets all its input and output endpoints and places them in adapters.
 Then it reads from all its inputs, sum them and enqueues the result.
 Note that the \newline\verb!QueueReaderAdapter<T>::Dequeue(T *, unsigned)! function will return
 \verb!false! when the other end of the queue disconnects.
@@ -258,7 +258,7 @@ This means that the VariantCPNLoader can't specify these nodes and they must be 
 Using function nodes can make a simple PN much easier to write.
 You can still use the VariantCPNLoader to load the queue descriptions once the nodes are created.
 The kernel has a set of overloaded template functions which take as the first parameter the new node
-name, the second parameter is function object to call, and optional additional arguments are captured and
+name, the second parameter is a function object to call, and optional additional arguments are captured and
 passed to the function object.
 
 To create the Fibonacci generator we have been discussing we need two nodes. This time we will use
@@ -303,7 +303,7 @@ Then to create the nodes we have:
             string("B"), 1ull);
     Key_t pkey = kernel.CreatePseudoNode("result");
 \end{lstlisting}
-Everything else is the same as the other example.
+Everything else is the same as the derived node example.
 The full example is in Listin \ref{lst:function node}.
 
 
@@ -323,8 +323,9 @@ a factory that can create nodes of that type.
 If such a symbol is not found then the database will look if there is any node list that has
 information about that type.
 If so, it will look through it to see if there is a shared library that can be loaded to get a 
-function that can supply it with a factory for that node type.
-If all of these fail then the database throws an exception indicating that node creation has failed.
+function that can supply a factory for that node type.
+If all of these fail then the database throws an exception indicating that no factory could be found
+for that node type.
 
 A node list is a file that has a very simple format.
 The format is a directive followed by parameters then a semicolon.
@@ -341,10 +342,13 @@ This is not normally a problem except when one tries to put a node in a library 
 jmake collects objects into archives and then uses the linker to load that together.
 The problem with this is that the linker will prune out object files in archives that have no references.
 This causes objects in which we want to dynamically call symbols in to not be linked into the executable.
-So, when using tools like jmake a manual effort to ensure that there is a referenced symbol in for all the nodes to be linked statically needs to be made.
+So, when using tools like jmake a manual effort to ensure that there is a referenced symbol in the appropriate object
+for all the nodes in archives needs to be made.
 Also, if no nodes are statically linked efforts needs to be made to ensure that the linker does not prune out typeinfo symbols that the nodes need in the CPN library.
 On systems with the GNU linker this can be done by ensuring your tool uses the whole archive flag around the CPN library archives and the node archive files.
 Even more linkers support the `-u' option which tells them to consider the given symbol name to be undefined and search through and load objects that define that symbol.
+But using `-u' requires knowledge of the symbols that must be loaded and this is compiler and platform
+specific.
 
 \section{Variant}
 
@@ -367,11 +371,13 @@ An example of the loaders usage is given in the distributed section.
 The \verb!VariantCPNLoader! has a validator that goes through the configuration and ensures that all required fields are present
 and that there are no obvious errors like two nodes with the same name.
 At this point it may be constructive to take a look at \url{apps/CPNKernel/main.cc}.
+The CPNKernel application is an example of an application that will load up any set of derived nodes from a node library using
+configuration files.
 
 The configuration that the \verb!VariantCPNLoader! wants to see 
-is a key value map at the base. There are four keys that specify options for the KernelAttr and three
+is a key value map at the base. There are four keys that specify options for the kernel and three
 that specify how to load the PN.
-The three options for the KernelAttr are:
+The four options for the kernel are:
 \begin{description}
 \item[``name''] The name that the kernel will use (required).
 \item[``host''] The host name that the kernel will use to listen on (optional).
@@ -385,7 +391,7 @@ The three options for the KernelAttr are:
 \item[``grow-queue-max-threshold''] Whether to automatically grow the queue if a larger threshold is asked for than the queue can handle (optional, default true)
 \item[``libs''] A list of shared libraries that contain node definitions that the database should load up immediately.
 \item[``liblist''] A list of node list files that contain information about where to find the shared libraries for nodes that are not statically linked in or manually loaded.
-\item[``loglevel''] Specify the logging level for the internal CPN logger.
+\item[``loglevel''] Specify the logging level for the internal CPN logger. This is mainly used for debugging the internals of the CPN library.
 \end{description}
 \end{description}
 
@@ -437,8 +443,8 @@ Next is the example of the Fibonacci number generator using the distributed feat
 The summing and delay node are the same as in the first example on derived nodes and are symbolic links in the code directory.
 This example also uses the \verb!VariantCPNLoader! to load the PN.
 
-A special note that the listing in this section will omit much of the error checking.
-Full error checking is included in the full listing.
+A special note that the listings in this section will omit much of the error checking.
+Full error checking is included in the full listing in Listing \ref{lst:distributed}.
 
 Let us look at the configuration files.
 Notice that the configuration is split between multiple files.
@@ -469,6 +475,8 @@ This example will not run correctly without them.
 The validator should catch any options that are left out that are absolutely required.
 For example, the \verb!--name! option must be specified.
 Use the \verb!run! script to run this example.
+A \verb!run! script is provided in the code directory that runs the remote database daemon and then
+runs each of the kernels with the correct parameters.
 After the command line options are parsed and the corresponding data is set, then the default configuration is loaded
 if it was set to do so from the command line options.
 
@@ -530,5 +538,7 @@ call \verb!Kernel::Terminate()!. This would have had almost the same effect.
 \lstinputlisting[caption=Instantiating the declared nodes and running them,label=lst:dn main]{code/derived_node/main.cc}
 \subsection{Function Node}
 \lstinputlisting[caption=Example of function nodes,label=lst:function node]{code/function_node/main.cc}
+\subsection{Distributed}
+\lstinputlisting[caption=Example of the main routine for distributing the PN,label=lst:distributed]{code/distributed/main.cc}
 
 \end{document}
