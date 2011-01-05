@@ -4,6 +4,7 @@
 \usepackage{graphicx}
 \usepackage{url}
 \title{Tutorial on CPN}
+\author{John Bridgman}
 \begin{document}
 \maketitle
 \lstset{language=c++}
@@ -37,7 +38,7 @@ The topology of the example PN is in Figure \ref{fig:fibinocci}.
 \section{Nodes}
 There are three different ways to define or create a node.
 The first way is to derive a node from \verb!CPN::NodeBase!. This method is rather verbose but allows one to load
-the node through the \newline\verb!VariantCPNLoader!. The second way is by asking the kernel to create a function node.
+the node through the \verb!VariantCPNLoader!. The second way is by asking the kernel to create a function node.
 A function node is a node which calls a function with a pointer to the \verb!CPN::NodeBase! and any additional supplied parameters.
 The final way of creating a node is to create a pseudo node.
 A pseudo node is a handle that one can use to get queue endpoints.
@@ -500,7 +501,8 @@ load up the configuration.
 Once the configuration is done, we read out the results and clean up.
 \begin{lstlisting}{}
     if (load_config) {
-        QueueReaderAdapter<uint64_t> result = kernel.GetPseudoReader(pkey, "in");
+        QueueReaderAdapter<uint64_t> result =
+             kernel.GetPseudoReader(pkey, "in");
         uint64_t value;
         do {
             result.Dequeue(&value, 1);
