@@ -14,15 +14,19 @@ using namespace CPN;
 
 static void PrintUsage(const char *progname) {
     using std::cerr;
-    cerr << "Usage: " << progname << " [options]\n";
-    cerr << "\t-m val\n\t--max=val\n\t\tSpecify the value to stop at.\n";
-    cerr << "\t-c yes|no\n\t--config=yes|no\n\t\tSpecify if the config file should be loaded.\n";
-    cerr << "\t-C\n\t\tPrint the internal config and exit.\n";
-    cerr << "\t--db-port port\n\t\tSpecify the port the database daemon is listening on.\n";
-    cerr << "\t--db-host host\n\t\tSpecify the host the database daemon is on.\n";
-    cerr << "\t--port port\n\t\tSpecify the port the kernel should listen on.\n";
-    cerr << "\t--host host\n\t\tSpecify the host the kernel should listen on.\n";
-    cerr << "\t--name name\n\t\tSpecify the name the kernel should have, note that this must match the names in the nodemap file.\n";
+    cerr << "Usage: " << progname << " [options]\n"
+    "\t-m val\n\t--max=val\n\t\tSpecify the value to stop at.\n"
+    "\t-c yes|no\n\t--config=yes|no\n\t\tSpecify if the config"
+       " file should be loaded.\n"
+    "\t-C\n\t\tPrint the internal config and exit.\n"
+    "\t--db-port port\n\t\tSpecify the port the database daemon is"
+       " listening on.\n"
+    "\t--db-host host\n\t\tSpecify the host the database daemon is on.\n"
+    "\t--port port\n\t\tSpecify the port the kernel should listen on.\n"
+    "\t--host host\n\t\tSpecify the host the kernel should listen on.\n"
+    "\t--name name\n\t\tSpecify the name the kernel should have,"
+       " note that this must match the names in the nodemap file.\n"
+    ;
 }
 
 enum Option_t {
@@ -55,7 +59,8 @@ int main(int argc, char **argv) {
         parser.ParseStream(db_def);
         if (!parser.Done()) {
             std::cerr << "Default database definition file parse error at line " 
-                << parser.GetLine() << " column " << parser.GetColumn() << std::endl;
+                << parser.GetLine() << " column " << parser.GetColumn()
+                << std::endl;
         } else {
             loader.MergeConfig(parser.Get());
         }
@@ -103,7 +108,8 @@ int main(int argc, char **argv) {
             parser.ParseStream(pn_def);
             if (!parser.Done()) {
                 std::cerr << "Default config definition file parse error at line " 
-                    << parser.GetLine() << " column " << parser.GetColumn() << std::endl;
+                    << parser.GetLine() << " column " << parser.GetColumn()
+                    << std::endl;
                 return 1;
             } else {
                 loader.MergeConfig(parser.Get());
@@ -118,7 +124,8 @@ int main(int argc, char **argv) {
             parser.ParseStream(nodemap);
             if (!parser.Done()) {
                 std::cerr << "Default nodemap definition file parse error at line " 
-                    << parser.GetLine() << " column " << parser.GetColumn() << std::endl;
+                    << parser.GetLine() << " column " << parser.GetColumn() <<
+                    std::endl;
                 return 1;
             } else {
                 loader.MergeConfig(parser.Get());
@@ -135,8 +142,8 @@ int main(int argc, char **argv) {
 
     std::pair<bool, std::string> validate_result = loader.Validate();
     if (!validate_result.first) {
-        std::cout << "Configuration did not validate:\n\t" << validate_result.second
-            << std::endl;
+        std::cout << "Configuration did not validate:\n\t"
+            << validate_result.second << std::endl;
         return 1;
     }
 
