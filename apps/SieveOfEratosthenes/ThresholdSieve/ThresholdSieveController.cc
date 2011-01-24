@@ -24,8 +24,8 @@
 #include "ThresholdSieveController.h"
 #include "NodeFactory.h"
 #include "Kernel.h"
-#include "QueueReaderAdapter.h"
-#include "QueueWriterAdapter.h"
+#include "IQueue.h"
+#include "OQueue.h"
 #include "ThresholdSieveProducer.h"
 #include "ThresholdSieveFilter.h"
 #include "ToString.h"
@@ -63,8 +63,8 @@ void ThresholdSieveController::Process(void) {
     DEBUG("%s started\n", GetName().c_str());
     Initialize();
     NumberT filterCount = opts.filtercount;
-    CPN::QueueReaderAdapter<NumberT> in = GetReader(ToString(FILTER_FORMAT, filterCount));
-    CPN::QueueWriterAdapter<NumberT> out;
+    CPN::IQueue<NumberT> in = GetReader(ToString(FILTER_FORMAT, filterCount));
+    CPN::OQueue<NumberT> out;
     if (!opts.outputport.empty()) {
         out = GetWriter(opts.outputport);
     }

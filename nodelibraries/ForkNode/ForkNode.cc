@@ -22,8 +22,8 @@
  */
 
 #include "ForkNode.h"
-#include "QueueReaderAdapter.h"
-#include "QueueWriterAdapter.h"
+#include "IQueue.h"
+#include "OQueue.h"
 #include "Variant.h"
 #include "JSONToVariant.h"
 #include <complex>
@@ -34,8 +34,8 @@ using CPN::NodeBase;
 using CPN::Kernel;
 using CPN::NodeAttr;
 using std::vector;
-using CPN::QueueReaderAdapter;
-using CPN::QueueWriterAdapter;
+using CPN::IQueue;
+using CPN::OQueue;
 using std::for_each;
 using std::mem_fun_ref;
 
@@ -66,13 +66,13 @@ ForkNode::ForkNode(Kernel &ker, const NodeAttr &attr)
 }
 
 void ForkNode::Process() {
-    QueueReaderAdapter<void> in = GetReader(inport);
-    vector<QueueWriterAdapter<void> > out(outports.size());
-    vector<QueueWriterAdapter<void> >::iterator current = out.begin();
+    IQueue<void> in = GetReader(inport);
+    vector<OQueue<void> > out(outports.size());
+    vector<OQueue<void> >::iterator current = out.begin();
     for (vector<std::string>::iterator itr = outports.begin(); itr != outports.end(); ++itr, ++current)
         (*current) = GetWriter(*itr);
 
-    const vector<QueueWriterAdapter<void> >::iterator end = out.end();
+    const vector<OQueue<void> >::iterator end = out.end();
     bool loop = true;
     while (loop) {
         current = out.begin();
@@ -90,6 +90,6 @@ void ForkNode::Process() {
         }
     }
     in.Release();
-    for_each(out.begin(), out.end(), mem_fun_ref(&QueueWriterAdapter<void>::Release));
+    for_each(out.begin(), out.end(), mem_fun_ref(&OQueue<void>::Release));
 }
 

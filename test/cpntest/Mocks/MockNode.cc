@@ -1,7 +1,7 @@
 
 #include "MockNode.h"
-#include "QueueWriterAdapter.h"
-#include "QueueReaderAdapter.h"
+#include "OQueue.h"
+#include "IQueue.h"
 #include <string>
 
 //#define _DEBUG 1
@@ -45,7 +45,7 @@ void MockNode::Process() {
     switch (mode) {
         case MODE_SOURCE:
             {
-                CPN::QueueWriterAdapter<unsigned long> out = GetWriter("y");
+                CPN::OQueue<unsigned long> out = GetWriter("y");
                 DEBUG("%s acting as producer\n", ourname.c_str());
                 while (counter < threshold) {
                     out.Enqueue(&counter, 1);
@@ -57,8 +57,8 @@ void MockNode::Process() {
             break;
         case MODE_TRANSMUTE:
             {
-                CPN::QueueWriterAdapter<unsigned long> out = GetWriter("y");
-                CPN::QueueReaderAdapter<unsigned long> in = GetReader("x");
+                CPN::OQueue<unsigned long> out = GetWriter("y");
+                CPN::IQueue<unsigned long> in = GetReader("x");
                 DEBUG("%s acting as transmuter\n", ourname.c_str());
                 while (counter < threshold) {
                     unsigned long value = 0;
@@ -75,7 +75,7 @@ void MockNode::Process() {
             break;
         case MODE_SINK:
             {
-                CPN::QueueReaderAdapter<unsigned long> in = GetReader("x");
+                CPN::IQueue<unsigned long> in = GetReader("x");
                 DEBUG("%s acting as sink\n", ourname.c_str());
                 while (true) {
                     unsigned long value = 0;

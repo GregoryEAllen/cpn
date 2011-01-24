@@ -24,7 +24,7 @@
 #include "NodeBase.h"
 #include "Variant.h"
 #include "JSONToVariant.h"
-#include "QueueWriterAdapter.h"
+#include "OQueue.h"
 #include <string>
 #include <unistd.h>
 
@@ -55,7 +55,7 @@ private:
 CPN_DECLARE_NODE_FACTORY(FileReadNode, FileReadNode);
 
 void FileReadNode::Process() {
-    QueueWriterAdapter<void> out = GetWriter(output);
+    OQueue<void> out = GetWriter(output);
     try {
         while (true) {
             unsigned blocksize = out.MaxThreshold();

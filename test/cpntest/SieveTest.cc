@@ -4,8 +4,8 @@
 #include "NodeBase.h"
 #include "NodeFactory.h"
 #include "NodeAttr.h"
-#include "QueueWriterAdapter.h"
-#include "QueueReaderAdapter.h"
+#include "OQueue.h"
+#include "IQueue.h"
 #include "Database.h"
 #include "ToString.h"
 #include "Variant.h"
@@ -79,8 +79,8 @@ SieveResultNode::SieveResultNode(CPN::Kernel& ker, const CPN::NodeAttr& attr)
 void SieveResultNode::Process() {
     std::string ourname = GetName();
     SieveNumber portnum = 0;
-    CPN::QueueReaderAdapter<SieveNumber> in = GetReader(ToString(PORT_FORMAT, portnum));
-    CPN::QueueWriterAdapter<SieveNumber> out = GetWriter(PORT_RESULT);
+    CPN::IQueue<SieveNumber> in = GetReader(ToString(PORT_FORMAT, portnum));
+    CPN::OQueue<SieveNumber> out = GetWriter(PORT_RESULT);
     DBPRINT("Result node %s started (in %llu)\n", ourname.c_str(), in.GetKey());
     SieveNumber index = 0;
     while (index < NUMPRIMES) {
@@ -140,9 +140,9 @@ SieveFilterNode::SieveFilterNode(CPN::Kernel& ker, const CPN::NodeAttr& attr)
 
 void SieveFilterNode::Process() {
     std::string ourname = GetName();
-    CPN::QueueReaderAdapter<SieveNumber> in = GetReader(PORT_IN);
-    CPN::QueueWriterAdapter<SieveNumber> result = GetWriter(PORT_RESULT);
-    CPN::QueueWriterAdapter<SieveNumber> out;
+    CPN::IQueue<SieveNumber> in = GetReader(PORT_IN);
+    CPN::OQueue<SieveNumber> result = GetWriter(PORT_RESULT);
+    CPN::OQueue<SieveNumber> out;
     DBPRINT("Filter node %s started (in %llu result %llu)\n", ourname.c_str(), in.GetKey(), result.GetKey());
     SieveNumber input = 0;
     SieveNumber value = 0;
@@ -191,7 +191,7 @@ SieveProducerNode::SieveProducerNode(CPN::Kernel& ker, const CPN::NodeAttr& attr
 
 void SieveProducerNode::Process(void) {
     std::string ourname = GetName();
-    CPN::QueueWriterAdapter<SieveNumber> out = GetWriter(PORT_OUT);
+    CPN::OQueue<SieveNumber> out = GetWriter(PORT_OUT);
     DBPRINT("Producer node %s started (out %llu)\n", ourname.c_str(), out.GetKey());
     SieveNumber index = 2;
     while (index <= MAX_PRIME_VALUE) {
@@ -245,7 +245,7 @@ void SieveTest::RunTest(void) {
     qattr.SetWriter("TheResult", PORT_RESULT);
     qattr.SetReader("output", PORT_RESULT);
     kernel.CreateQueue(qattr);
-    CPN::QueueReaderAdapter<SieveNumber> in = kernel.GetPseudoReader(pseudokey, PORT_RESULT);
+    CPN::IQueue<SieveNumber> in = kernel.GetPseudoReader(pseudokey, PORT_RESULT);
     in.Dequeue(&result[0], result.size());
     in.Release();
     kernel.DestroyPseudoNode(pseudokey);
@@ -297,7 +297,7 @@ void SieveTest::RunTwoKernelTest() {
     qattr.SetWriter("TheResult", PORT_RESULT);
     qattr.SetReader("output", PORT_RESULT);
     kone.CreateQueue(qattr);
-    CPN::QueueReaderAdapter<SieveNumber> in = kone.GetPseudoReader(pseudokey, PORT_RESULT);
+    CPN::IQueue<SieveNumber> in = kone.GetPseudoReader(pseudokey, PORT_RESULT);
     in.Dequeue(&result[0], result.size());
     in.Release();
     kone.DestroyPseudoNode(pseudokey);

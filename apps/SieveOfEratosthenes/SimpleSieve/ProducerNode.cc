@@ -4,7 +4,7 @@
 
 #include "ProducerNode.h"
 #include "NodeFactory.h"
-#include "QueueWriterAdapter.h"
+#include "OQueue.h"
 #include "Kernel.h"
 #include "Assert.h"
 #include "JSONToVariant.h"
@@ -37,7 +37,7 @@ CPN_DECLARE_NODE_FACTORY(SieveProducerNode, ProducerNode);
 
 void ProducerNode::Process(void) {
     DEBUG("ProducerNode %s start\n", GetName().c_str());
-    CPN::QueueWriterAdapter<unsigned long> out = GetWriter("y");
+    CPN::OQueue<unsigned long> out = GetWriter("y");
     const unsigned long cutoff = numberBound;
     unsigned long counter = 2;
     while (cutoff == 0 || counter < cutoff) {

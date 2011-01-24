@@ -23,8 +23,8 @@
 #include "HBeamformerNode.h"
 #include "Variant.h"
 #include "JSONToVariant.h"
-#include "QueueReaderAdapter.h"
-#include "QueueWriterAdapter.h"
+#include "IQueue.h"
+#include "OQueue.h"
 #include "HBeamformer.h"
 #include <complex>
 #include <algorithm>
@@ -56,8 +56,8 @@ HBeamformerNode::~HBeamformerNode() {
 }
 
 void HBeamformerNode::Process() {
-    CPN::QueueReaderAdapter<complex<float> > in = GetReader(inport);
-    CPN::QueueWriterAdapter<complex<float> > out = GetWriter(outport);
+    CPN::IQueue<complex<float> > in = GetReader(inport);
+    CPN::OQueue<complex<float> > out = GetWriter(outport);
     if (half == 0) {
         ASSERT(out.NumChannels() == hbeam->NumBeams(),
                 "%u != %u", out.NumChannels(), hbeam->NumBeams());

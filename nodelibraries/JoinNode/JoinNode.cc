@@ -21,8 +21,8 @@
  * \author John Bridgman
  */
 #include "JoinNode.h"
-#include "QueueReaderAdapter.h"
-#include "QueueWriterAdapter.h"
+#include "IQueue.h"
+#include "OQueue.h"
 #include "Variant.h"
 #include "JSONToVariant.h"
 #include <complex>
@@ -33,8 +33,8 @@ using CPN::NodeBase;
 using CPN::Kernel;
 using CPN::NodeAttr;
 using std::vector;
-using CPN::QueueReaderAdapter;
-using CPN::QueueWriterAdapter;
+using CPN::IQueue;
+using CPN::OQueue;
 using std::for_each;
 using std::mem_fun_ref;
 
@@ -65,13 +65,13 @@ JoinNode::JoinNode(Kernel &ker, const NodeAttr &attr)
 }
 
 void JoinNode::Process() {
-    QueueWriterAdapter<void> out = GetWriter(outport);
-    vector<QueueReaderAdapter<void> > in(inports.size());
-    vector<QueueReaderAdapter<void> >::iterator current = in.begin();
+    OQueue<void> out = GetWriter(outport);
+    vector<IQueue<void> > in(inports.size());
+    vector<IQueue<void> >::iterator current = in.begin();
     for (vector<std::string>::iterator itr = inports.begin(); itr != inports.end(); ++itr)
         *(current++) = GetReader(*itr);
 
-    const vector<QueueReaderAdapter<void> >::iterator end = in.end();
+    const vector<IQueue<void> >::iterator end = in.end();
     bool loop = true;
     while (loop) {
         current = in.begin();
@@ -89,5 +89,5 @@ void JoinNode::Process() {
         }
     }
     out.Release();
-    for_each(in.begin(), in.end(), mem_fun_ref(&QueueReaderAdapter<void>::Release));
+    for_each(in.begin(), in.end(), mem_fun_ref(&IQueue<void>::Release));
 }

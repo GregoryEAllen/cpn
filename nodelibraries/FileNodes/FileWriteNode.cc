@@ -24,7 +24,7 @@
 #include "NodeBase.h"
 #include "Variant.h"
 #include "JSONToVariant.h"
-#include "QueueReaderAdapter.h"
+#include "IQueue.h"
 #include <string>
 #include <unistd.h>
 
@@ -61,7 +61,7 @@ private:
 CPN_DECLARE_NODE_FACTORY(FileWriteNode, FileWriteNode);
 
 void FileWriteNode::Process() {
-    QueueReaderAdapter<void> in = GetReader(input);
+    IQueue<void> in = GetReader(input);
     try {
         while (true) {
             unsigned blksz;

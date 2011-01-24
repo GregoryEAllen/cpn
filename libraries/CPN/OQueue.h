@@ -18,72 +18,71 @@
 //	World Wide Web at http://www.fsf.org.
 //=============================================================================
 /** \file
- * \brief Implementation and definition for QueueReader adapter.
+ * \brief Definition and implementation of an adaptor for
+ * the CPN QueueWriter.
  * \author John Bridgman
  */
 
-#ifndef CPN_QUEUE_QUEUEREADERADAPTER_H
-#define CPN_QUEUE_QUEUEREADERADAPTER_H
+#ifndef CPN_QUEUE_QUEUEWRITERADAPTOR_H
+#define CPN_QUEUE_QUEUEWRITERADAPTOR_H
 #pragma once
 
 #include "CPNCommon.h"
-#include "QueueReader.h"
+#include "QueueWriter.h"
 #include "QueueDatatypes.h"
 #include "Exceptions.h"
 
 namespace CPN {
-    /** 
-     * \brief Template class to do type conversion for reader end of the queue.
+    /**
+     * \brief A template class to do type conversion for the
+     * writer end of the queue.
      */
     template<class T>
-    class QueueReaderAdapter {
+    class OQueue {
     public:
-        QueueReaderAdapter() {}
-        QueueReaderAdapter(shared_ptr<QueueReader> q) : queue(q) {
+        OQueue() {}
+        OQueue(shared_ptr<QueueWriter> q) : queue(q) {
             if (!TypeCompatable(TypeName<T>(), queue->GetDatatype())) {
                 throw TypeMismatchException(TypeName<T>(), queue->GetDatatype());
             }
         }
 
         /**
-         * Get an array of the given type of the given length from the given channel
-         * to read from.
-         * \param thresh the size of the returned array.
-         * \param chan the channel
+         * Get an array to write into.
+         * \param thresh the length of the array
+         * \param chan the number of channel to get the array from.
          * \return the array
          */
-        const T* GetDequeuePtr(unsigned thresh, unsigned chan=0) {
-            return (T*) queue->GetRawDequeuePtr(GetTypeSize<T>() * thresh, chan);
+        T* GetEnqueuePtr(unsigned thresh, unsigned chan=0) {
+            return (T*) queue->GetRawEnqueuePtr(GetTypeSize<T>() * thresh, chan);
         }
-
+        
         /**
-         * Dispose of count elements from the queue.
-         * \param count the number to dispose of
-         */
-        void Dequeue(unsigned count) {
-            queue->Dequeue(GetTypeSize<T>() * count);
-        }
-
-        /**
-         * Read count element into the array data.
-         * \param data the array
+         * Add count elements to the queue on all channels.
          * \param count the number of elements
-         * \return true on success, false if the endpoint has shutdown
          */
-        bool Dequeue(T* data, unsigned count) {
-            return queue->RawDequeue((void*)data, GetTypeSize<T>() * count);
+        void Enqueue(unsigned count) {
+            queue->Enqueue(GetTypeSize<T>() * count);
         }
 
         /**
-         * Read count element into the 2D array data with the given number
-         * of channels and channel stride.
+         * Enqueue the count elements in the array data into this queue.
          * \param data the array
-         * \param count the number of elements in each channel
-         * \param numChans the number of channels
-         * \param chanStride the number of elements between each channel
+         * \param count the number
          */
-        bool Dequeue(T* data, unsigned count, unsigned numChans, unsigned chanStride) {
-            return queue->RawDequeue((void*)data, GetTypeSize<T>() * count,
+        void Enqueue(const T* data, unsigned count) {
+            queue->RawEnqueue((void*)data, GetTypeSize<T>() * count);
+        }
+
+        /**
+         * Enqueue the count elements in the 2D array into the channel.
+         * \param data the array
+         * \param count the number in each channel
+         * \param numChans the number of channels
+         * \param chanStride the number of elements between channels
+         */
+        void Enqueue(const T* data, unsigned count, unsigned numChans, unsigned chanStride) {
+            queue->RawEnqueue((void*)data, GetTypeSize<T>() * count,
                     numChans, GetTypeSize<T>() * chanStride);
         }
 
@@ -92,19 +91,20 @@ namespace CPN {
         /// \return the maximum threshold in bytes
         unsigned MaxThreshold() const { return queue->MaxThreshold()/GetTypeSize<T>(); }
         unsigned QueueLength() const { return queue->QueueLength()/GetTypeSize<T>(); }
-        /// \return the number of bytes in the channel
-        unsigned Count() const { return queue->Count()/GetTypeSize<T>(); }
-        /// \return true if empty, false otherwise
-        bool Empty() const { return queue->Empty(); }
+        /// \return the amount of freespace in bytes
+        unsigned Freespace() const { return queue->Freespace()/GetTypeSize<T>(); }
         unsigned ChannelStride() const { return queue->ChannelStride()/GetTypeSize<T>(); }
+        /// \return true if full
+        bool Full() const { return queue->Full(); }
         /// \return the endpoint key
         Key_t GetKey() const { return queue->GetKey(); }
-        /// \return the underlying reader
-        shared_ptr<QueueReader> GetReader() { return queue; }
-        /// Release this reader all further actions are invalid
+        /// \return the writer
+        shared_ptr<QueueWriter> GetWriter() { return queue; }
+        /// Release the writer, further operations are invalid
         void Release() { queue->Release(); queue.reset(); }
+
     private:
-        shared_ptr<QueueReader> queue;
+        shared_ptr<QueueWriter> queue;
     };
 }
 #endif
