@@ -120,13 +120,13 @@ The code for the summing node's \verb!Process()! method is in Listing \ref{summe
 
 \begin{lstlisting}[caption=Summing node process declaration,label=summer process]{}
 void Summer::Process() {
-    typedef vector< QueueReaderAdapter<uint64_t> > Inport_t;
+    typedef vector< IQueue<uint64_t> > Inport_t;
     Inport_t inports;
     for (vector<string>::iterator i = inputs.begin(), e = inputs.end();
             i != e; ++i) {
         inports.push_back(GetReader(*i));
     }
-    QueueWriterAdapter<uint64_t> outport = GetWriter(output);
+    OQueue<uint64_t> outport = GetWriter(output);
     bool loop = true;
     while (true) {
         uint64_t sum = 0;
@@ -148,14 +148,14 @@ void Summer::Process() {
 
 Note that the raw underlying queue is typeless and simply does a blind bit wise copy of the data.
 This means that only plain old data (POD) types can be sent over the queues in CPN.
-The \newline\verb!CPN::QueueReaderAdapter<T>! and \verb!CPN::QueueWriterAdapter<T>! provide
+The \newline\verb!CPN::IQueue<T>! and \verb!CPN::OQueue<T>! provide
 type checking and type conversion for the raw queue interface.
 Each queue has associated with it a string identifying the type that that queue should handle.
 The adapters check this string and throw an exception on assignment if the types do not match.
 
 First, the summer node gets all its input and output endpoints and places them in adapters.
 Then it reads from all its inputs, sum them and enqueues the result.
-Note that the \newline\verb!QueueReaderAdapter<T>::Dequeue(T *, unsigned)! function will return
+Note that the \newline\verb!IQueue<T>::Dequeue(T *, unsigned)! function will return
 \verb!false! when the other end of the queue disconnects.
 There are two ways to disconnect. The first is to call \verb!Release! on the queue endpoint
 and the second is to return from \verb!Process()!.
@@ -229,7 +229,7 @@ When the endpoint is released the queues on the other nodes get shut down, causi
 We set the swallow broken queue exceptions flag in the database of the kernel above so that we would obtain this behavior.
 
 \begin{lstlisting}{}
-    QueueReaderAdapter<uint64_t> result = kernel.GetPseudoReader(pkey, "in");
+    IQueue<uint64_t> result = kernel.GetPseudoReader(pkey, "in");
     uint64_t value;
     do {
         result.Dequeue(&value, 1);
@@ -268,9 +268,9 @@ The summer and delay node functions are defined as:
 \begin{lstlisting}{}
 static void Summer(NodeBase *node, string input_a, string input_b,
         string output) {
-    QueueReaderAdapter<uint64_t> in_a = node->GetReader(input_a);
-    QueueReaderAdapter<uint64_t> in_b = node->GetReader(input_b);
-    QueueWriterAdapter<uint64_t> out = node->GetWriter(output);
+    IQueue<uint64_t> in_a = node->GetReader(input_a);
+    IQueue<uint64_t> in_b = node->GetReader(input_b);
+    OQueue<uint64_t> out = node->GetWriter(output);
     while (true) {
         uint64_t val_a, val_b, sum;
         if (!in_a.Dequeue(&val_a, 1)) break;
@@ -281,9 +281,9 @@ static void Summer(NodeBase *node, string input_a, string input_b,
 }
 static void Delay(NodeBase *node, string input, string output_a,
         string output_b, uint64_t initial) {
-    QueueReaderAdapter<uint64_t> in = node->GetReader(input);
-    QueueWriterAdapter<uint64_t> out_a = node->GetWriter(output_a);
-    QueueWriterAdapter<uint64_t> out_b = node->GetWriter(output_b);
+    IQueue<uint64_t> in = node->GetReader(input);
+    OQueue<uint64_t> out_a = node->GetWriter(output_a);
+    OQueue<uint64_t> out_b = node->GetWriter(output_b);
     uint64_t current = initial;
     while (true) {
         out_a.Enqueue(&current, 1);
@@ -509,7 +509,7 @@ load up the configuration.
 Once the configuration is done, we read out the results and clean up.
 \begin{lstlisting}{}
     if (load_config) {
-        QueueReaderAdapter<uint64_t> result =
+        IQueue<uint64_t> result =
              kernel.GetPseudoReader(pkey, "in");
         uint64_t value;
         do {

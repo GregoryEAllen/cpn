@@ -1,5 +1,5 @@
 #include "Kernel.h"
-#include "QueueReaderAdapter.h"
+#include "IQueue.h"
 #include "VariantToJSON.h"
 #include "JSONToVariant.h"
 #include "VariantCPNLoader.h"
@@ -158,7 +158,7 @@ int main(int argc, char **argv) {
     loader.Setup(&kernel);
 
     if (load_config) {
-        QueueReaderAdapter<uint64_t> result = kernel.GetPseudoReader(pkey, "in");
+        IQueue<uint64_t> result = kernel.GetPseudoReader(pkey, "in");
         uint64_t value;
         do {
             result.Dequeue(&value, 1);

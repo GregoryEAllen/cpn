@@ -1,6 +1,6 @@
 #include "NodeBase.h"
-#include "QueueReaderAdapter.h"
-#include "QueueWriterAdapter.h"
+#include "IQueue.h"
+#include "OQueue.h"
 #include "JSONToVariant.h"
 #include <vector>
 #include <string>
@@ -40,13 +40,13 @@ Summer::Summer(Kernel &ker, const NodeAttr &attr)
 }
 
 void Summer::Process() {
-    typedef vector< QueueReaderAdapter<uint64_t> > Inport_t;
+    typedef vector< IQueue<uint64_t> > Inport_t;
     Inport_t inports;
     for (vector<string>::iterator i = inputs.begin(), e = inputs.end();
             i != e; ++i) {
         inports.push_back(GetReader(*i));
     }
-    QueueWriterAdapter<uint64_t> outport = GetWriter(output);
+    OQueue<uint64_t> outport = GetWriter(output);
     bool loop = true;
     while (true) {
         uint64_t sum = 0;

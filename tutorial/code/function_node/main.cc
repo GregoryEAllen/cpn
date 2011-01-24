@@ -1,8 +1,8 @@
 
 #include "Kernel.h"
 #include "NodeBase.h"
-#include "QueueReaderAdapter.h"
-#include "QueueWriterAdapter.h"
+#include "IQueue.h"
+#include "OQueue.h"
 #include <stdlib.h>
 #include <iostream>
 
@@ -11,9 +11,9 @@ using std::string;
 
 static void Summer(NodeBase *node, string input_a, string input_b,
         string output) {
-    QueueReaderAdapter<uint64_t> in_a = node->GetReader(input_a);
-    QueueReaderAdapter<uint64_t> in_b = node->GetReader(input_b);
-    QueueWriterAdapter<uint64_t> out = node->GetWriter(output);
+    IQueue<uint64_t> in_a = node->GetReader(input_a);
+    IQueue<uint64_t> in_b = node->GetReader(input_b);
+    OQueue<uint64_t> out = node->GetWriter(output);
     while (true) {
         uint64_t val_a, val_b, sum;
         if (!in_a.Dequeue(&val_a, 1)) break;
@@ -25,9 +25,9 @@ static void Summer(NodeBase *node, string input_a, string input_b,
 
 static void Delay(NodeBase *node, string input, string output_a,
         string output_b, uint64_t initial) {
-    QueueReaderAdapter<uint64_t> in = node->GetReader(input);
-    QueueWriterAdapter<uint64_t> out_a = node->GetWriter(output_a);
-    QueueWriterAdapter<uint64_t> out_b = node->GetWriter(output_b);
+    IQueue<uint64_t> in = node->GetReader(input);
+    OQueue<uint64_t> out_a = node->GetWriter(output_a);
+    OQueue<uint64_t> out_b = node->GetWriter(output_b);
     uint64_t current = initial;
     while (true) {
         out_a.Enqueue(&current, 1);
@@ -76,7 +76,7 @@ int main(int argc, char **argv) {
     qattr.SetWriter("Delay 2", "B").SetReader("result", "in");
     kernel.CreateQueue(qattr);
 
-    QueueReaderAdapter<uint64_t> result = kernel.GetPseudoReader(pkey, "in");
+    IQueue<uint64_t> result = kernel.GetPseudoReader(pkey, "in");
     uint64_t value;
     do {
         result.Dequeue(&value, 1);

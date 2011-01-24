@@ -1,6 +1,6 @@
 #include "NodeBase.h"
-#include "QueueReaderAdapter.h"
-#include "QueueWriterAdapter.h"
+#include "IQueue.h"
+#include "OQueue.h"
 #include "JSONToVariant.h"
 #include <vector>
 #include <string>
@@ -42,13 +42,13 @@ Delay::Delay(Kernel &ker, const NodeAttr &attr)
 }
 
 void Delay::Process() {
-    typedef vector< QueueWriterAdapter<uint64_t> > Outport_t;
+    typedef vector< OQueue<uint64_t> > Outport_t;
     Outport_t outports;
     for (vector<string>::iterator i = outputs.begin(), e = outputs.end();
             i != e; ++i) {
         outports.push_back(GetWriter(*i));
     }
-    QueueReaderAdapter<uint64_t> inport = GetReader(input);
+    IQueue<uint64_t> inport = GetReader(input);
     while (true) {
         for (Outport_t::iterator i = outports.begin(), e = outports.end();
                 i != e; ++i) {

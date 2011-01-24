@@ -1,5 +1,5 @@
 #include "Kernel.h"
-#include "QueueReaderAdapter.h"
+#include "IQueue.h"
 #include <iostream>
 #include <stdlib.h>
 #include <stdint.h>
@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
     qattr.SetWriter("Delay 2", "B").SetReader("result", "in");
     kernel.CreateQueue(qattr);
 
-    QueueReaderAdapter<uint64_t> result = kernel.GetPseudoReader(pkey, "in");
+    IQueue<uint64_t> result = kernel.GetPseudoReader(pkey, "in");
     uint64_t value;
     do {
         result.Dequeue(&value, 1);
