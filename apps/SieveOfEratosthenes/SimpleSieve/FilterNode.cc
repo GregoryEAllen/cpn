@@ -4,8 +4,8 @@
 
 #include "FilterNode.h"
 #include "Kernel.h"
-#include "QueueWriterAdapter.h"
-#include "QueueReaderAdapter.h"
+#include "OQueue.h"
+#include "IQueue.h"
 #include "NodeFactory.h"
 #include "JSONToVariant.h"
 #include <stdexcept>
@@ -38,8 +38,8 @@ FilterNode::FilterNode(CPN::Kernel& ker, const CPN::NodeAttr& attr)
 
 void FilterNode::Process(void) {
     DEBUG("FilterNode %s start\n", GetName().c_str());
-    CPN::QueueWriterAdapter<unsigned long> out = GetWriter("prodport");
-    CPN::QueueReaderAdapter<unsigned long> in = GetReader("x");
+    CPN::OQueue<unsigned long> out = GetWriter("prodport");
+    CPN::IQueue<unsigned long> in = GetReader("x");
     bool sendtoresult = true;
     unsigned long nextFilter = filterval;
     unsigned long readVal = 0;

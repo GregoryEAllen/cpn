@@ -3,8 +3,8 @@
 
 #include "RandomInstructionNode.h"
 #include "NodeFactory.h"
-#include "QueueWriterAdapter.h"
-#include "QueueReaderAdapter.h"
+#include "OQueue.h"
+#include "IQueue.h"
 #include "Kernel.h"
 #include "Variant.h"
 #include "ToString.h"
@@ -188,7 +188,7 @@ void RandomInstructionNode::DoProducerNode(unsigned nodeID, unsigned dstNodeID) 
 
         CreateQueue(nodeID, dstNodeID);
 
-        CPN::QueueWriterAdapter<unsigned> out = GetWriter(CurrentOutPort());
+        CPN::OQueue<unsigned> out = GetWriter(CurrentOutPort());
         unsigned *data = out.GetEnqueuePtr(2);
         dbprintf(1, "(%u) =%lu> %u\n", nodeID, out.GetKey(), dstNodeID);
         data[0] = nodeID;
@@ -206,8 +206,8 @@ void RandomInstructionNode::DoTransmuterNode(unsigned nodeID, unsigned srcNodeID
 
         CreateQueue(nodeID, dstNodeID);
 
-        CPN::QueueWriterAdapter<unsigned> out = GetWriter(CurrentOutPort());
-        CPN::QueueReaderAdapter<unsigned> in = GetReader(CurrentInPort());
+        CPN::OQueue<unsigned> out = GetWriter(CurrentOutPort());
+        CPN::IQueue<unsigned> in = GetReader(CurrentInPort());
         const unsigned *indata = in.GetDequeuePtr(2);
         dbprintf(1, "%u =%lu> (%u) -> %u\n", srcNodeID, in.GetKey(), nodeID, dstNodeID);
         ASSERT(indata);
@@ -232,7 +232,7 @@ void RandomInstructionNode::DoConsumerNode(unsigned nodeID, unsigned srcNodeID) 
     if (myID == nodeID) {
         ASSERT(!die);
         //RandomInstructionGenerator::DoConsumerNode(nodeID, srcNodeID);
-        CPN::QueueReaderAdapter<unsigned> in = GetReader(CurrentInPort());
+        CPN::IQueue<unsigned> in = GetReader(CurrentInPort());
         const unsigned *indata = in.GetDequeuePtr(2);
         dbprintf(1, "%u =%lu> (%u)\n", srcNodeID, in.GetKey(), nodeID);
         ASSERT(indata);

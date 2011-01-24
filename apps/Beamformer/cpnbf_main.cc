@@ -7,8 +7,8 @@
 #include "NumProcs.h"
 #include "ParseBool.h"
 #include "PathUtils.h"
-#include "QueueReaderAdapter.h"
-#include "QueueWriterAdapter.h"
+#include "IQueue.h"
+#include "OQueue.h"
 #include "RemoteDatabase.h"
 #include "ToString.h"
 #include "VariantCPNLoader.h"
@@ -51,8 +51,8 @@ public:
         nooutput = param["nooutput"].AsBool();
     }
     void Process() {
-        std::vector< CPN::QueueReaderAdapter< complex<float> > > in(inports.size());
-        std::vector< CPN::QueueReaderAdapter< complex<float> > >::iterator cur, begin, end;
+        std::vector< CPN::IQueue< complex<float> > > in(inports.size());
+        std::vector< CPN::IQueue< complex<float> > >::iterator cur, begin, end;
         cur = begin = in.begin();
         end = in.end();
         for (std::vector<std::string>::iterator itr = inports.begin(); cur != end; ++cur, ++itr) {
@@ -157,7 +157,7 @@ public:
                 d_len += num_more;
             }
         }
-        CPN::QueueWriterAdapter<void> out = GetWriter(outport);
+        CPN::OQueue<void> out = GetWriter(outport);
         FlowMeasure measure;
         unsigned qsize = out.QueueLength();
         unsigned rep = 0;

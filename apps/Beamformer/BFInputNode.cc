@@ -1,6 +1,6 @@
 
 #include "BFInputNode.h"
-#include "QueueWriterAdapter.h"
+#include "OQueue.h"
 #include "Variant.h"
 #include "JSONToVariant.h"
 #include <fstream>
@@ -31,7 +31,7 @@ BFInputNode::BFInputNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)
 }
 
 void BFInputNode::Process() {
-    CPN::QueueWriterAdapter<void> out = GetWriter(outport);
+    CPN::OQueue<void> out = GetWriter(outport);
     for (unsigned rep = 0; rep < repetitions; ++rep) {
         for (std::vector<std::string>::iterator i = infiles.begin();
                 i != infiles.end(); ++i)

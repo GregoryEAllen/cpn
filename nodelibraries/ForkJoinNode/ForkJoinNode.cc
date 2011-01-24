@@ -21,8 +21,8 @@
  * \author John Bridgman
  */
 #include "ForkJoinNode.h"
-#include "QueueReaderAdapter.h"
-#include "QueueWriterAdapter.h"
+#include "IQueue.h"
+#include "OQueue.h"
 #include "Variant.h"
 #include "JSONToVariant.h"
 #include <complex>
@@ -33,8 +33,8 @@ using CPN::NodeBase;
 using CPN::Kernel;
 using CPN::NodeAttr;
 using std::vector;
-using CPN::QueueReaderAdapter;
-using CPN::QueueWriterAdapter;
+using CPN::IQueue;
+using CPN::OQueue;
 using std::for_each;
 using std::mem_fun_ref;
 
@@ -79,15 +79,15 @@ ForkJoinNode::ForkJoinNode(Kernel &ker, const NodeAttr &attr)
 }
 
 void ForkJoinNode::Process() {
-    vector<QueueWriterAdapter<void> > out(outports.size());
-    vector<QueueWriterAdapter<void> >::iterator current_out = out.begin();
-    const vector<QueueWriterAdapter<void> >::iterator end_out = out.end();
+    vector<OQueue<void> > out(outports.size());
+    vector<OQueue<void> >::iterator current_out = out.begin();
+    const vector<OQueue<void> >::iterator end_out = out.end();
     for (vector<std::string>::iterator itr = outports.begin(); itr != outports.end(); ++itr)
         *(current_out++) = GetWriter(*itr);
 
-    vector<QueueReaderAdapter<void> > in(inports.size());
-    const vector<QueueReaderAdapter<void> >::iterator end_in = in.end();
-    vector<QueueReaderAdapter<void> >::iterator current_in = in.begin();
+    vector<IQueue<void> > in(inports.size());
+    const vector<IQueue<void> >::iterator end_in = in.end();
+    vector<IQueue<void> >::iterator current_in = in.begin();
     for (vector<std::string>::iterator itr = inports.begin(); itr != inports.end(); ++itr)
         *(current_in++) = GetReader(*itr);
 
@@ -111,7 +111,7 @@ void ForkJoinNode::Process() {
         ++current_in;
         ++current_out;
     }
-    for_each(out.begin(), out.end(), mem_fun_ref(&QueueWriterAdapter<void>::Release));
-    for_each(in.begin(), in.end(), mem_fun_ref(&QueueReaderAdapter<void>::Release));
+    for_each(out.begin(), out.end(), mem_fun_ref(&OQueue<void>::Release));
+    for_each(in.begin(), in.end(), mem_fun_ref(&IQueue<void>::Release));
 }
  

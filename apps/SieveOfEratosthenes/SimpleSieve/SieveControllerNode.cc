@@ -6,8 +6,8 @@
 #include "FilterNode.h"
 #include "ProducerNode.h"
 #include "Kernel.h"
-#include "QueueReaderAdapter.h"
-#include "QueueWriterAdapter.h"
+#include "IQueue.h"
+#include "OQueue.h"
 #include "NodeFactory.h"
 #include "ToString.h"
 #include "Assert.h"
@@ -63,8 +63,8 @@ void SieveControllerNode::Process(void) {
     bool finaltransition = true;
     unsigned long readVal = 0;
     const unsigned long stopVal = (unsigned long)std::ceil(std::sqrt((double) primeBound));
-    CPN::QueueReaderAdapter<unsigned long> in = GetReader(ToString(RESULT_IN, lastprime));
-    CPN::QueueWriterAdapter<unsigned long> out = GetWriter("output");
+    CPN::IQueue<unsigned long> in = GetReader(ToString(RESULT_IN, lastprime));
+    CPN::OQueue<unsigned long> out = GetWriter("output");
     do {
         in.Dequeue(&readVal, 1);
         DBPRINT("Result got %lu\n", readVal);

@@ -23,8 +23,8 @@
 #include "FanVBeamformerNode.h"
 #include "Variant.h"
 #include "JSONToVariant.h"
-#include "QueueReaderAdapter.h"
-#include "QueueWriterAdapter.h"
+#include "IQueue.h"
+#include "OQueue.h"
 #include "FanVBeamformer.h"
 #include <complex>
 #include <algorithm>
@@ -62,12 +62,12 @@ FanVBeamformerNode::~FanVBeamformerNode() {
 void FanVBeamformerNode::Process() {
     using std::vector;
     using std::string;
-    using CPN::QueueWriterAdapter;
-    using CPN::QueueReaderAdapter;
-    QueueReaderAdapter<complex<short> > in = GetReader(inport);
-    vector< QueueWriterAdapter< complex<float> > >::iterator out_itr;
-    vector< QueueWriterAdapter< complex<float> > >::iterator out_end;
-    vector< QueueWriterAdapter< complex<float> > > out(outports.size());
+    using CPN::OQueue;
+    using CPN::IQueue;
+    IQueue<complex<short> > in = GetReader(inport);
+    vector< OQueue< complex<float> > >::iterator out_itr;
+    vector< OQueue< complex<float> > >::iterator out_end;
+    vector< OQueue< complex<float> > > out(outports.size());
     vector< FanVBeamformer::ResVec > rv(outports.size());
     vector< FanVBeamformer::ResVec >::iterator rv_itr;
     out_itr = out.begin();

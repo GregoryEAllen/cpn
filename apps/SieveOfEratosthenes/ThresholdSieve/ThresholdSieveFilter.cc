@@ -23,8 +23,8 @@
 
 #include "ThresholdSieveFilter.h"
 #include "NodeFactory.h"
-#include "QueueReaderAdapter.h"
-#include "QueueWriterAdapter.h"
+#include "IQueue.h"
+#include "OQueue.h"
 #include "ToString.h"
 #include "PrimeSieve.h"
 #include "Assert.h"
@@ -68,7 +68,7 @@ ThresholdSieveFilter::ThresholdSieveFilter(CPN::Kernel &ker, const CPN::NodeAttr
     opts = ThresholdSieveOptions::Deserialize(attr.GetParam());
 }
 
-const NumberT *GetDequeueCount(CPN::QueueReaderAdapter<NumberT> &in, unsigned &incount, NumberT **buffer) {
+const NumberT *GetDequeueCount(CPN::IQueue<NumberT> &in, unsigned &incount, NumberT **buffer) {
     if (buffer) {
         if (in.Dequeue(*buffer, incount)) {
             return *buffer;
@@ -122,8 +122,8 @@ void ThresholdSieveFilter::Process() {
     DEBUG("%s started\n", GetName().c_str());
     double total_start = getTime();
     CPN::Key_t control_key = 0, in_key = 0, out_key = 0;
-    CPN::QueueReaderAdapter<NumberT> in = GetReader(IN_PORT);
-    CPN::QueueWriterAdapter<NumberT> out = GetWriter(CONTROL_PORT);
+    CPN::IQueue<NumberT> in = GetReader(IN_PORT);
+    CPN::OQueue<NumberT> out = GetWriter(CONTROL_PORT);
     in_key = in.GetKey();
     control_key = out.GetKey();
     const bool zerocopy = opts.zerocopy;

@@ -21,7 +21,7 @@
  * \author John Bridgman
  */
 #include "NullNode.h"
-#include "QueueReaderAdapter.h"
+#include "IQueue.h"
 
 CPN_DECLARE_NODE_FACTORY(NullNode, NullNode);
 
@@ -31,7 +31,7 @@ NullNode::NullNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)
 }
 
 void NullNode::Process() {
-    CPN::QueueReaderAdapter<void> in = GetReader(inport);
+    CPN::IQueue<void> in = GetReader(inport);
     while (true) {
         const unsigned maxthresh = in.MaxThreshold();
         if (!in.GetDequeuePtr(maxthresh)) {

@@ -22,7 +22,7 @@
  */
 
 #include "Kernel.h"
-#include "QueueReaderAdapter.h"
+#include "IQueue.h"
 #include "ThresholdSieveOptions.h"
 #include "ErrnoException.h"
 #include "VariantCPNLoader.h"
@@ -91,7 +91,7 @@ static void PrintHelp(const std::string &progname) {
         ;
 }
 
-using CPN::QueueReaderAdapter;
+using CPN::IQueue;
 
 static Variant SieveTest(VariantCPNLoader &loader, bool verbose) {
     CPN::Kernel kernel(loader.GetKernelAttr());
@@ -107,7 +107,7 @@ static Variant SieveTest(VariantCPNLoader &loader, bool verbose) {
     loader.Setup(&kernel);
     if (verbose) {
         result["result"] = Variant::ArrayType;
-        QueueReaderAdapter<NumberT> out = kernel.GetPseudoReader(pseudokey, IN_PORT);
+        IQueue<NumberT> out = kernel.GetPseudoReader(pseudokey, IN_PORT);
         NumberT value = 0;
         while (out.Dequeue(&value, 1)) {
             result["result"].Append(value);

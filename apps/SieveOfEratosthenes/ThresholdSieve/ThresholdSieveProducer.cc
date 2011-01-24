@@ -24,8 +24,8 @@
 #include "ThresholdSieveProducer.h"
 #include "NodeFactory.h"
 #include "Kernel.h"
-#include "QueueReaderAdapter.h"
-#include "QueueWriterAdapter.h"
+#include "IQueue.h"
+#include "OQueue.h"
 #include "Assert.h"
 #include "PrimeSieveSource.h"
 #include <stdexcept>
@@ -69,7 +69,7 @@ ThresholdSieveProducer::ThresholdSieveProducer(CPN::Kernel& ker, const CPN::Node
 
 void ThresholdSieveProducer::Process(void) {
     DEBUG("%s started\n", GetName().c_str());
-    CPN::QueueWriterAdapter<NumberT> out = GetWriter(CONTROL_PORT);
+    CPN::OQueue<NumberT> out = GetWriter(CONTROL_PORT);
     const NumberT cutoff = opts.maxprime;
     const unsigned long threshold = opts.threshold;
     if (opts.numPrimesSource > 0) {

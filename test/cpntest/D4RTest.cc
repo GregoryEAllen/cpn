@@ -5,8 +5,8 @@
 #include "Kernel.h"
 #include "NodeBase.h"
 #include "NodeFactory.h"
-#include "QueueReaderAdapter.h"
-#include "QueueWriterAdapter.h"
+#include "IQueue.h"
+#include "OQueue.h"
 #include "Directory.h"
 #include "Variant.h"
 #include "ToString.h"
@@ -27,8 +27,8 @@ CPPUNIT_TEST_SUITE_REGISTRATION( D4RTest );
 using CPN::NodeBase;
 using CPN::Kernel;
 using CPN::Database;
-using CPN::QueueWriterAdapter;
-using CPN::QueueReaderAdapter;
+using CPN::OQueue;
+using CPN::IQueue;
 using CPN::shared_ptr;
 using CPN::KernelAttr;
 using CPN::NodeAttr;
@@ -60,7 +60,7 @@ public:
     }
 
     void Enqueue(const std::string &qname, unsigned amount) {
-        QueueWriterAdapter<unsigned> out = node->GetWriter(qname);
+        OQueue<unsigned> out = node->GetWriter(qname);
         Trace("Enqueue %s(%llu): %u", qname.c_str(), out.GetKey(), amount);
 #if 0
         std::vector<unsigned> buf;
@@ -76,7 +76,7 @@ public:
     }
 
     void Dequeue(const std::string &qname, unsigned amount) {
-        QueueReaderAdapter<unsigned> in = node->GetReader(qname);
+        IQueue<unsigned> in = node->GetReader(qname);
         Trace("Dequeue %s(%llu): %u", qname.c_str(), in.GetKey(), amount);
 #if 0
         std::vector<unsigned> buf(amount);
@@ -90,7 +90,7 @@ public:
     }
 
     void VerifyReaderSize(const std::string &qname, unsigned amount) {
-        QueueReaderAdapter<unsigned> in = node->GetReader(qname);
+        IQueue<unsigned> in = node->GetReader(qname);
         Trace("%s (%llu) %u ?= %u", qname.c_str(), in.GetKey(), in.QueueLength(), amount);
         if (in.QueueLength() != amount) {
             testerbase->Failure(this, "Queuesize is not expected size");
@@ -98,7 +98,7 @@ public:
     }
 
     void VerifyWriterSize(const std::string &qname, unsigned amount) {
-        QueueWriterAdapter<unsigned> out = node->GetWriter(qname);
+        OQueue<unsigned> out = node->GetWriter(qname);
         Trace("%s (%llu) %u ?= %u", qname.c_str(), out.GetKey(), out.QueueLength(), amount);
         if (out.QueueLength() != amount) {
             testerbase->Failure(this, "Queuesize is not expected size");

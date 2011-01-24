@@ -3,8 +3,6 @@
 #include <cppunit/TestAssert.h>
 #include "Kernel.h"
 #include "FunctionNode.h"
-#include "QueueWriterAdapter.h"
-#include "QueueReaderAdapter.h"
 #include "MockNodeFactory.h"
 #include "MockNode.h"
 #include "MockSyncNode.h"

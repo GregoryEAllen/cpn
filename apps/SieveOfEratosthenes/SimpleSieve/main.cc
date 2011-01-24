@@ -4,7 +4,7 @@
 #include "SieveControllerNode.h"
 #include "ErrnoException.h"
 #include "VariantToJSON.h"
-#include "QueueReaderAdapter.h"
+#include "IQueue.h"
 #include <sys/time.h>
 #include <unistd.h>
 #include <vector>
@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
     qattr.SetReader("output", "out");
     kernel.CreateQueue(qattr);
     double start = getTime();
-    CPN::QueueReaderAdapter<unsigned long> in = kernel.GetPseudoReader(pseudokey, "out");
+    CPN::IQueue<unsigned long> in = kernel.GetPseudoReader(pseudokey, "out");
     unsigned long val;
     while (in.Dequeue(&val, 1)) {
         results.push_back(val);

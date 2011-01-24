@@ -23,8 +23,8 @@
 #include "VBeamformerNode.h"
 #include "Variant.h"
 #include "JSONToVariant.h"
-#include "QueueReaderAdapter.h"
-#include "QueueWriterAdapter.h"
+#include "IQueue.h"
+#include "OQueue.h"
 #include "VBeamformer.h"
 #include <complex>
 #include <algorithm>
@@ -59,10 +59,10 @@ VBeamformerNode::~VBeamformerNode() {
 }
 
 void VBeamformerNode::Process() {
-    CPN::QueueReaderAdapter<complex<short> > in = GetReader(inport);
-    std::vector< CPN::QueueWriterAdapter< complex<float> > >::iterator out_itr;
-    std::vector< CPN::QueueWriterAdapter< complex<float> > >::iterator out_end;
-    std::vector< CPN::QueueWriterAdapter< complex<float> > > out(outports.size());
+    CPN::IQueue<complex<short> > in = GetReader(inport);
+    std::vector< CPN::OQueue< complex<float> > >::iterator out_itr;
+    std::vector< CPN::OQueue< complex<float> > >::iterator out_end;
+    std::vector< CPN::OQueue< complex<float> > > out(outports.size());
     out_itr = out.begin();
     for (std::vector<std::string>::iterator itr = outports.begin(); itr != outports.end(); ++itr)
         (*out_itr++) = GetWriter(*itr);
