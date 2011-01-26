@@ -24,7 +24,7 @@
 #include "QueueBase.h"
 #include "Exceptions.h"
 #include "QueueAttr.h"
-#include "Database.h"
+#include "Context.h"
 #include <sstream>
 #include <string.h>
 
@@ -32,7 +32,7 @@ namespace CPN {
 
     typedef AutoLock<QueueBase> AutoLock;
 
-    QueueBase::QueueBase(shared_ptr<Database> db, const SimpleQueueAttr &attr)
+    QueueBase::QueueBase(shared_ptr<Context> ctx, const SimpleQueueAttr &attr)
         : readerkey(attr.GetReaderKey()),
         writerkey(attr.GetWriterKey()),
         readshutdown(false),
@@ -43,9 +43,9 @@ namespace CPN {
         dequeuethresh(0),
         indequeue(false),
         inenqueue(false),
-        database(db),
-        useD4R(db->UseD4R()),
-        logger(db.get(), Logger::DEBUG),
+        context(ctx),
+        useD4R(ctx->UseD4R()),
+        logger(ctx.get(), Logger::DEBUG),
         datatype(attr.GetDatatype())
     {
         std::ostringstream oss;
@@ -56,7 +56,7 @@ namespace CPN {
     QueueBase::~QueueBase() {}
 
     const void *QueueBase::GetRawDequeuePtr(unsigned thresh, unsigned chan) {
-        database->CheckTerminated();
+        context->CheckTerminated();
         AutoLock al(*this);
         if (indequeue) { ASSERT(dequeuethresh >= thresh); }
         else { dequeuethresh = thresh; }
@@ -67,11 +67,11 @@ namespace CPN {
                 return ptr;
             }
             if (readshutdown) { throw BrokenQueueException(readerkey); }
-            if (thresh > MaxThreshold() && database->GrowQueueMaxThreshold()) {
+            if (thresh > MaxThreshold() && context->GrowQueueMaxThreshold()) {
                 //printf("Grow(%u, %u)\n", 2*thresh, thresh);
                 Grow(2*thresh, thresh);
                 Signal();
-            } else if (WriteBlocked() && database->GrowQueueMaxThreshold()) {
+            } else if (WriteBlocked() && context->GrowQueueMaxThreshold()) {
                 Grow(writerequest + thresh, thresh);
                 Signal();
             } else {
@@ -111,7 +111,7 @@ namespace CPN {
     }
 
     void *QueueBase::GetRawEnqueuePtr(unsigned thresh, unsigned chan) {
-        database->CheckTerminated();
+        context->CheckTerminated();
         AutoLock al(*this);
         if (inenqueue) { ASSERT(enqueuethresh >= thresh); }
         else { enqueuethresh = thresh; }
@@ -123,11 +123,11 @@ namespace CPN {
                 return ptr;
             }
             if (readshutdown || writeshutdown) { throw BrokenQueueException(writerkey); }
-            if (thresh > MaxThreshold() && database->GrowQueueMaxThreshold()) {
+            if (thresh > MaxThreshold() && context->GrowQueueMaxThreshold()) {
                 //printf("Grow(%u, %u)\n", 2*thresh, thresh);
                 Grow(2*thresh, thresh);
                 Signal();
-            } else if (!grown && ReadBlocked() && database->GrowQueueMaxThreshold()) {
+            } else if (!grown && ReadBlocked() && context->GrowQueueMaxThreshold()) {
                 Grow(readrequest + thresh, thresh);
                 Signal();
                 grown = true;
@@ -188,7 +188,7 @@ namespace CPN {
     }
 
     bool QueueBase::ReadBlocked() {
-        database->CheckTerminated();
+        context->CheckTerminated();
         return Count() < readrequest && !(readshutdown || writeshutdown);
     }
 
@@ -209,7 +209,7 @@ namespace CPN {
     }
 
     bool QueueBase::WriteBlocked() {
-        database->CheckTerminated();
+        context->CheckTerminated();
         return Freespace() < writerequest && !(readshutdown || writeshutdown);
     }
 
@@ -226,7 +226,7 @@ namespace CPN {
 
     void QueueBase::Detect() {
         AutoLock al(*this);
-        unsigned size = database->CalculateGrowSize(Count(), writerequest);
+        unsigned size = context->CalculateGrowSize(Count(), writerequest);
         logger.Debug("Detect: Grow(%u, %u)", size, writerequest);
         Grow(size, writerequest);
         logger.Debug("New size: (%u, %u)", QueueLength(), MaxThreshold());

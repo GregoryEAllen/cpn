@@ -1,7 +1,7 @@
 
 #include "D4RTest.h"
 #include "D4RTestNodeBase.h"
-#include "Database.h"
+#include "Context.h"
 #include "Kernel.h"
 #include "NodeBase.h"
 #include "NodeFactory.h"
@@ -26,7 +26,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION( D4RTest );
 
 using CPN::NodeBase;
 using CPN::Kernel;
-using CPN::Database;
+using CPN::Context;
 using CPN::OQueue;
 using CPN::IQueue;
 using CPN::shared_ptr;
@@ -158,21 +158,21 @@ void D4RTest::RunTest(int numkernels) {
         CPPUNIT_ASSERT(parse.Done());
 
         Variant conf = parse.Get();
-        database = Database::Local();
+        context = Context::Local();
 #ifdef _DEBUG
-        database->LogLevel(Logger::TRACE);
+        context->LogLevel(Logger::TRACE);
 #else
-        database->LogLevel(Logger::WARNING);
+        context->LogLevel(Logger::WARNING);
 #endif
-        database->UseD4R(true);
+        context->UseD4R(true);
 
-        database->SwallowBrokenQueueExceptions(true);
-        database->GrowQueueMaxThreshold(false);
-        Output(database.get());
-        LogLevel(database->LogLevel());
+        context->SwallowBrokenQueueExceptions(true);
+        context->GrowQueueMaxThreshold(false);
+        Output(context.get());
+        LogLevel(context->LogLevel());
         for (int i = 0; i < numkernels; ++i) {
             kernels.push_back(
-                    new Kernel(KernelAttr(ToString("K %d", i)).SetDatabase(database).SetRemoteEnabled(numkernels > 1))
+                    new Kernel(KernelAttr(ToString("K %d", i)).SetContext(context).SetRemoteEnabled(numkernels > 1))
                     );
         }
 
@@ -183,14 +183,14 @@ void D4RTest::RunTest(int numkernels) {
         } catch (const CPN::ShutdownException &e) {
         }
 
-        database->WaitForAllNodeEnd();
+        context->WaitForAllNodeEnd();
         while (!kernels.empty()) {
             delete kernels.back();
             kernels.pop_back();
         }
         runs++;
         DEBUG("Test %s : %s\n", dir.BaseName().c_str(), success ? "success" : "failure");
-        database.reset();
+        context.reset();
         if (!success) {
             failures++;
             printf("*************** %s Failure! ******************\n", dir.BaseName().c_str());
@@ -213,7 +213,7 @@ void D4RTest::Deadlock(TestNodeBase *tnb) {
         PthreadMutexProtected al(lock);
         successes++;
     }
-    database->Terminate();
+    context->Terminate();
 }
 
 void D4RTest::Failure(TestNodeBase *tnb, const std::string &msg) {
@@ -242,6 +242,6 @@ void D4RTest::CreateQueue(const Variant &queued) {
 }
 
 void D4RTest::Abort() {
-    database->Terminate();
+    context->Terminate();
 }
 

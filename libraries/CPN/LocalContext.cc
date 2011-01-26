@@ -21,7 +21,7 @@
  * \author John Bridgman
  */
 
-#include "LocalDatabase.h"
+#include "LocalContext.h"
 #include "KernelBase.h"
 #include "KernelAttr.h"
 #include "Exceptions.h"
@@ -31,31 +31,31 @@
 
 namespace CPN {
 
-    LocalDatabase::LocalDatabase()
+    LocalContext::LocalContext()
         : loglevel(Logger::WARNING), numlivenodes(0), shutdown(false), counter(0)
     {}
 
-    LocalDatabase::~LocalDatabase() {
+    LocalContext::~LocalContext() {
     }
 
-    void LocalDatabase::Log(int level, const std::string &msg) {
+    void LocalContext::Log(int level, const std::string &msg) {
         PthreadMutexProtected pl(lock);
         if (level >= loglevel) {
             std::cerr << level << ":" << msg << std::endl;
         }
     }
 
-    int LocalDatabase::LogLevel() const {
+    int LocalContext::LogLevel() const {
         PthreadMutexProtected pl(lock);
         return loglevel;
     }
 
-    int LocalDatabase::LogLevel(int level) {
+    int LocalContext::LogLevel(int level) {
         PthreadMutexProtected pl(lock);
         return loglevel = level;
     }
 
-    Key_t LocalDatabase::SetupHost(const std::string &name, const std::string &hostname,
+    Key_t LocalContext::SetupHost(const std::string &name, const std::string &hostname,
             const std::string &servname, KernelBase *kernel) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
@@ -77,7 +77,7 @@ namespace CPN {
         return key;
     }
 
-    Key_t LocalDatabase::SetupHost(const std::string &name, KernelBase *kernel) {
+    Key_t LocalContext::SetupHost(const std::string &name, KernelBase *kernel) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
         if (!kernel) { throw std::invalid_argument("Must have non null Kernel."); }
@@ -97,7 +97,7 @@ namespace CPN {
 
     }
 
-    Key_t LocalDatabase::GetHostKey(const std::string &host) {
+    Key_t LocalContext::GetHostKey(const std::string &host) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
         NameMap::iterator entry = hostnames.find(host);
@@ -107,7 +107,7 @@ namespace CPN {
         return entry->second;
     }
 
-    std::string LocalDatabase::GetHostName(Key_t hostkey) {
+    std::string LocalContext::GetHostName(Key_t hostkey) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
         HostMap::iterator entry = hostmap.find(hostkey);
@@ -117,7 +117,7 @@ namespace CPN {
         return entry->second->name;
     }
 
-    void LocalDatabase::GetHostConnectionInfo(Key_t hostkey, std::string &hostname, std::string &servname) {
+    void LocalContext::GetHostConnectionInfo(Key_t hostkey, std::string &hostname, std::string &servname) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
         HostMap::iterator entry = hostmap.find(hostkey);
@@ -129,7 +129,7 @@ namespace CPN {
         servname = entry->second->servname;
     }
 
-    void LocalDatabase::SignalHostEnd(Key_t hostkey) {
+    void LocalContext::SignalHostEnd(Key_t hostkey) {
         PthreadMutexProtected pl(lock);
         HostMap::iterator entry = hostmap.find(hostkey);
         if (entry == hostmap.end()) {
@@ -139,7 +139,7 @@ namespace CPN {
         hostlivedead.Broadcast();
     }
 
-    Key_t LocalDatabase::WaitForHostStart(const std::string &host) {
+    Key_t LocalContext::WaitForHostStart(const std::string &host) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
         while (true) {
@@ -155,7 +155,7 @@ namespace CPN {
         }
     }
 
-    void LocalDatabase::SignalHostStart(Key_t hostkey) {
+    void LocalContext::SignalHostStart(Key_t hostkey) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
         HostMap::iterator entry = hostmap.find(hostkey);
@@ -166,7 +166,7 @@ namespace CPN {
         hostlivedead.Broadcast();
     }
 
-    void LocalDatabase::SendCreateWriter(Key_t hostkey, const SimpleQueueAttr &attr) {
+    void LocalContext::SendCreateWriter(Key_t hostkey, const SimpleQueueAttr &attr) {
         KernelBase *kernel;
         {
             PthreadMutexProtected pl(lock);
@@ -178,7 +178,7 @@ namespace CPN {
         kernel->RemoteCreateWriter(attr);
     }
 
-    void LocalDatabase::SendCreateReader(Key_t hostkey, const SimpleQueueAttr &attr) {
+    void LocalContext::SendCreateReader(Key_t hostkey, const SimpleQueueAttr &attr) {
         KernelBase *kernel;
         {
             PthreadMutexProtected pl(lock);
@@ -190,7 +190,7 @@ namespace CPN {
         kernel->RemoteCreateReader(attr);
     }
 
-    void LocalDatabase::SendCreateQueue(Key_t hostkey, const SimpleQueueAttr &attr) {
+    void LocalContext::SendCreateQueue(Key_t hostkey, const SimpleQueueAttr &attr) {
         KernelBase *kernel;
         {
             PthreadMutexProtected pl(lock);
@@ -202,7 +202,7 @@ namespace CPN {
         kernel->RemoteCreateQueue(attr);
     }
 
-    void LocalDatabase::SendCreateNode(Key_t hostkey, const NodeAttr &attr) {
+    void LocalContext::SendCreateNode(Key_t hostkey, const NodeAttr &attr) {
         KernelBase *kernel;
         {
             PthreadMutexProtected pl(lock);
@@ -214,7 +214,7 @@ namespace CPN {
         kernel->RemoteCreateNode(attr);
     }
 
-    Key_t LocalDatabase::CreateNodeKey(Key_t hostkey, const std::string &nodename) {
+    Key_t LocalContext::CreateNodeKey(Key_t hostkey, const std::string &nodename) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
         NameMap::iterator nameentry = nodenames.find(nodename);
@@ -234,7 +234,7 @@ namespace CPN {
         return key;
     }
 
-    Key_t LocalDatabase::GetNodeKey(const std::string &nodename) {
+    Key_t LocalContext::GetNodeKey(const std::string &nodename) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
         NameMap::iterator nameentry = nodenames.find(nodename);
@@ -245,7 +245,7 @@ namespace CPN {
         }
     }
 
-    std::string LocalDatabase::GetNodeName(Key_t nodekey) {
+    std::string LocalContext::GetNodeName(Key_t nodekey) {
         PthreadMutexProtected pl(lock);
         NodeMap::iterator entry = nodemap.find(nodekey);
         if (entry == nodemap.end()) {
@@ -254,7 +254,7 @@ namespace CPN {
         return entry->second->name;
     }
 
-    void LocalDatabase::SignalNodeStart(Key_t nodekey) {
+    void LocalContext::SignalNodeStart(Key_t nodekey) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
         NodeMap::iterator entry = nodemap.find(nodekey);
@@ -267,7 +267,7 @@ namespace CPN {
         }
     }
 
-    void LocalDatabase::SignalNodeEnd(Key_t nodekey) {
+    void LocalContext::SignalNodeEnd(Key_t nodekey) {
         PthreadMutexProtected pl(lock);
         NodeMap::iterator entry = nodemap.find(nodekey);
         if (entry == nodemap.end()) {
@@ -279,7 +279,7 @@ namespace CPN {
         }
     }
 
-    Key_t LocalDatabase::WaitForNodeStart(const std::string &nodename) {
+    Key_t LocalContext::WaitForNodeStart(const std::string &nodename) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
         while (true) {
@@ -297,7 +297,7 @@ namespace CPN {
         }
     }
 
-    void LocalDatabase::WaitForNodeEnd(const std::string &nodename) {
+    void LocalContext::WaitForNodeEnd(const std::string &nodename) {
         PthreadMutexProtected pl(lock);
         while (!shutdown) {
             NameMap::iterator nameentry = nodenames.find(nodename);
@@ -314,14 +314,14 @@ namespace CPN {
         }
     }
 
-    void LocalDatabase::WaitForAllNodeEnd() {
+    void LocalContext::WaitForAllNodeEnd() {
         PthreadMutexProtected pl(lock);
         while (numlivenodes > 0 && !shutdown) {
             nodelivedead.Wait(lock);
         }
     }
 
-    Key_t LocalDatabase::GetNodeHost(Key_t nodekey) {
+    Key_t LocalContext::GetNodeHost(Key_t nodekey) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
         NodeMap::iterator entry = nodemap.find(nodekey);
@@ -331,7 +331,7 @@ namespace CPN {
         return entry->second->hostkey;
     }
 
-    Key_t LocalDatabase::GetCreateReaderKey(Key_t nodekey, const std::string &portname) {
+    Key_t LocalContext::GetCreateReaderKey(Key_t nodekey, const std::string &portname) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
         NodeMap::iterator entry = nodemap.find(nodekey);
@@ -353,7 +353,7 @@ namespace CPN {
             return portentry->second;
         }
     }
-    Key_t LocalDatabase::GetReaderNode(Key_t portkey) {
+    Key_t LocalContext::GetReaderNode(Key_t portkey) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
         PortMap::iterator entry = readports.find(portkey);
@@ -363,12 +363,12 @@ namespace CPN {
         return entry->second->nodekey;
     }
 
-    Key_t LocalDatabase::GetReaderHost(Key_t portkey) {
+    Key_t LocalContext::GetReaderHost(Key_t portkey) {
         Key_t nodekey = GetReaderNode(portkey);
         return GetNodeHost(nodekey);
     }
 
-    std::string LocalDatabase::GetReaderName(Key_t portkey) {
+    std::string LocalContext::GetReaderName(Key_t portkey) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
         PortMap::iterator entry = readports.find(portkey);
@@ -378,7 +378,7 @@ namespace CPN {
         return entry->second->name;
     }
 
-    Key_t LocalDatabase::GetCreateWriterKey(Key_t nodekey, const std::string &portname) {
+    Key_t LocalContext::GetCreateWriterKey(Key_t nodekey, const std::string &portname) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
         NodeMap::iterator entry = nodemap.find(nodekey);
@@ -400,7 +400,7 @@ namespace CPN {
             return portentry->second;
         }
     }
-    Key_t LocalDatabase::GetWriterNode(Key_t portkey) {
+    Key_t LocalContext::GetWriterNode(Key_t portkey) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
         PortMap::iterator entry = writeports.find(portkey);
@@ -410,12 +410,12 @@ namespace CPN {
         return entry->second->nodekey;
     }
 
-    Key_t LocalDatabase::GetWriterHost(Key_t portkey) {
+    Key_t LocalContext::GetWriterHost(Key_t portkey) {
         Key_t nodekey = GetWriterNode(portkey);
         return GetNodeHost(nodekey);
     }
 
-    std::string LocalDatabase::GetWriterName(Key_t portkey) {
+    std::string LocalContext::GetWriterName(Key_t portkey) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
         PortMap::iterator entry = writeports.find(portkey);
@@ -425,7 +425,7 @@ namespace CPN {
         return entry->second->name;
     }
 
-    void LocalDatabase::ConnectEndpoints(Key_t writerkey, Key_t readerkey) {
+    void LocalContext::ConnectEndpoints(Key_t writerkey, Key_t readerkey) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
         PortMap::iterator writeentry = writeports.find(writerkey);
@@ -440,7 +440,7 @@ namespace CPN {
         readentry->second->opposingport = writerkey;
     }
 
-    Key_t LocalDatabase::GetReadersWriter(Key_t readerkey) {
+    Key_t LocalContext::GetReadersWriter(Key_t readerkey) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
         PortMap::iterator readentry = readports.find(readerkey);
@@ -450,7 +450,7 @@ namespace CPN {
         return readentry->second->opposingport;
     }
 
-    Key_t LocalDatabase::GetWritersReader(Key_t writerkey) {
+    Key_t LocalContext::GetWritersReader(Key_t writerkey) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
         PortMap::iterator writeentry = writeports.find(writerkey);
@@ -460,7 +460,7 @@ namespace CPN {
         return writeentry->second->opposingport;
     }
 
-    void LocalDatabase::Terminate() {
+    void LocalContext::Terminate() {
         HostMap mapcopy;
         {
             PthreadMutexProtected pl(lock);
@@ -478,12 +478,12 @@ namespace CPN {
         }
 }
 
-    bool LocalDatabase::IsTerminated() {
+    bool LocalContext::IsTerminated() {
         PthreadMutexProtected pl(lock);
         return shutdown;
     }
 
-    void LocalDatabase::InternalCheckTerminated() {
+    void LocalContext::InternalCheckTerminated() {
         if (shutdown) {
             throw ShutdownException();
         }

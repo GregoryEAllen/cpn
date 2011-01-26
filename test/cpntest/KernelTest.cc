@@ -56,7 +56,7 @@ void KernelTest::TestCreateNodes() {
 void KernelTest::SimpleTwoNodeTest() {
     DEBUG("%s\n",__PRETTY_FUNCTION__);
     CPN::Kernel kernel(KernelAttr("test"));
-    kernel.GetDatabase()->UseD4R(false);
+    kernel.GetContext()->UseD4R(false);
     NodeAttr attr("source", MOCKNODE_TYPENAME);
     attr.SetParam(MockNode::GetModeName(MockNode::MODE_SOURCE));
     kernel.CreateNode(attr);
@@ -109,7 +109,7 @@ void KernelTest::AddNoOps(CPN::Kernel &kernel) {
 void KernelTest::TestSync() {
     DEBUG("%s\n",__PRETTY_FUNCTION__);
     CPN::Kernel kernel(KernelAttr("test"));
-    kernel.GetDatabase()->UseD4R(false);
+    kernel.GetContext()->UseD4R(false);
     Variant param;
     param["mode"] = MockSyncNode::MODE_SOURCE;
     param["other"] = "sync2";
@@ -130,7 +130,7 @@ static void DoSyncTest(void (*fun1)(NodeBase*, std::string),
         void (*fun2)(NodeBase*, std::string)) {
 
     CPN::Kernel kernel(KernelAttr("test"));
-    kernel.GetDatabase()->UseD4R(false);
+    kernel.GetContext()->UseD4R(false);
 
     kernel.CreateFunctionNode(SOURCENAME, fun1, SINKNAME);
     kernel.CreateFunctionNode(SINKNAME, fun2, SOURCENAME);

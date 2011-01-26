@@ -12,7 +12,6 @@
 #include <string.h>
 #include <unistd.h>
 
-using CPN::Database;
 using CPN::Kernel;
 using CPN::KernelAttr;
 using CPN::shared_ptr;
@@ -48,11 +47,11 @@ static void PrintHelp(const std::string &progname) {
     cerr << "Usage: " << progname << " [options]\n";
     cerr << "\t-x config  Use config in XML format.\n";
     cerr << "\t-j config  Use config in JSON format.\n";
-    cerr << "\t-d opts    Specify database options (see -dhelp).\n";
+    cerr << "\t-c opts    Specify context options (see -dhelp).\n";
     cerr << "\t-w node    Wait for node then terminate, if not specified waits for the kernel to terminate.\n";
     cerr << "\t-k opts    Comma seperated list of host options.\n";
     cerr << "\t           Valid options are host, port, and name. (eg. -kname=blah,host=localhost,port=1234)\n";
-    cerr << "\t-c         Print out in JSON format the internal configuration after parsing all options\n";
+    cerr << "\t-C         Print out in JSON format the internal configuration after parsing all options\n";
     cerr << "\t-n 'json'  Add or modify a node.\n";
     cerr << "\t-q 'json'  Add or modify a queue.\n";
     cerr << "\t-v         Verify config\n";
@@ -60,25 +59,25 @@ static void PrintHelp(const std::string &progname) {
     cerr << "It is valid to specify multiple configuration files, they will be merged.\n";
 }
 
-static void PrintDatabaseHelp(Variant &config) {
-    Variant &v = config["database"];
+static void PrintContextHelp(Variant &config) {
+    Variant &v = config["context"];
     using std::cerr;
     cerr << "The -d options takes a comma seperated list.\n";
     cerr << "The recognized set of values are:\n"
          << "\t [no-]d4r    Turn on or off D4R. (currently: " << (v["d4r"].AsBool() ? "on" : "off") << ")\n"
          << "\t [no-]gqmt   Turn on or off growing of queues when they request larger max threshold. (currently: " << (v["grow-queue-max-threshold"].AsBool() ? "on" : "off") << ")\n"
          << "\t [no-]sbqe   Turn on or off sollowing of broken queue exceptions. (currently: " << (v["swallow-broken-queue-exceptions"].AsBool() ? "on" : "off") << ")\n"
-         << "\t host=xxx    Use a remote database located at xxx, else use local.\n"
-         << "\t port=xxx    Specify the port for the remote database.\n"
+         << "\t host=xxx    Use a remote context located at xxx, else use local.\n"
+         << "\t port=xxx    Specify the port for the remote context.\n"
          << "\t lib=file    Load file as a shared object to be searched for nodes. May be set multiple times.\n"
          << "\t list=file   Add file to the list of lists for looking up where to load nodes from.\n"
          << "\t help        This message.\n";
 
 }
 
-static bool ParseDatabaseSubOpts(VariantCPNLoader &loader) {
+static bool ParseContextSubOpts(VariantCPNLoader &loader) {
     enum { opd4r, opnd4r, opgqmt, opngqmt, opsbqe, opnsbqe, oplib, ophost, opport, ophelp, oplist, opend };
-    char *opts[opend + 1];
+    const char *opts[opend + 1];
     opts[opd4r] = "d4r";
     opts[opnd4r] = "no-d4r";
     opts[opgqmt] = "gqmt";
@@ -94,7 +93,7 @@ static bool ParseDatabaseSubOpts(VariantCPNLoader &loader) {
     char *subopt = optarg;
     char *valuep = 0;
     while (*subopt != '\0') {
-        switch (getsubopt(&subopt, opts, &valuep)) {
+        switch (getsubopt(&subopt, (char * const *)opts, &valuep)) {
         case opd4r: // d4r
             loader.UseD4R(true);
             break;
@@ -132,14 +131,14 @@ static bool ParseDatabaseSubOpts(VariantCPNLoader &loader) {
                 std::cerr << "The " << opts[ophost] << " options requires a parameter\n";
                 return false;
             }
-            loader.DatabaseHost(valuep);
+            loader.ContextHost(valuep);
             break;
         case opport:
             if (valuep == 0) {
                 std::cerr << "The " << opts[opport] << " options requires a parameter\n";
                 return false;
             }
-            loader.DatabasePort(valuep);
+            loader.ContextPort(valuep);
             break;
         case ophelp:
         default:
@@ -151,11 +150,11 @@ static bool ParseDatabaseSubOpts(VariantCPNLoader &loader) {
 
 static bool ParseKernelSubOpts(Variant &config) {
     Variant &v = config;
-    static char *const opts[] = {"name", "host", "port", 0};
+    static const char *const opts[] = {"name", "host", "port", 0};
     char *subopt = optarg;
     char *valuep = 0;
     while (*subopt != '\0') {
-        int i = getsubopt(&subopt, opts, &valuep);
+        int i = getsubopt(&subopt, (char * const *)opts, &valuep);
         if (i < 0) return false;
         if (valuep == 0) {
             std::cerr << "The kernel option " << opts[i] << " requires a parameter.\n";
@@ -170,20 +169,20 @@ int main(int argc, char **argv) __attribute__((weak));
 int main(int argc, char **argv) {
     Variant config;
     config["name"] = *argv;
-    config["database"]["d4r"] = false;
-    config["database"]["grow-queue-max-threshold"] = true;
-    config["database"]["swallow-broken-queue-exceptions"] = false;
+    config["context"]["d4r"] = false;
+    config["context"]["grow-queue-max-threshold"] = true;
+    config["context"]["swallow-broken-queue-exceptions"] = false;
     std::string defaultlist = RealPath("node.list");
     if (!defaultlist.empty()) {
-        config["database"]["liblist"].Append(defaultlist);
+        config["context"]["liblist"].Append(defaultlist);
     }
     VariantCPNLoader loader(config);
     bool output_config = false;
     bool print_help = false;
-    bool print_db_help = false;
+    bool print_ctx_help = false;
     bool validate = false;
     while (true) {
-        int c = getopt(argc, argv, "x:j:hw:d:k:cn:q:v");
+        int c = getopt(argc, argv, "x:j:hw:c:k:Cn:q:v");
         if (c == -1) break;
         switch (c) {
         case 'x':
@@ -195,9 +194,9 @@ int main(int argc, char **argv) {
         case 'w':
             config["wait-node"] = optarg;
             break;
-        case 'd':
-            if (!ParseDatabaseSubOpts(loader)) {
-                print_db_help = true;
+        case 'c':
+            if (!ParseContextSubOpts(loader)) {
+                print_ctx_help = true;
             }
             break;
         case 'k':
@@ -211,7 +210,7 @@ int main(int argc, char **argv) {
         case 'q':
             loader.AddQueue(VariantFromJSON(optarg));
             break;
-        case 'c':
+        case 'C':
             output_config = true;
             break;
         case 'v':
@@ -228,8 +227,8 @@ int main(int argc, char **argv) {
     if (print_help) {
         PrintHelp(*argv);
     }
-    if (print_db_help) {
-        PrintDatabaseHelp(config);
+    if (print_ctx_help) {
+        PrintContextHelp(config);
     }
     if (output_config) {
         std::cout << PrettyJSON(config) << std::endl;
@@ -241,7 +240,7 @@ int main(int argc, char **argv) {
             return 1;
         }
     }
-    if (print_help || print_db_help || output_config) {
+    if (print_help || print_ctx_help || output_config) {
         return 0;
     }
     // Load the kernel attr

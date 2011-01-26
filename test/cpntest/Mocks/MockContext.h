@@ -1,12 +1,12 @@
 
-#ifndef MOCKDATABASE_H
-#define MOCKDATABASE_H
+#ifndef MOCKCONTEXT_H
+#define MOCKCONTEXT_H
 
-#include "Database.h"
-class MockDatabase : public CPN::Database {
+#include "Context.h"
+class MockContext : public CPN::Context {
 public:
-    MockDatabase();
-    virtual ~MockDatabase();
+    MockContext();
+    virtual ~MockContext();
     virtual int LogLevel() const { return 0; }
     virtual int LogLevel(int level) { return level; }
     virtual void Log(int level, const std::string &msg) {}

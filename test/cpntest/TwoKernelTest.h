@@ -41,6 +41,6 @@ private:
         bool swap);
     CPN::Kernel *kone;
     CPN::Kernel *ktwo;
-    CPN::shared_ptr<CPN::Database> database;
+    CPN::shared_ptr<CPN::Context> context;
 };
 #endif

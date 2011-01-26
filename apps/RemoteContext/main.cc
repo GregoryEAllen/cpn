@@ -1,5 +1,5 @@
 
-#include "RemoteDatabaseDaemon.h"
+#include "RemoteContextDaemon.h"
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,7 +10,7 @@ const char* const VALID_OPTS = "hdl:";
 const char* const HELP_OPTS = "Usage: %s [-h|-d] [-l loglevel ] <address> <port>\n"
 "\t-h\t This message.\n"
 "\t-d\t Go into background\n"
-"\t-l\t Level of output 0 for errors only, 1 for log, 2 for database status, etc. (default: 1)\n"
+"\t-l\t Level of output 0 for errors only, 1 for log, 2 for context status, etc. (default: 1)\n"
 ;
 
 int main (int argc, char **argv) __attribute__((weak));
@@ -50,9 +50,9 @@ int main(int argc, char **argv) {
         return 1;
     }
     SockAddrList addrlist = SocketAddress::CreateIP(argv[optind], argv[optind+1]);
-    RemoteDatabaseDaemon rdd(addrlist);
-    rdd.DebugLevel(loglevel);
-    rdd.Run();
+    RemoteContextDaemon rcd(addrlist);
+    rcd.DebugLevel(loglevel);
+    rcd.Run();
     return 0;
 }
 

@@ -43,15 +43,15 @@ public:
     void KernelHost(const std::string &host);
     void KernelPort(const std::string &port);
 
-    // Database functions
+    // Context functions
     void UseD4R(bool value);
     void GrowQueueMaxThreshold(bool value);
     void SwallowBrokenQueueExceptions(bool value);
     void LogLevel(int i);
     void AddLib(const std::string &filename);
     void AddLibList(const std::string &filename);
-    void DatabaseHost(const std::string &host);
-    void DatabasePort(const std::string &port);
+    void ContextHost(const std::string &host);
+    void ContextPort(const std::string &port);
 
     void AddNode(Variant v);
     void AddQueue(Variant v);
@@ -62,7 +62,7 @@ public:
     CPN::KernelAttr GetKernelAttr() { return GetKernelAttr(config); }
     void Setup(CPN::Kernel *kernel) { Setup(kernel, config); }
 
-    static CPN::shared_ptr<CPN::Database> LoadDatabase(Variant v);
+    static CPN::shared_ptr<CPN::Context> LoadContext(Variant v);
     static CPN::KernelAttr GetKernelAttr(Variant args);
 
     static void Setup(CPN::Kernel *kernel, Variant args);

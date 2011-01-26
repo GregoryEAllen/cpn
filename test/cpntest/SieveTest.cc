@@ -6,7 +6,7 @@
 #include "NodeAttr.h"
 #include "OQueue.h"
 #include "IQueue.h"
-#include "Database.h"
+#include "Context.h"
 #include "ToString.h"
 #include "Variant.h"
 #include "VariantToJSON.h"
@@ -215,7 +215,7 @@ void SieveTest::tearDown(void) {
 void SieveTest::RunTest(void) {
     DEBUG("%s\n",__PRETTY_FUNCTION__);
     CPN::Kernel kernel(CPN::KernelAttr("Testing"));
-    kernel.GetDatabase()->UseD4R(false);
+    kernel.GetContext()->UseD4R(false);
     std::vector<SieveNumber> result(NUMPRIMES);
 
     CPN::NodeAttr nattr("TheProducer", "SieveProducerNode");
@@ -259,11 +259,11 @@ void SieveTest::RunTest(void) {
 void SieveTest::RunTwoKernelTest() {
     DEBUG("%s\n",__PRETTY_FUNCTION__);
     std::vector<SieveNumber> result(NUMPRIMES);
-    CPN::shared_ptr<CPN::Database> database = CPN::Database::Local();
-    database->LogLevel(Logger::WARNING);
-    database->UseD4R(false);
-    CPN::Kernel kone(CPN::KernelAttr("one").SetDatabase(database).SetRemoteEnabled(true));
-    CPN::Kernel ktwo(CPN::KernelAttr("two").SetDatabase(database).SetRemoteEnabled(true));
+    CPN::shared_ptr<CPN::Context> context = CPN::Context::Local();
+    context->LogLevel(Logger::WARNING);
+    context->UseD4R(false);
+    CPN::Kernel kone(CPN::KernelAttr("one").SetContext(context).SetRemoteEnabled(true));
+    CPN::Kernel ktwo(CPN::KernelAttr("two").SetContext(context).SetRemoteEnabled(true));
     Variant hosts;
     hosts.Append("one");
     hosts.Append("two");

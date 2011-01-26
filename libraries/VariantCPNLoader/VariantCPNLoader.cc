@@ -22,12 +22,12 @@
  */
 #include "VariantCPNLoader.h"
 #include "VariantToJSON.h"
-#include "RemoteDatabase.h"
+#include "RemoteContext.h"
 #include <set>
 #include <map>
 
 using CPN::shared_ptr;
-using CPN::Database;
+using CPN::Context;
 using std::string;
 using std::set;
 using std::pair;
@@ -39,44 +39,44 @@ VariantCPNLoader::VariantCPNLoader(Variant conf) : config(conf) { }
 VariantCPNLoader::~VariantCPNLoader() { } 
 
 void VariantCPNLoader::UseD4R(bool value) {
-    config["database"]["d4r"] = value;
+    config["context"]["d4r"] = value;
 }
 
 void VariantCPNLoader::GrowQueueMaxThreshold(bool value) {
-    config["database"]["grow-queue-max-threshold"] = value;
+    config["context"]["grow-queue-max-threshold"] = value;
 }
 
 void VariantCPNLoader::SwallowBrokenQueueExceptions(bool value) {
-    config["database"]["swallow-broken-queue-exceptions"] = value;
+    config["context"]["swallow-broken-queue-exceptions"] = value;
 }
 
 void VariantCPNLoader::AddLib(const std::string &filename) {
-    config["database"]["libs"].Append(filename);
+    config["context"]["libs"].Append(filename);
 }
 
 void VariantCPNLoader::AddLibList(const std::string &filename) {
-    config["database"]["liblist"].Append(filename);
+    config["context"]["liblist"].Append(filename);
 }
 
-void VariantCPNLoader::DatabaseHost(const std::string &host) {
-    config["database"]["host"] = host;
+void VariantCPNLoader::ContextHost(const std::string &host) {
+    config["context"]["host"] = host;
 }
 
-void VariantCPNLoader::DatabasePort(const std::string &port) {
-    config["database"]["port"] = port;
+void VariantCPNLoader::ContextPort(const std::string &port) {
+    config["context"]["port"] = port;
 }
 
 void VariantCPNLoader::LogLevel(int i) {
-    config["database"]["loglevel"] = i;
+    config["context"]["loglevel"] = i;
 }
 
 void VariantCPNLoader::MergeConfig(Variant v) {
     Variant::MapIterator topitr = v.MapBegin(), topend = v.MapEnd();
     for (;topitr != topend; ++topitr) {
-        if (topitr->first == "database") {
-            Variant::MapIterator mitr = v["database"].MapBegin(), mend = v["database"].MapEnd();
+        if (topitr->first == "context") {
+            Variant::MapIterator mitr = v["context"].MapBegin(), mend = v["context"].MapEnd();
             for (;mitr != mend; ++mitr) {
-                config["database"][mitr->first] = mitr->second;
+                config["context"][mitr->first] = mitr->second;
             }
         } else if (topitr->first == "nodes") {
             Variant::ListIterator litr = v["nodes"].ListBegin(), lend = v["nodes"].ListEnd();
@@ -148,45 +148,45 @@ void VariantCPNLoader::AddNodeMapping(const std::string &noden, const std::strin
     nodemap[noden] = kernn;
 }
 
-shared_ptr<Database> VariantCPNLoader::LoadDatabase(Variant v) {
-    shared_ptr<Database> database;
+shared_ptr<Context> VariantCPNLoader::LoadContext(Variant v) {
+    shared_ptr<Context> context;
     if (v.IsNull()) {
-        database = Database::Local();
+        context = Context::Local();
     } else {
         if (v["host"].IsNull() && v["port"].IsNull()) {
-            database = Database::Local();
+            context = Context::Local();
         } else {
             SockAddrList addrs = SocketAddress::CreateIP(
                     v["host"].AsString(),
                     v["port"].AsString()
                     );
-            shared_ptr<RemoteDatabase> db = shared_ptr<RemoteDatabase>(new RemoteDatabase(addrs));
-            database = db;
+            shared_ptr<RemoteContext> ctx = shared_ptr<RemoteContext>(new RemoteContext(addrs));
+            context = ctx;
         }
         if (!v["d4r"].IsNull()) {
-            database->UseD4R(v["d4r"].AsBool());
+            context->UseD4R(v["d4r"].AsBool());
         }
         if (!v["swallow-broken-queue-exceptions"].IsNull()) {
-            database->SwallowBrokenQueueExceptions(v["swallow-broken-queue-exceptions"].AsBool());
+            context->SwallowBrokenQueueExceptions(v["swallow-broken-queue-exceptions"].AsBool());
         }
         if (!v["grow-queue-max-threshold"].IsNull()) {
-            database->GrowQueueMaxThreshold(v["grow-queue-max-threshold"].AsBool());
+            context->GrowQueueMaxThreshold(v["grow-queue-max-threshold"].AsBool());
         }
         if (v["libs"].IsArray()) {
             for (Variant::ListIterator itr = v["libs"].ListBegin(); itr != v["libs"].ListEnd(); ++itr) {
-                database->LoadSharedLib(itr->AsString());
+                context->LoadSharedLib(itr->AsString());
             }
         }
         if (v["liblist"].IsArray()) {
             for (Variant::ListIterator itr = v["liblist"].ListBegin(); itr != v["liblist"].ListEnd(); ++itr) {
-                database->LoadNodeList(itr->AsString());
+                context->LoadNodeList(itr->AsString());
             }
         }
         if (!v["loglevel"].IsNull()) {
-            database->LogLevel(v["loglevel"].AsInt());
+            context->LogLevel(v["loglevel"].AsInt());
         }
     }
-    return database;
+    return context;
 }
 
 void VariantCPNLoader::KernelName(const std::string &name) {
@@ -203,8 +203,8 @@ void VariantCPNLoader::KernelPort(const std::string &port) {
 
 CPN::KernelAttr VariantCPNLoader::GetKernelAttr(Variant args) {
     CPN::KernelAttr attr(args["name"].AsString());
-    if (!args["database"].IsNull()) {
-        attr.SetDatabase(LoadDatabase(args["database"]));
+    if (!args["context"].IsNull()) {
+        attr.SetContext(LoadContext(args["context"]));
     }
     if (!args["host"].IsNull()) {
         attr.SetHostName(args["host"].AsString());

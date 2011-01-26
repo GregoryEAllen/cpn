@@ -2,7 +2,7 @@
 #include "TwoKernelTest.h"
 #include <cppunit/TestAssert.h>
 #include "Kernel.h"
-#include "Database.h"
+#include "Context.h"
 #include "FunctionNode.h"
 #include "MockNodeFactory.h"
 #include "MockNode.h"
@@ -11,7 +11,7 @@
 #include "VariantToJSON.h"
 #include <string.h>
 
-using CPN::Database;
+using CPN::Context;
 using CPN::Kernel;
 using CPN::KernelAttr;
 using CPN::shared_ptr;
@@ -28,19 +28,19 @@ using CPN::QueueAttr;
 CPPUNIT_TEST_SUITE_REGISTRATION( TwoKernelTest );
 
 void TwoKernelTest::setUp() {
-    database = Database::Local();
+    context = Context::Local();
 #ifdef _DEBUG
-    database->LogLevel(Logger::TRACE);
+    context->LogLevel(Logger::TRACE);
 #else
-    database->LogLevel(Logger::WARNING);
+    context->LogLevel(Logger::WARNING);
 #endif
-    database->UseD4R(false);
-    database->SwallowBrokenQueueExceptions(true);
+    context->UseD4R(false);
+    context->SwallowBrokenQueueExceptions(true);
     KernelAttr kattrone("one");
-    kattrone.SetDatabase(database);
+    kattrone.SetContext(context);
     kattrone.SetRemoteEnabled(true);
     KernelAttr kattrtwo("two");
-    kattrtwo.SetDatabase(database);
+    kattrtwo.SetContext(context);
     kattrtwo.SetRemoteEnabled(true);
     kone = new Kernel(kattrone);
     ktwo = new Kernel(kattrtwo);
@@ -51,7 +51,7 @@ void TwoKernelTest::tearDown() {
     kone = 0;
     delete ktwo;
     ktwo = 0;
-    database.reset();
+    context.reset();
 }
 
 

@@ -90,7 +90,7 @@ namespace CPN {
     class PseudoNode;
     class NodeFactory;
 
-    class Database;
+    class Context;
 
     class RemoteQueue;
     class ConnectionServer;

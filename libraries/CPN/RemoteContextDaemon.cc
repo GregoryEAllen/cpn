@@ -21,7 +21,7 @@
  * \author John Bridgman
  */
 
-#include "RemoteDatabaseDaemon.h"
+#include "RemoteContextDaemon.h"
 #include "Assert.h"
 #include "ErrnoException.h"
 #include "VariantToJSON.h"
@@ -29,21 +29,21 @@
 
 using std::auto_ptr;
 
-RemoteDatabaseDaemon::RemoteDatabaseDaemon(const SocketAddress &addr)
+RemoteContextDaemon::RemoteContextDaemon(const SocketAddress &addr)
 {
     Listen(addr);
     SetReuseAddr();
 }
 
-RemoteDatabaseDaemon::RemoteDatabaseDaemon(const SockAddrList &addrs)
+RemoteContextDaemon::RemoteContextDaemon(const SockAddrList &addrs)
 {
     Listen(addrs);
     SetReuseAddr();
 }
-RemoteDatabaseDaemon::~RemoteDatabaseDaemon() {
+RemoteContextDaemon::~RemoteContextDaemon() {
 }
 
-void RemoteDatabaseDaemon::Run() {
+void RemoteContextDaemon::Run() {
     Readable(false);
     SocketAddress addr;
     addr.SetFromSockName(FD());
@@ -79,9 +79,9 @@ void RemoteDatabaseDaemon::Run() {
     }
 }
 
-void RemoteDatabaseDaemon::Terminate() {
+void RemoteContextDaemon::Terminate() {
     if (IsTerminated()) return;
-    CPN::RemoteDBServer::Terminate();
+    CPN::RemoteContextServer::Terminate();
     Close();
     ClientMap::iterator itr = clients.begin();
     while (itr != clients.end()) {
@@ -97,12 +97,12 @@ void RemoteDatabaseDaemon::Terminate() {
     }
 }
 
-void RemoteDatabaseDaemon::Terminate(const std::string &name) {
+void RemoteContextDaemon::Terminate(const std::string &name) {
     dbprintf(1, "Terminating %s\n", name.c_str());
     clients[name]->Close();
 }
 
-void RemoteDatabaseDaemon::Read() {
+void RemoteContextDaemon::Read() {
     int nfd = Accept();
     if (nfd >= 0) {
         ClientPtr conn = ClientPtr(new Client(this, nfd));
@@ -111,7 +111,7 @@ void RemoteDatabaseDaemon::Read() {
     }
 }
 
-void RemoteDatabaseDaemon::SendMessage(const std::string &recipient, const Variant &msg) {
+void RemoteContextDaemon::SendMessage(const std::string &recipient, const Variant &msg) {
     if (IsTerminated()) {
         dbprintf(1, "Trying to send a reply after shutdown\n%s:%s",
                 recipient.c_str(), VariantToJSON(msg).c_str());
@@ -123,7 +123,7 @@ void RemoteDatabaseDaemon::SendMessage(const std::string &recipient, const Varia
     entry->second->Send(msg);
 }
 
-void RemoteDatabaseDaemon::BroadcastMessage(const Variant &msg) {
+void RemoteContextDaemon::BroadcastMessage(const Variant &msg) {
     if (IsTerminated()) {
         dbprintf(1, "Trying to braodcast after shutdown\n%s", VariantToJSON(msg).c_str());
         return;
@@ -136,11 +136,11 @@ void RemoteDatabaseDaemon::BroadcastMessage(const Variant &msg) {
     }
 }
 
-void RemoteDatabaseDaemon::LogMessage(const std::string &msg) {
+void RemoteContextDaemon::LogMessage(const std::string &msg) {
     dbprintf(1, "log:%s\n", msg.c_str());
 }
 
-RemoteDatabaseDaemon::Client::Client(RemoteDatabaseDaemon *d, int nfd)
+RemoteContextDaemon::Client::Client(RemoteContextDaemon *d, int nfd)
     : SocketHandle(nfd), daemon(d)
 {
     Readable(false);
@@ -151,7 +151,7 @@ RemoteDatabaseDaemon::Client::Client(RemoteDatabaseDaemon *d, int nfd)
     d->dbprintf(1, "New connection from %s\n", name.c_str());
 }
 
-void RemoteDatabaseDaemon::Client::Read() {
+void RemoteContextDaemon::Client::Read() {
     const unsigned BUF_SIZE = 4*1024;
     char buf[BUF_SIZE];
     try {
@@ -180,7 +180,7 @@ void RemoteDatabaseDaemon::Client::Read() {
     }
 }
 
-void RemoteDatabaseDaemon::Client::Send(const Variant &msg) {
+void RemoteContextDaemon::Client::Send(const Variant &msg) {
     if (Closed()) {
         return;
     }

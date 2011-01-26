@@ -21,8 +21,8 @@
  * \author John Bridgman
  */
 
-#include "RemoteDBServer.h"
-#include "RDBMT.h"
+#include "RemoteContextServer.h"
+#include "RCTXMT.h"
 #include "Assert.h"
 #include "VariantToJSON.h"
 #include <stdio.h>
@@ -30,15 +30,15 @@
 
 namespace CPN {
 
-    RemoteDBServer::RemoteDBServer()
+    RemoteContextServer::RemoteContextServer()
         : debuglevel(0), shutdown(false), numlivenodes(0), keycount(0)
     {
     }
 
-    RemoteDBServer::~RemoteDBServer() {
+    RemoteContextServer::~RemoteContextServer() {
     }
 
-    void RemoteDBServer::dbprintf(int level, const char *fmt, ...) {
+    void RemoteContextServer::dbprintf(int level, const char *fmt, ...) {
         if (debuglevel >= level) {
             va_list ap;
             va_start(ap, fmt);
@@ -47,65 +47,65 @@ namespace CPN {
         }
     }
 
-    void RemoteDBServer::DispatchMessage(const std::string &sender, const Variant &msg) {
+    void RemoteContextServer::DispatchMessage(const std::string &sender, const Variant &msg) {
         dbprintf(4, "msg:%s:%s\n", sender.c_str(), VariantToJSON(msg).c_str());
         if (IsTerminated()) {
             return;
         }
-        RDBMT_t type = msg["type"].AsNumber<RDBMT_t>();
+        RCTXMT_t type = msg["type"].AsNumber<RCTXMT_t>();
         switch (type) {
-        case RDBMT_SETUP_HOST:
+        case RCTXMT_SETUP_HOST:
             SetupHost(sender, msg);
             break;
-        case RDBMT_SIGNAL_HOST_START:
+        case RCTXMT_SIGNAL_HOST_START:
             SignalHostStart(msg);
             break;
-        case RDBMT_SIGNAL_HOST_END:
+        case RCTXMT_SIGNAL_HOST_END:
             SignalHostEnd(msg);
             break;
-        case RDBMT_GET_HOST_INFO:
+        case RCTXMT_GET_HOST_INFO:
             GetHostInfo(sender, msg);
             break;
-        case RDBMT_CREATE_WRITER:
-        case RDBMT_CREATE_READER:
-        case RDBMT_CREATE_QUEUE:
-        case RDBMT_CREATE_NODE:
+        case RCTXMT_CREATE_WRITER:
+        case RCTXMT_CREATE_READER:
+        case RCTXMT_CREATE_QUEUE:
+        case RCTXMT_CREATE_NODE:
             RouteKernelMessage(msg);
             break;
-        case RDBMT_CREATE_NODE_KEY:
+        case RCTXMT_CREATE_NODE_KEY:
             CreateNodeKey(sender, msg);
             break;
-        case RDBMT_SIGNAL_NODE_START:
+        case RCTXMT_SIGNAL_NODE_START:
             SignalNodeStart(msg);
             break;
-        case RDBMT_SIGNAL_NODE_END:
+        case RCTXMT_SIGNAL_NODE_END:
             SignalNodeEnd(msg);
             break;
-        case RDBMT_GET_NODE_INFO:
+        case RCTXMT_GET_NODE_INFO:
             GetNodeInfo(sender, msg);
             break;
-        case RDBMT_GET_NUM_NODE_LIVE:
+        case RCTXMT_GET_NUM_NODE_LIVE:
             GetNumNodeLive(sender, msg);
             break;
-        case RDBMT_GET_CREATE_READER_KEY:
+        case RCTXMT_GET_CREATE_READER_KEY:
             GetCreateEndpointKey(sender, msg);
             break;
-        case RDBMT_GET_READER_INFO:
+        case RCTXMT_GET_READER_INFO:
             GetEndpointInfo(sender, msg);
             break;
-        case RDBMT_GET_CREATE_WRITER_KEY:
+        case RCTXMT_GET_CREATE_WRITER_KEY:
             GetCreateEndpointKey(sender, msg);
             break;
-        case RDBMT_GET_WRITER_INFO:
+        case RCTXMT_GET_WRITER_INFO:
             GetEndpointInfo(sender, msg);
             break;
-        case RDBMT_CONNECT_ENDPOINTS:
+        case RCTXMT_CONNECT_ENDPOINTS:
             ConnectEndpoints(msg);
             break;
-        case RDBMT_TERMINATE:
+        case RCTXMT_TERMINATE:
             Terminate();
             break;
-        case RDBMT_LOG:
+        case RCTXMT_LOG:
             LogMessage(sender + ":" + msg["msg"].AsString());
             break;
         default:
@@ -113,14 +113,14 @@ namespace CPN {
         }
     }
 
-    void RemoteDBServer::Terminate() {
+    void RemoteContextServer::Terminate() {
         Variant msg(Variant::ObjectType);
-        msg["type"] = RDBMT_TERMINATE;
+        msg["type"] = RCTXMT_TERMINATE;
         BroadcastMessage(msg);
         shutdown = true;
     }
 
-    void RemoteDBServer::SetupHost(const std::string &sender, const Variant &msg) {
+    void RemoteContextServer::SetupHost(const std::string &sender, const Variant &msg) {
         std::string name = msg["name"].AsString();
         Variant reply(Variant::ObjectType);
         reply["msgid"] = msg["msgid"];
@@ -147,7 +147,7 @@ namespace CPN {
         SendMessage(sender, reply);
     }
 
-    void RemoteDBServer::SignalHostStart(const Variant &msg) {
+    void RemoteContextServer::SignalHostStart(const Variant &msg) {
         Key_t hostkey = msg["key"].AsNumber<Key_t>();
         Variant hostinfo = datamap[hostkey];
         ASSERT(hostinfo["type"].AsString() == "hostinfo");
@@ -158,7 +158,7 @@ namespace CPN {
         BroadcastMessage(notice);
     }
 
-    void RemoteDBServer::SignalHostEnd(const Variant &msg) {
+    void RemoteContextServer::SignalHostEnd(const Variant &msg) {
         Key_t hostkey = msg["key"].AsNumber<Key_t>();
         Variant hostinfo = datamap[hostkey];
         ASSERT(hostinfo["type"].AsString() == "hostinfo");
@@ -169,7 +169,7 @@ namespace CPN {
         BroadcastMessage(notice);
     }
 
-    void RemoteDBServer::GetHostInfo(const std::string &sender, const Variant &msg) {
+    void RemoteContextServer::GetHostInfo(const std::string &sender, const Variant &msg) {
         Key_t hostkey;
         Variant reply(Variant::ObjectType);
         reply["msgtype"] = "reply";
@@ -194,7 +194,7 @@ namespace CPN {
         SendMessage(sender, reply);
     }
 
-    void RemoteDBServer::CreateNodeKey(const std::string &sender, const Variant &msg) {
+    void RemoteContextServer::CreateNodeKey(const std::string &sender, const Variant &msg) {
         std::string nodename = msg["name"].AsString();
         Variant reply(Variant::ObjectType);
         reply["msgid"] = msg["msgid"];
@@ -220,7 +220,7 @@ namespace CPN {
         SendMessage(sender, reply);
     }
 
-    void RemoteDBServer::SignalNodeStart(const Variant &msg) {
+    void RemoteContextServer::SignalNodeStart(const Variant &msg) {
         ++numlivenodes;
         Key_t nodekey = msg["key"].AsNumber<Key_t>();
         Variant nodeinfo = datamap[nodekey];
@@ -232,7 +232,7 @@ namespace CPN {
         BroadcastMessage(notice);
     }
 
-    void RemoteDBServer::SignalNodeEnd(const Variant &msg) {
+    void RemoteContextServer::SignalNodeEnd(const Variant &msg) {
         --numlivenodes;
         Key_t nodekey = msg["key"].AsNumber<Key_t>();
         Variant nodeinfo = datamap[nodekey];
@@ -244,7 +244,7 @@ namespace CPN {
         BroadcastMessage(notice);
     }
 
-    void RemoteDBServer::GetNodeInfo(const std::string &sender, const Variant &msg) {
+    void RemoteContextServer::GetNodeInfo(const std::string &sender, const Variant &msg) {
         Key_t nodekey;
         Variant reply(Variant::ObjectType);
         reply["msgtype"] = "reply";
@@ -269,7 +269,7 @@ namespace CPN {
         SendMessage(sender, reply);
     }
 
-    void RemoteDBServer::GetNumNodeLive(const std::string &sender, const Variant &msg) {
+    void RemoteContextServer::GetNumNodeLive(const std::string &sender, const Variant &msg) {
         Variant reply(Variant::ObjectType);
         reply["msgid"] = msg["msgid"];
         reply["msgtype"] = "reply";
@@ -278,7 +278,7 @@ namespace CPN {
         SendMessage(sender, reply);
     }
 
-    void RemoteDBServer::GetCreateEndpointKey(const std::string &sender, const Variant &msg) {
+    void RemoteContextServer::GetCreateEndpointKey(const std::string &sender, const Variant &msg) {
         std::string name = msg["name"].AsString();
         Variant reply;
         reply["msgid"] = msg["msgid"];
@@ -312,7 +312,7 @@ namespace CPN {
         SendMessage(sender, reply);
     }
 
-    void RemoteDBServer::GetEndpointInfo(const std::string &sender, const Variant &msg) {
+    void RemoteContextServer::GetEndpointInfo(const std::string &sender, const Variant &msg) {
         Key_t epkey = msg["key"].AsNumber<Key_t>();
         Variant reply;
         reply["msgid"] = msg["msgid"];
@@ -328,25 +328,25 @@ namespace CPN {
 
     }
 
-    void RemoteDBServer::ConnectEndpoints(const Variant &msg) {
+    void RemoteContextServer::ConnectEndpoints(const Variant &msg) {
         Key_t wkey = msg["writerkey"].AsNumber<Key_t>();
         Key_t rkey = msg["readerkey"].AsNumber<Key_t>();
         datamap[wkey]["readerkey"] = rkey;
         datamap[rkey]["writerkey"] = wkey;
     }
 
-    Key_t RemoteDBServer::NewKey() {
+    Key_t RemoteContextServer::NewKey() {
         // 0 is reserved
         return ++keycount;
     }
 
-    void RemoteDBServer::RouteKernelMessage(const Variant &msg) {
+    void RemoteContextServer::RouteKernelMessage(const Variant &msg) {
         Key_t hostkey = msg["hostkey"].AsNumber<Key_t>();
         Variant hostinfo = datamap[hostkey];
         SendMessage(hostinfo["client"].AsString(), msg);
     }
 
-    Variant RemoteDBServer::NewBroadcastMessage() {
+    Variant RemoteContextServer::NewBroadcastMessage() {
         Variant msg;
         msg["msgtype"] = "broadcast";
         msg["numlivenodes"] = numlivenodes;

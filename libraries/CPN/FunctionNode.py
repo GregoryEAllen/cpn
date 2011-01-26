@@ -92,9 +92,9 @@ for i in range(maxparam):
         Sync::AutoReentrantLock arlock(lock);
         Key_t ourkey = hostkey;
         arlock.Unlock();
-        Key_t nodekey = database->CreateNodeKey(ourkey, nodename);
+        Key_t nodekey = context->CreateNodeKey(ourkey, nodename);
         NodeAttr attr(nodename, "FunctionNode%(num)d");
-        attr.SetKey(nodekey).SetHostKey(ourkey).SetDatabase(database);
+        attr.SetKey(nodekey).SetHostKey(ourkey);
         arlock.Lock();
         shared_ptr<NodeBase> node;
         node.reset(new FunctionNode%(num)d<Function"""%{'num':i})

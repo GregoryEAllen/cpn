@@ -3,7 +3,7 @@
 #include <cppunit/TestAssert.h>
 #include "QueueAttr.h"
 #include "ConnectionServer.h"
-#include "Database.h"
+#include "Context.h"
 #include "RemoteQueue.h"
 #include "PthreadFunctional.h"
 #include "ErrnoException.h"
@@ -11,7 +11,7 @@
 CPPUNIT_TEST_SUITE_REGISTRATION( RemoteQueueTest );
 
 using CPN::shared_ptr;
-using CPN::Database;
+using CPN::Context;
 using CPN::SimpleQueueAttr;
 using CPN::RemoteQueue;
 using CPN::QueueBase;
@@ -39,15 +39,15 @@ void RemoteQueueTest::setUp() {
     dequeuedead = false;
 
 
-    database = CPN::Database::Local();
+    context = CPN::Context::Local();
 
-    database->LogLevel(Logger::WARNING);
+    context->LogLevel(Logger::WARNING);
     // We don't have any nodes so we must have D4R off.
-    database->UseD4R(false);
+    context->UseD4R(false);
 
 
     SockAddrList addrs = SocketAddress::CreateIP("0.0.0.0", "");
-    server = shared_ptr<ConnectionServer>(new ConnectionServer(addrs, database));
+    server = shared_ptr<ConnectionServer>(new ConnectionServer(addrs, context));
     server->Disable();
     servert = shared_ptr<Pthread>(CreatePthreadFunctional(this, &RemoteQueueTest::PollServer));
     CPPUNIT_ASSERT_EQUAL(0, servert->Error());
@@ -55,13 +55,13 @@ void RemoteQueueTest::setUp() {
 
 
     SocketAddress addr = server->GetAddress();
-    hostkey = database->SetupHost("bogus", addr.GetHostName(), addr.GetServName(), this);
+    hostkey = context->SetupHost("bogus", addr.GetHostName(), addr.GetServName(), this);
 
-    nodekey = database->CreateNodeKey(hostkey, "Bogus");
+    nodekey = context->CreateNodeKey(hostkey, "Bogus");
  
-    writerkey = database->GetCreateWriterKey(nodekey, "writer");
-    readerkey = database->GetCreateReaderKey(nodekey, "reader");
-    database->ConnectEndpoints(writerkey, readerkey);
+    writerkey = context->GetCreateWriterKey(nodekey, "writer");
+    readerkey = context->GetCreateReaderKey(nodekey, "reader");
+    context->ConnectEndpoints(writerkey, readerkey);
 
     SimpleQueueAttr attr;
     attr.SetLength(QUEUESIZE*2).SetMaxThreshold(QUEUESIZE).SetNumChannels(1);
@@ -71,7 +71,7 @@ void RemoteQueueTest::setUp() {
 
     rendp = shared_ptr<RemoteQueue>(
             new RemoteQueue(
-                database,
+                context,
                 RemoteQueue::READ,
                 server.get(),
                 &remotequeueholder,
@@ -82,7 +82,7 @@ void RemoteQueueTest::setUp() {
     rendp->Start();
     wendp = shared_ptr<RemoteQueue>(
             new RemoteQueue(
-                database,
+                context,
                 RemoteQueue::WRITE,
                 server.get(),
                 &remotequeueholder,
@@ -97,7 +97,7 @@ void RemoteQueueTest::setUp() {
 }
 
 void RemoteQueueTest::tearDown() {
-    database->Terminate();
+    context->Terminate();
     server->Wakeup();
     servert.reset();
     server->Close();
@@ -108,7 +108,7 @@ void RemoteQueueTest::tearDown() {
     wqueue.reset();
     rqueue.reset();
     server.reset();
-    database.reset();
+    context.reset();
 }
 
 void RemoteQueueTest::CommunicationTest() {
@@ -479,7 +479,7 @@ void RemoteQueueTest::NotifyTerminate() {
 
 void *RemoteQueueTest::PollServer() {
     try {
-        while (!database->IsTerminated()) {
+        while (!context->IsTerminated()) {
             server->Poll();
         }
     } catch (const ErrnoException &e) {

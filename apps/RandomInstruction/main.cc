@@ -3,7 +3,7 @@
 #include "RandomInstructionNode.h"
 
 #include "Kernel.h"
-#include "Database.h"
+#include "Context.h"
 
 #include "ToString.h"
 
@@ -13,7 +13,7 @@
 #include <vector>
 
 using CPN::shared_ptr;
-using CPN::Database;
+using CPN::Context;
 using CPN::Kernel;
 using CPN::KernelAttr;
 
@@ -83,8 +83,8 @@ int main(int argc, char **argv) {
     printf("Starting with %u nodes going for %u iterations with debug level %d and seed %lu\n",
             numNodes, iterations, debugLevel, seed);
 
-    shared_ptr<Database> database = Database::Local();
-    database->LogLevel(loglevel);
+    shared_ptr<Context> context = Context::Local();
+    context->LogLevel(loglevel);
 
     std::vector< shared_ptr<Kernel> > kernels;
     std::vector<std::string> kernelnames;
@@ -92,11 +92,11 @@ int main(int argc, char **argv) {
     for (unsigned i = 0; i < numKernels; ++i) {
         std::string name = ToString("K #%u", i);
         kernelnames.push_back(name);
-        kernels.push_back(shared_ptr<Kernel>(new Kernel(KernelAttr(name).SetDatabase(database).SetRemoteEnabled(numKernels > 1))));
+        kernels.push_back(shared_ptr<Kernel>(new Kernel(KernelAttr(name).SetContext(context).SetRemoteEnabled(numKernels > 1))));
     }
     RandomInstructionNode::CreateRIN(*kernels.front(), iterations, numNodes, debugLevel, seed, kernelnames);
 
-    database->WaitForAllNodeEnd();
+    context->WaitForAllNodeEnd();
 
     return 0;
 }

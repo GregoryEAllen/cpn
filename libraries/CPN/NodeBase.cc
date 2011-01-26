@@ -25,7 +25,7 @@
 #include "NodeBase.h"
 #include "Kernel.h"
 #include "Exceptions.h"
-#include "Database.h"
+#include "Context.h"
 #include "D4RDeadlockException.h"
 #include "ErrnoException.h"
 #include "PthreadFunctional.h"
@@ -33,7 +33,7 @@
 namespace CPN {
 
     NodeBase::NodeBase(Kernel &ker, const NodeAttr &attr)
-    :   PseudoNode(attr.GetName(), attr.GetKey(), attr.GetDatabase()),
+    :   PseudoNode(attr.GetName(), attr.GetKey(), ker.GetContext()),
         kernel(ker),
         type(attr.GetTypeName())
     {
@@ -54,17 +54,17 @@ namespace CPN {
 
     void* NodeBase::EntryPoint() {
         try {
-            kernel.GetDatabase()->SignalNodeStart(GetKey());
+            kernel.GetContext()->SignalNodeStart(GetKey());
             Process();
         } catch (const CPN::ShutdownException &e) {
             // Forced shutdown
         } catch (const CPN::BrokenQueueException &e) {
-            if (!kernel.GetDatabase()->SwallowBrokenQueueExceptions()) {
+            if (!kernel.GetContext()->SwallowBrokenQueueExceptions()) {
                 throw;
             }
         } catch (const D4R::DeadlockException &e) {
             // A true deadlock was detected, die
-            Logger logger(kernel.GetDatabase().get(), Logger::ERROR);
+            Logger logger(kernel.GetContext().get(), Logger::ERROR);
             logger.Name(GetName().c_str());
             logger.Info("DEADLOCK detected at %s\n", GetName().c_str());
         }
@@ -79,7 +79,7 @@ namespace CPN {
 
     void NodeBase::LogState() {
 #if 0
-        Logger logger(database.get(), Logger::ERROR);
+        Logger logger(context.get(), Logger::ERROR);
         logger.Name(name.c_str());
         logger.Error("Logging (key: %llu), %u readers, %u writers, %s",
                 nodekey, readermap.size(), writermap.size(), thread->Running() ? "Running" : "done");

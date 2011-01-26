@@ -21,59 +21,59 @@
  * \author John Bridgman
  */
 
-#include "Database.h"
-#include "LocalDatabase.h"
+#include "Context.h"
+#include "LocalContext.h"
 #include "Exceptions.h"
 
 namespace CPN {
-    shared_ptr<Database> Database::Local() {
-        return shared_ptr<Database>(new LocalDatabase);
+    shared_ptr<Context> Context::Local() {
+        return shared_ptr<Context>(new LocalContext);
     }
 
-    Database::Database()
+    Context::Context()
         : useD4R(true), swallowbrokenqueue(false),
         growmaxthresh(true)
     {
     }
 
-    Database::~Database() {
+    Context::~Context() {
     }
 
-    bool Database::RequireRemote() {
+    bool Context::RequireRemote() {
         return false;
     }
 
-    bool Database::UseD4R() {
+    bool Context::UseD4R() {
         PthreadMutexProtected al(lock);
         return useD4R;
     }
 
-    bool Database::UseD4R(bool u) {
+    bool Context::UseD4R(bool u) {
         PthreadMutexProtected al(lock);
         return useD4R = u;
     }
 
-    bool Database::SwallowBrokenQueueExceptions() {
+    bool Context::SwallowBrokenQueueExceptions() {
         PthreadMutexProtected al(lock);
         return swallowbrokenqueue;
     }
 
-    bool Database::SwallowBrokenQueueExceptions(bool sbqe) {
+    bool Context::SwallowBrokenQueueExceptions(bool sbqe) {
         PthreadMutexProtected al(lock);
         return swallowbrokenqueue = sbqe;
     }
 
-    bool Database::GrowQueueMaxThreshold() {
+    bool Context::GrowQueueMaxThreshold() {
         PthreadMutexProtected al(lock);
         return growmaxthresh;
     }
 
-    bool Database::GrowQueueMaxThreshold(bool grow) {
+    bool Context::GrowQueueMaxThreshold(bool grow) {
         PthreadMutexProtected al(lock);
         return growmaxthresh = grow;
     }
 
-    void Database::CheckTerminated() {
+    void Context::CheckTerminated() {
         if (IsTerminated()) {
             throw ShutdownException();
         }

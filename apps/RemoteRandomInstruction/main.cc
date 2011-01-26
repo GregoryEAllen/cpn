@@ -1,13 +1,13 @@
 
 
 #include "RandomInstructionNode.h"
-#include "RemoteDatabase.h"
+#include "RemoteContext.h"
 
 #include "Variant.h"
 #include "JSONToVariant.h"
 
 #include "Kernel.h"
-#include "Database.h"
+#include "Context.h"
 
 #include "ToString.h"
 
@@ -17,7 +17,7 @@
 #include <signal.h>
 
 using CPN::shared_ptr;
-using CPN::Database;
+using CPN::Context;
 using CPN::Kernel;
 using CPN::KernelAttr;
 
@@ -26,7 +26,7 @@ using CPN::KernelAttr;
 
 const char* const VALID_OPTS = "hb:";
 
-const char* const HELP_OPTS = "Usage: %s <config> <name> <database hostname> <database port>\n"
+const char* const HELP_OPTS = "Usage: %s <config> <name> <context hostname> <context port>\n"
 "\t-h\tPrint out this message\n"
 "\t-b\tSpecify an IP for the kernel to bind to.\n"
 "\n"
@@ -141,10 +141,10 @@ int main(int argc, char **argv) {
     printf("%s started\n", name.c_str());
     printf("debug level %d seed %lu and iterations %u numnodes %u\n", debugLevel, seed, iterations, numNodes);
 
-    shared_ptr<RemoteDatabase> database = shared_ptr<RemoteDatabase>(new RemoteDatabase(addrs));
-    database->LogLevel(loglevel);
+    shared_ptr<RemoteContext> context = shared_ptr<RemoteContext>(new RemoteContext(addrs));
+    context->LogLevel(loglevel);
 
-    Kernel kernel(KernelAttr(name).SetHostName(bindip).SetDatabase(database));
+    Kernel kernel(KernelAttr(name).SetHostName(bindip).SetContext(context));
 
     if (name == starter) {
         printf("Creating %u nodes\n", numNodes);
@@ -152,8 +152,8 @@ int main(int argc, char **argv) {
     }
 
     // Wait for one of the nodes to start before we wait for all nodes to be gone
-    database->WaitForNodeStart(RandomInstructionNode::GetNodeNameFromID(0));
-    database->WaitForAllNodeEnd();
+    context->WaitForNodeStart(RandomInstructionNode::GetNodeNameFromID(0));
+    context->WaitForAllNodeEnd();
 
     return 0;
 }

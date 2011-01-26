@@ -41,7 +41,7 @@ namespace CPN {
      * will be thrown by the Kernel when attempting to create the queue.
      *
      * There are three ways to set the reader and writer endpoints.
-     * The first is to ask the database for the key for the endpoints and set them directly.
+     * The first is to ask the context for the key for the endpoints and set them directly.
      * The second is if you know the node keys then you can set the node keys and endpoint names.
      * The third is to set the endpoints using both the node name and the endpoint names.
      * The keys are always used over the name, but the name is used if the key is not set.

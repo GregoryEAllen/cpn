@@ -20,14 +20,14 @@
 /** \file
  * \author John Bridgman
  */
-#ifndef CPN_REMOTEDBSERVER_H
-#define CPN_REMOTEDBSERVER_H
+#ifndef CPN_REMOTECONTEXTSERVER_H
+#define CPN_REMOTECONTEXTSERVER_H
 #pragma once
 #include "CPNCommon.h"
 #include "Variant.h"
 
 /*
-    All requests have a field named 'type' which contains a number from RDBMT_t.
+    All requests have a field named 'type' which contains a number from RCTXMT_t.
     The basic form is:
 
     request = {
@@ -105,21 +105,21 @@
 */
 
 namespace CPN {
-    /** \brief the server for the remote database.
+    /** \brief the server for the remote context.
      *
      * Implementors only need to override SendMessage, BroadcastMessage, and LogMessage.
      * then call DispatchMessage for all messages from the clients.
      */
-    class RemoteDBServer {
+    class RemoteContextServer {
     public:
-        RemoteDBServer();
-        virtual ~RemoteDBServer();
+        RemoteContextServer();
+        virtual ~RemoteContextServer();
         /**
-         * Cause the database to go into the shutdown state.
+         * Cause the context to go into the shutdown state.
          */
         virtual void Terminate();
         /**
-         * \return whether or not the database is in the shutdown state.
+         * \return whether or not the context is in the shutdown state.
          */
         bool IsTerminated() const { return shutdown; }
         int DebugLevel() const { return debuglevel; }

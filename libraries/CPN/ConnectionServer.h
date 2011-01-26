@@ -42,9 +42,9 @@ namespace CPN {
     public:
         /**
          * \param addrs list of socket addresses to use to listen on
-         * \param db the database which contains all the data connection data.
+         * \param ctx the context which contains all the data connection data.
          */
-        ConnectionServer(SockAddrList addrs, shared_ptr<Database> db);
+        ConnectionServer(SockAddrList addrs, shared_ptr<Context> ctx);
         /**
          * Poll is periodically called by the Kernel to accept new connections.
          */
@@ -105,7 +105,7 @@ namespace CPN {
 
         typedef std::multimap<Key_t, shared_ptr<PendingConnection> > PendingMap;
         PthreadMutex lock;
-        shared_ptr<Database> database;
+        shared_ptr<Context> context;
         Logger logger;
         ServerSocketHandle server;
         WakeupHandle wakeup;

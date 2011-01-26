@@ -18,11 +18,11 @@
 //  World Wide Web at http://www.fsf.org.
 //=============================================================================
 /** \file
- * \brief The Database abstract data type.
+ * \brief The Context abstract data type.
  * \author John Bridgman
  */
-#ifndef CPNDB_DATABASE_H
-#define CPNDB_DATABASE_H
+#ifndef CPNDB_CONTEXT_H
+#define CPNDB_CONTEXT_H
 #pragma once
 #include "CPNCommon.h"
 #include "NodeLoader.h"
@@ -36,7 +36,7 @@
 namespace CPN {
 
     /**
-     * \brief The CPN::Database abstraction that holds all the global state
+     * \brief The CPN::Context abstraction that holds all the global state
      * for the process network.
      *
      * All methods may through a CPN::ShutdownException.
@@ -49,18 +49,18 @@ namespace CPN {
      * of the library (i.e. by the user of the library) are the log level functions
      * the Get functions and the Wait functions and the Terminate functions.
      */
-    class CPN_API Database : public LoggerOutput {
+    class CPN_API Context : public LoggerOutput {
     public:
 
-        /** \brief Create a local database.
-         * \return a new local database.
+        /** \brief Create a local context.
+         * \return a new local context.
          */
-        static shared_ptr<Database> Local();
+        static shared_ptr<Context> Local();
 
-        virtual ~Database();
+        virtual ~Context();
 
         /** \brief Called by the Kernel when it has successfully set it self up.
-         * This gives the Database a way to notify the Kernel of events and
+         * This gives the Context a way to notify the Kernel of events and
          * lets other Kernels look up the connection information for this Kernel.
          * \param name the kernel name
          * \param hostname the hostname to use to connect to this kernel
@@ -98,7 +98,7 @@ namespace CPN {
          * \throw std::invalid_argument
          */
         virtual void GetHostConnectionInfo(Key_t hostkey, std::string &hostname, std::string &servname) = 0;
-        /** \brief Signal to the Database that the given host is dead.
+        /** \brief Signal to the Context that the given host is dead.
          * \param hostkey id of the host that died
          * \throw std::invalid_argument
          */
@@ -108,7 +108,7 @@ namespace CPN {
          * \throw ShutdownException
          */
         virtual Key_t WaitForHostStart(const std::string &host) = 0;
-        /** \brief Signal to the database that the given host has started
+        /** \brief Signal to the context that the given host has started
          * \param hostkey the id for the host
          * \throw ShutdownException
          * \throw std::invalid_argument
@@ -140,7 +140,7 @@ namespace CPN {
          */
         virtual void SendCreateNode(Key_t hostkey, const NodeAttr &attr) = 0;
 
-        /** \brief Tell the database to allocate a new node key and data structure for
+        /** \brief Tell the context to allocate a new node key and data structure for
          * a node with nodename which is on hostkey.
          * \param hostkey the id of the kernel that the node will run on
          * \param nodename the name of the node
@@ -253,7 +253,7 @@ namespace CPN {
          */
         virtual Key_t GetWritersReader(Key_t writerkey) = 0;
 
-        /** \brief Signal to the Database that the network is terminating.
+        /** \brief Signal to the Context that the network is terminating.
          * After this call most methods will throw a ShutdownException
          */
         virtual void Terminate() = 0;
@@ -267,17 +267,12 @@ namespace CPN {
          */
         void CheckTerminated();
 
-        /** \brief Lets the kernel know that this database type requires remote activity.
+        /** \brief Lets the kernel know that this context type requires remote activity.
          * This overrides the kernel option for remote activity.
          * Default value is false
          * \return true or false
          */
         virtual bool RequireRemote();
-
-        /** \brief This is the parameter used for the listen command.
-         * \return 256 by default
-         */
-        virtual int ListenQueueLength() { return 256; }
 
         /** \brief Whether or not D4R should be used.
          * \return true or false (default true)
@@ -334,7 +329,7 @@ namespace CPN {
         void RegisterNodeFactory(shared_ptr<NodeFactory> factory) { loader.RegisterFactory(factory); }
 
     protected:
-        Database();
+        Context();
 
         mutable PthreadMutex lock;
         NodeLoader loader;

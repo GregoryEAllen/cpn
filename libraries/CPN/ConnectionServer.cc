@@ -22,7 +22,7 @@
  */
 #include "ConnectionServer.h"
 #include "PacketHeader.h"
-#include "Database.h"
+#include "Context.h"
 #include "AutoLock.h"
 #include "Assert.h"
 #include "ErrnoException.h"
@@ -33,8 +33,8 @@ namespace CPN {
 
     typedef AutoLock<PthreadMutex> AutoPLock;
 
-    ConnectionServer::ConnectionServer(SockAddrList addrs, shared_ptr<Database> db)
-        : database(db), logger(db.get(), Logger::INFO), enabled(true)
+    ConnectionServer::ConnectionServer(SockAddrList addrs, shared_ptr<Context> ctx)
+        : context(ctx), logger(ctx.get(), Logger::INFO), enabled(true)
     {
         server.Listen(addrs);
     }
@@ -107,11 +107,11 @@ namespace CPN {
         if (enabled) {
             al.Unlock();
             conn = shared_ptr<PendingConnection>(new PendingConnection(writerkey, this));
-            Key_t readerkey = database->GetWritersReader(writerkey);
-            Key_t hostkey = database->GetReaderHost(readerkey);
+            Key_t readerkey = context->GetWritersReader(writerkey);
+            Key_t hostkey = context->GetReaderHost(readerkey);
             std::string hostname;
             std::string servname;
-            database->GetHostConnectionInfo(hostkey, hostname, servname);
+            context->GetHostConnectionInfo(hostkey, hostname, servname);
             SocketHandle sock;
             sock.Connect(SocketAddress::CreateIP(hostname, servname));
             Packet packet(PACKET_ID_WRITER);

@@ -55,33 +55,33 @@ namespace CPN {
         status(INITIALIZED),
         kernelname(kattr.GetName()),
         hostkey(0),
-        database(kattr.GetDatabase()),
+        context(kattr.GetContext()),
         useremote(kattr.GetRemoteEnabled())
     {
         FUNCBEGIN;
         thread.reset(CreatePthreadFunctional(this, &Kernel::EntryPoint));
-        if (!database) {
-            database = Database::Local();
+        if (!context) {
+            context = Context::Local();
         }
-        if (database->RequireRemote()) {
+        if (context->RequireRemote()) {
             useremote = true;
         }
-        logger.Output(database.get());
-        logger.LogLevel(database->LogLevel());
+        logger.Output(context.get());
+        logger.LogLevel(context->LogLevel());
         logger.Name(kernelname);
 
         if (useremote) {
             SockAddrList addrlist = SocketAddress::CreateIP(kattr.GetHostName(),
                     kattr.GetServName());
-            server.reset(new ConnectionServer(addrlist, database));
+            server.reset(new ConnectionServer(addrlist, context));
 
             SocketAddress addr = server->GetAddress();
-            hostkey = database->SetupHost(kernelname, addr.GetHostName(), addr.GetServName(), this);
+            hostkey = context->SetupHost(kernelname, addr.GetHostName(), addr.GetServName(), this);
             remotequeueholder.reset(new RemoteQueueHolder());
 
             logger.Info("New kernel, listening on %s:%s", addr.GetHostName().c_str(), addr.GetServName().c_str());
         } else {
-            hostkey = database->SetupHost(kernelname, this);
+            hostkey = context->SetupHost(kernelname, this);
             logger.Info("New kernel");
         }
         // Start up and don't finish until actually started.
@@ -107,7 +107,7 @@ namespace CPN {
     }
 
     void Kernel::Terminate() {
-        database->Terminate();
+        context->Terminate();
     }
 
     void Kernel::NotifyTerminate() {
@@ -130,11 +130,11 @@ namespace CPN {
             if (nodeattr.GetHost().empty()) {
                 key = ourkey;
             } else {
-                key = database->WaitForHostStart(nodeattr.GetHost());
+                key = context->WaitForHostStart(nodeattr.GetHost());
             }
             nodeattr.SetHostKey(key);
         }
-        Key_t nodekey = database->CreateNodeKey(nodeattr.GetHostKey(), nodeattr.GetName());
+        Key_t nodekey = context->CreateNodeKey(nodeattr.GetHostKey(), nodeattr.GetName());
         nodeattr.SetKey(nodekey);
 
         // check the host the node should go on and send
@@ -142,7 +142,7 @@ namespace CPN {
         if (nodeattr.GetHostKey() == ourkey) {
             InternalCreateNode(nodeattr);
         } else {
-            database->SendCreateNode(nodeattr.GetHostKey(), nodeattr);
+            context->SendCreateNode(nodeattr.GetHostKey(), nodeattr);
         }
         return nodekey;
     }
@@ -151,18 +151,18 @@ namespace CPN {
         Sync::AutoReentrantLock arlock(lock);
         Key_t ourkey = hostkey;
         arlock.Unlock();
-        Key_t nodekey = database->CreateNodeKey(ourkey, nodename);
+        Key_t nodekey = context->CreateNodeKey(ourkey, nodename);
         shared_ptr<PseudoNode> pnode;
-        pnode.reset(new PseudoNode(nodename, nodekey, database));
+        pnode.reset(new PseudoNode(nodename, nodekey, context));
         arlock.Lock();
         nodemap.insert(std::make_pair(nodekey, pnode));
         arlock.Unlock();
-        database->SignalNodeStart(nodekey);
+        context->SignalNodeStart(nodekey);
         return nodekey;
     }
 
     Key_t Kernel::GetPseudoNode(const std::string &nodename) {
-        Key_t nodekey = database->GetNodeKey(nodename);
+        Key_t nodekey = context->GetNodeKey(nodename);
         Sync::AutoReentrantLock arlock(lock);
         NodeMap::iterator entry = nodemap.find(nodekey);
         if (entry == nodemap.end() || !entry->second->IsPurePseudo()) {
@@ -204,16 +204,16 @@ namespace CPN {
 
     void Kernel::WaitNodeTerminate(const std::string &nodename) {
         FUNCBEGIN;
-        database->WaitForNodeEnd(nodename);
+        context->WaitForNodeEnd(nodename);
     }
 
     void Kernel::WaitForAllNodeEnd() {
-        database->WaitForAllNodeEnd();
+        context->WaitForAllNodeEnd();
     }
 
     void Kernel::WaitNodeStart(const std::string &nodename) {
         FUNCBEGIN;
-        database->WaitForNodeStart(nodename);
+        context->WaitForNodeStart(nodename);
     }
 
     void Kernel::CreateQueue(const QueueAttr &qattr) {
@@ -229,15 +229,15 @@ namespace CPN {
                             " or the reader name and node key or the reader name and"
                             " node name.");
                 }
-                attr.SetReaderNodeKey(database->WaitForNodeStart(qattr.GetReaderNode()));
+                attr.SetReaderNodeKey(context->WaitForNodeStart(qattr.GetReaderNode()));
             }
             if (qattr.GetReaderPort().empty()) {
                 throw std::invalid_argument("Ether the port key or port name must be specified.");
             }
-            attr.SetReaderKey(database->GetCreateReaderKey(attr.GetReaderNodeKey(),
+            attr.SetReaderKey(context->GetCreateReaderKey(attr.GetReaderNodeKey(),
                         qattr.GetReaderPort()));
         } else if (attr.GetReaderNodeKey() == 0) {
-            attr.SetReaderNodeKey(database->GetReaderNode(attr.GetReaderKey()));
+            attr.SetReaderNodeKey(context->GetReaderNode(attr.GetReaderKey()));
         }
 
         if (attr.GetWriterKey() == 0) {
@@ -248,21 +248,21 @@ namespace CPN {
                             " or the writer name and node key or the writer name and"
                             " node name.");
                 }
-                attr.SetWriterNodeKey(database->WaitForNodeStart(qattr.GetWriterNode()));
+                attr.SetWriterNodeKey(context->WaitForNodeStart(qattr.GetWriterNode()));
             }
             if (qattr.GetWriterPort().empty()) {
                 throw std::invalid_argument("Ether the port key or port name must be specified.");
             }
-            attr.SetWriterKey(database->GetCreateWriterKey(attr.GetWriterNodeKey(),
+            attr.SetWriterKey(context->GetCreateWriterKey(attr.GetWriterNodeKey(),
                         qattr.GetWriterPort()));
         } else if (attr.GetWriterNodeKey() == 0) {
-            attr.SetWriterNodeKey(database->GetWriterNode(attr.GetWriterKey()));
+            attr.SetWriterNodeKey(context->GetWriterNode(attr.GetWriterKey()));
         }
 
-        database->ConnectEndpoints(attr.GetWriterKey(), attr.GetReaderKey());
+        context->ConnectEndpoints(attr.GetWriterKey(), attr.GetReaderKey());
 
-        Key_t readerhost = database->GetNodeHost(attr.GetReaderNodeKey());
-        Key_t writerhost = database->GetNodeHost(attr.GetWriterNodeKey());
+        Key_t readerhost = context->GetNodeHost(attr.GetReaderNodeKey());
+        Key_t writerhost = context->GetNodeHost(attr.GetWriterNodeKey());
 
         if (readerhost == writerhost) {
             if (readerhost == hostkey) {
@@ -270,26 +270,26 @@ namespace CPN {
             } else {
                 ASSERT(useremote, "Cannot create remote queue without enabling remote operations.");
                 // Send a message to the other host to create a local queue
-                database->SendCreateQueue(readerhost, attr);
+                context->SendCreateQueue(readerhost, attr);
             }
         } else if (readerhost == hostkey) {
             ASSERT(useremote, "Cannot create remote queue without enabling remote operations.");
             // Create the reader end here and queue up a message
             // to the writer host that they need to create an endpoint
             CreateReaderEndpoint(attr);
-            database->SendCreateWriter(writerhost, attr);
+            context->SendCreateWriter(writerhost, attr);
         } else if (writerhost == hostkey) {
             ASSERT(useremote, "Cannot create remote queue without enabling remote operations.");
             // Create the writer end here and queue up a message to
             // the reader host that they need to create an endpoint
             CreateWriterEndpoint(attr);
-            database->SendCreateReader(readerhost, attr);
+            context->SendCreateReader(readerhost, attr);
         } else {
             ASSERT(useremote, "Cannot create remote queue without enabling remote operations.");
             // Queue up a message to both the reader and writer host
             // to create endpoints
-            database->SendCreateWriter(writerhost, attr);
-            database->SendCreateReader(readerhost, attr);
+            context->SendCreateWriter(writerhost, attr);
+            context->SendCreateReader(readerhost, attr);
         }
     }
 
@@ -300,7 +300,7 @@ namespace CPN {
         shared_ptr<RemoteQueue> endp;
         endp = shared_ptr<RemoteQueue>(
                 new RemoteQueue(
-                    database,
+                    context,
                     RemoteQueue::READ,
                     server.get(),
                     remotequeueholder.get(),
@@ -324,7 +324,7 @@ namespace CPN {
         shared_ptr<RemoteQueue> endp;
         endp = shared_ptr<RemoteQueue>(
                 new RemoteQueue(
-                    database,
+                    context,
                     RemoteQueue::WRITE,
                     server.get(),
                     remotequeueholder.get(),
@@ -342,7 +342,7 @@ namespace CPN {
 
     void Kernel::CreateLocalQueue(const SimpleQueueAttr &attr) {
         shared_ptr<QueueBase> queue;
-        queue = shared_ptr<QueueBase>(new ThresholdQueue(database, attr));
+        queue = shared_ptr<QueueBase>(new ThresholdQueue(context, attr));
 
         Sync::AutoReentrantLock arlock(lock);
         NodeMap::iterator readentry = nodemap.find(attr.GetReaderNodeKey());
@@ -362,8 +362,7 @@ namespace CPN {
         Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
         ASSERT(status.Get() == RUNNING);
-        nodeattr.SetDatabase(database);
-        NodeFactory *factory = database->GetNodeFactory(nodeattr.GetTypeName());
+        NodeFactory *factory = context->GetNodeFactory(nodeattr.GetTypeName());
         if (!factory) {
             throw std::invalid_argument("No such node type " + nodeattr.GetTypeName());
         }
@@ -373,7 +372,7 @@ namespace CPN {
     }
 
     void Kernel::NodeTerminated(Key_t key) {
-        database->SignalNodeEnd(key);
+        context->SignalNodeEnd(key);
         Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
         if (status.Get() == DONE) {
@@ -410,7 +409,7 @@ namespace CPN {
         FUNCBEGIN;
         status.CompareAndPost(INITIALIZED, RUNNING);
         try {
-            database->SignalHostStart(hostkey);
+            context->SignalHostStart(hostkey);
             if (useremote) {
                 while (status.Get() == RUNNING) {
                     ClearGarbage();
@@ -447,7 +446,7 @@ namespace CPN {
             }
         }
         ClearGarbage();
-        database->SignalHostEnd(hostkey);
+        context->SignalHostEnd(hostkey);
         status.Post(DONE);
         FUNCEND;
         return 0;

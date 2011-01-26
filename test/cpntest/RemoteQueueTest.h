@@ -48,7 +48,7 @@ public:
     CPN::shared_ptr<CPN::RemoteQueue> wendp;
     CPN::shared_ptr<CPN::QueueBase> wqueue;
     CPN::shared_ptr<CPN::QueueBase> rqueue;
-    CPN::shared_ptr<CPN::Database> database;
+    CPN::shared_ptr<CPN::Context> context;
 
     CPN::Key_t hostkey;
     CPN::Key_t nodekey;

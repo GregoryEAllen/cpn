@@ -1,8 +1,8 @@
 
-#include "RemoteDBTest.h"
+#include "RemoteContextTest.h"
 #include <cppunit/TestAssert.h>
-#include "RemoteDBClient.h"
-#include "RemoteDBServer.h"
+#include "RemoteContextClient.h"
+#include "RemoteContextServer.h"
 #include "AutoUnlock.h"
 
 #include "Pthread.h"
@@ -13,7 +13,7 @@
 #include <deque>
 #include <map>
 
-CPPUNIT_TEST_SUITE_REGISTRATION( RemoteDBTest);
+CPPUNIT_TEST_SUITE_REGISTRATION( RemoteContextTest);
 
 #if _DEBUG
 #define DEBUG(frmt, ...) printf(frmt, __VA_ARGS__)
@@ -31,14 +31,14 @@ using CPN::shared_ptr;
 using CPN::Key_t;
 
 
-class LocalRDBServ : public CPN::RemoteDBServer, public Pthread {
+class LocalRContextServ : public CPN::RemoteContextServer, public Pthread {
 public:
 
-    LocalRDBServ()
+    LocalRContextServ()
         : die(false)
     {
     }
-    ~LocalRDBServ() {
+    ~LocalRContextServ() {
         {
             PthreadMutexProtected al(lock);
             die = true;
@@ -52,7 +52,7 @@ public:
         cond.Signal();
     }
 
-    void Register(const std::string &name, CPN::RemoteDBClient *rdbc) {
+    void Register(const std::string &name, CPN::RemoteContextClient *rdbc) {
         PthreadMutexProtected al(lock);
         replymap[name] = rdbc;
     }
@@ -68,7 +68,7 @@ public:
 
     void BroadcastMessage(const Variant &msg) {
         DBPRINT("Broadcast %s\n", msg.AsJSON().c_str());
-        for(std::map<std::string, CPN::RemoteDBClient *>::iterator entry = replymap.begin();
+        for(std::map<std::string, CPN::RemoteContextClient *>::iterator entry = replymap.begin();
                 entry != replymap.end(); ++entry)
         {
             (entry->second)->DispatchMessage(msg.Copy());
@@ -95,20 +95,20 @@ public:
     }
 private:
     bool die;
-    std::map<std::string, CPN::RemoteDBClient *> replymap;
+    std::map<std::string, CPN::RemoteContextClient *> replymap;
     std::deque<std::pair<std::string, Variant> > msgqueue;
     PthreadCondition cond;
     PthreadMutex lock;
 };
 
-class LocalRDBClient : public CPN::RemoteDBClient {
+class LocalRContextClient : public CPN::RemoteContextClient {
 public:
-    LocalRDBClient(LocalRDBServ *lrdbs_, const std::string &name_)
+    LocalRContextClient(LocalRContextServ *lrdbs_, const std::string &name_)
         : lrdbs(lrdbs_), name(name_)
     {
         lrdbs->Register(name, this);
     }
-    ~LocalRDBClient() {
+    ~LocalRContextClient() {
         lrdbs->UnRegister(name);
     }
 
@@ -129,23 +129,23 @@ protected:
         lrdbs->EnqueueMessage(name, msg);
     }
 private:
-    LocalRDBServ *lrdbs;
+    LocalRContextServ *lrdbs;
     std::string name;
 };
 
-void RemoteDBTest::setUp() {
-    serv = new LocalRDBServ;
+void RemoteContextTest::setUp() {
+    serv = new LocalRContextServ;
     serv->Start();
 }
 
-void RemoteDBTest::tearDown() {
+void RemoteContextTest::tearDown() {
     delete serv;
     serv = 0;
 }
 
-void RemoteDBTest::HostSetupTest() {
+void RemoteContextTest::HostSetupTest() {
     DEBUG("%s\n",__PRETTY_FUNCTION__);
-    LocalRDBClient lrdbc(serv, __PRETTY_FUNCTION__);
+    LocalRContextClient lrdbc(serv, __PRETTY_FUNCTION__);
     std::string hostname = "bogus1";
     std::string servname = "bogus2";
     std::string name = "bogus3";
@@ -163,14 +163,14 @@ void RemoteDBTest::HostSetupTest() {
     lrdbc.SignalHostEnd(hostkey);
 }
 
-void RemoteDBTest::WaitForHostTest() {
+void RemoteContextTest::WaitForHostTest() {
     DEBUG("%s\n",__PRETTY_FUNCTION__);
-    LocalRDBClient lrdbc(serv, __PRETTY_FUNCTION__);
+    LocalRContextClient lrdbc(serv, __PRETTY_FUNCTION__);
     std::string hostname = "bogus1";
     std::string servname = "bogus2";
     std::string name = "bogus3";
     m_hostname = name;
-    Pthread *waiter = CreatePthreadFunctional(this, &RemoteDBTest::WaitForHostSetup);
+    Pthread *waiter = CreatePthreadFunctional(this, &RemoteContextTest::WaitForHostSetup);
     CPPUNIT_ASSERT_EQUAL(0, waiter->Error());
     lock.Lock();
     signaled = false;
@@ -187,8 +187,8 @@ void RemoteDBTest::WaitForHostTest() {
     CPPUNIT_ASSERT_EQUAL(m_hostkey, hostkey);
 }
 
-void *RemoteDBTest::WaitForHostSetup() {
-    LocalRDBClient lrdbc(serv, __PRETTY_FUNCTION__);
+void *RemoteContextTest::WaitForHostSetup() {
+    LocalRContextClient lrdbc(serv, __PRETTY_FUNCTION__);
     lock.Lock();
     signaled = true;
     cond.Signal();
@@ -198,9 +198,9 @@ void *RemoteDBTest::WaitForHostSetup() {
     return 0;
 }
 
-void RemoteDBTest::CreateNodeTest() {
+void RemoteContextTest::CreateNodeTest() {
     DEBUG("%s\n",__PRETTY_FUNCTION__);
-    LocalRDBClient lrdbc(serv, __PRETTY_FUNCTION__);
+    LocalRContextClient lrdbc(serv, __PRETTY_FUNCTION__);
     m_nodename = "bogus node";
     m_nodekey = lrdbc.CreateNodeKey(1234, m_nodename);
     CPPUNIT_ASSERT(m_nodename > 0);
@@ -213,11 +213,11 @@ void RemoteDBTest::CreateNodeTest() {
     lrdbc.WaitForNodeEnd(m_nodename);
 }
 
-void RemoteDBTest::WaitForNodeTest() {
+void RemoteContextTest::WaitForNodeTest() {
     DEBUG("%s\n",__PRETTY_FUNCTION__);
-    LocalRDBClient lrdbc(serv, __PRETTY_FUNCTION__);
+    LocalRContextClient lrdbc(serv, __PRETTY_FUNCTION__);
     m_nodename = "bogus node";
-    Pthread *waiter = CreatePthreadFunctional(this, &RemoteDBTest::WaitForNode);
+    Pthread *waiter = CreatePthreadFunctional(this, &RemoteContextTest::WaitForNode);
     CPPUNIT_ASSERT_EQUAL(0, waiter->Error());
     lock.Lock();
     signaled = false;
@@ -236,8 +236,8 @@ void RemoteDBTest::WaitForNodeTest() {
     delete waiter;
 }
 
-void *RemoteDBTest::WaitForNode() {
-    LocalRDBClient lrdbc(serv, __PRETTY_FUNCTION__);
+void *RemoteContextTest::WaitForNode() {
+    LocalRContextClient lrdbc(serv, __PRETTY_FUNCTION__);
     lock.Lock();
     signaled = true;
     cond.Signal();
@@ -247,9 +247,9 @@ void *RemoteDBTest::WaitForNode() {
     return 0;
 }
 
-void RemoteDBTest::ReaderTest() {
+void RemoteContextTest::ReaderTest() {
     DEBUG("%s\n",__PRETTY_FUNCTION__);
-    LocalRDBClient lrdbc(serv, __PRETTY_FUNCTION__);
+    LocalRContextClient lrdbc(serv, __PRETTY_FUNCTION__);
 
     m_nodename = "bogus node";
     m_nodekey = lrdbc.CreateNodeKey(4321, m_nodename);
@@ -261,9 +261,9 @@ void RemoteDBTest::ReaderTest() {
     CPPUNIT_ASSERT_EQUAL(std::string("bogus key"), lrdbc.GetReaderName(rkey));
 }
 
-void RemoteDBTest::WriterTest() {
+void RemoteContextTest::WriterTest() {
     DEBUG("%s\n",__PRETTY_FUNCTION__);
-    LocalRDBClient lrdbc(serv, __PRETTY_FUNCTION__);
+    LocalRContextClient lrdbc(serv, __PRETTY_FUNCTION__);
 
     m_nodename = "bogus node";
     m_nodekey = lrdbc.CreateNodeKey(4321, m_nodename);
@@ -275,9 +275,9 @@ void RemoteDBTest::WriterTest() {
     CPPUNIT_ASSERT_EQUAL(std::string("bogus key"), lrdbc.GetWriterName(wkey));
 }
 
-void RemoteDBTest::ConnectTest() {
+void RemoteContextTest::ConnectTest() {
     DEBUG("%s\n",__PRETTY_FUNCTION__);
-    LocalRDBClient lrdbc(serv, __PRETTY_FUNCTION__);
+    LocalRContextClient lrdbc(serv, __PRETTY_FUNCTION__);
     m_nodename = "bogus node";
     m_nodekey = lrdbc.CreateNodeKey(4321, m_nodename);
 

@@ -21,8 +21,8 @@ int main(int argc, char **argv) {
     }
 
     Kernel kernel(KernelAttr("kernel"));
-    kernel.GetDatabase()->UseD4R(false);
-    kernel.GetDatabase()->SwallowBrokenQueueExceptions(true);
+    kernel.GetContext()->UseD4R(false);
+    kernel.GetContext()->SwallowBrokenQueueExceptions(true);
 
     // Create the three nodes use the same parameters for both the delay nodes
     NodeAttr nattr("summer", "Summer", "{\"inputs\":[ \"A\","

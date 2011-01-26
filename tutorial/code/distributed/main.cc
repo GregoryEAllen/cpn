@@ -19,9 +19,9 @@ static void PrintUsage(const char *progname) {
     "\t-c yes|no\n\t--config=yes|no\n\t\tSpecify if the config"
        " file should be loaded.\n"
     "\t-C\n\t\tPrint the internal config and exit.\n"
-    "\t--db-port port\n\t\tSpecify the port the database daemon is"
+    "\t--ctx-port port\n\t\tSpecify the port the context daemon is"
        " listening on.\n"
-    "\t--db-host host\n\t\tSpecify the host the database daemon is on.\n"
+    "\t--ctx-host host\n\t\tSpecify the host the context daemon is on.\n"
     "\t--port port\n\t\tSpecify the port the kernel should listen on.\n"
     "\t--host host\n\t\tSpecify the host the kernel should listen on.\n"
     "\t--name name\n\t\tSpecify the name the kernel should have,"
@@ -30,8 +30,8 @@ static void PrintUsage(const char *progname) {
 }
 
 enum Option_t {
-    OP_DB_PORT = 256,
-    OP_DB_HOST,
+    OP_CTX_PORT = 256,
+    OP_CTX_HOST,
     OP_KERNEL_PORT,
     OP_KERNEL_HOST,
     OP_NAME
@@ -40,8 +40,8 @@ enum Option_t {
 static const option long_options[] = {
     { "config", 1, 0, 'c'},
     { "max", 1, 0, 'm'},
-    { "db-port", 1, 0, OP_DB_PORT},
-    { "db-host", 1, 0, OP_DB_HOST},
+    { "ctx-port", 1, 0, OP_CTX_PORT},
+    { "ctx-host", 1, 0, OP_CTX_HOST},
     { "port", 1, 0, OP_KERNEL_PORT},
     { "host", 1, 0, OP_KERNEL_HOST},
     { "name", 1, 0, OP_NAME},
@@ -53,18 +53,18 @@ int main(int argc, char **argv) {
     bool load_config = true;
     bool print_config = false;
     VariantCPNLoader loader;
-    std::ifstream db_def("db_def.json");
-    if (db_def) {
+    std::ifstream ctx_def("ctx_def.json");
+    if (ctx_def) {
         JSONToVariant parser;
-        parser.ParseStream(db_def);
+        parser.ParseStream(ctx_def);
         if (!parser.Done()) {
-            std::cerr << "Default database definition file parse error at line " 
+            std::cerr << "Default context definition file parse error at line " 
                 << parser.GetLine() << " column " << parser.GetColumn()
                 << std::endl;
         } else {
             loader.MergeConfig(parser.Get());
         }
-        db_def.close();
+        ctx_def.close();
     }
     while (true) {
         int c = getopt_long(argc, argv, "m:c:Ch", long_options, 0);
@@ -79,11 +79,11 @@ int main(int argc, char **argv) {
         case 'C':
             print_config = true;
             break;
-        case OP_DB_PORT:
-            loader.DatabasePort(optarg);
+        case OP_CTX_PORT:
+            loader.ContextPort(optarg);
             break;
-        case OP_DB_HOST:
-            loader.DatabaseHost(optarg);
+        case OP_CTX_HOST:
+            loader.ContextHost(optarg);
             break;
         case OP_KERNEL_PORT:
             loader.KernelPort(optarg);

@@ -32,9 +32,9 @@ namespace CPN {
 
     /**
      * Base class for the kernel.
-     * This class contains all the methods that the database needs to call.
+     * This class contains all the methods that the context needs to call.
      * This class is primiarly used so that
-     * the unit tests can provide a subclass to test the database functionality.
+     * the unit tests can provide a subclass to test the context functionality.
      */
     class CPN_API KernelBase {
     public:

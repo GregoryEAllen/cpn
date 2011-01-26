@@ -1,4 +1,3 @@
-#include "Database.h"
 #include "FlowMeasure.h"
 #include "JSONToVariant.h"
 #include "Kernel.h"
@@ -9,7 +8,6 @@
 #include "PathUtils.h"
 #include "IQueue.h"
 #include "OQueue.h"
-#include "RemoteDatabase.h"
 #include "ToString.h"
 #include "VariantCPNLoader.h"
 #include "Variant.h"
@@ -21,6 +19,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <string>
+#include <string.h>
 #include <unistd.h>
 #include <vector>
 
@@ -30,7 +29,6 @@
 
 static const unsigned BLOCKSIZE = 8192;
 static const unsigned OVERLAP = 2048;
-using CPN::Database;
 using CPN::shared_ptr;
 using std::complex;
 
@@ -246,7 +244,7 @@ int cpnbf_main(int argc, char **argv) {
     config["name"] = "kernel";
     std::string nodelist = RealPath("node.list");
     if (!nodelist.empty()) {
-        config["database"]["liblist"].Append(nodelist);
+        config["context"]["liblist"].Append(nodelist);
     }
     VariantCPNLoader loader(config);
     while (procOpts) {

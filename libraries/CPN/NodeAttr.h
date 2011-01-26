@@ -51,7 +51,7 @@ namespace CPN {
      * The parameters sent to the node.
      * See SetParam and GetParam
      *
-     * Note that the key and database attribute are set by the kernel
+     * Note that the key attribute are set by the kernel
      * when the node is to be created and such are overwritten.
      */
     class CPN_API NodeAttr {
@@ -63,8 +63,7 @@ namespace CPN {
             name(name_),
             nodetype(nodetype_),
             param(""),
-            key(0),
-            database()
+            key(0)
         {}
 
         NodeAttr(const std::string &name_,
@@ -75,8 +74,7 @@ namespace CPN {
             name(name_),
             nodetype(nodetype_),
             param(param_),
-            key(0),
-            database()
+            key(0)
         {}
 
         NodeAttr &SetName(const std::string &name_) {
@@ -109,11 +107,6 @@ namespace CPN {
             return *this;
         }
 
-        NodeAttr &SetDatabase(shared_ptr<Database> db) {
-            database = db;
-            return *this;
-        }
-
         const std::string &GetHost() const { return host; }
         Key_t GetHostKey() const { return hostkey; }
 
@@ -125,7 +118,6 @@ namespace CPN {
 
         Key_t GetKey() const { return key; }
 
-        shared_ptr<Database> GetDatabase() const { return database; }
     private:
         std::string host;
         Key_t hostkey;
@@ -133,7 +125,6 @@ namespace CPN {
         std::string nodetype;
         std::string param;
         Key_t key;
-        shared_ptr<Database> database;
     };
 }
 #endif

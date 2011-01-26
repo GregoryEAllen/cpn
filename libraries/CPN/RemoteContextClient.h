@@ -20,13 +20,13 @@
 /** \file
  * \author John Bridgman
  */
-#ifndef CPN_REMOTEDBCLIENT_H
-#define CPN_REMOTEDBCLIENT_H
+#ifndef CPN_REMOTECONTEXTCLIENT_H
+#define CPN_REMOTECONTEXTCLIENT_H
 #pragma once
 
 #include "CPNCommon.h"
-#include "RDBMT.h"
-#include "Database.h"
+#include "RCTXMT.h"
+#include "Context.h"
 #include "QueueAttr.h"
 #include "NodeAttr.h"
 #include "PthreadMutex.h"
@@ -39,15 +39,15 @@ class Pthread;
 namespace CPN {
 
     /**
-     * \brief This abstract class is the remote database client.
+     * \brief This abstract class is the remote context client.
      * 
      * An implementor only needs to override SendMessage to send the necessary
      * messages to the RemoteDBServer and then call DispatchMessage for the
      * replies from the server.
      */
-    class RemoteDBClient : public Database {
+    class RemoteContextClient : public Context {
     public:
-        virtual ~RemoteDBClient();
+        virtual ~RemoteContextClient();
 
         virtual int LogLevel() const;
         virtual int LogLevel(int level);
@@ -55,7 +55,7 @@ namespace CPN {
 
         virtual CPN::Key_t SetupHost(const std::string &name, const std::string &hostname,
                 const std::string &servname, CPN::KernelBase *kernel);
-        virtual CPN::Key_t SetupHost(const std::string &name, KernelBase *kernel) { ASSERT(false, "RemoteDBClient requires remote operation is turned on."); }
+        virtual CPN::Key_t SetupHost(const std::string &name, KernelBase *kernel) { ASSERT(false, "RemoteContextClient requires remote operation is turned on."); }
         virtual CPN::Key_t GetHostKey(const std::string &host);
         virtual std::string GetHostName(CPN::Key_t hostkey);
         virtual void GetHostConnectionInfo(CPN::Key_t hostkey, std::string &hostname, std::string &servname);
@@ -105,7 +105,7 @@ namespace CPN {
          */
         void DispatchMessage(const Variant &msg);
     protected:
-        RemoteDBClient();
+        RemoteContextClient();
         /**
          * Called by the functions to send a message to the
          * RemoteDBServer.
@@ -136,7 +136,7 @@ namespace CPN {
         };
         typedef shared_ptr<GenericWaiter> GenericWaiterPtr;
 
-        void SendQueueMsg(CPN::Key_t hostkey, RDBMT_t msgtype, const CPN::SimpleQueueAttr &attr);
+        void SendQueueMsg(CPN::Key_t hostkey, RCTXMT_t msgtype, const CPN::SimpleQueueAttr &attr);
         unsigned NewTranID();
         void AddWaiter(WaiterInfo *info);
         GenericWaiterPtr NewGenericWaiter();
@@ -145,8 +145,8 @@ namespace CPN {
         void *TerminateThread();
         Variant RemoteCall(Variant msg);
 
-        CPN::Key_t GetCreateEndpointKey(RDBMT_t msgtype, CPN::Key_t nodekey, const std::string &portname);
-        Variant GetEndpointInfo(RDBMT_t msgtype, CPN::Key_t portkey);
+        CPN::Key_t GetCreateEndpointKey(RCTXMT_t msgtype, CPN::Key_t nodekey, const std::string &portname);
+        Variant GetEndpointInfo(RCTXMT_t msgtype, CPN::Key_t portkey);
 
         auto_ptr<Pthread> terminateThread;
         typedef std::map<unsigned, WaiterInfo*> WaiterMap;

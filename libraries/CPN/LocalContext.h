@@ -18,26 +18,26 @@
 //	World Wide Web at http://www.fsf.org.
 //=============================================================================
 /** \file
- * \brief An implemenation of Database for a local process specific
- * database
+ * \brief An implemenation of Context for a local process specific
+ * context
  * \author John Bridgman
  */
 
-#ifndef CPN_LOCALDATABASE_H
-#define CPN_LOCALDATABASE_H
+#ifndef CPN_LOCALCONTEXT_H
+#define CPN_LOCALCONTEXT_H
 #pragma once
 
 #include "CPNCommon.h"
-#include "Database.h"
+#include "Context.h"
 #include "PthreadCondition.h"
 #include <string>
 #include <map>
 
 namespace CPN {
 
-    /** \brief A local implementation of the Database interface
+    /** \brief A local implementation of the Context interface
      */
-    class CPN_LOCAL LocalDatabase : public Database {
+    class CPN_LOCAL LocalContext : public Context {
     public:
         typedef std::map< std::string, Key_t > NameMap;
 
@@ -74,8 +74,8 @@ namespace CPN {
         typedef std::map< Key_t, shared_ptr<NodeInfo> > NodeMap;
         typedef std::map< Key_t, shared_ptr<PortInfo> > PortMap;
 
-        LocalDatabase();
-        virtual ~LocalDatabase();
+        LocalContext();
+        virtual ~LocalContext();
 
         virtual void Log(int level, const std::string &msg);
         virtual int LogLevel() const;

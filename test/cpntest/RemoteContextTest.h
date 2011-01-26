@@ -1,16 +1,16 @@
 
 /*
  * Do the following ex commands
- * :%s/REMOTEDBTEST/NEWNAME/g
- * :%s/RemoteDBTest.h/NewName/g
+ * :%s/REMOTECONTEXTTEST/NEWNAME/g
+ * :%s/RemoteContextTest.h/NewName/g
  * And add
-#include "RemoteDBTest.h.h"
+#include "RemoteContextTest.h.h"
 #include <cppunit/TestAssert.h>
-CPPUNIT_TEST_SUITE_REGISTRATION( RemoteDBTest.h );
+CPPUNIT_TEST_SUITE_REGISTRATION( RemoteContextTest.h );
  * to the source file.
  */
-#ifndef REMOTEDBTEST_H
-#define REMOTEDBTEST_H
+#ifndef REMOTECONTEXTTEST_H
+#define REMOTECONTEXTTEST_H
 #pragma once
 
 #include <cppunit/extensions/HelperMacros.h>
@@ -19,15 +19,15 @@ CPPUNIT_TEST_SUITE_REGISTRATION( RemoteDBTest.h );
 #include "PthreadMutex.h"
 #include "PthreadCondition.h"
 #include <string>
-class LocalRDBServ;
+class LocalRContextServ;
 
-class RemoteDBTest: public CppUnit::TestFixture, public CPN::KernelBase {
+class RemoteContextTest: public CppUnit::TestFixture, public CPN::KernelBase {
 public:
     void setUp();
 
     void tearDown();
 
-    CPPUNIT_TEST_SUITE( RemoteDBTest );
+    CPPUNIT_TEST_SUITE( RemoteContextTest );
     CPPUNIT_TEST( HostSetupTest );
     CPPUNIT_TEST( WaitForHostTest );
     CPPUNIT_TEST( CreateNodeTest );
@@ -55,7 +55,7 @@ public:
 
     void ConnectTest();
 
-    LocalRDBServ *serv;
+    LocalRContextServ *serv;
 
     PthreadMutex lock;
     PthreadCondition cond;

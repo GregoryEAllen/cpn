@@ -20,68 +20,68 @@
 /** \file
  * \author John Bridgman
  */
-#ifndef CPN_RDBMT_H
-#define CPN_RDBMT_H
+#ifndef CPN_RCTXMT_H
+#define CPN_RCTXMT_H
 #pragma once
 
 namespace CPN {
     /**
-     * \brief RDBMT Remote Data Base Message Type
-     * These are the message types that the remote database uses to send information back and forth.
+     * \brief RCTXMT Remote Context Message Type
+     * These are the message types that the remote context uses to send information back and forth.
      */
-    enum RDBMT_t {
+    enum RCTXMT_t {
         /**
          * Commands for dealing with hosts.
          * @{
          */
-        RDBMT_SETUP_HOST,
-        RDBMT_GET_HOST_INFO,
-        RDBMT_SIGNAL_HOST_START,
-        RDBMT_SIGNAL_HOST_END,
+        RCTXMT_SETUP_HOST,
+        RCTXMT_GET_HOST_INFO,
+        RCTXMT_SIGNAL_HOST_START,
+        RCTXMT_SIGNAL_HOST_END,
         /** @} */
 
         /**
          * Commands to tell other hosts to create objects.
          * @{
          */
-        RDBMT_CREATE_WRITER,
-        RDBMT_CREATE_READER,
-        RDBMT_CREATE_QUEUE,
-        RDBMT_CREATE_NODE,
+        RCTXMT_CREATE_WRITER,
+        RCTXMT_CREATE_READER,
+        RCTXMT_CREATE_QUEUE,
+        RCTXMT_CREATE_NODE,
         /** @} */
 
         /**
          * Commands for creating nodes.
          * @}
          */
-        RDBMT_CREATE_NODE_KEY,
-        RDBMT_SIGNAL_NODE_START,
-        RDBMT_SIGNAL_NODE_END,
-        RDBMT_GET_NODE_INFO,
-        RDBMT_GET_NUM_NODE_LIVE,
+        RCTXMT_CREATE_NODE_KEY,
+        RCTXMT_SIGNAL_NODE_START,
+        RCTXMT_SIGNAL_NODE_END,
+        RCTXMT_GET_NODE_INFO,
+        RCTXMT_GET_NUM_NODE_LIVE,
         /** @} */
 
         /**
          * Commands for creating endpoints.
          * @}
          */
-        RDBMT_GET_CREATE_READER_KEY,
-        RDBMT_GET_READER_INFO,
-        RDBMT_GET_CREATE_WRITER_KEY,
-        RDBMT_GET_WRITER_INFO,
-        RDBMT_CONNECT_ENDPOINTS,
-        RDBMT_GET_READERS_WRITER,
-        RDBMT_GET_WRITERS_READER,
+        RCTXMT_GET_CREATE_READER_KEY,
+        RCTXMT_GET_READER_INFO,
+        RCTXMT_GET_CREATE_WRITER_KEY,
+        RCTXMT_GET_WRITER_INFO,
+        RCTXMT_CONNECT_ENDPOINTS,
+        RCTXMT_GET_READERS_WRITER,
+        RCTXMT_GET_WRITERS_READER,
         /**
          * @}
          */
 
         /**
-         * Database commands.
+         * Context commands.
          * @{
          */
-        RDBMT_TERMINATE,
-        RDBMT_LOG
+        RCTXMT_TERMINATE,
+        RCTXMT_LOG
         /** @} */
     };
 }

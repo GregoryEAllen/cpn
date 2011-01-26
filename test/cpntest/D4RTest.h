@@ -44,7 +44,7 @@ public:
 
     PthreadMutex lock;
     unsigned successes;
-    CPN::shared_ptr<CPN::Database> database;
+    CPN::shared_ptr<CPN::Context> context;
     std::vector<CPN::Kernel*> kernels;
 };
 #endif

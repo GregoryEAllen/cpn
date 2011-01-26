@@ -21,7 +21,7 @@
  * \author John Bridgman
  */
 
-#include "RemoteDBClient.h"
+#include "RemoteContextClient.h"
 #include "KernelBase.h"
 #include "Exceptions.h"
 #include "Assert.h"
@@ -34,44 +34,44 @@
 
 namespace CPN {
 
-    RemoteDBClient::RemoteDBClient()
+    RemoteContextClient::RemoteContextClient()
         : trancounter(0), shutdown(false), loglevel(Logger::WARNING)
     {
     }
 
-    RemoteDBClient::~RemoteDBClient() {
+    RemoteContextClient::~RemoteContextClient() {
         if (terminateThread.get()) {
             terminateThread->Join();
         }
     }
 
-    int RemoteDBClient::LogLevel() const {
+    int RemoteContextClient::LogLevel() const {
         PthreadMutexProtected plock(lock);
         return loglevel;
     }
 
-    int RemoteDBClient:: LogLevel(int level) {
+    int RemoteContextClient:: LogLevel(int level) {
         PthreadMutexProtected plock(lock);
         return loglevel = level;
     }
 
-    void RemoteDBClient::Log(int level, const std::string &logmsg) {
+    void RemoteContextClient::Log(int level, const std::string &logmsg) {
         PthreadMutexProtected plock(lock);
         if (level >= loglevel) {
             Variant msg(Variant::ObjectType);
-            msg["type"] = RDBMT_LOG;
+            msg["type"] = RCTXMT_LOG;
             msg["msg"] = logmsg;
             SendMessage(msg);
         }
     }
 
-    Key_t RemoteDBClient::SetupHost(const std::string &name, const std::string &hostname,
+    Key_t RemoteContextClient::SetupHost(const std::string &name, const std::string &hostname,
             const std::string &servname, KernelBase *kernel) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
         if (!kernel) { throw std::invalid_argument("Must have non null Kernel."); }
         Variant msg(Variant::ObjectType);
-        msg["type"] = RDBMT_SETUP_HOST;
+        msg["type"] = RCTXMT_SETUP_HOST;
         msg["name"] = name;
         msg["hostname"] = hostname;
         msg["servname"] = servname;
@@ -84,11 +84,11 @@ namespace CPN {
         return key;
     }
 
-    Key_t RemoteDBClient::GetHostKey(const std::string &host) {
+    Key_t RemoteContextClient::GetHostKey(const std::string &host) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
         Variant msg(Variant::ObjectType);
-        msg["type"] = RDBMT_GET_HOST_INFO;
+        msg["type"] = RCTXMT_GET_HOST_INFO;
         msg["name"] = host;
         Variant reply = RemoteCall(msg);
         if (!reply["success"].IsTrue()) {
@@ -97,11 +97,11 @@ namespace CPN {
         return reply["hostinfo"]["key"].AsNumber<Key_t>();
     }
 
-    std::string RemoteDBClient::GetHostName(Key_t hostkey) {
+    std::string RemoteContextClient::GetHostName(Key_t hostkey) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
         Variant msg(Variant::ObjectType);
-        msg["type"] = RDBMT_GET_HOST_INFO;
+        msg["type"] = RCTXMT_GET_HOST_INFO;
         msg["key"] = hostkey;
         Variant reply = RemoteCall(msg);
         if (!reply["success"].IsTrue()) {
@@ -110,11 +110,11 @@ namespace CPN {
         return reply["hostinfo"]["name"].AsString();
     }
 
-    void RemoteDBClient::GetHostConnectionInfo(Key_t hostkey, std::string &hostname, std::string &servname) {
+    void RemoteContextClient::GetHostConnectionInfo(Key_t hostkey, std::string &hostname, std::string &servname) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
         Variant msg(Variant::ObjectType);
-        msg["type"] = RDBMT_GET_HOST_INFO;
+        msg["type"] = RCTXMT_GET_HOST_INFO;
         msg["key"] = hostkey;
         Variant reply = RemoteCall(msg);
         if (!reply["success"].IsTrue()) {
@@ -125,21 +125,21 @@ namespace CPN {
         servname = hostinfo["servname"].AsString();
     }
 
-    void RemoteDBClient::SignalHostEnd(Key_t hostkey) {
+    void RemoteContextClient::SignalHostEnd(Key_t hostkey) {
         PthreadMutexProtected plock(lock);
         Variant msg(Variant::ObjectType);
-        msg["type"] = RDBMT_SIGNAL_HOST_END;
+        msg["type"] = RCTXMT_SIGNAL_HOST_END;
         msg["key"] = hostkey;
         SendMessage(msg);
         kernels.erase(hostkey);
     }
 
-    Key_t RemoteDBClient::WaitForHostStart(const std::string &host) {
+    Key_t RemoteContextClient::WaitForHostStart(const std::string &host) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
         GenericWaiterPtr genwait = NewGenericWaiter();
         Variant msg(Variant::ObjectType);
-        msg["type"] = RDBMT_GET_HOST_INFO;
+        msg["type"] = RCTXMT_GET_HOST_INFO;
         msg["name"] = host;
         Variant reply = RemoteCall(msg);
         if (reply["success"].IsTrue()) {
@@ -165,39 +165,39 @@ namespace CPN {
         }
     }
 
-    void RemoteDBClient::SignalHostStart(Key_t hostkey) {
+    void RemoteContextClient::SignalHostStart(Key_t hostkey) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
         Variant msg(Variant::ObjectType);
         msg["key"] = hostkey;
-        msg["type"] = RDBMT_SIGNAL_HOST_START;
+        msg["type"] = RCTXMT_SIGNAL_HOST_START;
         SendMessage(msg);
     }
 
-    void RemoteDBClient::SendCreateWriter(Key_t hostkey, const SimpleQueueAttr &attr) {
+    void RemoteContextClient::SendCreateWriter(Key_t hostkey, const SimpleQueueAttr &attr) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
-        SendQueueMsg(hostkey, RDBMT_CREATE_WRITER, attr);
+        SendQueueMsg(hostkey, RCTXMT_CREATE_WRITER, attr);
     }
 
-    void RemoteDBClient::SendCreateReader(Key_t hostkey, const SimpleQueueAttr &attr) {
+    void RemoteContextClient::SendCreateReader(Key_t hostkey, const SimpleQueueAttr &attr) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
-        SendQueueMsg(hostkey, RDBMT_CREATE_READER, attr);
+        SendQueueMsg(hostkey, RCTXMT_CREATE_READER, attr);
     }
 
-    void RemoteDBClient::SendCreateQueue(Key_t hostkey, const SimpleQueueAttr &attr) {
+    void RemoteContextClient::SendCreateQueue(Key_t hostkey, const SimpleQueueAttr &attr) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
-        SendQueueMsg(hostkey, RDBMT_CREATE_QUEUE, attr);
+        SendQueueMsg(hostkey, RCTXMT_CREATE_QUEUE, attr);
     }
 
-    void RemoteDBClient::SendCreateNode(Key_t hostkey, const NodeAttr &attr) {
+    void RemoteContextClient::SendCreateNode(Key_t hostkey, const NodeAttr &attr) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
         Variant msg(Variant::ObjectType);
         msg["msgtype"] = "kernel";
-        msg["type"] = RDBMT_CREATE_NODE;
+        msg["type"] = RCTXMT_CREATE_NODE;
         msg["hostkey"] = hostkey;
         Variant nodeattr;
         nodeattr["hostkey"] = hostkey;
@@ -217,7 +217,7 @@ namespace CPN {
         return attr;
     }
 
-    void RemoteDBClient::SendQueueMsg(Key_t hostkey, RDBMT_t msgtype, const SimpleQueueAttr &attr) {
+    void RemoteContextClient::SendQueueMsg(Key_t hostkey, RCTXMT_t msgtype, const SimpleQueueAttr &attr) {
         Variant msg(Variant::ObjectType);
         msg["msgtype"] = "kernel";
         msg["type"] = msgtype;
@@ -252,11 +252,11 @@ namespace CPN {
         return attr;
     }
 
-    Key_t RemoteDBClient::CreateNodeKey(Key_t hostkey, const std::string &nodename) {
+    Key_t RemoteContextClient::CreateNodeKey(Key_t hostkey, const std::string &nodename) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
         Variant msg(Variant::ObjectType);
-        msg["type"] = RDBMT_CREATE_NODE_KEY;
+        msg["type"] = RCTXMT_CREATE_NODE_KEY;
         msg["hostkey"] = hostkey;
         msg["name"] = nodename;
         Variant reply = RemoteCall(msg);
@@ -266,11 +266,11 @@ namespace CPN {
         return reply["nodeinfo"]["key"].AsNumber<Key_t>();
     }
 
-    Key_t RemoteDBClient::GetNodeKey(const std::string &nodename) {
+    Key_t RemoteContextClient::GetNodeKey(const std::string &nodename) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
         Variant msg(Variant::ObjectType);
-        msg["type"] = RDBMT_GET_NODE_INFO;
+        msg["type"] = RCTXMT_GET_NODE_INFO;
         msg["name"] = nodename;
         Variant reply = RemoteCall(msg);
         if (!(reply["success"].IsTrue())) {
@@ -280,11 +280,11 @@ namespace CPN {
         return reply["nodeinfo"]["key"].AsNumber<Key_t>();
     }
 
-    std::string RemoteDBClient::GetNodeName(Key_t nodekey) {
+    std::string RemoteContextClient::GetNodeName(Key_t nodekey) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
         Variant msg(Variant::ObjectType);
-        msg["type"] = RDBMT_GET_NODE_INFO;
+        msg["type"] = RCTXMT_GET_NODE_INFO;
         msg["key"] = nodekey;
         Variant reply = RemoteCall(msg);
         if (!(reply["success"].IsTrue())) {
@@ -293,29 +293,29 @@ namespace CPN {
         return reply["nodeinfo"]["name"].AsString();
     }
 
-    void RemoteDBClient::SignalNodeStart(Key_t nodekey) {
+    void RemoteContextClient::SignalNodeStart(Key_t nodekey) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
         Variant msg(Variant::ObjectType);
-        msg["type"] = RDBMT_SIGNAL_NODE_START;
+        msg["type"] = RCTXMT_SIGNAL_NODE_START;
         msg["key"] = nodekey;
         SendMessage(msg);
     }
 
-    void RemoteDBClient::SignalNodeEnd(Key_t nodekey) {
+    void RemoteContextClient::SignalNodeEnd(Key_t nodekey) {
         PthreadMutexProtected plock(lock);
         Variant msg(Variant::ObjectType);
-        msg["type"] = RDBMT_SIGNAL_NODE_END;
+        msg["type"] = RCTXMT_SIGNAL_NODE_END;
         msg["key"] = nodekey;
         SendMessage(msg);
     }
 
-    Key_t RemoteDBClient::WaitForNodeStart(const std::string &nodename) {
+    Key_t RemoteContextClient::WaitForNodeStart(const std::string &nodename) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
         GenericWaiterPtr genwait = NewGenericWaiter();
         Variant msg(Variant::ObjectType);
-        msg["type"] = RDBMT_GET_NODE_INFO;
+        msg["type"] = RCTXMT_GET_NODE_INFO;
         msg["name"] = nodename;
         Variant reply = RemoteCall(msg);
 
@@ -342,13 +342,13 @@ namespace CPN {
         }
     }
 
-    void RemoteDBClient::WaitForNodeEnd(const std::string &nodename) {
+    void RemoteContextClient::WaitForNodeEnd(const std::string &nodename) {
         PthreadMutexProtected plock(lock);
         if (shutdown) { return; }
         GenericWaiterPtr genwait = NewGenericWaiter();
 
         Variant msg(Variant::ObjectType);
-        msg["type"] = RDBMT_GET_NODE_INFO;
+        msg["type"] = RCTXMT_GET_NODE_INFO;
         msg["name"] = nodename;
         Variant reply;
        try {
@@ -378,12 +378,12 @@ namespace CPN {
         }
     }
 
-    void RemoteDBClient::WaitForAllNodeEnd() {
+    void RemoteContextClient::WaitForAllNodeEnd() {
         PthreadMutexProtected plock(lock);
         if (shutdown) { return; }
         GenericWaiterPtr genwait = NewGenericWaiter();
         Variant msg(Variant::ObjectType);
-        msg["type"] = RDBMT_GET_NUM_NODE_LIVE;
+        msg["type"] = RCTXMT_GET_NUM_NODE_LIVE;
         Variant reply;
         try {
             reply = RemoteCall(msg);
@@ -410,11 +410,11 @@ namespace CPN {
         }
     }
 
-    Key_t RemoteDBClient::GetNodeHost(Key_t nodekey) {
+    Key_t RemoteContextClient::GetNodeHost(Key_t nodekey) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
         Variant msg(Variant::ObjectType);
-        msg["type"] = RDBMT_GET_NODE_INFO;
+        msg["type"] = RCTXMT_GET_NODE_INFO;
         msg["key"] = nodekey;
         Variant reply = RemoteCall(msg);
         if (!(reply["success"].IsTrue())) {
@@ -424,85 +424,85 @@ namespace CPN {
     }
 
 
-    Key_t RemoteDBClient::GetCreateReaderKey(Key_t nodekey, const std::string &portname) {
+    Key_t RemoteContextClient::GetCreateReaderKey(Key_t nodekey, const std::string &portname) {
         PthreadMutexProtected plock(lock);
-        return GetCreateEndpointKey(RDBMT_GET_CREATE_READER_KEY, nodekey, portname);
+        return GetCreateEndpointKey(RCTXMT_GET_CREATE_READER_KEY, nodekey, portname);
     }
 
-    Key_t RemoteDBClient::GetReaderNode(Key_t portkey) {
+    Key_t RemoteContextClient::GetReaderNode(Key_t portkey) {
         PthreadMutexProtected plock(lock);
-        Variant info = GetEndpointInfo(RDBMT_GET_READER_INFO, portkey);
+        Variant info = GetEndpointInfo(RCTXMT_GET_READER_INFO, portkey);
         return info["nodekey"].AsNumber<Key_t>();
     }
 
-    Key_t RemoteDBClient::GetReaderHost(Key_t portkey) {
+    Key_t RemoteContextClient::GetReaderHost(Key_t portkey) {
         PthreadMutexProtected plock(lock);
-        Variant info = GetEndpointInfo(RDBMT_GET_READER_INFO, portkey);
+        Variant info = GetEndpointInfo(RCTXMT_GET_READER_INFO, portkey);
         return info["hostkey"].AsNumber<Key_t>();
     }
 
-    std::string RemoteDBClient::GetReaderName(Key_t portkey) {
+    std::string RemoteContextClient::GetReaderName(Key_t portkey) {
         PthreadMutexProtected plock(lock);
-        Variant info = GetEndpointInfo(RDBMT_GET_READER_INFO, portkey);
+        Variant info = GetEndpointInfo(RCTXMT_GET_READER_INFO, portkey);
         return info["name"].AsString();
     }
 
-    Key_t RemoteDBClient::GetCreateWriterKey(Key_t nodekey, const std::string &portname) {
+    Key_t RemoteContextClient::GetCreateWriterKey(Key_t nodekey, const std::string &portname) {
         PthreadMutexProtected plock(lock);
-        return GetCreateEndpointKey(RDBMT_GET_CREATE_WRITER_KEY, nodekey, portname);
+        return GetCreateEndpointKey(RCTXMT_GET_CREATE_WRITER_KEY, nodekey, portname);
     }
 
-    Key_t RemoteDBClient::GetWriterNode(Key_t portkey) {
+    Key_t RemoteContextClient::GetWriterNode(Key_t portkey) {
         PthreadMutexProtected plock(lock);
-        Variant info = GetEndpointInfo(RDBMT_GET_WRITER_INFO, portkey);
+        Variant info = GetEndpointInfo(RCTXMT_GET_WRITER_INFO, portkey);
         return info["nodekey"].AsNumber<Key_t>();
     }
 
-    Key_t RemoteDBClient::GetWriterHost(Key_t portkey) {
+    Key_t RemoteContextClient::GetWriterHost(Key_t portkey) {
         PthreadMutexProtected plock(lock);
-        Variant info = GetEndpointInfo(RDBMT_GET_WRITER_INFO, portkey);
+        Variant info = GetEndpointInfo(RCTXMT_GET_WRITER_INFO, portkey);
         return info["hostkey"].AsNumber<Key_t>();
     }
 
-    std::string RemoteDBClient::GetWriterName(Key_t portkey) {
+    std::string RemoteContextClient::GetWriterName(Key_t portkey) {
         PthreadMutexProtected plock(lock);
-        Variant info = GetEndpointInfo(RDBMT_GET_WRITER_INFO, portkey);
+        Variant info = GetEndpointInfo(RCTXMT_GET_WRITER_INFO, portkey);
         return info["name"].AsString();
     }
 
-    void RemoteDBClient::ConnectEndpoints(Key_t writerkey, Key_t readerkey) {
+    void RemoteContextClient::ConnectEndpoints(Key_t writerkey, Key_t readerkey) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
         Variant msg(Variant::ObjectType);
-        msg["type"] = RDBMT_CONNECT_ENDPOINTS;
+        msg["type"] = RCTXMT_CONNECT_ENDPOINTS;
         msg["readerkey"] = readerkey;
         msg["writerkey"] = writerkey;
         SendMessage(msg);
     }
 
-    Key_t RemoteDBClient::GetReadersWriter(Key_t readerkey) {
+    Key_t RemoteContextClient::GetReadersWriter(Key_t readerkey) {
         PthreadMutexProtected plock(lock);
-        Variant info = GetEndpointInfo(RDBMT_GET_READER_INFO, readerkey);
+        Variant info = GetEndpointInfo(RCTXMT_GET_READER_INFO, readerkey);
         return info["writerkey"].AsNumber<Key_t>();
     }
 
-    Key_t RemoteDBClient::GetWritersReader(Key_t writerkey) {
+    Key_t RemoteContextClient::GetWritersReader(Key_t writerkey) {
         PthreadMutexProtected plock(lock);
-        Variant info = GetEndpointInfo(RDBMT_GET_WRITER_INFO, writerkey);
+        Variant info = GetEndpointInfo(RCTXMT_GET_WRITER_INFO, writerkey);
         return info["readerkey"].AsNumber<Key_t>();
     }
 
-    void RemoteDBClient::Terminate() {
+    void RemoteContextClient::Terminate() {
         PthreadMutexProtected plock(lock);
         if (!shutdown) {
             InternalTerminate();
             Variant msg(Variant::ObjectType);
-            msg["type"] = RDBMT_TERMINATE;
+            msg["type"] = RCTXMT_TERMINATE;
             SendMessage(msg);
         }
     }
 
-    void *RemoteDBClient::TerminateThread() {
+    void *RemoteContextClient::TerminateThread() {
         KernelMap mapcopy;
         {
             PthreadMutexProtected plock(lock);
@@ -518,7 +518,7 @@ namespace CPN {
         return 0;
     }
 
-    void RemoteDBClient::InternalTerminate() {
+    void RemoteContextClient::InternalTerminate() {
         if (shutdown) return;
         shutdown = true;
         WaiterMap::iterator cwitr = callwaiters.begin();
@@ -535,42 +535,42 @@ namespace CPN {
             }
             ++gwitr;
         }
-        terminateThread.reset(CreatePthreadFunctional(this, &RemoteDBClient::TerminateThread));
+        terminateThread.reset(CreatePthreadFunctional(this, &RemoteContextClient::TerminateThread));
         terminateThread->Start();
     }
 
-    bool RemoteDBClient::IsTerminated() {
+    bool RemoteContextClient::IsTerminated() {
         PthreadMutexProtected plock(lock);
         return shutdown;
     }
 
-    bool RemoteDBClient::RequireRemote() {
+    bool RemoteContextClient::RequireRemote() {
         return true;
     }
 
-    void RemoteDBClient::InternalCheckTerminated() {
+    void RemoteContextClient::InternalCheckTerminated() {
         if (shutdown) {
             throw ShutdownException();
         }
     }
 
-    void RemoteDBClient::AddWaiter(WaiterInfo *info) {
+    void RemoteContextClient::AddWaiter(WaiterInfo *info) {
         callwaiters.insert(std::make_pair(info->waiterid, info));
     }
 
-    RemoteDBClient::GenericWaiterPtr RemoteDBClient::NewGenericWaiter() {
+    RemoteContextClient::GenericWaiterPtr RemoteContextClient::NewGenericWaiter() {
         GenericWaiterPtr gw = GenericWaiterPtr(new GenericWaiter);
         waiters.push_back(gw);
         return gw;
     }
 
-    unsigned RemoteDBClient::NewTranID() {
+    unsigned RemoteContextClient::NewTranID() {
         return ++trancounter;
     }
 
-    void RemoteDBClient::DispatchMessage(const Variant &msg) {
+    void RemoteContextClient::DispatchMessage(const Variant &msg) {
         AutoLock<PthreadMutex> plock(lock);
-        if (msg["type"].AsNumber<RDBMT_t>() == RDBMT_TERMINATE) {
+        if (msg["type"].AsNumber<RCTXMT_t>() == RCTXMT_TERMINATE) {
             InternalTerminate();
             return;
         }
@@ -608,17 +608,17 @@ namespace CPN {
                 // Cannot call a kernel method with the lock.
                 plock.Unlock();
                 ASSERT(kernel);
-                switch (msg["type"].AsNumber<RDBMT_t>()) {
-                case RDBMT_CREATE_NODE:
+                switch (msg["type"].AsNumber<RCTXMT_t>()) {
+                case RCTXMT_CREATE_NODE:
                     kernel->RemoteCreateNode(MsgToNodeAttr(msg["nodeattr"]));
                     break;
-                case RDBMT_CREATE_QUEUE:
+                case RCTXMT_CREATE_QUEUE:
                     kernel->RemoteCreateQueue(MsgToQueueAttr(msg["queueattr"]));
                     break;
-                case RDBMT_CREATE_WRITER:
+                case RCTXMT_CREATE_WRITER:
                     kernel->RemoteCreateWriter(MsgToQueueAttr(msg["queueattr"]));
                     break;
-                case RDBMT_CREATE_READER:
+                case RCTXMT_CREATE_READER:
                     kernel->RemoteCreateReader(MsgToQueueAttr(msg["queueattr"]));
                     break;
                 default:
@@ -632,7 +632,7 @@ namespace CPN {
         }
     }
 
-    Key_t RemoteDBClient::GetCreateEndpointKey(RDBMT_t msgtype, Key_t nodekey, const std::string &portname) {
+    Key_t RemoteContextClient::GetCreateEndpointKey(RCTXMT_t msgtype, Key_t nodekey, const std::string &portname) {
         InternalCheckTerminated();
         Variant msg(Variant::ObjectType);
         msg["type"] = msgtype;
@@ -645,7 +645,7 @@ namespace CPN {
         return reply["endpointinfo"]["key"].AsNumber<Key_t>();
     }
 
-    Variant RemoteDBClient::GetEndpointInfo(RDBMT_t msgtype, Key_t portkey) {
+    Variant RemoteContextClient::GetEndpointInfo(RCTXMT_t msgtype, Key_t portkey) {
         InternalCheckTerminated();
         Variant msg(Variant::ObjectType);
         msg["type"] = msgtype;
@@ -655,7 +655,7 @@ namespace CPN {
         return reply["endpointinfo"];
     }
 
-    Variant RemoteDBClient::RemoteCall(Variant msg) {
+    Variant RemoteContextClient::RemoteCall(Variant msg) {
         WaiterInfo winfo(NewTranID());
         AddWaiter(&winfo);
         msg["msgid"] = winfo.waiterid;

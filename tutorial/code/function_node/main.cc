@@ -52,8 +52,8 @@ int main(int argc, char **argv) {
     }
 
     Kernel kernel(KernelAttr("kernel"));
-    kernel.GetDatabase()->UseD4R(false);
-    kernel.GetDatabase()->SwallowBrokenQueueExceptions(true);
+    kernel.GetContext()->UseD4R(false);
+    kernel.GetContext()->SwallowBrokenQueueExceptions(true);
 
     kernel.CreateFunctionNode("summer", Summer, string("A"), string("B"),
             string("C"));

@@ -75,15 +75,15 @@ process. Go to apps/RandomInstruction and jmake.  Then run with -h to get a
 list of options.
 
 The second one is on multiple processes and requires more setup.  First build
-apps/RemoteRandomInstruction then build apps/RemoteDatabase.  Then create a
+apps/RemoteRandomInstruction then build apps/RemoteContext.  Then create a
 config file for the RemoteRandomInstruction, (the -h option prints out a
 description of what the config is supposed to look like.  As well, there is an
-example config file in that directory).  Now run the RemoteDatabase specifying
+example config file in that directory).  Now run the RemoteContext specifying
 listening host and port.  Then run each of the RemoteRandomInstruction with
-parameters of config then the name, database host and database port.
+parameters of config then the name, context host and context port.
 
 For the given example config it would be:
-Run on zeus: RemoteDatabase zeus 12345
+Run on zeus: RemoteContext zeus 12345
 Run: RemoteRandomInstruction configk2n100i100 kone zeus 12345
 Run: RemoteRandomInstruction configk2n100i100 ktwo zeus 12345
 
@@ -95,9 +95,9 @@ command line driven ways of running the different parts of the beamformer and
 several different tests.  Use the -h option on each symlink after it has been
 built for options on how to run them.
 
-** RemoteDatabase
+** RemoteContext
 
-This is a realization of the remote database daemon.
+This is a realization of the remote context daemon.
 
 ** XML-JSON
 

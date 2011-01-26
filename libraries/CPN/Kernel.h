@@ -34,7 +34,7 @@
 #include "ReentrantLock.h"
 #include "StatusHandler.h"
 #include "Logger.h"
-#include "Database.h"
+#include "Context.h"
 #include <string>
 #include <map>
 #include <vector>
@@ -202,17 +202,17 @@ namespace CPN {
          */
         Key_t GetKey() const { return hostkey; }
 
-        /** \return the database this kernel is using
+        /** \return the context this kernel is using
          */
-        shared_ptr<Database> GetDatabase() const { return database; }
+        shared_ptr<Context> GetContext() const { return context; }
 
         /** \brief Called by the node in the cleanup routine.
          */
         void NodeTerminated(Key_t key);
 
         /**
-         * These functions are called by the database to create things
-         * remotely. Should not be called by anyone but the database!
+         * These functions are called by the context to create things
+         * remotely. Should not be called by anyone but the context!
          * \{
          */
         void NotifyTerminate();
@@ -249,7 +249,7 @@ namespace CPN {
         const std::string kernelname;
         Key_t hostkey;
         Logger logger;
-        shared_ptr<Database> database;
+        shared_ptr<Context> context;
         auto_ptr<ConnectionServer> server;
         auto_ptr<RemoteQueueHolder> remotequeueholder;
         bool useremote;

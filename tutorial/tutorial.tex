@@ -180,15 +180,15 @@ For this example we will create the kernel on the stack.
 The constructor requires a \verb!CPN::KernelAttr! object as a parameter object.
 The kernel attribute object only has one required parameter and that is a name for the kernel.
 Most of the parameters deal with options for distributing the PN.
-We set two flags on the database object that the kernel created for us.
+We set two flags on the context object that the kernel created for us.
 The first is to not use the D4R algorithm.
 The second is swallow broken queue exceptions.
 By default the broken queue exceptions are left unhandled and end up with a call to \verb!std::terminate! ending in application termination.
 
 \begin{lstlisting}{}
     Kernel kernel(KernelAttr("kernel"));
-    kernel.GetDatabase()->UseD4R(false);
-    kernel.GetDatabase()->SwallowBrokenQueueExceptions(true);
+    kernel.GetContext()->UseD4R(false);
+    kernel.GetContext()->SwallowBrokenQueueExceptions(true);
 \end{lstlisting}
 
 Next, the nodes need to be created. It is important to notice that the nodes for a queue must exist before
@@ -226,7 +226,7 @@ Then the queues can be created.
 Finally, use the created pseudo node to gather the results.
 Notice that we must explicitly destroy the pseudo node.
 When the endpoint is released the queues on the other nodes get shut down, causing all the nodes to exit.
-We set the swallow broken queue exceptions flag in the database of the kernel above so that we would obtain this behavior.
+We set the swallow broken queue exceptions flag in the context of the kernel above so that we would obtain this behavior.
 
 \begin{lstlisting}{}
     IQueue<uint64_t> result = kernel.GetPseudoReader(pkey, "in");
@@ -310,21 +310,21 @@ The full example is in Listin \ref{lst:function node}.
 \section{Node Loader}
 \label{Node Loader}
 
-When you ask the kernel to create a node by type name, it asks the database
+When you ask the kernel to create a node by type name, it asks the context
 for a node factory that can create a node of that type.
-The database has an internal map between type names and factories.
+The context has an internal map between type names and factories.
 If there is a factory in that map it will return it.
-If not then there are several places the database will look to see if it can
+If not then there are several places the context will look to see if it can
 find one.
-The first thing the database will do is search the executable for a symbol which is
+The first thing the context will do is search the executable for a symbol which is
 the type name added to an identifier.
 If a symbol with that name is found it is treated as a function that will return
 a factory that can create nodes of that type.
-If such a symbol is not found then the database will look if there is any node list that has
+If such a symbol is not found then the context will look if there is any node list that has
 information about that type.
 If so, it will look through it to see if there is a shared library that can be loaded to get a 
 function that can supply a factory for that node type.
-If all of these fail then the database throws an exception indicating that no factory could be found
+If all of these fail then the context throws an exception indicating that no factory could be found
 for that node type.
 
 A node list is a file that has a very simple format.
@@ -382,14 +382,14 @@ The four options for the kernel are:
 \item[``name''] The name that the kernel will use (required).
 \item[``host''] The host name that the kernel will use to listen on (optional).
 \item[``port''] The port number or name that the kernel will use to listen on (optional).
-\item[``database''] A sub-map that describes options for what kind of database to load and what options on the database to set. Those options are:
+\item[``context''] A sub-map that describes options for what kind of context to load and what options on the context to set. Those options are:
 \begin{description}
-\item[``host''] What host name the database daemon is listening on (optional, if present ``port'' must also be specified, else the local database implementation will be used).
-\item[``port''] What port number or name the database daemon is listening on.
+\item[``host''] What host name the context daemon is listening on (optional, if present ``port'' must also be specified, else the local context implementation will be used).
+\item[``port''] What port number or name the context daemon is listening on.
 \item[``d4r''] Whether to use the D4R algorithm or not (optional, default true).
 \item[``swallow-broken-queue-exceptions''] Whether to swallow the BrokenQueueException that can be emitted from an enqueue (optional, default false).
 \item[``grow-queue-max-threshold''] Whether to automatically grow the queue if a larger threshold is asked for than the queue can handle (optional, default true)
-\item[``libs''] A list of shared libraries that contain node definitions that the database should load up immediately.
+\item[``libs''] A list of shared libraries that contain node definitions that the context should load up immediately.
 \item[``liblist''] A list of node list files that contain information about where to find the shared libraries for nodes that are not statically linked in or manually loaded.
 \item[``loglevel''] Specify the logging level for the internal CPN logger. This is mainly used for debugging the internals of the CPN library.
 \end{description}
@@ -430,9 +430,9 @@ Some valid types are ``void'', and the various types names defined in ``stdint.h
 \label{Distributing}
 
 This section assumes you have read the sections on \verb!Variant! and the \verb!VariantCPNLoader!.
-In order to use the distributed features you need to have setup a remote database daemon.
-A simple daemon implementation is in \url{apps/RemoteDatabase}.
-When setting up you then have to use a remote database instance to the kernel attribute and possibly set the host name in the attribute.
+In order to use the distributed features you need to have setup a remote context daemon.
+A simple daemon implementation is in \url{apps/RemoteContext}.
+When setting up you then have to use a remote context instance to the kernel attribute and possibly set the host name in the attribute.
 Then when creating nodes you specify which kernel that node should be created on using the \verb!NodeAttr::SetHost! method.
 If everything works right, then that's all the additional things that must be done over running on a single kernel.
 You of course have to ensure that every process possesses the node definitions that you try to load on it.
@@ -457,7 +457,7 @@ what goes into the loader.
 
 Now a description of the program.
 The first thing the program does is setup some default values and instantiates a VariantCPNLoader and calls it \verb|loader|.
-Then it loads in the file \verb!db_def.json! for the default database options.
+Then it loads in the file \verb!db_def.json! for the default context options.
 
 \begin{lstlisting}{}
     uint64_t max_fib = 100;
@@ -475,7 +475,7 @@ This example will not run correctly without them.
 The validator should catch any options that are left out that are absolutely required.
 For example, the \verb!--name! option must be specified.
 Use the \verb!run! script to run this example.
-A \verb!run! script is provided in the code directory that runs the remote database daemon and then
+A \verb!run! script is provided in the code directory that runs the remote context daemon and then
 runs each of the kernels with the correct parameters.
 After the command line options are parsed and the corresponding data is set, then the default configuration is loaded
 if it was set to do so from the command line options.

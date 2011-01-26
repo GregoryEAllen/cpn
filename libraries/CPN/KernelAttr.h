@@ -33,7 +33,7 @@ namespace CPN {
     /**
      * \brief The attribute for the Kernel.
      *
-     * Possible parameters to the Kernel are the name, hostname, servname, and database.
+     * Possible parameters to the Kernel are the name, hostname, servname, and context.
      * Only name is required.
      */
     class CPN_API KernelAttr {
@@ -64,8 +64,8 @@ namespace CPN {
             return *this;
         }
 
-        KernelAttr &SetDatabase(shared_ptr<Database> db) {
-            database = db;
+        KernelAttr &SetContext(shared_ptr<Context> ctx) {
+            context = ctx;
             return *this;
         }
 
@@ -80,14 +80,14 @@ namespace CPN {
 
         const std::string &GetServName() const { return servname; }
 
-        shared_ptr<Database> GetDatabase() const { return database; }
+        shared_ptr<Context> GetContext() const { return context; }
 
         bool GetRemoteEnabled() const { return remote_enabled; }
     private:
         std::string name;
         std::string hostname;
         std::string servname;
-        shared_ptr<Database> database;
+        shared_ptr<Context> context;
         bool remote_enabled;
     };
 }

@@ -20,10 +20,10 @@
 /** \file
  * \author John Bridgman
  */
-#ifndef REMOTEDATABASE_H
-#define REMOTEDATABASE_H
+#ifndef REMOTECONTEXT_H
+#define REMOTECONTEXT_H
 #pragma once
-#include "RemoteDBClient.h"
+#include "RemoteContextClient.h"
 #include "SocketHandle.h"
 #include "JSONToVariant.h"
 #include <memory>
@@ -31,13 +31,13 @@
 class Pthread;
 
 /**
- * An implementation for the RemoteDBClient that is paired with RemoteDatabaseDaemon.
+ * An implementation for the RemoteDBClient that is paired with RemoteContextDaemon.
  */
-class CPN_API RemoteDatabase : public CPN::RemoteDBClient, public SocketHandle {
+class CPN_API RemoteContext : public CPN::RemoteContextClient, public SocketHandle {
 public:
-    RemoteDatabase(const SocketAddress &addr);
-    RemoteDatabase(const SockAddrList &addrs);
-    ~RemoteDatabase();
+    RemoteContext(const SocketAddress &addr);
+    RemoteContext(const SockAddrList &addrs);
+    ~RemoteContext();
 protected:
     void SendMessage(const Variant &msg);
     void *EntryPoint();

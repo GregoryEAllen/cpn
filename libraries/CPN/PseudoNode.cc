@@ -1,18 +1,36 @@
-
+//=============================================================================
+//	Computational Process Networks class library
+//	Copyright (C) 1997-2006  Gregory E. Allen and The University of Texas
+//
+//	This library is free software; you can redistribute it and/or modify it
+//	under the terms of the GNU Library General Public License as published
+//	by the Free Software Foundation; either version 2 of the License, or
+//	(at your option) any later version.
+//
+//	This library is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//	Library General Public License for more details.
+//
+//	The GNU Public License is available in the file LICENSE, or you
+//	can write to the Free Software Foundation, Inc., 59 Temple Place -
+//	Suite 330, Boston, MA 02111-1307, USA, or you can find it on the
+//	World Wide Web at http://www.fsf.org.
+//=============================================================================
 #include "PseudoNode.h"
 #include "D4RNode.h"
-#include "Database.h"
+#include "Context.h"
 #include "QueueReader.h"
 #include "QueueWriter.h"
 
 
 namespace CPN {
 
-    PseudoNode::PseudoNode(const std::string &n, Key_t k, shared_ptr<Database> db)
+    PseudoNode::PseudoNode(const std::string &n, Key_t k, shared_ptr<Context> ctx)
         : name(n),
         nodekey(k),
         d4rnode(new D4R::Node(k)),
-        database(db)
+        context(ctx)
     {
     }
 
@@ -20,14 +38,14 @@ namespace CPN {
     }
 
     shared_ptr<QueueReader> PseudoNode::GetReader(const std::string &portname) {
-        database->CheckTerminated();
-        Key_t ekey = database->GetCreateReaderKey(nodekey, portname);
+        context->CheckTerminated();
+        Key_t ekey = context->GetCreateReaderKey(nodekey, portname);
         return GetReader(ekey);
     }
 
     shared_ptr<QueueWriter> PseudoNode::GetWriter(const std::string &portname) {
-        database->CheckTerminated();
-        Key_t ekey = database->GetCreateWriterKey(nodekey, portname);
+        context->CheckTerminated();
+        Key_t ekey = context->GetCreateWriterKey(nodekey, portname);
         return GetWriter(ekey);
     }
 
@@ -108,7 +126,7 @@ namespace CPN {
         while (!reader) {
             ReaderMap::iterator entry = readermap.find(ekey);
             if (entry == readermap.end()) {
-                database->CheckTerminated();
+                context->CheckTerminated();
                 cond.Wait(lock);
             } else {
                 reader = shared_ptr<QueueReader>(entry->second);
@@ -123,7 +141,7 @@ namespace CPN {
         while (!writer) {
             WriterMap::iterator entry = writermap.find(ekey);
             if (entry == writermap.end()) {
-                database->CheckTerminated();
+                context->CheckTerminated();
                 cond.Wait(lock);
             } else {
                 writer = shared_ptr<QueueWriter>(entry->second);

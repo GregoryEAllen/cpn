@@ -20,7 +20,7 @@
 /** \file
  * \author John Bridgman
  */
-#include "RemoteDatabase.h"
+#include "RemoteContext.h"
 #include "ErrnoException.h"
 #include "VariantToJSON.h"
 #include "PthreadFunctional.h"
@@ -28,27 +28,27 @@
 
 using std::auto_ptr;
 
-RemoteDatabase::RemoteDatabase(const SocketAddress &addr)
+RemoteContext::RemoteContext(const SocketAddress &addr)
 { 
-    thread.reset(CreatePthreadFunctional(this, &RemoteDatabase::EntryPoint));
+    thread.reset(CreatePthreadFunctional(this, &RemoteContext::EntryPoint));
     Connect(addr);
     SetNoDelay(true);
     thread->Start();
 }
 
-RemoteDatabase::RemoteDatabase(const SockAddrList &addrs)
+RemoteContext::RemoteContext(const SockAddrList &addrs)
 { 
-    thread.reset(CreatePthreadFunctional(this, &RemoteDatabase::EntryPoint));
+    thread.reset(CreatePthreadFunctional(this, &RemoteContext::EntryPoint));
     Connect(addrs);
     SetNoDelay(true);
     thread->Start();
 }
 
-RemoteDatabase::~RemoteDatabase() {
+RemoteContext::~RemoteContext() {
     thread->Join();
 }
 
-void RemoteDatabase::SendMessage(const Variant &msg) {
+void RemoteContext::SendMessage(const Variant &msg) {
     if (!Closed()) {
         std::string message = VariantToJSON(msg);
         //printf("<<< %s\n", message.c_str());
@@ -56,7 +56,7 @@ void RemoteDatabase::SendMessage(const Variant &msg) {
     }
 }
 
-void *RemoteDatabase::EntryPoint() {
+void *RemoteContext::EntryPoint() {
     try {
         Readable(false);
         while (Good() && !IsTerminated()) {
@@ -64,14 +64,14 @@ void *RemoteDatabase::EntryPoint() {
             Read();
         }
     } catch (const ErrnoException &e) {
-        printf("RemoteDatabase: Uncaught errno exception (%d): %s\n", e.Error(), e.what());
+        printf("RemoteContext: Uncaught errno exception (%d): %s\n", e.Error(), e.what());
         Terminate();
     }
     Close();
     return 0;
 }
 
-void RemoteDatabase::Read() {
+void RemoteContext::Read() {
     const unsigned BUF_SIZE = 4*1024;
     char buf[BUF_SIZE];
     while (Good()) {

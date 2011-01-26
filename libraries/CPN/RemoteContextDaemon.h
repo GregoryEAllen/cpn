@@ -20,34 +20,34 @@
 /** \file
  * \author John Bridgman
  */
-#ifndef REMOTEDATABASEDAEMON_H
-#define REMOTEDATABASEDAEMON_H
+#ifndef REMOTECONTEXTDAEMON_H
+#define REMOTECONTEXTDAEMON_H
 #pragma once
 #include "ServerSocketHandle.h"
 #include "SocketHandle.h"
-#include "RemoteDBServer.h"
+#include "RemoteContextServer.h"
 #include "JSONToVariant.h"
 #include <string>
 #include <tr1/memory>
 #include <memory>
 
 /**
- * The RemoteDatabaseDaemon is an implementation of RemoteDBServer that uses
+ * The RemoteContextDaemon is an implementation of RemoteDBServer that uses
  * simple tcp/ip and listens on an address you specify.
  */
-class CPN_API RemoteDatabaseDaemon : public CPN::RemoteDBServer, public ServerSocketHandle {
+class CPN_API RemoteContextDaemon : public CPN::RemoteContextServer, public ServerSocketHandle {
 public:
-    RemoteDatabaseDaemon(const SocketAddress &addr);
-    RemoteDatabaseDaemon(const SockAddrList &addrs);
-    ~RemoteDatabaseDaemon();
-    /** \brief Run the actual database
-     * returns when the database is terminated
+    RemoteContextDaemon(const SocketAddress &addr);
+    RemoteContextDaemon(const SockAddrList &addrs);
+    ~RemoteContextDaemon();
+    /** \brief Run the actual Context
+     * returns when the context is terminated
      * and all clients have disconnected
      */
     void Run();
 
     // These functions are for the Client
-    using CPN::RemoteDBServer::DispatchMessage;
+    using CPN::RemoteContextServer::DispatchMessage;
     void Terminate();
     void Terminate(const std::string &name);
 private:
@@ -58,12 +58,12 @@ private:
 
     class Client : public SocketHandle {
     public:
-        Client(RemoteDatabaseDaemon *d, int nfd);
+        Client(RemoteContextDaemon *d, int nfd);
         void Read();
         void Send(const Variant &msg);
         const std::string &GetName() const { return name; }
     private:
-        RemoteDatabaseDaemon *daemon;
+        RemoteContextDaemon *daemon;
         std::string name;
         JSONToVariant parse;
     };
