@@ -1,4 +1,6 @@
 {
+    "d4r": false,
+    "swallow-broken-queue-exceptions": true,
     "nodes": [
         {
             "name": "summer",
@@ -9,8 +11,8 @@
             }
         },
         {
-            "name": "Delay 1",
-            "type": "Delay",
+            "name": "Cons 1",
+            "type": "Cons",
             "param": {
                 "input": "in",
                 "outputs": [ "A", "B" ],
@@ -18,8 +20,8 @@
             }
         },
         {
-            "name": "Delay 2",
-            "type": "Delay",
+            "name": "Cons 2",
+            "type": "Cons",
             "param": {
                 "input": "in",
                 "outputs": [ "A", "B" ],
@@ -36,7 +38,7 @@
             "datatype": "uint64_t",
             "readernode": "summer",
             "readerport": "A",
-            "writernode": "Delay 1",
+            "writernode": "Cons 1",
             "writerport": "A"
         },
         {
@@ -46,7 +48,7 @@
             "datatype": "uint64_t",
             "readernode": "summer",
             "readerport": "B",
-            "writernode": "Delay 2",
+            "writernode": "Cons 2",
             "writerport": "A"
         },
         {
@@ -54,7 +56,7 @@
             "threshold": 8,
             "type": "default",
             "datatype": "uint64_t",
-            "readernode": "Delay 1",
+            "readernode": "Cons 1",
             "readerport": "in",
             "writernode": "summer",
             "writerport": "C"
@@ -64,9 +66,9 @@
             "threshold": 8,
             "type": "default",
             "datatype": "uint64_t",
-            "readernode": "Delay 2",
+            "readernode": "Cons 2",
             "readerport": "in",
-            "writernode": "Delay 1",
+            "writernode": "Cons 1",
             "writerport": "B"
         },
         {
@@ -76,7 +78,7 @@
             "datatype": "uint64_t",
             "readernode": "result",
             "readerport": "in",
-            "writernode": "Delay 2",
+            "writernode": "Cons 2",
             "writerport": "B"
         }
     ]

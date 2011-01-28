@@ -14,19 +14,26 @@ This tutorial aims to give a basic walk through of how to use the Computational 
 For most of the examples in this document the same toy example process network (PN) will be used.
 This is so that you may see several different ways of implementing the same thing.
 The example process network is a Fibonacci number generator.
+The Fibonacci sequence can be described as the following recursive equation and initial values.
+\begin{eqnarray}
+F_n = F_{n-1} + F_{n-2}\\
+F_0 = 1\\
+F_1 = 1
+\end{eqnarray}
 This is a very simple PN and requires only two types of nodes.
-The first type of node is a summing node that takes some number of inputs and one output.
+The first type of node is a summing node that takes two inputs and one output.
 The summing node takes one token from each input, sums them together and then enqueues the result
 on the output.
-We shall call the second type of node the delay node.
-This particular PN can be implemented as a synchronous data flow graph and in a synchronous data flow
-the delay node would be a time delay.
-The delay node has an initial value, and input, and several outputs.
+We shall call the second type of node the cons node.
+The cons node has an initial value, an innput, and two outputs.
 The current value is set to the initial value.
 Then the node proceeds by enqueueing its current value to all outputs.
 The node sets its current value from the input and repeat.
 All the examples will use the pseudo node interface for the collection of the PN output.
 The topology of the example PN is in Figure \ref{fig:fibinocci}.
+Note that all arithmetic in the nodes is done using 64 bit unsigned integers and 12200160415121876738 is the largest
+Fibonacci number that can be represented in 64 bits unsigned.
+Asking for a maximum number any larger than this will result in overflow and incorrect results.
 
 \begin{figure}[htbp]
 \centering
@@ -35,7 +42,134 @@ The topology of the example PN is in Figure \ref{fig:fibinocci}.
 \caption{Process network to generate Fibonacci numbers}
 \end{figure}
 
+First, some introduction to supporting classes will be given in sections \ref{sec:variant} and \ref{sec:variantcpnloader}.
+A discussion of how nodes are loaded is given in section \ref{sec:node loader}.
+Then a discussion of how to create nodes with examples is in section \ref{sec:nodes}.
+Finally, a discussion of how to distributed the PN is given in \ref{sec:distributing}.
+
+\section{Variant}
+\label{sec:variant}
+
+Before we talk about the distributed framework a little knowledge of some of the supporting classes is needed.
+The Variant class is a simple container that can represent a set of data structures.
+What Variant can represent is directly mappable into the JSON specification and back again.
+There are a set of classes and functions for parsing JSON to a Variant and back again.
+There is also a set of classes and functions for parsing to an XML format and back again.
+This means that an application that is setup right with Variant can accept both JSON and XML
+input. More details on the JSON format can be found at \url{www.json.org}.
+There is an example application in the \url{apps/XML-JSON} which reads in JSON to Variant and then outputs in our XML format
+or reads in or XML format and outputs JSON.
+
+\section{VariantCPNLoader}
+\label{sec:variantcpnloader}
+
+The \verb!VariantCPNLoader! is a class and a set of static methods that take a Variant object with data in a specific format and
+use that data to call methods on a kernel object.
+The \verb!VariantCPNLoader! also has a method for constructing a KernelAttr object from a Variant object.
+An example of the loaders usage is given in the distributed section.
+The \verb!VariantCPNLoader! has a validator that goes through the configuration and ensures that all required fields are present
+and that there are no obvious errors like two nodes with the same name.
+At this point it may be constructive to take a look at \url{apps/CPNKernel/main.cc}.
+The CPNKernel application is an example of an application that will load up any set of derived nodes from a node library using
+configuration files.
+
+The configuration that the \verb!VariantCPNLoader! wants to see 
+is a key value map at the base. There are nine keys that specify options for the kernel and three
+that specify how to load the PN.
+The nine options for the kernel are:
+\begin{description}
+\item[``name''] The name that the kernel will use (required).
+\item[``host''] The host name that the kernel will use to listen on (optional).
+\item[``port''] The port number or name that the kernel will use to listen on (optional).
+\item[``d4r''] Whether to use the D4R algorithm or not (optional, default true).
+\item[``swallow-broken-queue-exceptions''] Whether to swallow the BrokenQueueException that can be emitted from an enqueue (optional, default false).
+\item[``grow-queue-max-threshold''] Whether to automatically grow the queue if a larger threshold is asked for than the queue can handle (optional, default true)
+\item[``libs''] A list of shared libraries that contain node definitions that the context should load up immediately.
+\item[``liblist''] A list of node list files that contain information about where to find the shared libraries for nodes that are not statically linked in or manually loaded.
+\item[``context''] A sub-map that describes options for what kind of context to load and what options on the context to set. Those options are:
+\begin{description}
+\item[``host''] What host name the context daemon is listening on (optional, if present ``port'' must also be specified, else the local context implementation will be used).
+\item[``port''] What port number or name the context daemon is listening on.
+\item[``loglevel''] Specify the logging level for the internal CPN logger. This is mainly used for debugging the internals of the CPN library.
+\end{description}
+\end{description}
+
+The three keys that specify how to load the PN are:
+\begin{description}
+\item[``nodes''] A list of node definitions.
+\item[``queues''] A list of queue definitions.
+\item[``nodemap''] A key value map with node names as keys and the kernel name which that node should be run on as values.
+\end{description}
+
+A node definition is a map with the following fields:
+\begin{description}
+\item[``name''] The unique name for the node (required).
+\item[``type''] The type name of this node (required).
+\item[``param''] Parameters to pass to this node (optional). If parameters is a Variant then it will be serialized as JSON.
+\item[``host''] The name of the host that this node should be loaded on (optional). The nodemap overrides this option.
+\end{description}
+
+The queue definition is a map with the following fields:
+\begin{description}
+\item[``size''] The size in bytes of this queue (required).
+\item[``threshold''] The size in bytes of the threshold (required).
+\item[``readernode''] The name of the node that will read from this queue (required).
+\item[``readerport''] The port name that the reader node will use (required).
+\item[``writernode''] The name of the node that will write to this queue (required).
+\item[``writerport''] The port name that the writer node will use (required).
+\item[``type''] The type of queue, either ``threshold'' or ``default'' (optional, default is ``default'').
+\item[``datatype''] A string that specifies the data type for the queue (optional, default ``void''). 
+Some valid types are ``void'', and the various types names defined in ``stdint.h'' like ``int32\_t'' as well as ``float'', ``double'', and ``complex$<$T$>$'' where ``T'' is any of the previous types.
+\item[``numchannels''] The number of channels for this queue (optional, default 1).
+\item[``alpha''] A parameter used only by the remote queue allowing one to specify how much space to split between the two sides (optional, default 0.5).
+\end{description}
+
+
+\section{Node Loader}
+\label{sec:node loader}
+
+When you ask the kernel to create a node by type name, it asks the node loader
+for a node factory that can create a node of that type.
+The context has an internal map between type names and factories.
+If there is a factory in that map it will return it.
+If not then there are several places the context will look to see if it can
+find one.
+The first thing the context will do is search the executable for a symbol which is
+the type name added to an identifier.
+If a symbol with that name is found it is treated as a function that will return
+a factory that can create nodes of that type.
+If such a symbol is not found then the context will look if there is any node list that has
+information about that type.
+If so, it will look through it to see if there is a shared library that can be loaded to get a 
+function that can supply a factory for that node type.
+If all of these fail then the context throws an exception indicating that no factory could be found
+for that node type.
+
+A node list is a file that has a very simple format.
+The format is a directive followed by parameters then a semicolon.
+Newlines and spaces and tabs etc, are all considered white space and are collapsed unless they are inside of quotations.
+The supported directives are ``lib'' and ``include''.
+lib has two parameters, the first being the type symbol name, and the second being a shared library object that can be loaded to get that symbol name.
+The include directive has one parameter and that is a file name that should be recursively loaded for more definitions.
+Filenames with spaces and other special characters may be quoted.
+The format also supports backslashes to escape any special meaning of the next character in unquoted strings and the \# character for single line comments.
+See the file \url{libraries/CPN/NodeLoader.cc} for details.
+
+One consequence of this loading scheme is that in general nodes will not have any referenced symbols in them.
+This is not normally a problem except when one tries to put a node in a library and use a tool like jmake.
+jmake collects objects into archives and then uses the linker to load that together.
+The problem with this is that the linker will prune out object files in archives that have no references.
+This causes objects in which we want to dynamically call symbols in to not be linked into the executable.
+So, when using tools like jmake a manual effort to ensure that there is a referenced symbol in the appropriate object
+for all the nodes in archives needs to be made.
+Also, if no nodes are statically linked efforts needs to be made to ensure that the linker does not prune out typeinfo symbols that the nodes need in the CPN library.
+On systems with the GNU linker this can be done by ensuring your tool uses the whole archive flag around the CPN library archives and the node archive files.
+Even more linkers support the `-u' option which tells them to consider the given symbol name to be undefined and search through and load objects that define that symbol.
+But using `-u' requires knowledge of the symbols that must be loaded and this is compiler and platform
+specific.
+
 \section{Nodes}
+\label{sec:nodes}
 There are three different ways to define or create a node.
 The first way is to derive a node from \verb!CPN::NodeBase!. This method is rather verbose but allows one to load
 the node through the \verb!VariantCPNLoader!. The second way is by asking the kernel to create a function node.
@@ -47,17 +181,7 @@ So, by providing the right kind of callback functions you can easily turn that s
 
 
 \subsection{Derived Node Example}
-\label{Derived Node Example}
-
-The full source code for this example is in section \ref{derived source}.
-
-To construct a derived node one must pass a \verb!CPN::NodeAttr! object to the kernel.
-The node attribute object requires a node name and a node type name as constructor arguments.
-The methods of interest are \verb!NodeAttr::SetParam!, \verb!NodeAttr::GetParam! and \verb!NodeAttr::SetHost!.
-The \verb!NodeAttr::SetHost! is used when distributing the process network.
-See section \ref{Distributing}.
-To be able to construct a node in this fashion the node loader must be able to find the node factory.
-See section \ref{Node Loader} for more details.
+\label{sec:derived node example}
 
 In order to provide a derived node one must inherit from \verb!CPN::NodeBase!.
 Also, if the standard node factory declaration macro is used the constructor must take a reference
@@ -65,6 +189,15 @@ to the \verb!CPN::Kernel! as the first parameter and a const reference to the \v
 as the second parameter.
 These are the parameters that the constructor for \verb!CPN::NodeBase! takes.
 The declaration for the summing node is in Listing \ref{summer declaration}
+The full source code for this example is in section \ref{derived source}.
+
+To construct a derived node one must pass a \verb!CPN::NodeAttr! object to the kernel.
+The node attribute object requires a node name and a node type name as constructor arguments.
+The methods of interest are \verb!NodeAttr::SetParam!, \verb!NodeAttr::GetParam! and \verb!NodeAttr::SetHost!.
+The \verb!NodeAttr::SetHost! is used when distributing the process network.
+See section \ref{sec:distributing}.
+To be able to construct a node in this fashion the node loader must be able to find the node factory.
+See section \ref{sec:node loader} for more details.
 
 \begin{figure}[htbp]
 \begin{lstlisting}[caption=Declaration for the summing node,label=summer declaration]{}
@@ -128,7 +261,7 @@ void Summer::Process() {
     }
     OQueue<uint64_t> outport = GetWriter(output);
     bool loop = true;
-    while (true) {
+    while (loop) {
         uint64_t sum = 0;
         for (Inport_t::iterator i = inports.begin(), e = inports.end();
                 i != e; ++i) {
@@ -198,10 +331,10 @@ the queue can be created.
     NodeAttr nattr("summer", "Summer", "{\"inputs\":[ \"A\","
            " \"B\"], \"output\": \"C\"}");
     kernel.CreateNode(nattr);
-    nattr = NodeAttr("Delay 1", "Delay", "{\"input\": \"in\","
+    nattr = NodeAttr("Cons 1", "Cons", "{\"input\": \"in\","
            " \"outputs\":[ \"A\", \"B\" ], \"initial\": 1}");
     kernel.CreateNode(nattr);
-    nattr.SetName("Delay 2");
+    nattr.SetName("Cons 2");
     kernel.CreateNode(nattr);
     Key_t pkey = kernel.CreatePseudoNode("result");
 \end{lstlisting}
@@ -211,15 +344,15 @@ Then the queues can be created.
 \begin{lstlisting}{}
     QueueAttr qattr(2*sizeof(uint64_t), sizeof(uint64_t));
     qattr.SetDatatype<uint64_t>();
-    qattr.SetWriter("Delay 1", "A").SetReader("summer", "A");
+    qattr.SetWriter("Cons 1", "A").SetReader("summer", "A");
     kernel.CreateQueue(qattr);
-    qattr.SetWriter("Delay 2", "A").SetReader("summer", "B");
+    qattr.SetWriter("Cons 2", "A").SetReader("summer", "B");
     kernel.CreateQueue(qattr);
-    qattr.SetWriter("summer", "C").SetReader("Delay 1", "in");
+    qattr.SetWriter("summer", "C").SetReader("Cons 1", "in");
     kernel.CreateQueue(qattr);
-    qattr.SetWriter("Delay 1", "B").SetReader("Delay 2", "in");
+    qattr.SetWriter("Cons 1", "B").SetReader("Cons 2", "in");
     kernel.CreateQueue(qattr);
-    qattr.SetWriter("Delay 2", "B").SetReader("result", "in");
+    qattr.SetWriter("Cons 2", "B").SetReader("result", "in");
     kernel.CreateQueue(qattr);
 \end{lstlisting}
 
@@ -241,15 +374,15 @@ We set the swallow broken queue exceptions flag in the context of the kernel abo
 \end{lstlisting}
 
 This gathering of results gives a simple example of how to use the pseudo nodes.
-The pseudo nodes where added for the explicit reason of having outside code that needed
+The pseudo nodes were added for the explicit reason of having outside code that needed
 to act as a source or sink into the PN.
-For example if you where using CPN as processing glue between two independent subsystems that both used
+For example if you were using CPN as processing glue between two independent subsystems that both used
 callbacks.
 You could supply the pseudo node key and the kernel to each callback and the two systems could
 then work as sources and sinks in the PN.
 
 \subsection{Function Node Example}
-\label{Function Node Example}
+\label{sec:function node example}
 
 Function nodes are useful when you want to have a simple one off node and/or don't need auto
 loading.
@@ -279,7 +412,7 @@ static void Summer(NodeBase *node, string input_a, string input_b,
         out.Enqueue(&sum, 1);
     }
 }
-static void Delay(NodeBase *node, string input, string output_a,
+static void Cons(NodeBase *node, string input, string output_a,
         string output_b, uint64_t initial) {
     IQueue<uint64_t> in = node->GetReader(input);
     OQueue<uint64_t> out_a = node->GetWriter(output_a);
@@ -297,137 +430,17 @@ Then to create the nodes we have:
 \begin{lstlisting}{}
     kernel.CreateFunctionNode("summer", Summer, string("A"), string("B"),
             string("C"));
-    kernel.CreateFunctionNode("Delay 1", Delay, string("in"), string("A"),
+    kernel.CreateFunctionNode("Cons 1", Cons, string("in"), string("A"),
             string("B"), 1ull);
-    kernel.CreateFunctionNode("Delay 2", Delay, string("in"), string("A"),
+    kernel.CreateFunctionNode("Cons 2", Cons, string("in"), string("A"),
             string("B"), 1ull);
     Key_t pkey = kernel.CreatePseudoNode("result");
 \end{lstlisting}
 Everything else is the same as the derived node example.
-The full example is in Listin \ref{lst:function node}.
-
-
-\section{Node Loader}
-\label{Node Loader}
-
-When you ask the kernel to create a node by type name, it asks the context
-for a node factory that can create a node of that type.
-The context has an internal map between type names and factories.
-If there is a factory in that map it will return it.
-If not then there are several places the context will look to see if it can
-find one.
-The first thing the context will do is search the executable for a symbol which is
-the type name added to an identifier.
-If a symbol with that name is found it is treated as a function that will return
-a factory that can create nodes of that type.
-If such a symbol is not found then the context will look if there is any node list that has
-information about that type.
-If so, it will look through it to see if there is a shared library that can be loaded to get a 
-function that can supply a factory for that node type.
-If all of these fail then the context throws an exception indicating that no factory could be found
-for that node type.
-
-A node list is a file that has a very simple format.
-The format is a directive followed by parameters then a semicolon.
-Newlines and spaces and tabs etc, are all considered white space and are collapsed unless they are inside of quotations.
-The supported directives are ``lib'' and ``include''.
-lib has two parameters, the first being the type symbol name, and the second being a shared library object that can be loaded to get that symbol name.
-The include directive has one parameter and that is a file name that should be recursively loaded for more definitions.
-Filenames with spaces and other special characters may be quoted.
-The format also supports backslashes to escape any special meaning of the next character in unquoted strings and the \# character for single line comments.
-See the file \url{libraries/CPN/NodeLoader.cc} for details.
-
-One consequence of this loading scheme is that in general nodes will not have any referenced symbols in them.
-This is not normally a problem except when one tries to put a node in a library and use a tool like jmake.
-jmake collects objects into archives and then uses the linker to load that together.
-The problem with this is that the linker will prune out object files in archives that have no references.
-This causes objects in which we want to dynamically call symbols in to not be linked into the executable.
-So, when using tools like jmake a manual effort to ensure that there is a referenced symbol in the appropriate object
-for all the nodes in archives needs to be made.
-Also, if no nodes are statically linked efforts needs to be made to ensure that the linker does not prune out typeinfo symbols that the nodes need in the CPN library.
-On systems with the GNU linker this can be done by ensuring your tool uses the whole archive flag around the CPN library archives and the node archive files.
-Even more linkers support the `-u' option which tells them to consider the given symbol name to be undefined and search through and load objects that define that symbol.
-But using `-u' requires knowledge of the symbols that must be loaded and this is compiler and platform
-specific.
-
-\section{Variant}
-
-Before we talk about the distributed framework a little knowledge of some of the supporting classes is needed.
-The Variant class is a simple container that can represent a set of data structures.
-What Variant can represent is directly mappable into the JSON specification and back again.
-There are a set of classes and functions for parsing JSON to a Variant and back again.
-There is also a set of classes and functions for parsing to an XML format and back again.
-This means that an application that is setup right with Variant can accept both JSON and XML
-input. More details on the JSON format can be found at \url{www.json.org}.
-There is an example application in the \url{apps/XML-JSON} which reads in JSON to Variant and then outputs in our XML format
-or reads in or XML format and outputs JSON.
-
-\section{VariantCPNLoader}
-
-The \verb!VariantCPNLoader! is a class and a set of static methods that take a Variant object with data in a specific format and
-use that data to call methods on a kernel object.
-The \verb!VariantCPNLoader! also has a method for constructing a KernelAttr object from a Variant object.
-An example of the loaders usage is given in the distributed section.
-The \verb!VariantCPNLoader! has a validator that goes through the configuration and ensures that all required fields are present
-and that there are no obvious errors like two nodes with the same name.
-At this point it may be constructive to take a look at \url{apps/CPNKernel/main.cc}.
-The CPNKernel application is an example of an application that will load up any set of derived nodes from a node library using
-configuration files.
-
-The configuration that the \verb!VariantCPNLoader! wants to see 
-is a key value map at the base. There are four keys that specify options for the kernel and three
-that specify how to load the PN.
-The four options for the kernel are:
-\begin{description}
-\item[``name''] The name that the kernel will use (required).
-\item[``host''] The host name that the kernel will use to listen on (optional).
-\item[``port''] The port number or name that the kernel will use to listen on (optional).
-\item[``context''] A sub-map that describes options for what kind of context to load and what options on the context to set. Those options are:
-\begin{description}
-\item[``host''] What host name the context daemon is listening on (optional, if present ``port'' must also be specified, else the local context implementation will be used).
-\item[``port''] What port number or name the context daemon is listening on.
-\item[``d4r''] Whether to use the D4R algorithm or not (optional, default true).
-\item[``swallow-broken-queue-exceptions''] Whether to swallow the BrokenQueueException that can be emitted from an enqueue (optional, default false).
-\item[``grow-queue-max-threshold''] Whether to automatically grow the queue if a larger threshold is asked for than the queue can handle (optional, default true)
-\item[``libs''] A list of shared libraries that contain node definitions that the context should load up immediately.
-\item[``liblist''] A list of node list files that contain information about where to find the shared libraries for nodes that are not statically linked in or manually loaded.
-\item[``loglevel''] Specify the logging level for the internal CPN logger. This is mainly used for debugging the internals of the CPN library.
-\end{description}
-\end{description}
-
-The three keys that specify how to load the PN are:
-\begin{description}
-\item[``nodes''] A list of node definitions.
-\item[``queues''] A list of queue definitions.
-\item[``nodemap''] A key value map with node names as keys and the kernel name which that node should be run on as values.
-\end{description}
-
-A node definition is a map with the following fields:
-\begin{description}
-\item[``name''] The unique name for the node (required).
-\item[``type''] The type name of this node (required).
-\item[``param''] Parameters to pass to this node (optional). If parameters is a Variant then it will be serialized as JSON.
-\item[``host''] The name of the host that this node should be loaded on (optional). The nodemap overrides this option.
-\end{description}
-
-The queue definition is a map with the following fields:
-\begin{description}
-\item[``size''] The size in bytes of this queue (required).
-\item[``threshold''] The size in bytes of the threshold (required).
-\item[``readernode''] The name of the node that will read from this queue (required).
-\item[``readerport''] The port name that the reader node will use (required).
-\item[``writernode''] The name of the node that will write to this queue (required).
-\item[``writerport''] The port name that the writer node will use (required).
-\item[``type''] The type of queue, either ``threshold'' or ``default'' (optional, default is ``default'').
-\item[``datatype''] A string that specifies the data type for the queue (optional, default ``void''). 
-Some valid types are ``void'', and the various types names defined in ``stdint.h'' like ``int32\_t'' as well as ``float'', ``double'', and ``complex$<$T$>$'' where ``T'' is any of the previous types.
-\item[``numchannels''] The number of channels for this queue (optional, default 1).
-\item[``alpha''] A parameter used only by the remote queue allowing one to specify how much space to split between the two sides (optional, default 0.5).
-\end{description}
-
+The full example is in Listing \ref{lst:function node}.
 
 \section{Distributing}
-\label{Distributing}
+\label{sec:distributing}
 
 This section assumes you have read the sections on \verb!Variant! and the \verb!VariantCPNLoader!.
 In order to use the distributed features you need to have setup a remote context daemon.
@@ -440,13 +453,13 @@ The usual method of ensuring this used in the examples so far is to make all pro
 in behavior between them is decided by command line arguments and configuration files.
 
 Next is the example of the Fibonacci number generator using the distributed features of CPN.
-The summing and delay node are the same as in the first example on derived nodes and are symbolic links in the code directory.
+The summing and cons node are the same as in the first example on derived nodes and are symbolic links in the code directory.
 This example also uses the \verb!VariantCPNLoader! to load the PN.
 
 A special note that the listings in this section will omit much of the error checking.
 Full error checking is included in the full listing in Listing \ref{lst:distributed}.
 
-Let us look at the configuration files.
+Let us look at the configuration files in Listings \ref{lst:pn_def} and \ref{lst:nodemap}.
 Notice that the configuration is split between multiple files.
 This allows for certain parts of the configuration to be reused and combined in different ways.
 Many times just a small part of the configuration needs to be different for each kernel.
@@ -457,41 +470,23 @@ what goes into the loader.
 
 Now a description of the program.
 The first thing the program does is setup some default values and instantiates a VariantCPNLoader and calls it \verb|loader|.
-Then it loads in the file \verb!db_def.json! for the default context options.
 
 \begin{lstlisting}{}
     uint64_t max_fib = 100;
     bool load_config = true;
     bool print_config = false;
     VariantCPNLoader loader;
-    std::ifstream db_def("db_def.json");
-    JSONToVariant parser;
-    parser.ParseStream(db_def);
-    loader.MergeConfig(parser.Get());
 \end{lstlisting}
 
-Then the command line options are parsed. Several of the command line optoins are not optional.
+Then the command line options are parsed. Several of the command line options are not optional.
 This example will not run correctly without them.
 The validator should catch any options that are left out that are absolutely required.
 For example, the \verb!--name! option must be specified.
 Use the \verb!run! script to run this example.
 A \verb!run! script is provided in the code directory that runs the remote context daemon and then
 runs each of the kernels with the correct parameters.
-After the command line options are parsed and the corresponding data is set, then the default configuration is loaded
-if it was set to do so from the command line options.
-
-\begin{lstlisting}{}
-    if (load_config) {
-        std::ifstream pn_def("pn_def.json");
-        JSONToVariant pn_parser;
-        pn_parser.ParseStream(pn_def);
-        loader.MergeConfig(pn_parser.Get());
-        std::ifstream nodemap("nodemap.json");
-        JSONToVariant nm_parser;
-        nm_parser.ParseStream(nodemap);
-        loader.MergeConfig(nm_parser.Get());
-    }
-\end{lstlisting}
+Notice that any configuration files that should be loaded are done so when parsing the command line options.
+The configurations are loaded in the order provided and any duplicate entries override previous entries.
 
 Now that we finished loading the configuration comes the easy part, running the configuration.
 First we get the loader to create a \verb!KernelAttr! for us.
@@ -534,11 +529,14 @@ call \verb!Kernel::Terminate()!. This would have had almost the same effect.
 \subsection{Derived Node}
 \label{derived source}
 \lstinputlisting[caption=The Summing Node,label=lst:summer]{code/derived_node/Fib_Summer.cc}
-\lstinputlisting[caption=The Delay Node,label=lst:delay]{code/derived_node/Fib_Delay.cc}
+\lstinputlisting[caption=The Cons Node,label=lst:delay]{code/derived_node/Fib_Cons.cc}
 \lstinputlisting[caption=Instantiating the declared nodes and running them,label=lst:dn main]{code/derived_node/main.cc}
 \subsection{Function Node}
 \lstinputlisting[caption=Example of function nodes,label=lst:function node]{code/function_node/main.cc}
 \subsection{Distributed}
 \lstinputlisting[caption=Example of the main routine for distributing the PN,label=lst:distributed]{code/distributed/main.cc}
+\subsection{Distributed  Configuration Files}
+\lstinputlisting[caption=Process Network Definition,label=lst:pn_def]{code/distributed/pn_def.json}
+\lstinputlisting[caption=Node mapping,label=lst:nodemap]{code/distributed/nodemap.json}
 
 \end{document}

@@ -14,9 +14,9 @@ using namespace CPN;
 using std::vector;
 using std::string;
 
-class Delay : public NodeBase {
+class Cons : public NodeBase {
 public:
-    Delay(Kernel &ker, const NodeAttr &attr);
+    Cons(Kernel &ker, const NodeAttr &attr);
 private:
     void Process();
     string input;
@@ -24,7 +24,7 @@ private:
     uint64_t current;
 };
 
-Delay::Delay(Kernel &ker, const NodeAttr &attr)
+Cons::Cons(Kernel &ker, const NodeAttr &attr)
     : NodeBase(ker, attr)
 {
     JSONToVariant p;
@@ -41,7 +41,7 @@ Delay::Delay(Kernel &ker, const NodeAttr &attr)
     current = param["initial"].AsNumber<uint64_t>();
 }
 
-void Delay::Process() {
+void Cons::Process() {
     typedef vector< OQueue<uint64_t> > Outport_t;
     Outport_t outports;
     for (vector<string>::iterator i = outputs.begin(), e = outputs.end();
@@ -60,4 +60,4 @@ void Delay::Process() {
     }
 }
 
-CPN_DECLARE_NODE_FACTORY(Delay, Delay);
+CPN_DECLARE_NODE_FACTORY(Cons, Cons);

@@ -7,5 +7,5 @@ sleep 1
 ./distributed --name=kernel_3 --ctx-host=localhost --ctx-port=$port -cno&
 ./distributed --name=kernel_2 --ctx-host=localhost --ctx-port=$port -cno&
 ./distributed --name=kernel_1 --ctx-host=localhost --ctx-port=$port -cno&
-./distributed --name=kernel_0 --ctx-host=localhost --ctx-port=$port $*
+./distributed --name=kernel_0 --ctx-host=localhost --ctx-port=$port -j pn_def.json -j nodemap.json $*
 wait

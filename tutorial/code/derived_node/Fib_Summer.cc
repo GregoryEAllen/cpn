@@ -48,7 +48,7 @@ void Summer::Process() {
     }
     OQueue<uint64_t> outport = GetWriter(output);
     bool loop = true;
-    while (true) {
+    while (loop) {
         uint64_t sum = 0;
         for (Inport_t::iterator i = inports.begin(), e = inports.end();
                 i != e; ++i) {

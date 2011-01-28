@@ -2,6 +2,7 @@
 #include "IQueue.h"
 #include "VariantToJSON.h"
 #include "JSONToVariant.h"
+#include "XMLToVariant.h"
 #include "VariantCPNLoader.h"
 #include "ParseBool.h"
 #include <iostream>
@@ -11,6 +12,44 @@
 #include <getopt.h>
 
 using namespace CPN;
+
+static bool LoadJSONConfig(VariantCPNLoader &loader, const std::string &filename) {
+    std::ifstream def_file(filename.c_str());
+    if (def_file) {
+        JSONToVariant parser;
+        parser.ParseStream(def_file);
+        if (!parser.Done()) {
+            std::cerr << "Parse error in " << filename << " at line " 
+                << parser.GetLine() << " column " << parser.GetColumn()
+                << std::endl;
+            return false;
+        } else {
+            loader.MergeConfig(parser.Get());
+        }
+    } else {
+        std::cerr << "Could not open the process network definition file\n";
+        return false;
+    }
+    return true;
+}
+
+static bool LoadXMLConfig(VariantCPNLoader &loader, const std::string &filename) {
+    std::ifstream def_file(filename.c_str());
+    if (def_file) {
+        XMLToVariant parser;
+        parser.ParseStream(def_file);
+        if (!parser.Done()) {
+            std::cerr << "Parse error in " << filename << ": " << parser.GetMessage()
+                << std::endl;
+            return false;
+        } else {
+            loader.MergeConfig(parser.Get());
+        }
+    } else {
+        std::cerr << "Could not open the process network definition file\n";
+        return false;
+    }
+}
 
 static void PrintUsage(const char *progname) {
     using std::cerr;
@@ -53,21 +92,8 @@ int main(int argc, char **argv) {
     bool load_config = true;
     bool print_config = false;
     VariantCPNLoader loader;
-    std::ifstream ctx_def("ctx_def.json");
-    if (ctx_def) {
-        JSONToVariant parser;
-        parser.ParseStream(ctx_def);
-        if (!parser.Done()) {
-            std::cerr << "Default context definition file parse error at line " 
-                << parser.GetLine() << " column " << parser.GetColumn()
-                << std::endl;
-        } else {
-            loader.MergeConfig(parser.Get());
-        }
-        ctx_def.close();
-    }
     while (true) {
-        int c = getopt_long(argc, argv, "m:c:Ch", long_options, 0);
+        int c = getopt_long(argc, argv, "m:c:Chj:x:", long_options, 0);
         if (c == -1) break;
         switch (c) {
         case 'm':
@@ -94,6 +120,16 @@ int main(int argc, char **argv) {
         case OP_NAME:
             loader.KernelName(optarg);
             break;
+        case 'j':
+            if (!LoadJSONConfig(loader, optarg)) {
+                return 1;
+            }
+            break;
+        case 'x':
+            if (!LoadXMLConfig(loader, optarg)) {
+                return 1;
+            }
+            break;
         case 'h':
         default:
             PrintUsage(*argv);
@@ -101,40 +137,6 @@ int main(int argc, char **argv) {
         }
     }
 
-    if (load_config) {
-        std::ifstream pn_def("pn_def.json");
-        if (pn_def) {
-            JSONToVariant parser;
-            parser.ParseStream(pn_def);
-            if (!parser.Done()) {
-                std::cerr << "Default config definition file parse error at line " 
-                    << parser.GetLine() << " column " << parser.GetColumn()
-                    << std::endl;
-                return 1;
-            } else {
-                loader.MergeConfig(parser.Get());
-            }
-        } else {
-            std::cerr << "Could not open the process network definition file\n";
-            return 1;
-        }
-        std::ifstream nodemap("nodemap.json");
-        if (nodemap) {
-            JSONToVariant parser;
-            parser.ParseStream(nodemap);
-            if (!parser.Done()) {
-                std::cerr << "Default nodemap definition file parse error at line " 
-                    << parser.GetLine() << " column " << parser.GetColumn() <<
-                    std::endl;
-                return 1;
-            } else {
-                loader.MergeConfig(parser.Get());
-            }
-        } else {
-            std::cerr << "Could not load the nodemap definition file.\n";
-            return 1;
-        }
-    }
     if (print_config) {
         std::cout << PrettyJSON(loader.GetConfig(), true) << std::endl;
         return 0;
