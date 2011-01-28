@@ -4,8 +4,8 @@ port=`echo 1024+$RANDOM | bc`
 ../../../apps/RemoteContext/RemoteContext localhost $port &
 # ensure the RemoteContext has finished settings up
 sleep 1
-./distributed --name=kernel_3 --ctx-host=localhost --ctx-port=$port -cno&
-./distributed --name=kernel_2 --ctx-host=localhost --ctx-port=$port -cno&
-./distributed --name=kernel_1 --ctx-host=localhost --ctx-port=$port -cno&
-./distributed --name=kernel_0 --ctx-host=localhost --ctx-port=$port -j pn_def.json -j nodemap.json $*
+./distributed --name=kernel_3 --ctx-host=localhost --ctx-port=$port -cno -j common_defs.json &
+./distributed --name=kernel_2 --ctx-host=localhost --ctx-port=$port -cno -j common_defs.json &
+./distributed --name=kernel_1 --ctx-host=localhost --ctx-port=$port -cno -j common_defs.json &
+./distributed --name=kernel_0 --ctx-host=localhost --ctx-port=$port -j common_defs.json -j pn_def.json -j nodemap.json $*
 wait
