@@ -5,6 +5,8 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include "CPNCommon.h"
 #include "KernelBase.h"
+#include "Exceptions.h"
+#include "Context.h"
 #include "RemoteQueueHolder.h"
 #include "PthreadMutex.h"
 #include "PthreadCondition.h"
@@ -66,5 +68,23 @@ public:
     unsigned numdequeued;
     PthreadMutex lock;
     PthreadCondition cond;
+
+    bool IsTerminated() {
+        return context->IsTerminated();
+    }
+    void CheckTerminated() {
+        if (IsTerminated()) {
+            throw CPN::ShutdownException();
+        }
+    }
+    CPN::shared_ptr<CPN::Context> GetContext() const { return context; }
+
+    // We don't have any nodes so we must have D4R off.
+    bool UseD4R() { return false; }
+    bool GrowQueueMaxThreshold() { return  true; }
+    bool SwallowBrokenQueueExceptions() { return false; }
+    unsigned CalculateGrowSize(unsigned currentsize, unsigned request) { return currentsize + request; }
+    bool useD4R;
+
 };
 #endif

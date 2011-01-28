@@ -44,6 +44,13 @@ namespace CPN {
         virtual void RemoteCreateQueue(SimpleQueueAttr attr);
         virtual void RemoteCreateNode(NodeAttr attr);
         virtual void NotifyTerminate();
+        virtual bool IsTerminated() = 0;
+        virtual void CheckTerminated() = 0;
+        virtual shared_ptr<Context> GetContext() const = 0;
+        virtual bool UseD4R() = 0;
+        virtual bool GrowQueueMaxThreshold() = 0;
+        virtual bool SwallowBrokenQueueExceptions() = 0;
+        virtual unsigned CalculateGrowSize(unsigned currentsize, unsigned request) = 0;
     };
 }
 

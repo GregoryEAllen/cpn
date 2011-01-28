@@ -23,7 +23,7 @@
 #include "RemoteQueue.h"
 #include "RemoteQueueHolder.h"
 #include "QueueAttr.h"
-#include "Context.h"
+#include "KernelBase.h"
 #include "Exceptions.h"
 #include "AutoLock.h"
 #include "PthreadFunctional.h"
@@ -44,9 +44,9 @@
 
 namespace CPN {
 
-    RemoteQueue::RemoteQueue(shared_ptr<Context> ctx, Mode_t mode_,
+    RemoteQueue::RemoteQueue(KernelBase *k, Mode_t mode_,
                 ConnectionServer *s, RemoteQueueHolder *h, const SimpleQueueAttr &attr)
-        : ThresholdQueue(ctx, attr, QueueLength(attr.GetLength(), attr.GetMaxThreshold(), attr.GetAlpha(), mode_)),
+        : ThresholdQueue(k, attr, QueueLength(attr.GetLength(), attr.GetMaxThreshold(), attr.GetAlpha(), mode_)),
         mode(mode_),
         alpha(attr.GetAlpha()),
         server(s),
@@ -484,7 +484,7 @@ namespace CPN {
         try {
             while (true) {
                 try {
-                    if (context->IsTerminated()) {
+                    if (kernel->IsTerminated()) {
                         std::string clockstr = ClockString();
                         logger.Debug("Forced Shutdown (c: %s)", clockstr.c_str());
                         Shutdown();
@@ -574,7 +574,7 @@ namespace CPN {
             return;
         }
 
-        bool terminated = context->IsTerminated();
+        bool terminated = kernel->IsTerminated();
         if (sock.Eof() && !(readshutdown || writeshutdown)) {
             if (terminated) {
                 if (!sock.Closed()) {

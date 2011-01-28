@@ -89,13 +89,10 @@ for i in range(maxparam):
         out.write(""", Argument%(num)d arg%(num)d"""%{'num':a + 1})
     out.write(""")
     {
-        Sync::AutoReentrantLock arlock(lock);
-        Key_t ourkey = hostkey;
-        arlock.Unlock();
-        Key_t nodekey = context->CreateNodeKey(ourkey, nodename);
+        Key_t nodekey = context->CreateNodeKey(hostkey, nodename);
         NodeAttr attr(nodename, "FunctionNode%(num)d");
-        attr.SetKey(nodekey).SetHostKey(ourkey);
-        arlock.Lock();
+        attr.SetKey(nodekey).SetHostKey(hostkey);
+        Sync::AutoReentrantLock arlock(nodelock);
         shared_ptr<NodeBase> node;
         node.reset(new FunctionNode%(num)d<Function"""%{'num':i})
     for a in range(i):

@@ -164,15 +164,16 @@ void D4RTest::RunTest(int numkernels) {
 #else
         context->LogLevel(Logger::WARNING);
 #endif
-        context->UseD4R(true);
 
-        context->SwallowBrokenQueueExceptions(true);
-        context->GrowQueueMaxThreshold(false);
         Output(context.get());
         LogLevel(context->LogLevel());
         for (int i = 0; i < numkernels; ++i) {
             kernels.push_back(
-                    new Kernel(KernelAttr(ToString("K %d", i)).SetContext(context).SetRemoteEnabled(numkernels > 1))
+                    new Kernel(KernelAttr(ToString("K %d", i)).SetContext(context)
+                        .SetRemoteEnabled(numkernels > 1)
+                        .UseD4R(true)
+                        .SwallowBrokenQueueExceptions(true)
+                        .GrowQueueMaxThreshold(false))
                     );
         }
 

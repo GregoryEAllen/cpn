@@ -16,12 +16,13 @@ CPPUNIT_TEST_SUITE_REGISTRATION( RemoteContextTest.h );
 #include <cppunit/extensions/HelperMacros.h>
 #include "CPNCommon.h"
 #include "KernelBase.h"
+#include "MockKernel.h"
 #include "PthreadMutex.h"
 #include "PthreadCondition.h"
 #include <string>
 class LocalRContextServ;
 
-class RemoteContextTest: public CppUnit::TestFixture, public CPN::KernelBase {
+class RemoteContextTest: public CppUnit::TestFixture, public MockKernel {
 public:
     void setUp();
 

@@ -47,10 +47,9 @@ static void PrintHelp(const std::string &progname) {
     cerr << "Usage: " << progname << " [options]\n";
     cerr << "\t-x config  Use config in XML format.\n";
     cerr << "\t-j config  Use config in JSON format.\n";
-    cerr << "\t-c opts    Specify context options (see -dhelp).\n";
+    cerr << "\t-c opts    Specify context options (see -chelp).\n";
     cerr << "\t-w node    Wait for node then terminate, if not specified waits for the kernel to terminate.\n";
-    cerr << "\t-k opts    Comma seperated list of host options.\n";
-    cerr << "\t           Valid options are host, port, and name. (eg. -kname=blah,host=localhost,port=1234)\n";
+    cerr << "\t-k opts    Comma seperated list of host options (see -khelp).\n";
     cerr << "\t-C         Print out in JSON format the internal configuration after parsing all options\n";
     cerr << "\t-n 'json'  Add or modify a node.\n";
     cerr << "\t-q 'json'  Add or modify a queue.\n";
@@ -60,23 +59,68 @@ static void PrintHelp(const std::string &progname) {
 }
 
 static void PrintContextHelp(Variant &config) {
-    Variant &v = config["context"];
     using std::cerr;
-    cerr << "The -d options takes a comma seperated list.\n";
+    cerr << "The -c options takes a comma seperated list.\n";
     cerr << "The recognized set of values are:\n"
-         << "\t [no-]d4r    Turn on or off D4R. (currently: " << (v["d4r"].AsBool() ? "on" : "off") << ")\n"
-         << "\t [no-]gqmt   Turn on or off growing of queues when they request larger max threshold. (currently: " << (v["grow-queue-max-threshold"].AsBool() ? "on" : "off") << ")\n"
-         << "\t [no-]sbqe   Turn on or off sollowing of broken queue exceptions. (currently: " << (v["swallow-broken-queue-exceptions"].AsBool() ? "on" : "off") << ")\n"
          << "\t host=xxx    Use a remote context located at xxx, else use local.\n"
          << "\t port=xxx    Specify the port for the remote context.\n"
-         << "\t lib=file    Load file as a shared object to be searched for nodes. May be set multiple times.\n"
-         << "\t list=file   Add file to the list of lists for looking up where to load nodes from.\n"
          << "\t help        This message.\n";
 
 }
 
+static void PrintKernelHelp(Variant &config) {
+    using std::cerr;
+    cerr << "The -k options takes a comma seperated list.\n";
+    cerr << "The recognized set of values are:\n"
+         << "\t name=xxx    Use xxx as the name for the kernel.\n"
+         << "\t host=xxx    Use xxx as the hostname to bind the kernel listening socket to.\n"
+         << "\t port=xxx    Use xxx as the port to bind the kernel listening socket to.\n"
+         << "\t [no-]d4r    Turn on or off D4R. (currently: " << (config["d4r"].AsBool() ? "on" : "off") << ")\n"
+         << "\t [no-]gqmt   Turn on or off growing of queues when they request larger max threshold. (currently: " << (config["grow-queue-max-threshold"].AsBool() ? "on" : "off") << ")\n"
+         << "\t [no-]sbqe   Turn on or off sollowing of broken queue exceptions. (currently: " << (config["swallow-broken-queue-exceptions"].AsBool() ? "on" : "off") << ")\n"
+         << "\t lib=file    Load file as a shared object to be searched for nodes. May be set multiple times.\n"
+         << "\t list=file   Add file to the list of lists for looking up where to load nodes from.\n"
+         << "\t help        This message.\n";
+}
+
 static bool ParseContextSubOpts(VariantCPNLoader &loader) {
-    enum { opd4r, opnd4r, opgqmt, opngqmt, opsbqe, opnsbqe, oplib, ophost, opport, ophelp, oplist, opend };
+    enum { ophost, opport, ophelp, opend };
+    const char *opts[opend + 1];
+    opts[ophost] = "host";
+    opts[opport] = "port";
+    opts[ophelp] = "help";
+    opts[opend] = 0;
+    char *subopt = optarg;
+    char *valuep = 0;
+    while (*subopt != '\0') {
+        int i = getsubopt(&subopt, (char * const *)opts, &valuep);
+        if (i < 0) return false;
+        switch (i) {
+        case ophost:
+            if (valuep == 0) {
+                std::cerr << "The " << opts[ophost] << " options requires a parameter\n";
+                return false;
+            }
+            loader.ContextHost(valuep);
+            break;
+        case opport:
+            if (valuep == 0) {
+                std::cerr << "The " << opts[opport] << " options requires a parameter\n";
+                return false;
+            }
+            loader.ContextPort(valuep);
+            break;
+        case ophelp:
+        default:
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool ParseKernelSubOpts(VariantCPNLoader &loader) {
+    enum { opd4r, opnd4r, opgqmt, opngqmt, opsbqe, opnsbqe, oplib, ophost, opport, ophelp, oplist,
+       opname, opend };
     const char *opts[opend + 1];
     opts[opd4r] = "d4r";
     opts[opnd4r] = "no-d4r";
@@ -89,11 +133,15 @@ static bool ParseContextSubOpts(VariantCPNLoader &loader) {
     opts[opport] = "port";
     opts[ophelp] = "help";
     opts[oplist] = "list";
+    opts[opname] = "name";
     opts[opend] = 0;
+
     char *subopt = optarg;
     char *valuep = 0;
     while (*subopt != '\0') {
-        switch (getsubopt(&subopt, (char * const *)opts, &valuep)) {
+        int i = getsubopt(&subopt, (char * const *)opts, &valuep);
+        if (i < 0) return false;
+        switch (i) {
         case opd4r: // d4r
             loader.UseD4R(true);
             break;
@@ -131,14 +179,21 @@ static bool ParseContextSubOpts(VariantCPNLoader &loader) {
                 std::cerr << "The " << opts[ophost] << " options requires a parameter\n";
                 return false;
             }
-            loader.ContextHost(valuep);
+            loader.KernelHost(valuep);
             break;
         case opport:
             if (valuep == 0) {
                 std::cerr << "The " << opts[opport] << " options requires a parameter\n";
                 return false;
             }
-            loader.ContextPort(valuep);
+            loader.KernelPort(valuep);
+            break;
+        case opname:
+            if (valuep == 0) {
+                std::cerr << "The " << opts[opport] << " options requires a parameter\n";
+                return false;
+            }
+            loader.KernelName(valuep);
             break;
         case ophelp:
         default:
@@ -148,38 +203,22 @@ static bool ParseContextSubOpts(VariantCPNLoader &loader) {
     return true;
 }
 
-static bool ParseKernelSubOpts(Variant &config) {
-    Variant &v = config;
-    static const char *const opts[] = {"name", "host", "port", 0};
-    char *subopt = optarg;
-    char *valuep = 0;
-    while (*subopt != '\0') {
-        int i = getsubopt(&subopt, (char * const *)opts, &valuep);
-        if (i < 0) return false;
-        if (valuep == 0) {
-            std::cerr << "The kernel option " << opts[i] << " requires a parameter.\n";
-            return false;
-        }
-        v.At(opts[i]) = valuep;
-    }
-    return true;
-}
-
 int main(int argc, char **argv) __attribute__((weak));
 int main(int argc, char **argv) {
     Variant config;
     config["name"] = *argv;
-    config["context"]["d4r"] = false;
-    config["context"]["grow-queue-max-threshold"] = true;
-    config["context"]["swallow-broken-queue-exceptions"] = false;
+    config["d4r"] = false;
+    config["grow-queue-max-threshold"] = true;
+    config["swallow-broken-queue-exceptions"] = false;
     std::string defaultlist = RealPath("node.list");
     if (!defaultlist.empty()) {
-        config["context"]["liblist"].Append(defaultlist);
+        config["liblist"].Append(defaultlist);
     }
     VariantCPNLoader loader(config);
     bool output_config = false;
     bool print_help = false;
     bool print_ctx_help = false;
+    bool print_kernel_help = false;
     bool validate = false;
     while (true) {
         int c = getopt(argc, argv, "x:j:hw:c:k:Cn:q:v");
@@ -200,8 +239,8 @@ int main(int argc, char **argv) {
             }
             break;
         case 'k':
-            if (!ParseKernelSubOpts(config)) {
-                print_help = true;
+            if (!ParseKernelSubOpts(loader)) {
+                print_kernel_help = true;
             }
             break;
         case 'n':
@@ -230,6 +269,9 @@ int main(int argc, char **argv) {
     if (print_ctx_help) {
         PrintContextHelp(config);
     }
+    if (print_kernel_help) {
+        PrintKernelHelp(config);
+    }
     if (output_config) {
         std::cout << PrettyJSON(config) << std::endl;
     }
@@ -240,7 +282,7 @@ int main(int argc, char **argv) {
             return 1;
         }
     }
-    if (print_help || print_ctx_help || output_config) {
+    if (print_help || print_ctx_help || output_config || print_kernel_help) {
         return 0;
     }
     // Load the kernel attr

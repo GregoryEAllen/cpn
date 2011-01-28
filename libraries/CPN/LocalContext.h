@@ -29,6 +29,7 @@
 
 #include "CPNCommon.h"
 #include "Context.h"
+#include "PthreadMutex.h"
 #include "PthreadCondition.h"
 #include <string>
 #include <map>
@@ -127,6 +128,7 @@ namespace CPN {
         void InternalCheckTerminated();
 
         int loglevel;
+        mutable PthreadMutex lock;
         PthreadCondition nodelivedead;
         PthreadCondition hostlivedead;
         NameMap hostnames;

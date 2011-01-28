@@ -31,8 +31,6 @@ namespace CPN {
     }
 
     Context::Context()
-        : useD4R(true), swallowbrokenqueue(false),
-        growmaxthresh(true)
     {
     }
 
@@ -41,36 +39,6 @@ namespace CPN {
 
     bool Context::RequireRemote() {
         return false;
-    }
-
-    bool Context::UseD4R() {
-        PthreadMutexProtected al(lock);
-        return useD4R;
-    }
-
-    bool Context::UseD4R(bool u) {
-        PthreadMutexProtected al(lock);
-        return useD4R = u;
-    }
-
-    bool Context::SwallowBrokenQueueExceptions() {
-        PthreadMutexProtected al(lock);
-        return swallowbrokenqueue;
-    }
-
-    bool Context::SwallowBrokenQueueExceptions(bool sbqe) {
-        PthreadMutexProtected al(lock);
-        return swallowbrokenqueue = sbqe;
-    }
-
-    bool Context::GrowQueueMaxThreshold() {
-        PthreadMutexProtected al(lock);
-        return growmaxthresh;
-    }
-
-    bool Context::GrowQueueMaxThreshold(bool grow) {
-        PthreadMutexProtected al(lock);
-        return growmaxthresh = grow;
     }
 
     void Context::CheckTerminated() {

@@ -57,7 +57,7 @@ namespace CPN {
             WRITE
         };
 
-        RemoteQueue(shared_ptr<Context> ctx, Mode_t mode,
+        RemoteQueue(KernelBase *k, Mode_t mode,
                 ConnectionServer *s, RemoteQueueHolder *h, const SimpleQueueAttr &attr);
 
         ~RemoteQueue();

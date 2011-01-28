@@ -42,8 +42,6 @@ void RemoteQueueTest::setUp() {
     context = CPN::Context::Local();
 
     context->LogLevel(Logger::WARNING);
-    // We don't have any nodes so we must have D4R off.
-    context->UseD4R(false);
 
 
     SockAddrList addrs = SocketAddress::CreateIP("0.0.0.0", "");
@@ -71,7 +69,7 @@ void RemoteQueueTest::setUp() {
 
     rendp = shared_ptr<RemoteQueue>(
             new RemoteQueue(
-                context,
+                this,
                 RemoteQueue::READ,
                 server.get(),
                 &remotequeueholder,
@@ -82,7 +80,7 @@ void RemoteQueueTest::setUp() {
     rendp->Start();
     wendp = shared_ptr<RemoteQueue>(
             new RemoteQueue(
-                context,
+                this,
                 RemoteQueue::WRITE,
                 server.get(),
                 &remotequeueholder,

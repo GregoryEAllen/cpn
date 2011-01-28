@@ -214,8 +214,7 @@ void SieveTest::tearDown(void) {
 
 void SieveTest::RunTest(void) {
     DEBUG("%s\n",__PRETTY_FUNCTION__);
-    CPN::Kernel kernel(CPN::KernelAttr("Testing"));
-    kernel.GetContext()->UseD4R(false);
+    CPN::Kernel kernel(CPN::KernelAttr("Testing").UseD4R(false));
     std::vector<SieveNumber> result(NUMPRIMES);
 
     CPN::NodeAttr nattr("TheProducer", "SieveProducerNode");
@@ -261,9 +260,8 @@ void SieveTest::RunTwoKernelTest() {
     std::vector<SieveNumber> result(NUMPRIMES);
     CPN::shared_ptr<CPN::Context> context = CPN::Context::Local();
     context->LogLevel(Logger::WARNING);
-    context->UseD4R(false);
-    CPN::Kernel kone(CPN::KernelAttr("one").SetContext(context).SetRemoteEnabled(true));
-    CPN::Kernel ktwo(CPN::KernelAttr("two").SetContext(context).SetRemoteEnabled(true));
+    CPN::Kernel kone(CPN::KernelAttr("one").SetContext(context).SetRemoteEnabled(true).UseD4R(false));
+    CPN::Kernel ktwo(CPN::KernelAttr("two").SetContext(context).SetRemoteEnabled(true).UseD4R(false));
     Variant hosts;
     hosts.Append("one");
     hosts.Append("two");

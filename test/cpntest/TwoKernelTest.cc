@@ -34,14 +34,16 @@ void TwoKernelTest::setUp() {
 #else
     context->LogLevel(Logger::WARNING);
 #endif
-    context->UseD4R(false);
-    context->SwallowBrokenQueueExceptions(true);
     KernelAttr kattrone("one");
     kattrone.SetContext(context);
     kattrone.SetRemoteEnabled(true);
+    kattrone.UseD4R(false);
+    kattrone.SwallowBrokenQueueExceptions(true);
     KernelAttr kattrtwo("two");
     kattrtwo.SetContext(context);
     kattrtwo.SetRemoteEnabled(true);
+    kattrtwo.UseD4R(false);
+    kattrtwo.SwallowBrokenQueueExceptions(true);
     kone = new Kernel(kattrone);
     ktwo = new Kernel(kattrtwo);
 }

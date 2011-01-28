@@ -112,6 +112,8 @@ namespace CPN {
          * \param msg the message
          */
         virtual void SendMessage(const Variant &msg) = 0;
+
+        mutable PthreadMutex lock;
     private:
 
         /**

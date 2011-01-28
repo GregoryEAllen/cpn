@@ -25,9 +25,7 @@
 #define CPNDB_CONTEXT_H
 #pragma once
 #include "CPNCommon.h"
-#include "NodeLoader.h"
 #include "Logger.h"
-#include "PthreadMutex.h"
 #include <string>
 
 
@@ -274,68 +272,14 @@ namespace CPN {
          */
         virtual bool RequireRemote();
 
-        /** \brief Whether or not D4R should be used.
-         * \return true or false (default true)
-         */
-        virtual bool UseD4R();
-        virtual bool UseD4R(bool u);
-
-        /** \brief Whether the queue should grow when
-         * a threshold larger than the current max threshold is requested.
-         * \return true or false (default true)
-         */
-        virtual bool GrowQueueMaxThreshold();
-        virtual bool GrowQueueMaxThreshold(bool grow);
-
         /** \brief Calculate the new queue size when a queue needs to grow.
          * \return the new queue size
          */
         virtual unsigned CalculateGrowSize(unsigned currentsize, unsigned request) { return currentsize + request; }
 
-        /** \brief Whether the node should by default swallow the broken queue exceptions
-         * or let them propigate as an error.
-         * \return true or false
-         */
-        virtual bool SwallowBrokenQueueExceptions();
-        virtual bool SwallowBrokenQueueExceptions(bool sbqe);
-
-        /** \brief Attempts to load the given dynamic library
-         * and make the symbols inside available to be searched for
-         * node types.
-         * The library will be unloaded on distruction.
-         * \param libname the library name and path
-         */
-        void LoadSharedLib(const std::string &libname) { loader.LoadSharedLib(libname); }
-
-        void LoadNodeList(const std::string &filename) { loader.LoadNodeList(filename); }
-
-        /** \brief Return a pointer to the node factory that produces the given
-         * node type. May load a shared library to find the node factory.
-         *
-         * If there is no node factory available already, attempt to find
-         * a function named "cpninitnodetype" and call it to get the factory.
-         * If there is no function named this, then quiery the library loader
-         * for a library with the name nodetype then try again. If all this
-         * fails then throw a runtime_error exception.
-         *
-         * \param nodetype the type of the node
-         * \return a node factory for the node type
-         */
-        NodeFactory *GetNodeFactory(const std::string &nodetype) { return loader.GetFactory(nodetype); }
-
-        /** \brief A function that lets others register node factories
-         * \param factory the node factory
-         */
-        void RegisterNodeFactory(shared_ptr<NodeFactory> factory) { loader.RegisterFactory(factory); }
-
     protected:
         Context();
 
-        mutable PthreadMutex lock;
-        NodeLoader loader;
-        bool useD4R;
-        bool swallowbrokenqueue;
-        bool growmaxthresh;
     };
 
 }

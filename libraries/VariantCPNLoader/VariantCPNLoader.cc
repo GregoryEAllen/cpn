@@ -39,23 +39,23 @@ VariantCPNLoader::VariantCPNLoader(Variant conf) : config(conf) { }
 VariantCPNLoader::~VariantCPNLoader() { } 
 
 void VariantCPNLoader::UseD4R(bool value) {
-    config["context"]["d4r"] = value;
+    config["d4r"] = value;
 }
 
 void VariantCPNLoader::GrowQueueMaxThreshold(bool value) {
-    config["context"]["grow-queue-max-threshold"] = value;
+    config["grow-queue-max-threshold"] = value;
 }
 
 void VariantCPNLoader::SwallowBrokenQueueExceptions(bool value) {
-    config["context"]["swallow-broken-queue-exceptions"] = value;
+    config["swallow-broken-queue-exceptions"] = value;
 }
 
 void VariantCPNLoader::AddLib(const std::string &filename) {
-    config["context"]["libs"].Append(filename);
+    config["libs"].Append(filename);
 }
 
 void VariantCPNLoader::AddLibList(const std::string &filename) {
-    config["context"]["liblist"].Append(filename);
+    config["liblist"].Append(filename);
 }
 
 void VariantCPNLoader::ContextHost(const std::string &host) {
@@ -163,25 +163,7 @@ shared_ptr<Context> VariantCPNLoader::LoadContext(Variant v) {
             shared_ptr<RemoteContext> ctx = shared_ptr<RemoteContext>(new RemoteContext(addrs));
             context = ctx;
         }
-        if (!v["d4r"].IsNull()) {
-            context->UseD4R(v["d4r"].AsBool());
-        }
-        if (!v["swallow-broken-queue-exceptions"].IsNull()) {
-            context->SwallowBrokenQueueExceptions(v["swallow-broken-queue-exceptions"].AsBool());
-        }
-        if (!v["grow-queue-max-threshold"].IsNull()) {
-            context->GrowQueueMaxThreshold(v["grow-queue-max-threshold"].AsBool());
-        }
-        if (v["libs"].IsArray()) {
-            for (Variant::ListIterator itr = v["libs"].ListBegin(); itr != v["libs"].ListEnd(); ++itr) {
-                context->LoadSharedLib(itr->AsString());
-            }
-        }
-        if (v["liblist"].IsArray()) {
-            for (Variant::ListIterator itr = v["liblist"].ListBegin(); itr != v["liblist"].ListEnd(); ++itr) {
-                context->LoadNodeList(itr->AsString());
-            }
-        }
+
         if (!v["loglevel"].IsNull()) {
             context->LogLevel(v["loglevel"].AsInt());
         }
@@ -211,6 +193,26 @@ CPN::KernelAttr VariantCPNLoader::GetKernelAttr(Variant args) {
     }
     if (!args["port"].IsNull()) {
         attr.SetServName(args["port"].AsString());
+    }
+
+    if (!args["d4r"].IsNull()) {
+        attr.UseD4R(args["d4r"].AsBool());
+    }
+    if (!args["swallow-broken-queue-exceptions"].IsNull()) {
+        attr.SwallowBrokenQueueExceptions(args["swallow-broken-queue-exceptions"].AsBool());
+    }
+    if (!args["grow-queue-max-threshold"].IsNull()) {
+        attr.GrowQueueMaxThreshold(args["grow-queue-max-threshold"].AsBool());
+    }
+    if (args["libs"].IsArray()) {
+        for (Variant::ListIterator itr = args["libs"].ListBegin(); itr != args["libs"].ListEnd(); ++itr) {
+            attr.AddSharedLib(itr->AsString());
+        }
+    }
+    if (args["liblist"].IsArray()) {
+        for (Variant::ListIterator itr = args["liblist"].ListBegin(); itr != args["liblist"].ListEnd(); ++itr) {
+            attr.AddNodeList(itr->AsString());
+        }
     }
     return attr;
 }

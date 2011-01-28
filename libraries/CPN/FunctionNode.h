@@ -58,13 +58,10 @@ namespace CPN {
     template<typename Function>
     Key_t Kernel::CreateFunctionNode(const std::string &nodename, Function func)
     {
-        Sync::AutoReentrantLock arlock(lock);
-        Key_t ourkey = hostkey;
-        arlock.Unlock();
-        Key_t nodekey = context->CreateNodeKey(ourkey, nodename);
+        Key_t nodekey = context->CreateNodeKey(hostkey, nodename);
         NodeAttr attr(nodename, "FunctionNode0");
-        attr.SetKey(nodekey).SetHostKey(ourkey);
-        arlock.Lock();
+        attr.SetKey(nodekey).SetHostKey(hostkey);
+        Sync::AutoReentrantLock arlock(nodelock);
         shared_ptr<NodeBase> node;
         node.reset(new FunctionNode0<Function>(*this, attr, func));
         nodemap.insert(std::make_pair(nodekey, node));
@@ -88,13 +85,10 @@ namespace CPN {
     template<typename Function, typename Argument1>
     Key_t Kernel::CreateFunctionNode(const std::string &nodename, Function func, Argument1 arg1)
     {
-        Sync::AutoReentrantLock arlock(lock);
-        Key_t ourkey = hostkey;
-        arlock.Unlock();
-        Key_t nodekey = context->CreateNodeKey(ourkey, nodename);
+        Key_t nodekey = context->CreateNodeKey(hostkey, nodename);
         NodeAttr attr(nodename, "FunctionNode1");
-        attr.SetKey(nodekey).SetHostKey(ourkey);
-        arlock.Lock();
+        attr.SetKey(nodekey).SetHostKey(hostkey);
+        Sync::AutoReentrantLock arlock(nodelock);
         shared_ptr<NodeBase> node;
         node.reset(new FunctionNode1<Function, Argument1>(*this, attr, func, arg1));
         nodemap.insert(std::make_pair(nodekey, node));
@@ -119,13 +113,10 @@ namespace CPN {
     template<typename Function, typename Argument1, typename Argument2>
     Key_t Kernel::CreateFunctionNode(const std::string &nodename, Function func, Argument1 arg1, Argument2 arg2)
     {
-        Sync::AutoReentrantLock arlock(lock);
-        Key_t ourkey = hostkey;
-        arlock.Unlock();
-        Key_t nodekey = context->CreateNodeKey(ourkey, nodename);
+        Key_t nodekey = context->CreateNodeKey(hostkey, nodename);
         NodeAttr attr(nodename, "FunctionNode2");
-        attr.SetKey(nodekey).SetHostKey(ourkey);
-        arlock.Lock();
+        attr.SetKey(nodekey).SetHostKey(hostkey);
+        Sync::AutoReentrantLock arlock(nodelock);
         shared_ptr<NodeBase> node;
         node.reset(new FunctionNode2<Function, Argument1, Argument2>(*this, attr, func, arg1, arg2));
         nodemap.insert(std::make_pair(nodekey, node));
@@ -151,13 +142,10 @@ namespace CPN {
     template<typename Function, typename Argument1, typename Argument2, typename Argument3>
     Key_t Kernel::CreateFunctionNode(const std::string &nodename, Function func, Argument1 arg1, Argument2 arg2, Argument3 arg3)
     {
-        Sync::AutoReentrantLock arlock(lock);
-        Key_t ourkey = hostkey;
-        arlock.Unlock();
-        Key_t nodekey = context->CreateNodeKey(ourkey, nodename);
+        Key_t nodekey = context->CreateNodeKey(hostkey, nodename);
         NodeAttr attr(nodename, "FunctionNode3");
-        attr.SetKey(nodekey).SetHostKey(ourkey);
-        arlock.Lock();
+        attr.SetKey(nodekey).SetHostKey(hostkey);
+        Sync::AutoReentrantLock arlock(nodelock);
         shared_ptr<NodeBase> node;
         node.reset(new FunctionNode3<Function, Argument1, Argument2, Argument3>(*this, attr, func, arg1, arg2, arg3));
         nodemap.insert(std::make_pair(nodekey, node));
@@ -184,13 +172,10 @@ namespace CPN {
     template<typename Function, typename Argument1, typename Argument2, typename Argument3, typename Argument4>
     Key_t Kernel::CreateFunctionNode(const std::string &nodename, Function func, Argument1 arg1, Argument2 arg2, Argument3 arg3, Argument4 arg4)
     {
-        Sync::AutoReentrantLock arlock(lock);
-        Key_t ourkey = hostkey;
-        arlock.Unlock();
-        Key_t nodekey = context->CreateNodeKey(ourkey, nodename);
+        Key_t nodekey = context->CreateNodeKey(hostkey, nodename);
         NodeAttr attr(nodename, "FunctionNode4");
-        attr.SetKey(nodekey).SetHostKey(ourkey);
-        arlock.Lock();
+        attr.SetKey(nodekey).SetHostKey(hostkey);
+        Sync::AutoReentrantLock arlock(nodelock);
         shared_ptr<NodeBase> node;
         node.reset(new FunctionNode4<Function, Argument1, Argument2, Argument3, Argument4>(*this, attr, func, arg1, arg2, arg3, arg4));
         nodemap.insert(std::make_pair(nodekey, node));
@@ -218,13 +203,10 @@ namespace CPN {
     template<typename Function, typename Argument1, typename Argument2, typename Argument3, typename Argument4, typename Argument5>
     Key_t Kernel::CreateFunctionNode(const std::string &nodename, Function func, Argument1 arg1, Argument2 arg2, Argument3 arg3, Argument4 arg4, Argument5 arg5)
     {
-        Sync::AutoReentrantLock arlock(lock);
-        Key_t ourkey = hostkey;
-        arlock.Unlock();
-        Key_t nodekey = context->CreateNodeKey(ourkey, nodename);
+        Key_t nodekey = context->CreateNodeKey(hostkey, nodename);
         NodeAttr attr(nodename, "FunctionNode5");
-        attr.SetKey(nodekey).SetHostKey(ourkey);
-        arlock.Lock();
+        attr.SetKey(nodekey).SetHostKey(hostkey);
+        Sync::AutoReentrantLock arlock(nodelock);
         shared_ptr<NodeBase> node;
         node.reset(new FunctionNode5<Function, Argument1, Argument2, Argument3, Argument4, Argument5>(*this, attr, func, arg1, arg2, arg3, arg4, arg5));
         nodemap.insert(std::make_pair(nodekey, node));
@@ -253,13 +235,10 @@ namespace CPN {
     template<typename Function, typename Argument1, typename Argument2, typename Argument3, typename Argument4, typename Argument5, typename Argument6>
     Key_t Kernel::CreateFunctionNode(const std::string &nodename, Function func, Argument1 arg1, Argument2 arg2, Argument3 arg3, Argument4 arg4, Argument5 arg5, Argument6 arg6)
     {
-        Sync::AutoReentrantLock arlock(lock);
-        Key_t ourkey = hostkey;
-        arlock.Unlock();
-        Key_t nodekey = context->CreateNodeKey(ourkey, nodename);
+        Key_t nodekey = context->CreateNodeKey(hostkey, nodename);
         NodeAttr attr(nodename, "FunctionNode6");
-        attr.SetKey(nodekey).SetHostKey(ourkey);
-        arlock.Lock();
+        attr.SetKey(nodekey).SetHostKey(hostkey);
+        Sync::AutoReentrantLock arlock(nodelock);
         shared_ptr<NodeBase> node;
         node.reset(new FunctionNode6<Function, Argument1, Argument2, Argument3, Argument4, Argument5, Argument6>(*this, attr, func, arg1, arg2, arg3, arg4, arg5, arg6));
         nodemap.insert(std::make_pair(nodekey, node));
@@ -289,13 +268,10 @@ namespace CPN {
     template<typename Function, typename Argument1, typename Argument2, typename Argument3, typename Argument4, typename Argument5, typename Argument6, typename Argument7>
     Key_t Kernel::CreateFunctionNode(const std::string &nodename, Function func, Argument1 arg1, Argument2 arg2, Argument3 arg3, Argument4 arg4, Argument5 arg5, Argument6 arg6, Argument7 arg7)
     {
-        Sync::AutoReentrantLock arlock(lock);
-        Key_t ourkey = hostkey;
-        arlock.Unlock();
-        Key_t nodekey = context->CreateNodeKey(ourkey, nodename);
+        Key_t nodekey = context->CreateNodeKey(hostkey, nodename);
         NodeAttr attr(nodename, "FunctionNode7");
-        attr.SetKey(nodekey).SetHostKey(ourkey);
-        arlock.Lock();
+        attr.SetKey(nodekey).SetHostKey(hostkey);
+        Sync::AutoReentrantLock arlock(nodelock);
         shared_ptr<NodeBase> node;
         node.reset(new FunctionNode7<Function, Argument1, Argument2, Argument3, Argument4, Argument5, Argument6, Argument7>(*this, attr, func, arg1, arg2, arg3, arg4, arg5, arg6, arg7));
         nodemap.insert(std::make_pair(nodekey, node));
@@ -326,13 +302,10 @@ namespace CPN {
     template<typename Function, typename Argument1, typename Argument2, typename Argument3, typename Argument4, typename Argument5, typename Argument6, typename Argument7, typename Argument8>
     Key_t Kernel::CreateFunctionNode(const std::string &nodename, Function func, Argument1 arg1, Argument2 arg2, Argument3 arg3, Argument4 arg4, Argument5 arg5, Argument6 arg6, Argument7 arg7, Argument8 arg8)
     {
-        Sync::AutoReentrantLock arlock(lock);
-        Key_t ourkey = hostkey;
-        arlock.Unlock();
-        Key_t nodekey = context->CreateNodeKey(ourkey, nodename);
+        Key_t nodekey = context->CreateNodeKey(hostkey, nodename);
         NodeAttr attr(nodename, "FunctionNode8");
-        attr.SetKey(nodekey).SetHostKey(ourkey);
-        arlock.Lock();
+        attr.SetKey(nodekey).SetHostKey(hostkey);
+        Sync::AutoReentrantLock arlock(nodelock);
         shared_ptr<NodeBase> node;
         node.reset(new FunctionNode8<Function, Argument1, Argument2, Argument3, Argument4, Argument5, Argument6, Argument7, Argument8>(*this, attr, func, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8));
         nodemap.insert(std::make_pair(nodekey, node));
@@ -364,13 +337,10 @@ namespace CPN {
     template<typename Function, typename Argument1, typename Argument2, typename Argument3, typename Argument4, typename Argument5, typename Argument6, typename Argument7, typename Argument8, typename Argument9>
     Key_t Kernel::CreateFunctionNode(const std::string &nodename, Function func, Argument1 arg1, Argument2 arg2, Argument3 arg3, Argument4 arg4, Argument5 arg5, Argument6 arg6, Argument7 arg7, Argument8 arg8, Argument9 arg9)
     {
-        Sync::AutoReentrantLock arlock(lock);
-        Key_t ourkey = hostkey;
-        arlock.Unlock();
-        Key_t nodekey = context->CreateNodeKey(ourkey, nodename);
+        Key_t nodekey = context->CreateNodeKey(hostkey, nodename);
         NodeAttr attr(nodename, "FunctionNode9");
-        attr.SetKey(nodekey).SetHostKey(ourkey);
-        arlock.Lock();
+        attr.SetKey(nodekey).SetHostKey(hostkey);
+        Sync::AutoReentrantLock arlock(nodelock);
         shared_ptr<NodeBase> node;
         node.reset(new FunctionNode9<Function, Argument1, Argument2, Argument3, Argument4, Argument5, Argument6, Argument7, Argument8, Argument9>(*this, attr, func, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9));
         nodemap.insert(std::make_pair(nodekey, node));

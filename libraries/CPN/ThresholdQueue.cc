@@ -29,17 +29,17 @@
 
 namespace CPN {
 
-    ThresholdQueue::ThresholdQueue(shared_ptr<Context> ctx, const SimpleQueueAttr &attr)
-        : QueueBase(ctx, attr), queue(0), oldqueue(0), enqueueUseOld(false), dequeueUseOld(false)
+    ThresholdQueue::ThresholdQueue(KernelBase *k, const SimpleQueueAttr &attr)
+        : QueueBase(k, attr), queue(0), oldqueue(0), enqueueUseOld(false), dequeueUseOld(false)
     {
         ThresholdQueueAttr qattr(attr.GetLength(), attr.GetMaxThreshold(),
                 attr.GetNumChannels(), attr.GetHint() == QUEUEHINT_THRESHOLD);
         queue = new TQImpl(qattr);
     }
 
-    ThresholdQueue::ThresholdQueue(shared_ptr<Context> ctx, const SimpleQueueAttr &attr,
+    ThresholdQueue::ThresholdQueue(KernelBase *k, const SimpleQueueAttr &attr,
             unsigned length)
-        : QueueBase(ctx, attr), queue(0), oldqueue(0), enqueueUseOld(false), dequeueUseOld(false)
+        : QueueBase(k, attr), queue(0), oldqueue(0), enqueueUseOld(false), dequeueUseOld(false)
     {
         ThresholdQueueAttr qattr(length, attr.GetMaxThreshold(),
                 attr.GetNumChannels(), attr.GetHint() == QUEUEHINT_THRESHOLD);

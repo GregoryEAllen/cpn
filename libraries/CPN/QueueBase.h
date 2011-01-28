@@ -222,7 +222,7 @@ namespace CPN {
         virtual unsigned NumEnqueued() const = 0;
         virtual unsigned NumDequeued() const = 0;
     protected:
-        QueueBase(shared_ptr<Context> ctx, const SimpleQueueAttr &attr);
+        QueueBase(KernelBase *k, const SimpleQueueAttr &attr);
 
         virtual void WaitForData();
         virtual bool ReadBlocked();
@@ -251,7 +251,7 @@ namespace CPN {
         unsigned dequeuethresh;
         bool indequeue;
         bool inenqueue;
-        shared_ptr<Context> context;
+        KernelBase *kernel;
         bool useD4R;
         Logger logger;
     private:

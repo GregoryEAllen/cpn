@@ -59,7 +59,7 @@ namespace CPN {
         } catch (const CPN::ShutdownException &e) {
             // Forced shutdown
         } catch (const CPN::BrokenQueueException &e) {
-            if (!kernel.GetContext()->SwallowBrokenQueueExceptions()) {
+            if (!kernel.SwallowBrokenQueueExceptions()) {
                 throw;
             }
         } catch (const D4R::DeadlockException &e) {

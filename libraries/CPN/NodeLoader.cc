@@ -49,8 +49,20 @@ namespace CPN {
         InternalLoadLib(libname);
     }
 
+    void NodeLoader::LoadSharedLib(const std::vector<std::string> &list) {
+        for (std::vector<std::string>::const_iterator i = list.begin(), e = list.end(); i != e; ++i) {
+            LoadSharedLib(*i);
+        }
+    }
+
     void NodeLoader::LoadNodeList(const std::string &filename) {
         Loader(filename, nodelibmap);
+    }
+
+    void NodeLoader::LoadNodeList(const std::vector<std::string> &list) {
+        for (std::vector<std::string>::const_iterator i = list.begin(), e = list.end(); i != e; ++i) {
+            LoadNodeList(*i);
+        }
     }
 
     NodeFactory *NodeLoader::GetFactory(const std::string &nodetype) {

@@ -42,14 +42,14 @@ public:
     void KernelName(const std::string &name);
     void KernelHost(const std::string &host);
     void KernelPort(const std::string &port);
-
-    // Context functions
+    void AddLib(const std::string &filename);
+    void AddLibList(const std::string &filename);
     void UseD4R(bool value);
     void GrowQueueMaxThreshold(bool value);
     void SwallowBrokenQueueExceptions(bool value);
+
+    // Context functions
     void LogLevel(int i);
-    void AddLib(const std::string &filename);
-    void AddLibList(const std::string &filename);
     void ContextHost(const std::string &host);
     void ContextPort(const std::string &port);
 

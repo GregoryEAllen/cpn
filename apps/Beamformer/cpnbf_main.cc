@@ -244,7 +244,7 @@ int cpnbf_main(int argc, char **argv) {
     config["name"] = "kernel";
     std::string nodelist = RealPath("node.list");
     if (!nodelist.empty()) {
-        config["context"]["liblist"].Append(nodelist);
+        config["liblist"].Append(nodelist);
     }
     VariantCPNLoader loader(config);
     while (procOpts) {

@@ -27,6 +27,7 @@
 #include "PthreadMutex.h"
 #include <string>
 #include <map>
+#include <vector>
 
 #define CPN_DEFAULT_INIT_SYMBOL cpninit
 #define CPN_DEFAULT_INIT_SYMBOL_STR "cpninit"
@@ -50,12 +51,14 @@ namespace CPN {
          * \param libname the shared library file name
          */
         void LoadSharedLib(const std::string &libname);
+        void LoadSharedLib(const std::vector<std::string> &list);
         /**
          * Loads up a node list. A node list contains information
          * about what shared libraries need to be loaded to get a given node.
          * \param filename the name of the nodelist file.
          */
         void LoadNodeList(const std::string &filename);
+        void LoadNodeList(const std::vector<std::string> &list);
 
         /**
          * Get the NodeFactory for the given node type

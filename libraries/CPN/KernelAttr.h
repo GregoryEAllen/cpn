@@ -28,6 +28,7 @@
 
 #include "CPNCommon.h"
 #include <string>
+#include <vector>
 
 namespace CPN {
     /**
@@ -46,7 +47,9 @@ namespace CPN {
             : name(name_),
             hostname("localhost"),
             servname(""),
-            remote_enabled(false)
+            remote_enabled(false),
+            useD4R(true), swallowbrokenqueue(false),
+            growmaxthresh(true)
         {}
 
         KernelAttr &SetName(const std::string &n) {
@@ -74,6 +77,31 @@ namespace CPN {
             return *this;
         }
 
+        KernelAttr &UseD4R(bool enable) {
+            useD4R = enable;
+            return *this;
+        }
+
+        KernelAttr &SwallowBrokenQueueExceptions(bool enable) {
+            swallowbrokenqueue = enable;
+            return *this;
+        }
+
+        KernelAttr &GrowQueueMaxThreshold(bool enable) {
+            growmaxthresh = enable;
+            return *this;
+        }
+
+        KernelAttr &AddSharedLib(const std::string &lib) {
+            sharedlibs.push_back(lib);
+            return *this;
+        }
+
+        KernelAttr &AddNodeList(const std::string &list) {
+            nodelists.push_back(list);
+            return *this;
+        }
+
         const std::string &GetName() const { return name; }
 
         const std::string &GetHostName() const { return hostname; }
@@ -83,12 +111,27 @@ namespace CPN {
         shared_ptr<Context> GetContext() const { return context; }
 
         bool GetRemoteEnabled() const { return remote_enabled; }
+
+        bool UseD4R() const { return useD4R; }
+
+        bool SwallowBrokenQueueExceptions() const { return swallowbrokenqueue; }
+
+        bool GrowQueueMaxThreshold() const { return growmaxthresh; }
+
+        const std::vector<std::string> &GetSharedLibs() const { return sharedlibs; }
+
+        const std::vector<std::string> &GetNodeLists() const { return nodelists; }
     private:
         std::string name;
         std::string hostname;
         std::string servname;
         shared_ptr<Context> context;
         bool remote_enabled;
+        bool useD4R;
+        bool swallowbrokenqueue;
+        bool growmaxthresh;
+        std::vector<std::string> sharedlibs;
+        std::vector<std::string> nodelists;
     };
 }
 #endif

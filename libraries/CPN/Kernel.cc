@@ -51,14 +51,18 @@
 namespace CPN {
 
     Kernel::Kernel(const KernelAttr &kattr)
-        : lock(),
-        status(INITIALIZED),
+        : status(INITIALIZED),
         kernelname(kattr.GetName()),
         hostkey(0),
         context(kattr.GetContext()),
-        useremote(kattr.GetRemoteEnabled())
+        useremote(kattr.GetRemoteEnabled()),
+        useD4R(kattr.UseD4R()),
+        swallowbrokenqueue(kattr.SwallowBrokenQueueExceptions()),
+        growmaxthresh(kattr.GrowQueueMaxThreshold())
     {
         FUNCBEGIN;
+        nodeloader.LoadSharedLib(kattr.GetSharedLibs());
+        nodeloader.LoadNodeList(kattr.GetNodeLists());
         thread.reset(CreatePthreadFunctional(this, &Kernel::EntryPoint));
         if (!context) {
             context = Context::Local();
@@ -110,6 +114,14 @@ namespace CPN {
         context->Terminate();
     }
 
+    bool Kernel::IsTerminated() {
+        return context->IsTerminated();
+    }
+
+    void Kernel::CheckTerminated() {
+        context->CheckTerminated();
+    }
+
     void Kernel::NotifyTerminate() {
         FUNCBEGIN;
         if (status.CompareAndPost(RUNNING, TERMINATE)) {
@@ -119,16 +131,13 @@ namespace CPN {
 
     Key_t Kernel::CreateNode(const NodeAttr &attr) {
         FUNCBEGIN;
-        Sync::AutoReentrantLock arlock(lock);
-        Key_t ourkey = hostkey;
-        arlock.Unlock();
 
         NodeAttr nodeattr = attr;
 
         if (nodeattr.GetHostKey() == 0) {
             Key_t key = 0;
             if (nodeattr.GetHost().empty()) {
-                key = ourkey;
+                key = hostkey;
             } else {
                 key = context->WaitForHostStart(nodeattr.GetHost());
             }
@@ -139,7 +148,7 @@ namespace CPN {
 
         // check the host the node should go on and send
         // to that particular host
-        if (nodeattr.GetHostKey() == ourkey) {
+        if (nodeattr.GetHostKey() == hostkey) {
             InternalCreateNode(nodeattr);
         } else {
             context->SendCreateNode(nodeattr.GetHostKey(), nodeattr);
@@ -148,13 +157,10 @@ namespace CPN {
     }
 
     Key_t Kernel::CreatePseudoNode(const std::string &nodename) {
-        Sync::AutoReentrantLock arlock(lock);
-        Key_t ourkey = hostkey;
-        arlock.Unlock();
-        Key_t nodekey = context->CreateNodeKey(ourkey, nodename);
+        Key_t nodekey = context->CreateNodeKey(hostkey, nodename);
         shared_ptr<PseudoNode> pnode;
         pnode.reset(new PseudoNode(nodename, nodekey, context));
-        arlock.Lock();
+        Sync::AutoReentrantLock arlock(nodelock);
         nodemap.insert(std::make_pair(nodekey, pnode));
         arlock.Unlock();
         context->SignalNodeStart(nodekey);
@@ -163,7 +169,7 @@ namespace CPN {
 
     Key_t Kernel::GetPseudoNode(const std::string &nodename) {
         Key_t nodekey = context->GetNodeKey(nodename);
-        Sync::AutoReentrantLock arlock(lock);
+        Sync::AutoReentrantLock arlock(nodelock);
         NodeMap::iterator entry = nodemap.find(nodekey);
         if (entry == nodemap.end() || !entry->second->IsPurePseudo()) {
             throw std::invalid_argument("Not a valid PseudoNode.");
@@ -172,7 +178,7 @@ namespace CPN {
     }
 
     shared_ptr<QueueWriter> Kernel::GetPseudoWriter(Key_t key, const std::string &portname) {
-        Sync::AutoReentrantLock arlock(lock);
+        Sync::AutoReentrantLock arlock(nodelock);
         NodeMap::iterator entry = nodemap.find(key);
         if (entry == nodemap.end() || !entry->second->IsPurePseudo()) {
             throw std::invalid_argument("Not a valid PseudoNode.");
@@ -183,7 +189,7 @@ namespace CPN {
     }
 
     shared_ptr<QueueReader> Kernel::GetPseudoReader(Key_t key, const std::string &portname) {
-        Sync::AutoReentrantLock arlock(lock);
+        Sync::AutoReentrantLock arlock(nodelock);
         NodeMap::iterator entry = nodemap.find(key);
         if (entry == nodemap.end() || !entry->second->IsPurePseudo()) {
             throw std::invalid_argument("Not a valid PseudoNode.");
@@ -194,7 +200,7 @@ namespace CPN {
     }
 
     void Kernel::DestroyPseudoNode(Key_t key) {
-        Sync::AutoReentrantLock arlock(lock);
+        Sync::AutoReentrantLock arlock(nodelock);
         NodeMap::iterator entry = nodemap.find(key);
         if (entry == nodemap.end() || !entry->second->IsPurePseudo()) {
             throw std::invalid_argument("Not a valid PseudoNode.");
@@ -294,13 +300,12 @@ namespace CPN {
     }
 
     void Kernel::CreateReaderEndpoint(const SimpleQueueAttr &attr) {
-        Sync::AutoReentrantLock arlock(lock);
         ASSERT(useremote, "Cannot create remote queue without enabling remote operations.");
 
         shared_ptr<RemoteQueue> endp;
         endp = shared_ptr<RemoteQueue>(
                 new RemoteQueue(
-                    context,
+                    this,
                     RemoteQueue::READ,
                     server.get(),
                     remotequeueholder.get(),
@@ -308,43 +313,44 @@ namespace CPN {
                     ));
 
 
+        Sync::AutoReentrantLock arlock(nodelock);
         NodeMap::iterator entry = nodemap.find(attr.GetReaderNodeKey());
         ASSERT(entry != nodemap.end(), "Node not found!?");
         shared_ptr<PseudoNode> node = entry->second;
+        arlock.Unlock();
         remotequeueholder->AddQueue(endp);
         endp->Start();
-        arlock.Unlock();
         node->CreateReader(endp);
     }
 
     void Kernel::CreateWriterEndpoint(const SimpleQueueAttr &attr) {
-        Sync::AutoReentrantLock arlock(lock);
         ASSERT(useremote, "Cannot create remote queue without enabling remote operations.");
 
         shared_ptr<RemoteQueue> endp;
         endp = shared_ptr<RemoteQueue>(
                 new RemoteQueue(
-                    context,
+                    this,
                     RemoteQueue::WRITE,
                     server.get(),
                     remotequeueholder.get(),
                     attr
                     ));
 
+        Sync::AutoReentrantLock arlock(nodelock);
         NodeMap::iterator entry = nodemap.find(attr.GetWriterNodeKey());
         ASSERT(entry != nodemap.end(), "Node not found!?");
         shared_ptr<PseudoNode> node = entry->second;
+        arlock.Unlock();
         remotequeueholder->AddQueue(endp);
         endp->Start();
-        arlock.Unlock();
         node->CreateWriter(endp);
     }
 
     void Kernel::CreateLocalQueue(const SimpleQueueAttr &attr) {
         shared_ptr<QueueBase> queue;
-        queue = shared_ptr<QueueBase>(new ThresholdQueue(context, attr));
+        queue = shared_ptr<QueueBase>(new ThresholdQueue(this, attr));
 
-        Sync::AutoReentrantLock arlock(lock);
+        Sync::AutoReentrantLock arlock(nodelock);
         NodeMap::iterator readentry = nodemap.find(attr.GetReaderNodeKey());
         ASSERT(readentry != nodemap.end(), "Tried to connect a queue to a node that doesn't exist.");
         shared_ptr<PseudoNode> readnode = readentry->second;
@@ -359,10 +365,10 @@ namespace CPN {
     }
 
     void Kernel::InternalCreateNode(NodeAttr &nodeattr) {
-        Sync::AutoReentrantLock arlock(lock);
+        Sync::AutoReentrantLock arlock(nodelock);
         FUNCBEGIN;
         ASSERT(status.Get() == RUNNING);
-        NodeFactory *factory = context->GetNodeFactory(nodeattr.GetTypeName());
+        NodeFactory *factory = GetNodeFactory(nodeattr.GetTypeName());
         if (!factory) {
             throw std::invalid_argument("No such node type " + nodeattr.GetTypeName());
         }
@@ -373,7 +379,7 @@ namespace CPN {
 
     void Kernel::NodeTerminated(Key_t key) {
         context->SignalNodeEnd(key);
-        Sync::AutoReentrantLock arlock(lock);
+        Sync::AutoReentrantLock arlock(nodelock);
         FUNCBEGIN;
         if (status.Get() == DONE) {
             logger.Warn("Nodes running after shutdown");
@@ -382,14 +388,17 @@ namespace CPN {
             ASSERT(entry != nodemap.end());
             shared_ptr<PseudoNode> node = entry->second;
             nodemap.erase(entry);
-            garbagenodes.push_back(node);
+            {
+                Sync::AutoReentrantLock arlock(garbagelock);
+                garbagenodes.push_back(node);
+            }
             SendWakeup();
         }
-        cond.Signal();
+        nodecond.Signal();
     }
 
     void Kernel::ClearGarbage() {
-        Sync::AutoReentrantLock arlock(lock);
+        Sync::AutoReentrantLock arlock(garbagelock);
         FUNCBEGIN;
         while (!garbagenodes.empty()) {
             garbagenodes.back()->Shutdown();
@@ -398,11 +407,11 @@ namespace CPN {
     }
 
     void Kernel::SendWakeup() {
-        Sync::AutoReentrantLock arlock(lock);
+        Sync::AutoReentrantLock arlock(nodelock);
         if (useremote) {
             server->Wakeup();
         }
-        cond.Signal();
+        nodecond.Signal();
     }
 
     void *Kernel::EntryPoint() {
@@ -417,10 +426,13 @@ namespace CPN {
                     server->Poll();
                 }
             } else {
-                Sync::AutoReentrantLock arlock(lock);
+                ClearGarbage();
+                Sync::AutoReentrantLock arlock(nodelock);
                 while (status.Get() == RUNNING) {
+                    nodecond.Wait(nodelock);
+                    arlock.Unlock();
                     ClearGarbage();
-                    cond.Wait(lock);
+                    arlock.Lock();
                 }
             }
         } catch (const ShutdownException &e) {
@@ -431,18 +443,21 @@ namespace CPN {
             remotequeueholder->Shutdown();
         }
         {
-            Sync::AutoReentrantLock arlock(lock);
+            Sync::AutoReentrantLock arlock(nodelock);
             NodeMap mapcopy = nodemap;
             arlock.Unlock();
             NodeMap::iterator nitr = mapcopy.begin();
             while (nitr != mapcopy.end()) {
                 (nitr++)->second->NotifyTerminate();
             }
+            ClearGarbage();
             arlock.Lock();
             // Wait for all nodes to end
             while (!nodemap.empty()) {
+                nodecond.Wait(nodelock);
+                arlock.Unlock();
                 ClearGarbage();
-                cond.Wait(lock);
+                arlock.Lock();
             }
         }
         ClearGarbage();
@@ -453,25 +468,21 @@ namespace CPN {
     }
 
     void Kernel::RemoteCreateWriter(SimpleQueueAttr attr) {
-        Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
         ASSERT(useremote);
         CreateWriterEndpoint(attr);
     }
     void Kernel::RemoteCreateReader(SimpleQueueAttr attr) {
-        Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
         ASSERT(useremote);
         CreateReaderEndpoint(attr);
     }
     void Kernel::RemoteCreateQueue(SimpleQueueAttr attr) {
-        Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
         ASSERT(useremote);
         CreateLocalQueue(attr);
     }
     void Kernel::RemoteCreateNode(NodeAttr attr) {
-        Sync::AutoReentrantLock arlock(lock);
         FUNCBEGIN;
         ASSERT(useremote);
         InternalCreateNode(attr);
@@ -507,5 +518,37 @@ namespace CPN {
             ++node;
         }
     }
+
+
+    bool Kernel::UseD4R() {
+        Sync::AutoReentrantLock al(datalock);
+        return useD4R;
+    }
+
+    bool Kernel::UseD4R(bool u) {
+        Sync::AutoReentrantLock al(datalock);
+        return useD4R = u;
+    }
+
+    bool Kernel::SwallowBrokenQueueExceptions() {
+        Sync::AutoReentrantLock al(datalock);
+        return swallowbrokenqueue;
+    }
+
+    bool Kernel::SwallowBrokenQueueExceptions(bool sbqe) {
+        Sync::AutoReentrantLock al(datalock);
+        return swallowbrokenqueue = sbqe;
+    }
+
+    bool Kernel::GrowQueueMaxThreshold() {
+        Sync::AutoReentrantLock al(datalock);
+        return growmaxthresh;
+    }
+
+    bool Kernel::GrowQueueMaxThreshold(bool grow) {
+        Sync::AutoReentrantLock al(datalock);
+        return growmaxthresh = grow;
+    }
+
 }
 

@@ -35,6 +35,7 @@
 #include "StatusHandler.h"
 #include "Logger.h"
 #include "Context.h"
+#include "NodeLoader.h"
 #include <string>
 #include <map>
 #include <vector>
@@ -79,6 +80,16 @@ namespace CPN {
          * for completion.
          */
         void Terminate();
+
+        /** \return true if Terminate has been called
+         */
+        bool IsTerminated();
+
+        /** \brief Convenience method that checks IsTerminated and
+         * if so throws a ShutdownException
+         * \throw ShutdownException
+         */
+        void CheckTerminated();
 
         /**
          * Create a new node.
@@ -196,7 +207,7 @@ namespace CPN {
         /** 
          * \return the name of this kernel.
          */
-        const std::string &GetName() const { return kernelname; }
+        const std::string GetName() const { return kernelname; }
 
         /** \return the unique key for this kernel
          */
@@ -224,6 +235,62 @@ namespace CPN {
          * \}
          */
 
+        /** \brief Attempts to load the given dynamic library
+         * and make the symbols inside available to be searched for
+         * node types.
+         * The library will be unloaded on distruction.
+         * \param libname the library name and path
+         */
+        void LoadSharedLib(const std::string &libname) { nodeloader.LoadSharedLib(libname); }
+
+        void LoadNodeList(const std::string &filename) { nodeloader.LoadNodeList(filename); }
+
+        /** \brief Return a pointer to the node factory that produces the given
+         * node type. May load a shared library to find the node factory.
+         *
+         * If there is no node factory available already, attempt to find
+         * a function named "cpninitnodetype" and call it to get the factory.
+         * If there is no function named this, then quiery the library loader
+         * for a library with the name nodetype then try again. If all this
+         * fails then throw a runtime_error exception.
+         *
+         * \param nodetype the type of the node
+         * \return a node factory for the node type
+         */
+        NodeFactory *GetNodeFactory(const std::string &nodetype) { return nodeloader.GetFactory(nodetype); }
+
+        /** \brief A function that lets others register node factories
+         * \param factory the node factory
+         */
+        void RegisterNodeFactory(shared_ptr<NodeFactory> factory) { nodeloader.RegisterFactory(factory); }
+
+        /** \brief Whether or not D4R should be used.
+         * \return true or false (default true)
+         */
+        bool UseD4R();
+        bool UseD4R(bool u);
+
+        /** \brief Whether the queue should grow when
+         * a threshold larger than the current max threshold is requested.
+         * \return true or false (default true)
+         */
+        bool GrowQueueMaxThreshold();
+        bool GrowQueueMaxThreshold(bool grow);
+
+        /** \brief Whether the node should by default swallow the broken queue exceptions
+         * or let them propigate as an error.
+         * \return true or false
+         */
+        bool SwallowBrokenQueueExceptions();
+        bool SwallowBrokenQueueExceptions(bool sbqe);
+
+        /** \brief Calculate the new queue size when a queue needs to grow.
+         * \return the new queue size
+         */
+        unsigned CalculateGrowSize(unsigned currentsize, unsigned request) {
+            return context->CalculateGrowSize(currentsize, request);
+        }
+
     private:
         // Not copyable
         Kernel(const Kernel&);
@@ -242,9 +309,10 @@ namespace CPN {
         // Function to be called from gdb
         void LogState();
 
-        Sync::ReentrantLock lock;
         Sync::StatusHandler<KernelStatus_t> status;
-        Sync::ReentrantCondition cond;
+
+        // Read only after construction or contain own synchronization,
+        // no explicit synchronization required
         auto_ptr<Pthread> thread;
         const std::string kernelname;
         Key_t hostkey;
@@ -253,11 +321,22 @@ namespace CPN {
         auto_ptr<ConnectionServer> server;
         auto_ptr<RemoteQueueHolder> remotequeueholder;
         bool useremote;
+        NodeLoader nodeloader;
 
         typedef std::map<Key_t, shared_ptr<PseudoNode> > NodeMap;
         typedef std::vector< shared_ptr<PseudoNode> > NodeList;
+
+        // nodelock serializes access to nodemap
+        Sync::ReentrantLock nodelock;
+        Sync::ReentrantCondition nodecond;
         NodeMap nodemap;
+        Sync::ReentrantLock garbagelock;
         NodeList garbagenodes;
+
+        Sync::ReentrantLock datalock;
+        bool useD4R;
+        bool swallowbrokenqueue;
+        bool growmaxthresh;
     };
 }
 

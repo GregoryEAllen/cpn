@@ -5,7 +5,7 @@
 #include "QueueAttr.h"
 #include "ThresholdQueue.h"
 
-#include "MockContext.h"
+#include "MockKernel.h"
 
 #include "PthreadFunctional.h"
 
@@ -26,7 +26,6 @@ CPPUNIT_TEST_SUITE_REGISTRATION( QueueTest );
 using CPN::shared_ptr;
 using CPN::QueueBase;
 using CPN::ThresholdQueue;
-using CPN::Context;
 using CPN::SimpleQueueAttr;
 using CPN::Key_t;
 
@@ -137,68 +136,68 @@ void QueueTest::tearDown() {
 
 void QueueTest::SimpleQueueTest() {
     DEBUG("%s\n",__PRETTY_FUNCTION__);
-    shared_ptr<Context> context = shared_ptr<Context>(new MockContext);
+    MockKernel kernel;
     SimpleQueueAttr attr;
     attr.SetLength(309).SetMaxThreshold(10).SetNumChannels(1)
         .SetReaderKey(RKEY).SetWriterKey(WKEY);
     //DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
-    queue = new ThresholdQueue(context, attr);
+    queue = new ThresholdQueue(&kernel, attr);
     TestBulk();
     delete queue;
     queue = 0;
-    //queue = shared_ptr<QueueBase>(new SimpleQueue(context, attr));
+    //queue = shared_ptr<QueueBase>(new SimpleQueue(&kernel, attr));
     //TestDirect(queue.get());
     attr.SetNumChannels(10);
     //DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
-    queue = new ThresholdQueue(context, attr);
+    queue = new ThresholdQueue(&kernel, attr);
     TestBulk();
     delete queue;
     queue = 0;
-    queue = new ThresholdQueue(context, attr);
+    queue = new ThresholdQueue(&kernel, attr);
     TestDirect();
     delete queue;
     queue = 0;
-    queue = new ThresholdQueue(context, attr);
+    queue = new ThresholdQueue(&kernel, attr);
     CommunicationTest();
     delete queue;
     queue = 0;
-    queue = new ThresholdQueue(context, attr);
+    queue = new ThresholdQueue(&kernel, attr);
     DequeueBlockTest();
     delete queue;
     queue = 0;
-    queue = new ThresholdQueue(context, attr);
+    queue = new ThresholdQueue(&kernel, attr);
     MaxThreshGrowTest();
     delete queue;
     queue = 0;
-    queue = new ThresholdQueue(context, attr);
+    queue = new ThresholdQueue(&kernel, attr);
     GrowTest();
 }
 
 void QueueTest::ThresholdQueueTest() {
     DEBUG("%s\n",__PRETTY_FUNCTION__);
-    shared_ptr<Context> context = shared_ptr<Context>(new MockContext);
+    MockKernel kernel;
     SimpleQueueAttr attr;
     attr.SetLength(30).SetMaxThreshold(10).SetNumChannels(1)
         .SetReaderKey(RKEY).SetWriterKey(WKEY)
         .SetHint(CPN::QUEUEHINT_THRESHOLD);
     //DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
-    queue = new ThresholdQueue(context, attr);
+    queue = new ThresholdQueue(&kernel, attr);
     TestBulk();
     delete queue;
     queue = 0;
-    //queue = shared_ptr<QueueBase>(new ThresholdQueue(context, attr));
+    //queue = shared_ptr<QueueBase>(new ThresholdQueue(&kernel, attr));
     //TestDirect(queue.get());
     attr.SetNumChannels(10);
     //DEBUG("%s : Size %u, MaxThresh %u, Chans %u\n",__PRETTY_FUNCTION__, attr.GetLength(), attr.GetMaxThreshold(), attr.GetNumChannels());
-    queue = new ThresholdQueue(context, attr);
+    queue = new ThresholdQueue(&kernel, attr);
     CommunicationTest();
     delete queue;
     queue = 0;
-    queue = new ThresholdQueue(context, attr);
+    queue = new ThresholdQueue(&kernel, attr);
     MaxThreshGrowTest();
     delete queue;
     queue = 0;
-    queue = new ThresholdQueue(context, attr);
+    queue = new ThresholdQueue(&kernel, attr);
     GrowTest();
 }
 
