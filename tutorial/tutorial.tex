@@ -143,7 +143,8 @@ If so, it will look through it to see if there is a shared library that can be l
 function that can supply a factory for that node type.
 If all of these fail then the node loader throws an exception indicating that no factory could be found
 for that node type.
-You can manually add a factory to the node loader.
+You can manually add a factory to the node loader by the kernel member method \verb|RegisterNodeFactory|.
+Each kernel possesses its own node loader.
 
 A node list is a file that has a very simple format.
 The format is a directive followed by parameters then a semicolon.
@@ -157,10 +158,10 @@ See the file \url{libraries/CPN/NodeLoader.cc} for details.
 
 One consequence of this loading scheme is that in general nodes will not have any referenced symbols in them.
 This is not normally a problem except when one tries to put a node in a library and use a tool like \verb|jmake|.
-\verb|jmake| collects objects into archives and then uses the linker to load that together.
-The problem with this is that the linker will prune out object files in archives that have no references.
-This causes objects in which we want to dynamically call symbols in to not be linked into the executable.
-So, when using tools like \verb|jmake| a manual effort to ensure that there is a referenced symbol in the appropriate object
+\verb|jmake| collects objects into archives and then uses the linker to load the archive together.
+The problem is linker will prune out object files in archives with no references.
+This causes objects in which we want to call symbols dynamically to not be linked into the executable.
+So, when using tools like \verb|jmake|, a manual effort to ensure that there is a referenced symbol in the appropriate object
 for all the nodes in archives needs to be made.
 Also, if no nodes are statically linked efforts needs to be made to ensure that the linker does not prune out \verb|typeinfo| symbols that the nodes need in the CPN library.
 On systems with the GNU linker this can be done by ensuring your tool uses the whole archive flag around the CPN library archives and the node archive files.
@@ -173,7 +174,7 @@ specific.
 There are three different ways to define or create a node.
 The first way is to derive a node from \verb!CPN::NodeBase!. This method is rather verbose but allows one to load
 the node through the \verb!VariantCPNLoader!. The second way is by asking the kernel to create a function node.
-A function node is a node which calls a function with a pointer to the \verb!CPN::NodeBase! and any additional supplied parameters.
+A function node is a node which calls a function with a pointer to a \verb!CPN::NodeBase! and any additional supplied parameters.
 The final way of creating a node is to create a pseudo node.
 A pseudo node is a handle that one can use to get queue endpoints.
 This facility is designed for when your data source or sink is some other library where you provide callback functions.
@@ -287,9 +288,10 @@ This means that only plain old data (POD) types can be sent over the queues in C
 The \verb!CPN::IQueue<T>! and \verb!CPN::OQueue<T>! provide
 type checking and type conversion for the raw queue interface.
 Each queue has associated with it a string identifying the type that that queue should handle.
-The adapters check this string and throw an exception on assignment if the types do not match.
+\verb|IQueue| and \verb|OQueue| check this string and throw an exception on assignment if the types do not match.
 
-First, the summer node gets all its input and output endpoints and places them in adapters.
+First, the summer node gets all its input endpoints and places them in \verb|IQueue|s.
+Next, the node gets the output port and places it in an \verb|OQueue|.
 Then it reads from all its inputs, sum them and enqueues the result.
 Note that the \verb!IQueue<T>::Dequeue(T *, unsigned)! function will return
 \verb!false! when the other end of the queue disconnects.
@@ -305,7 +307,7 @@ the node type at run time.
 Note that the type name must be a valid symbol (limited to alphanumeric and underscore).
 Usually it is the same as the node class name.
 Full code for the summing node is available in Listing \ref{lst:summer}.
-The delay nodes are for the most part very similar. Full code for the delay node is in Listing \ref{lst:delay}.
+The cons nodes are very similar. Full code for the cons node is in Listing \ref{lst:cons}.
 
 Now on to instantiating and running the nodes.
 Full code for the main function to run this example is in Listing \ref{lst:dn main}.
@@ -325,7 +327,7 @@ By default the broken queue exceptions are left unhandled and end up with a call
 \end{lstlisting}
 
 Next, the nodes need to be created. It is important to notice that the nodes for a queue must exist before
-the queue can be created.
+the queue can be created. Attribute objects can be reused.
 
 \begin{lstlisting}{}
     NodeAttr nattr("summer", "Summer", "{\"inputs\":[ \"A\","
@@ -384,10 +386,10 @@ then work as sources and sinks in the PN.
 \subsection{Function Node Example}
 \label{sec:function node example}
 
-Function nodes are useful when you want to have a simple one off node and/or don't need auto
+Function nodes are useful when you want to have a simple one off node or don't need auto
 loading.
 Function nodes cannot be automatically loaded by the node loader.
-This means that the VariantCPNLoader can't specify these nodes and they must be done manually.
+This means that the VariantCPNLoader can't specify these nodes and they must be created manually.
 Using function nodes can make a simple PN much easier to write.
 You can still use the VariantCPNLoader to load the queue descriptions once the nodes are created.
 The kernel has a set of overloaded template functions which take as the first parameter the new node
@@ -396,7 +398,7 @@ passed to the function object.
 
 To create the Fibonacci generator we have been discussing we need two nodes. This time we will use
 functions for the nodes. The functions should take as the first argument a pointer to a \verb!CPN::NodeBase!.
-The summer and delay node functions are defined as:
+The summer and cons node functions are defined as:
 
 \begin{lstlisting}{}
 static void Summer(NodeBase *node, string input_a, string input_b,
@@ -519,7 +521,7 @@ Once the configuration is done, we read out the results and clean up.
 \end{lstlisting}
 Notice that the kernels not reading out the result wait for the result pseudo node to terminate.
 This ensures that the other kernels will stick around until we are done with the PN.
-We also could have called the \verb!Kernel::Wait()! function on the kernel and in the kernel that loaded to configuration
+We also could have called the \verb!Kernel::Wait()! function on the kernel and in the kernel that loaded the configuration
 call \verb!Kernel::Terminate()!. This would have had almost the same effect.
 
 
@@ -528,7 +530,7 @@ call \verb!Kernel::Terminate()!. This would have had almost the same effect.
 \subsection{Derived Node}
 \label{derived source}
 \lstinputlisting[caption=The Summing Node,label=lst:summer]{code/derived_node/Fib_Summer.cc}
-\lstinputlisting[caption=The Cons Node,label=lst:delay]{code/derived_node/Fib_Cons.cc}
+\lstinputlisting[caption=The Cons Node,label=lst:cons]{code/derived_node/Fib_Cons.cc}
 \lstinputlisting[caption=Instantiating the declared nodes and running them,label=lst:dn main]{code/derived_node/main.cc}
 \subsection{Function Node}
 \lstinputlisting[caption=Example of function nodes,label=lst:function node]{code/function_node/main.cc}
