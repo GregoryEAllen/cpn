@@ -13,7 +13,8 @@
 
 using namespace CPN;
 
-static bool LoadJSONConfig(VariantCPNLoader &loader, const std::string &filename) {
+static bool LoadJSONConfig(VariantCPNLoader &loader,
+        const std::string &filename) {
     std::ifstream def_file(filename.c_str());
     if (def_file) {
         JSONToVariant parser;
@@ -33,14 +34,15 @@ static bool LoadJSONConfig(VariantCPNLoader &loader, const std::string &filename
     return true;
 }
 
-static bool LoadXMLConfig(VariantCPNLoader &loader, const std::string &filename) {
+static bool LoadXMLConfig(VariantCPNLoader &loader,
+        const std::string &filename) {
     std::ifstream def_file(filename.c_str());
     if (def_file) {
         XMLToVariant parser;
         parser.ParseStream(def_file);
         if (!parser.Done()) {
-            std::cerr << "Parse error in " << filename << ": " << parser.GetMessage()
-                << std::endl;
+            std::cerr << "Parse error in " << filename << ": "
+                << parser.GetMessage() << std::endl;
             return false;
         } else {
             loader.MergeConfig(parser.Get());
