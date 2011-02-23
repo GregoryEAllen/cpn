@@ -30,10 +30,35 @@
 #include "NodeAttr.h"
 #include "NodeFactory.h"
 #include "PseudoNode.h"
+#include "ParseBool.h"
+#include <sstream>
+#include <map>
+#include <string>
+#include <stdexcept>
 
 class Pthread;
 
 namespace CPN {
+
+    namespace NodeBasePrivate {
+        template<typename T>
+        struct CoerceParam {
+            static T Coerce(const std::string& key, const std::string &param) {
+                std::istringstream iss(param);
+                T ret;
+                if (iss >> ret) {
+                    return ret;
+                }
+                throw std::invalid_argument("Unable to convert parameter \"" + key + "\": \"" + param + "\"");
+            }
+        };
+        template<>
+        struct CoerceParam<bool> {
+            static bool Coerce(const std::string &, const std::string &param) {
+                return ParseBool(param);
+            }
+        };
+    }
 
     /**
      * \brief The definition common to all nodes in the process network.
@@ -57,6 +82,23 @@ namespace CPN {
          */
         Kernel *GetKernel() { return &kernel; }
 
+        std::string GetParam(const std::string &key) const;
+
+        bool HasParam(const std::string &key) const;
+
+        template<typename T>
+        T GetParam(const std::string &key) const {
+            return NodeBasePrivate::CoerceParam<T>::Coerce(key, GetParam(key));
+        }
+
+        template<typename T>
+        T GetParam(const std::string &key, T def) const {
+            if (HasParam(key)) {
+                return GetParam<T>(key);
+            }
+            return def;
+        }
+
         /**
          * \brief For use by the CPN::Kernel to start the node.
          */
@@ -64,10 +106,10 @@ namespace CPN {
 
         void Shutdown();
 
+        bool IsPurePseudo();
+
         /// For debugging ONLY!
         void LogState();
-
-        bool IsPurePseudo();
     protected:
 
         /** \brief Override this method to implement a node */
@@ -79,6 +121,7 @@ namespace CPN {
 
         const std::string type;
         auto_ptr<Pthread> thread;
+        std::map<std::string, std::string> params;
     };
 
 }

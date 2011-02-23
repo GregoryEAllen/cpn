@@ -36,26 +36,27 @@ class CPNBFOutputNode : public CPN::NodeBase {
 public:
     CPNBFOutputNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)
         : CPN::NodeBase(ker, attr)
-    {
-        JSONToVariant parser;
-        parser.Parse(attr.GetParam().data(), attr.GetParam().size());
-        ASSERT(parser.Done(), "Error parsing param line %u column %u", parser.GetLine(), parser.GetColumn());
-        Variant param = parser.Get();
-        inports.resize(param["inports"].Size());
-        std::transform(param["inports"].ListBegin(), param["inports"].ListEnd(),
-                inports.begin(), std::mem_fun_ref(&Variant::AsString));
-        blocksize = param["blocksize"].AsUnsigned();
-        outfile = param["outfile"].AsString();
-        nooutput = param["nooutput"].AsBool();
-    }
+    {}
+
     void Process() {
-        std::vector< CPN::IQueue< complex<float> > > in(inports.size());
+        unsigned num_inports = GetParam<unsigned>("num_inports");
+        unsigned blocksize = GetParam<unsigned>("blocksize");
+        bool nooutput = GetParam<bool>("nooutput", !HasParam("outfile"));
+        std::string outfile;
+        if (!nooutput) {
+            outfile = GetParam("outfile");
+        }
+
+        std::vector< CPN::IQueue< complex<float> > > in;
         std::vector< CPN::IQueue< complex<float> > >::iterator cur, begin, end;
+        for (unsigned port = 0; port < num_inports; ++port) {
+            std::ostringstream oss;
+            oss << "in" << port;
+            in.push_back(GetIQueue(oss.str()));
+        }
         cur = begin = in.begin();
         end = in.end();
-        for (std::vector<std::string>::iterator itr = inports.begin(); cur != end; ++cur, ++itr) {
-            *cur = GetReader(*itr);
-        }
+
         FILE *f = 0;
         if (!nooutput) {
             f = fopen(outfile.c_str(), "w");
@@ -92,34 +93,22 @@ public:
             fclose(f);
         }
     }
-    std::string outfile;
-    std::vector<std::string> inports;
-    unsigned blocksize;
-    bool nooutput;
 };
 CPN_DECLARE_NODE_FACTORY(CPNBFOutputNode, CPNBFOutputNode);
 
 class CPNBFInputNode : public CPN::NodeBase {
 public:
     CPNBFInputNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)
-        : CPN::NodeBase(ker, attr), forced_length(false)
-    {
-        JSONToVariant parser;
-        parser.Parse(attr.GetParam().data(), attr.GetParam().size());
-        ASSERT(parser.Done(), "Error parsing param line %u column %u", parser.GetLine(), parser.GetColumn());
-        Variant param = parser.Get();
-        outport = param["outport"].AsString();
-        infile = param["infile"].AsString();
-        repetitions = 1;
-        if (param["repetitions"].IsNumber()) {
-            repetitions = param["repetitions"].AsUnsigned();
-        }
-        forced_length = param["forced_length"].AsBool();
-        blocksize = param["blocksize"].AsUnsigned();
-        element_size = param["element_size"].AsUnsigned();
-    }
+        : CPN::NodeBase(ker, attr)
+    {}
 
     void Process() {
+        unsigned blocksize = GetParam<unsigned>("blocksize");
+        unsigned element_size = GetParam<unsigned>("element_size");
+        unsigned repetitions = GetParam<unsigned>("repetitions", 1);
+        bool forced_length = GetParam<bool>("forced_length", false);
+        std::string infile = GetParam("infile");
+
         std::ifstream in_file;
         std::istream *in = &std::cin;
         if (!infile.empty()) {
@@ -155,7 +144,7 @@ public:
                 d_len += num_more;
             }
         }
-        CPN::OQueue<void> out = GetWriter(outport);
+        CPN::OQueue<void> out = GetOQueue("out");
         FlowMeasure measure;
         unsigned qsize = out.QueueLength();
         unsigned rep = 0;
@@ -177,13 +166,6 @@ public:
                 "Input:\nAvg:\t%f hz\nMax:\t%f hz\nMin:\t%f hz\n",
                 measure.AverageRate(), measure.LargestRate(), measure.SmallestRate());
     }
-
-    std::string outport;
-    std::string infile;
-    unsigned repetitions;
-    unsigned blocksize;
-    unsigned element_size;
-    bool forced_length;
 };
 CPN_DECLARE_NODE_FACTORY(CPNBFInputNode, CPNBFInputNode);
 
@@ -379,12 +361,12 @@ int cpnbf_main(int argc, char **argv) {
 
 #define HBF_FMT "hbf_%u_%u"
 #define HBF_FMT2 HBF_FMT "_2"
-#define IN_FMT "in_%u"
-#define OUT_FMT "out_%u"
+#define IN_FMT "in%u"
+#define OUT_FMT "out%u"
 #define FORK_FMT "fork_%u"
 #define JOIN_FMT "join_%u"
-#define INPUT "input"
-#define OUTPUT "output"
+#define INPUT "in"
+#define OUTPUT "out"
         Variant node;
 
         if (do_vertical) {
@@ -394,10 +376,7 @@ int cpnbf_main(int argc, char **argv) {
             } else {
                 node["type"] = "VBeamformerNode";
             }
-            node["param"]["inport"] = INPUT;
-            for (unsigned i = 0; i < num_fans; ++i) {
-                node["param"]["outports"][i] = ToString(OUT_FMT, i);
-            }
+            node["param"]["num_outports"] = num_fans;
             node["param"]["blocksize"] = BLOCKSIZE;
             node["param"]["file"] = vertical_config;
             node["param"]["algorithm"] = algo;
@@ -405,8 +384,6 @@ int cpnbf_main(int argc, char **argv) {
         }
         node = Variant::NullType;
         node["type"] = "HBeamformerNode";
-        node["param"]["inport"] = INPUT;
-        node["param"]["outport"] = OUTPUT;
         node["param"]["estimate"] = estimate;
         node["param"]["file"] = horizontal_config;
         for (unsigned i = 0; i < num_fans; ++i) {
@@ -427,7 +404,6 @@ int cpnbf_main(int argc, char **argv) {
         node = Variant::NullType;
         node["name"] = "input";
         node["type"] = "CPNBFInputNode";
-        node["param"]["outport"] = OUTPUT;
         node["param"]["infile"] = input_file;
         node["param"]["repetitions"] = repetitions;
         node["param"]["forced_length"] = forced_length;
@@ -442,9 +418,7 @@ int cpnbf_main(int argc, char **argv) {
 
         node["name"] = "output";
         node["type"] = "CPNBFOutputNode";
-        for (unsigned i = 0; i < num_fans; ++i) {
-            node["param"]["inports"][i] = ToString(IN_FMT, i);
-        }
+        node["param"]["num_inports"] = num_fans;
         node["param"]["blocksize"] = BLOCKSIZE;
         node["param"]["outfile"] = output_file;
         node["param"]["nooutput"] = nooutput;
@@ -452,23 +426,17 @@ int cpnbf_main(int argc, char **argv) {
         node = Variant::NullType;
         if (num_rr > 1 || rr_force) {
             node["type"] = "ForkJoinNode";
-            node["param"]["inport"] = INPUT;
             node["param"]["size"] = BLOCKSIZE;
             node["param"]["overlap"] = OVERLAP;
-            for (unsigned j = 0; j < num_rr; ++j) {
-                node["param"]["outports"][j] = ToString(OUT_FMT, j);
-            }
+            node["param"]["num_outports"] = num_rr;
+            node["param"]["num_inports"] = 1;
             for (unsigned i = 0; i < num_fans; ++i) {
                 node["name"] = ToString(FORK_FMT, i);
                 loader.AddNode(node);
             }
             node["param"]["overlap"] = 0;
-            node["param"]["outports"] = Variant::NullType;
-            node["param"]["inport"] = Variant::NullType;
-            node["param"]["outport"] = OUTPUT;
-            for (unsigned j = 0; j < num_rr; ++j) {
-                node["param"]["inports"][j] = ToString(IN_FMT, j);
-            }
+            node["param"]["num_outports"] = 1;
+            node["param"]["num_inports"] = num_rr;
             for (unsigned i = 0; i < num_fans; ++i) {
                 node["name"] = ToString(JOIN_FMT, i);
                 loader.AddNode(node);

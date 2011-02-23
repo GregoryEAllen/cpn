@@ -19,14 +19,16 @@
 //=============================================================================
 /** \file
  * \author John Bridgman
+ * A node which reads from one or more queues and then duplicates the input
+ * to one or more outputs.
  */
-#include "ForkJoinNode.h"
+#include "NodeBase.h"
 #include "IQueue.h"
 #include "OQueue.h"
-#include "Variant.h"
-#include "JSONToVariant.h"
-#include <complex>
+#include <sstream>
 #include <algorithm>
+#include <string>
+#include <vector>
 
 using CPN::shared_ptr;
 using CPN::NodeBase;
@@ -38,61 +40,38 @@ using CPN::OQueue;
 using std::for_each;
 using std::mem_fun_ref;
 
+class ForkJoinNode : public CPN::NodeBase {
+public:
+    ForkJoinNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)
+        : CPN::NodeBase(ker, attr) {}
+private:
+    void Process();
+};
+
 CPN_DECLARE_NODE_FACTORY(ForkJoinNode, ForkJoinNode);
 
-ForkJoinNode::ForkJoinNode(Kernel &ker, const NodeAttr &attr)
-    : CPN::NodeBase(ker, attr)
-{
-    JSONToVariant parser;
-    parser.Parse(attr.GetParam().data(), attr.GetParam().size());
-    ASSERT(parser.Done(), "Error parsing param line %u column %u", parser.GetLine(), parser.GetColumn());
-    Variant param = parser.Get();
-    if (param["inport"].IsString()) {
-        inports.push_back(param["inport"].AsString());
-    }
-    if (param["inports"].IsArray()) {
-        for (Variant::ListIterator i = param["inports"].ListBegin();
-                i != param["inports"].ListEnd(); ++i) {
-            inports.push_back(i->AsString());
-        }
-    }
-    if (param["outport"].IsString()) {
-        outports.push_back(param["outport"].AsString());
-    }
-    if (param["outports"].IsArray()) {
-        for (Variant::ListIterator i = param["outports"].ListBegin();
-                i != param["outports"].ListEnd(); ++i) {
-            outports.push_back(i->AsString());
-        }
-    }
-    if (param["size"].IsNumber()) {
-        size = param["size"].AsUnsigned();
-    } else {
-        size = 0;
-    }
-    if (param["overlap"].IsNumber()) {
-        overlap = param["overlap"].AsUnsigned();
-    } else {
-        overlap = 0;
-    }
-    ASSERT(!inports.empty() && !outports.empty(), "Must have non empty in and out ports.");
-}
 
 void ForkJoinNode::Process() {
-    vector<OQueue<void> > out(outports.size());
-    vector<OQueue<void> >::iterator current_out = out.begin();
-    const vector<OQueue<void> >::iterator end_out = out.end();
-    for (vector<std::string>::iterator itr = outports.begin(); itr != outports.end(); ++itr)
-        *(current_out++) = GetWriter(*itr);
+    unsigned num_inports = GetParam<unsigned>("num_inports", 1);
+    unsigned num_outports = GetParam<unsigned>("num_outports", 1);
+    unsigned size = GetParam<unsigned>("size", 0);
+    unsigned overlap = GetParam<unsigned>("overlap", 0);
 
-    vector<IQueue<void> > in(inports.size());
-    const vector<IQueue<void> >::iterator end_in = in.end();
-    vector<IQueue<void> >::iterator current_in = in.begin();
-    for (vector<std::string>::iterator itr = inports.begin(); itr != inports.end(); ++itr)
-        *(current_in++) = GetReader(*itr);
+    vector<OQueue<void> > out;
+    for (unsigned port = 0; port < num_outports; ++port) {
+        std::ostringstream oss;
+        oss << "out" << port;
+        out.push_back(GetOQueue(oss.str()));
+    }
 
-    current_in = in.begin();
-    current_out = out.begin();
+    vector<IQueue<void> > in;
+    for (unsigned port = 0; port < num_inports; ++port) {
+        std::ostringstream oss;
+        oss << "in" << port;
+        in.push_back(GetIQueue(oss.str()));
+    }
+    vector<IQueue<void> >::iterator current_in = in.begin(), end_in = in.end();
+    vector<OQueue<void> >::iterator current_out = out.begin(), end_out = out.end();
     while (true) {
         if (current_in == end_in) {
             current_in = in.begin();

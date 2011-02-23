@@ -65,7 +65,7 @@ CPN_DECLARE_NODE_FACTORY(ThresholdSieveFilter, ThresholdSieveFilter);
 ThresholdSieveFilter::ThresholdSieveFilter(CPN::Kernel &ker, const CPN::NodeAttr &attr)
     : CPN::NodeBase(ker, attr)
 {
-    opts = ThresholdSieveOptions::Deserialize(attr.GetParam());
+    opts = ThresholdSieveOptions::Deserialize(GetParam("options"));
 }
 
 const NumberT *GetDequeueCount(CPN::IQueue<NumberT> &in, unsigned &incount, NumberT **buffer) {
@@ -122,8 +122,8 @@ void ThresholdSieveFilter::Process() {
     DEBUG("%s started\n", GetName().c_str());
     double total_start = getTime();
     CPN::Key_t control_key = 0, in_key = 0, out_key = 0;
-    CPN::IQueue<NumberT> in = GetReader(IN_PORT);
-    CPN::OQueue<NumberT> out = GetWriter(CONTROL_PORT);
+    CPN::IQueue<NumberT> in = GetIQueue(IN_PORT);
+    CPN::OQueue<NumberT> out = GetOQueue(CONTROL_PORT);
     in_key = in.GetKey();
     control_key = out.GetKey();
     const bool zerocopy = opts.zerocopy;
@@ -195,7 +195,7 @@ void ThresholdSieveFilter::Process() {
             out.Release();
             CreateNewFilter();
             DEBUG("%s created new filter\n", GetName().c_str());
-            out = GetWriter(OUT_PORT);
+            out = GetOQueue(OUT_PORT);
             out_key = out.GetKey();
         }
         tot_passed += numPassed;

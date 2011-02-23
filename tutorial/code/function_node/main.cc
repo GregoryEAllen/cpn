@@ -9,11 +9,10 @@
 using namespace CPN;
 using std::string;
 
-static void Summer(NodeBase *node, string input_a, string input_b,
-        string output) {
-    IQueue<uint64_t> in_a = node->GetReader(input_a);
-    IQueue<uint64_t> in_b = node->GetReader(input_b);
-    OQueue<uint64_t> out = node->GetWriter(output);
+static void Summer(NodeBase *node) {
+    IQueue<uint64_t> in_a = node->GetIQueue("A");
+    IQueue<uint64_t> in_b = node->GetIQueue("B");
+    OQueue<uint64_t> out = node->GetOQueue("C");
     while (true) {
         uint64_t val_a, val_b, sum;
         if (!in_a.Dequeue(&val_a, 1)) break;
@@ -23,11 +22,10 @@ static void Summer(NodeBase *node, string input_a, string input_b,
     }
 }
 
-static void Cons(NodeBase *node, string input, string output_a,
-        string output_b, uint64_t initial) {
-    IQueue<uint64_t> in = node->GetReader(input);
-    OQueue<uint64_t> out_a = node->GetWriter(output_a);
-    OQueue<uint64_t> out_b = node->GetWriter(output_b);
+static void Cons(NodeBase *node, uint64_t initial) {
+    IQueue<uint64_t> in = node->GetIQueue("in");
+    OQueue<uint64_t> out_a = node->GetOQueue("out0");
+    OQueue<uint64_t> out_b = node->GetOQueue("out1");
     uint64_t current = initial;
     while (true) {
         out_a.Enqueue(&current, 1);
@@ -55,28 +53,25 @@ int main(int argc, char **argv) {
         .UseD4R(false)
         .SwallowBrokenQueueExceptions(true));
 
-    kernel.CreateFunctionNode("summer", Summer, string("A"), string("B"),
-            string("C"));
-    kernel.CreateFunctionNode("Cons 1", Cons, string("in"), string("A"),
-            string("B"), 1ull);
-    kernel.CreateFunctionNode("Cons 2", Cons, string("in"), string("A"),
-            string("B"), 1ull);
+    kernel.CreateFunctionNode("summer", Summer);
+    kernel.CreateFunctionNode("Cons 1", Cons, 1);
+    kernel.CreateFunctionNode("Cons 2", Cons, 1);
     Key_t pkey = kernel.CreatePseudoNode("result");
 
     QueueAttr qattr(2*sizeof(uint64_t), sizeof(uint64_t));
     qattr.SetDatatype<uint64_t>();
-    qattr.SetWriter("Cons 1", "A").SetReader("summer", "A");
+    qattr.SetWriter("Cons 1", "out0").SetReader("summer", "A");
     kernel.CreateQueue(qattr);
-    qattr.SetWriter("Cons 2", "A").SetReader("summer", "B");
+    qattr.SetWriter("Cons 2", "out0").SetReader("summer", "B");
     kernel.CreateQueue(qattr);
     qattr.SetWriter("summer", "C").SetReader("Cons 1", "in");
     kernel.CreateQueue(qattr);
-    qattr.SetWriter("Cons 1", "B").SetReader("Cons 2", "in");
+    qattr.SetWriter("Cons 1", "out1").SetReader("Cons 2", "in");
     kernel.CreateQueue(qattr);
-    qattr.SetWriter("Cons 2", "B").SetReader("result", "in");
+    qattr.SetWriter("Cons 2", "out1").SetReader("result", "in");
     kernel.CreateQueue(qattr);
 
-    IQueue<uint64_t> result = kernel.GetPseudoReader(pkey, "in");
+    IQueue<uint64_t> result = kernel.GetPseudoIQueue(pkey, "in");
     uint64_t value;
     do {
         result.Dequeue(&value, 1);

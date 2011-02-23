@@ -177,7 +177,7 @@ namespace CPN {
         return nodekey;
     }
 
-    shared_ptr<QueueWriter> Kernel::GetPseudoWriter(Key_t key, const std::string &portname) {
+    shared_ptr<QueueWriter> Kernel::GetPseudoOQueue(Key_t key, const std::string &portname) {
         Sync::AutoReentrantLock arlock(nodelock);
         NodeMap::iterator entry = nodemap.find(key);
         if (entry == nodemap.end() || !entry->second->IsPurePseudo()) {
@@ -185,10 +185,10 @@ namespace CPN {
         }
         shared_ptr<PseudoNode> pnode = entry->second;
         arlock.Unlock();
-        return pnode->GetWriter(portname);
+        return pnode->GetOQueue(portname);
     }
 
-    shared_ptr<QueueReader> Kernel::GetPseudoReader(Key_t key, const std::string &portname) {
+    shared_ptr<QueueReader> Kernel::GetPseudoIQueue(Key_t key, const std::string &portname) {
         Sync::AutoReentrantLock arlock(nodelock);
         NodeMap::iterator entry = nodemap.find(key);
         if (entry == nodemap.end() || !entry->second->IsPurePseudo()) {
@@ -196,7 +196,7 @@ namespace CPN {
         }
         shared_ptr<PseudoNode> pnode = entry->second;
         arlock.Unlock();
-        return pnode->GetReader(portname);
+        return pnode->GetIQueue(portname);
     }
 
     void Kernel::DestroyPseudoNode(Key_t key) {

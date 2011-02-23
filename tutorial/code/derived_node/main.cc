@@ -24,12 +24,12 @@ int main(int argc, char **argv) {
             .UseD4R(false)
             .SwallowBrokenQueueExceptions(true));
 
-    // Create the three nodes use the same parameters for both the delay nodes
-    NodeAttr nattr("summer", "Summer", "{\"inputs\":[ \"A\","
-           " \"B\"], \"output\": \"C\"}");
+    // Create the three nodes use the same parameters for both the cons nodes
+    NodeAttr nattr("summer", "Summer");
     kernel.CreateNode(nattr);
-    nattr = NodeAttr("Cons 1", "Cons", "{\"input\": \"in\","
-           " \"outputs\":[ \"A\", \"B\" ], \"initial\": 1}");
+    nattr = NodeAttr("Cons 1", "Cons");
+    nattr.SetParam("initial", 1);
+    nattr.SetParam("num outputs", 2);
     kernel.CreateNode(nattr);
     nattr.SetName("Cons 2");
     kernel.CreateNode(nattr);
@@ -37,18 +37,18 @@ int main(int argc, char **argv) {
 
     QueueAttr qattr(2*sizeof(uint64_t), sizeof(uint64_t));
     qattr.SetDatatype<uint64_t>();
-    qattr.SetWriter("Cons 1", "A").SetReader("summer", "A");
+    qattr.SetWriter("Cons 1", "out0").SetReader("summer", "A");
     kernel.CreateQueue(qattr);
-    qattr.SetWriter("Cons 2", "A").SetReader("summer", "B");
+    qattr.SetWriter("Cons 2", "out0").SetReader("summer", "B");
     kernel.CreateQueue(qattr);
     qattr.SetWriter("summer", "C").SetReader("Cons 1", "in");
     kernel.CreateQueue(qattr);
-    qattr.SetWriter("Cons 1", "B").SetReader("Cons 2", "in");
+    qattr.SetWriter("Cons 1", "out1").SetReader("Cons 2", "in");
     kernel.CreateQueue(qattr);
-    qattr.SetWriter("Cons 2", "B").SetReader("result", "in");
+    qattr.SetWriter("Cons 2", "out1").SetReader("result", "in");
     kernel.CreateQueue(qattr);
 
-    IQueue<uint64_t> result = kernel.GetPseudoReader(pkey, "in");
+    IQueue<uint64_t> result = kernel.GetPseudoIQueue(pkey, "in");
     uint64_t value;
     do {
         result.Dequeue(&value, 1);

@@ -37,13 +37,13 @@ namespace CPN {
     PseudoNode::~PseudoNode() {
     }
 
-    shared_ptr<QueueReader> PseudoNode::GetReader(const std::string &portname) {
+    shared_ptr<QueueReader> PseudoNode::GetIQueue(const std::string &portname) {
         context->CheckTerminated();
         Key_t ekey = context->GetCreateReaderKey(nodekey, portname);
         return GetReader(ekey);
     }
 
-    shared_ptr<QueueWriter> PseudoNode::GetWriter(const std::string &portname) {
+    shared_ptr<QueueWriter> PseudoNode::GetOQueue(const std::string &portname) {
         context->CheckTerminated();
         Key_t ekey = context->GetCreateWriterKey(nodekey, portname);
         return GetWriter(ekey);

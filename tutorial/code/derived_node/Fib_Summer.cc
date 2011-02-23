@@ -16,52 +16,23 @@ using std::string;
 
 class Summer : public NodeBase {
 public:
-    Summer(Kernel &ker, const NodeAttr &attr);
+    Summer(Kernel &ker, const NodeAttr &attr)
+    : NodeBase(ker, attr) {}
 private:
     void Process();
-    vector<string> inputs;
-    string output;
 };
 
-Summer::Summer(Kernel &ker, const NodeAttr &attr)
-    : NodeBase(ker, attr)
-{
-    JSONToVariant p;
-    p.Parse(attr.GetParam());
-    if (!p.Done()) {
-        throw std::runtime_error("Could not parse parameters");
-    }
-    Variant param = p.Get();
-    Variant inp = param["inputs"];
-    std::transform(inp.ListBegin(), inp.ListEnd(),
-            std::back_inserter(inputs),
-            std::mem_fun_ref(&Variant::AsString));
-    output = param["output"].AsString();
-}
 
 void Summer::Process() {
-    typedef vector< IQueue<uint64_t> > Inport_t;
-    Inport_t inports;
-    for (vector<string>::iterator i = inputs.begin(), e = inputs.end();
-            i != e; ++i) {
-        inports.push_back(GetReader(*i));
-    }
-    OQueue<uint64_t> outport = GetWriter(output);
-    bool loop = true;
-    while (loop) {
-        uint64_t sum = 0;
-        for (Inport_t::iterator i = inports.begin(), e = inports.end();
-                i != e; ++i) {
-            uint64_t val = 0;
-            if (i->Dequeue(&val, 1)) {
-                sum += val;
-            } else {
-                loop = false;
-                break;
-            }
-        }
-        if (!loop) break;
-        outport.Enqueue(&sum, 1);
+    IQueue<uint64_t> in_a = GetIQueue("A");
+    IQueue<uint64_t> in_b = GetIQueue("B");
+    OQueue<uint64_t> out = GetOQueue("C");
+    while (true) {
+        uint64_t val_a, val_b, sum;
+        if (!in_a.Dequeue(&val_a, 1)) break;
+        if (!in_b.Dequeue(&val_b, 1)) break;
+        sum = val_a + val_b;
+        out.Enqueue(&sum, 1);
     }
 }
 

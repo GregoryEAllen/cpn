@@ -8,7 +8,6 @@
 #include "MockNode.h"
 #include "MockSyncNode.h"
 #include "ToString.h"
-#include "VariantToJSON.h"
 #include <string.h>
 
 using CPN::Context;
@@ -60,9 +59,9 @@ void TwoKernelTest::tearDown() {
 void TwoKernelTest::SimpleTwoNodeTest() {
     DEBUG("%s\n",__PRETTY_FUNCTION__);
     NodeAttr attr("source", "MockNode");
-    attr.SetParam(MockNode::GetModeName(MockNode::MODE_SOURCE));
+    attr.SetParam("mode", MockNode::MODE_SOURCE);
     kone->CreateNode(attr);
-    attr.SetName("sink").SetParam(MockNode::GetModeName(MockNode::MODE_SINK));
+    attr.SetName("sink").SetParam("mode", MockNode::MODE_SINK);
     ktwo->CreateNode(attr);
     QueueAttr qattr(2*sizeof(unsigned long), 2*sizeof(unsigned long));
     qattr.SetDatatype<unsigned long>();
@@ -74,15 +73,12 @@ void TwoKernelTest::SimpleTwoNodeTest() {
 
 void TwoKernelTest::TestSync() {
     DEBUG("%s\n",__PRETTY_FUNCTION__);
-    Variant param;
-    param["mode"] = MockSyncNode::MODE_SOURCE;
-    param["other"] = "sync2";
     NodeAttr attr("sync1", MOCKSYNCNODE_TYPENAME);
-    attr.SetParam(VariantToJSON(param));
+    attr.SetParam("mode", MockSyncNode::MODE_SOURCE);
+    attr.SetParam("other", "sync2");
     kone->CreateNode(attr);
-    param["mode"] = MockSyncNode::MODE_SINK;
-    param["other"] = "sync1";
-    attr.SetName("sync2").SetParam(VariantToJSON(param));
+    attr.SetName("sync2").SetParam("mode", MockSyncNode::MODE_SINK);
+    attr.SetParam("other", "sync1");
     ktwo->CreateNode(attr);
     ktwo->WaitForAllNodeEnd();
 }
@@ -132,9 +128,9 @@ void TwoKernelTest::TestSyncSourceSink() {
 void TwoKernelTest::QueueShutdownTest() {
     DEBUG("%s\n",__PRETTY_FUNCTION__);
     NodeAttr attr("source", "MockNode");
-    attr.SetParam(MockNode::GetModeName(MockNode::MODE_SOURCE));
+    attr.SetParam("mode", MockNode::MODE_SOURCE);
     kone->CreateNode(attr);
-    attr.SetName("sink").SetParam(MockNode::GetModeName(MockNode::MODE_SINK));
+    attr.SetName("sink").SetParam("mode", MockNode::MODE_SINK);
     ktwo->CreateNode(attr);
     QueueAttr qattr(2*sizeof(unsigned long), 2*sizeof(unsigned long));
     qattr.SetDatatype<unsigned long>();

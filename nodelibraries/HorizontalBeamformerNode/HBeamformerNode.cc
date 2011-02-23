@@ -19,8 +19,16 @@
 //=============================================================================
 /** \file
  * \author John Bridgman
+ * The parameters that this node takes are as follows:
+ * file: a filename to load the beamformer from
+ * estimate: Whether to pass estimate in default false.
+ * half: a number 0, 1, 2 which tells which half of the
+ * beamforming to do, 0 to do both halfs, 1 to do the first,
+ * 2 to do the second. Default 0
+ *
+ * The input port is called "in" and the output port is called "out"
  */
-#include "HBeamformerNode.h"
+#include "NodeBase.h"
 #include "Variant.h"
 #include "JSONToVariant.h"
 #include "IQueue.h"
@@ -32,32 +40,22 @@
 
 using std::complex;
 
+class HBeamformerNode : public CPN::NodeBase {
+public:
+    HBeamformerNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)
+        : CPN::NodeBase(ker, attr) {}
+    ~HBeamformerNode() {}
+private:
+    void Process();
+};
+
 CPN_DECLARE_NODE_FACTORY(HBeamformerNode, HBeamformerNode);
 
-HBeamformerNode::HBeamformerNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)
-    : CPN::NodeBase(ker, attr), half(0)
-{
-    JSONToVariant parser;
-    parser.Parse(attr.GetParam().data(), attr.GetParam().size());
-    ASSERT(parser.Done(), "Error parsing param line %u column %u", parser.GetLine(), parser.GetColumn());
-    Variant param = parser.Get();
-    inport = param["inport"].AsString();
-    outport = param["outport"].AsString();
-    if (!param["half"].IsNull()) {
-        half = param["half"].AsInt();
-    }
-    bool estimate = param["estimate"].AsBool();
-    std::auto_ptr<HBeamformer> hbf = HBLoadFromFile(param["file"].AsString(), estimate);
-    hbeam = hbf.release();
-}
-
-HBeamformerNode::~HBeamformerNode() {
-    delete hbeam;
-}
-
 void HBeamformerNode::Process() {
-    CPN::IQueue<complex<float> > in = GetReader(inport);
-    CPN::OQueue<complex<float> > out = GetWriter(outport);
+    std::auto_ptr<HBeamformer> hbeam = HBLoadFromFile(GetParam("file"), GetParam<bool>("estimate", false));
+    int half = GetParam<int>("half", 0);
+    CPN::IQueue<complex<float> > in = GetIQueue("in");
+    CPN::OQueue<complex<float> > out = GetOQueue("out");
     if (half == 0) {
         ASSERT(out.NumChannels() == hbeam->NumBeams(),
                 "%u != %u", out.NumChannels(), hbeam->NumBeams());

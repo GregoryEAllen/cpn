@@ -162,14 +162,14 @@ namespace CPN {
          * \param portname the name of the port
          * \return a QueueWriter
          */
-        shared_ptr<QueueWriter> GetPseudoWriter(Key_t key, const std::string &portname);
+        shared_ptr<QueueWriter> GetPseudoOQueue(Key_t key, const std::string &portname);
         /**
          * Get a reader for the given pseudo node.
          * \param key the pseudo key
          * \param portname the name of the port
          * \return a QueueReader
          */
-        shared_ptr<QueueReader> GetPseudoReader(Key_t key, const std::string &portname);
+        shared_ptr<QueueReader> GetPseudoIQueue(Key_t key, const std::string &portname);
         /**
          * Mark the end of the pseudo node.
          * Anybody waiting on it will then return.

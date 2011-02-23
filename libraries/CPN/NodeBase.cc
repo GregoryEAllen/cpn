@@ -35,12 +35,29 @@ namespace CPN {
     NodeBase::NodeBase(Kernel &ker, const NodeAttr &attr)
     :   PseudoNode(attr.GetName(), attr.GetKey(), ker.GetContext()),
         kernel(ker),
-        type(attr.GetTypeName())
+        type(attr.GetTypeName()),
+        params(attr.GetParams())
     {
         thread.reset(CreatePthreadFunctional(this, &NodeBase::EntryPoint));
     }
 
     NodeBase::~NodeBase() {
+    }
+
+    std::string NodeBase::GetParam(const std::string &key) const {
+        std::map<std::string, std::string>::const_iterator entry =
+            params.find(key);
+        if (entry == params.end()) {
+            throw std::invalid_argument("Required parameter \"" + key + "\" missing"
+                    " for node \"" + GetName() + "\"");
+        }
+        return entry->second;
+    }
+
+    bool NodeBase::HasParam(const std::string &key) const {
+        std::map<std::string, std::string>::const_iterator entry =
+            params.find(key);
+        return entry != params.end();
     }
 
     void NodeBase::Start() {

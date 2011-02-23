@@ -4,6 +4,7 @@
 #pragma once
 
 #include "NodeBase.h"
+#include <iosfwd>
 
 #define MOCKSYNCNODE_TYPENAME "mocksyncnodetypename"
 
@@ -21,9 +22,20 @@ public:
 
     void Process();
 private:
-    Mode_t mode;
-    std::string othernode;
 };
+
+inline std::ostream &operator<<(std::ostream &os, MockSyncNode::Mode_t mode) {
+    os << (int)mode;
+    return os;
+}
+
+inline std::istream &operator>>(std::istream &is, MockSyncNode::Mode_t &mode) {
+    int m;
+    is >> m;
+    mode = (MockSyncNode::Mode_t)m;
+    return is;
+}
+
 
 struct SyncSource {
     public:

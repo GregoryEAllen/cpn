@@ -30,15 +30,17 @@ class LFSR {
 	typedef unsigned long LFSR_t;
 	LFSR(LFSR_t feed_, LFSR_t seed_) : feed(feed_), seed(seed_) { }
 	
-	LFSR_t Order(void);
-	LFSR_t MaxVal(void);
+	LFSR_t Order(void) const;
+	LFSR_t MaxVal(void) const;
 	LFSR_t GetResult(void) { return seed = (seed & 1) ? (seed>>1 ^ feed) : (seed>>1); }
 
-	LFSR_t Seed(void) { return seed; }
+	LFSR_t Seed(void) const{ return seed; }
+    LFSR_t Seed(LFSR_t s) { return seed = s; }
 	LFSR_t Feed(void) const { return feed; }
+    LFSR_t Feed(LFSR_t f) { return feed = f; }
 
   protected:
-	const LFSR_t feed;
+	LFSR_t feed;
 	LFSR_t seed;
 };
 

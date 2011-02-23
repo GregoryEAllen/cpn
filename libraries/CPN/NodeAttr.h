@@ -27,6 +27,8 @@
 
 #include "CPNCommon.h"
 #include <string>
+#include <map>
+#include <sstream>
 
 namespace CPN {
 
@@ -62,18 +64,6 @@ namespace CPN {
             hostkey(0),
             name(name_),
             nodetype(nodetype_),
-            param(""),
-            key(0)
-        {}
-
-        NodeAttr(const std::string &name_,
-                const std::string &nodetype_,
-                const std::string &param_)
-            : host(),
-            hostkey(0),
-            name(name_),
-            nodetype(nodetype_),
-            param(param_),
             key(0)
         {}
 
@@ -97,8 +87,16 @@ namespace CPN {
             return *this;
         }
 
-        NodeAttr &SetParam(const std::string &param_) {
-            param = param_;
+        NodeAttr &SetParam(const std::string &key, const std::string value) {
+            params[key] = value;
+            return *this;
+        }
+
+        template<typename T>
+        NodeAttr &SetParam(const std::string &key, T value) {
+            std::ostringstream oss;
+            oss << value;
+            params[key] = oss.str();
             return *this;
         }
 
@@ -114,7 +112,7 @@ namespace CPN {
 
         const std::string &GetTypeName() const { return nodetype; }
 
-        const std::string &GetParam() const { return param; }
+        const std::map<std::string, std::string> &GetParams() const { return params; }
 
         Key_t GetKey() const { return key; }
 
@@ -123,7 +121,7 @@ namespace CPN {
         Key_t hostkey;
         std::string name;
         std::string nodetype;
-        std::string param;
+        std::map<std::string, std::string> params;
         Key_t key;
     };
 }

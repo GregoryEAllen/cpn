@@ -107,7 +107,7 @@ static Variant SieveTest(VariantCPNLoader &loader, bool verbose) {
     loader.Setup(&kernel);
     if (verbose) {
         result["result"] = Variant::ArrayType;
-        IQueue<NumberT> out = kernel.GetPseudoReader(pseudokey, IN_PORT);
+        IQueue<NumberT> out = kernel.GetPseudoIQueue(pseudokey, IN_PORT);
         NumberT value = 0;
         while (out.Dequeue(&value, 1)) {
             result["result"].Append(value);
@@ -294,7 +294,7 @@ int main(int argc, char **argv) {
         Variant node = Variant::ObjectType;
         node["name"] = CONTROL_NAME;
         node["type"] = "ThresholdSieveController";
-        node["param"] = param;
+        node["param"]["options"] = VariantToJSON(param);
         loader.AddNode(node);
     }
     if (print_config) {

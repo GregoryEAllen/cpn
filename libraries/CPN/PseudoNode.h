@@ -48,7 +48,7 @@ namespace CPN {
          * \param portname the port name of the reader to get.
          * \return a shared pointer to a reader for he given endpoint name
          */
-        shared_ptr<QueueReader> GetReader(const std::string &portname);
+        shared_ptr<QueueReader> GetIQueue(const std::string &portname);
 
         /**
          * \brief This method is for use by the user to aquire a writer endpoint.
@@ -57,7 +57,7 @@ namespace CPN {
          * \param portname the port name fo the writer to get.
          * \return a shared pointer to a writer for the given endpoint name.
          */
-        shared_ptr<QueueWriter> GetWriter(const std::string &portname);
+        shared_ptr<QueueWriter> GetOQueue(const std::string &portname);
 
         /** \brief for use by the CPN::Kernel to create a new read endpoint. */
         void CreateReader(shared_ptr<QueueBase> q);

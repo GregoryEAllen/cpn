@@ -3,7 +3,6 @@
 #include "Kernel.h"
 #include "SieveControllerNode.h"
 #include "ErrnoException.h"
-#include "VariantToJSON.h"
 #include "IQueue.h"
 #include <sys/time.h>
 #include <unistd.h>
@@ -24,7 +23,6 @@ static const char* const VALID_OPS = "hm:q:";
 int main(int argc, char **argv) {
     int maxprime = 100;
     int queueSize = 100;
-    int threshold = 1;
     bool procOpts = true;
     while (procOpts) {
         int opt = getopt(argc, argv, VALID_OPS);
@@ -48,27 +46,18 @@ int main(int argc, char **argv) {
     }
     CPN::Kernel kernel(CPN::KernelAttr("SimpleSieveKernel"));
     std::vector<unsigned long> results;
-    Variant param;
-    param["primeBound"] = maxprime;
-    param["numberBound"] = maxprime;
-    param["queueSize"] = queueSize;
-    if (threshold == 1) {
-        param["queuehint"] = CPN::QUEUEHINT_DEFAULT;
-    } else {
-        param["queuehint"] = CPN::QUEUEHINT_THRESHOLD;
-    }
-    param["threshold"] = threshold;
     CPN::NodeAttr attr("controller", SIEVECONTROLLERNODE_TYPENAME);
-    attr.SetParam(VariantToJSON(param));
+    attr.SetParam("primeBound", maxprime);
+    attr.SetParam("numberBound", maxprime);
+    attr.SetParam("queueSize", queueSize);
     kernel.CreateNode(attr);
     CPN::Key_t pseudokey = kernel.CreatePseudoNode("output");
     CPN::QueueAttr qattr(100*sizeof(unsigned long), 100*sizeof(unsigned long));
-    qattr.SetHint(threshold == 1 ? CPN::QUEUEHINT_DEFAULT : CPN::QUEUEHINT_THRESHOLD);
     qattr.SetWriter("controller", "output");
     qattr.SetReader("output", "out");
     kernel.CreateQueue(qattr);
     double start = getTime();
-    CPN::IQueue<unsigned long> in = kernel.GetPseudoReader(pseudokey, "out");
+    CPN::IQueue<unsigned long> in = kernel.GetPseudoIQueue(pseudokey, "out");
     unsigned long val;
     while (in.Dequeue(&val, 1)) {
         results.push_back(val);

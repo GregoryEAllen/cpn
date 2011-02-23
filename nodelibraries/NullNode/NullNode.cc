@@ -19,19 +19,24 @@
 //=============================================================================
 /** \file
  * \author John Bridgman
+ * A NullNode reads from its input and discards the result.
  */
-#include "NullNode.h"
+#include "NodeBase.h"
 #include "IQueue.h"
+
+class NullNode : public CPN::NodeBase {
+public:
+    NullNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)
+        : CPN::NodeBase(ker, attr) {}
+private:
+    void Process();
+    std::string inport;
+};
 
 CPN_DECLARE_NODE_FACTORY(NullNode, NullNode);
 
-NullNode::NullNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)
-    : CPN::NodeBase(ker, attr), inport(attr.GetParam())
-{
-}
-
 void NullNode::Process() {
-    CPN::IQueue<void> in = GetReader(inport);
+    CPN::IQueue<void> in = GetIQueue("in");
     while (true) {
         const unsigned maxthresh = in.MaxThreshold();
         if (!in.GetDequeuePtr(maxthresh)) {

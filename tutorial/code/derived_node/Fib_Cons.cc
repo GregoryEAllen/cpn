@@ -1,13 +1,7 @@
 #include "NodeBase.h"
 #include "IQueue.h"
 #include "OQueue.h"
-#include "JSONToVariant.h"
 #include <vector>
-#include <string>
-#include <stdexcept>
-#include <algorithm>
-#include <iterator>
-#include <functional>
 #include <stdint.h>
 
 using namespace CPN;
@@ -16,39 +10,23 @@ using std::string;
 
 class Cons : public NodeBase {
 public:
-    Cons(Kernel &ker, const NodeAttr &attr);
+    Cons(Kernel &ker, const NodeAttr &attr)
+        : NodeBase(ker, attr) {}
 private:
     void Process();
-    string input;
-    vector<string> outputs;
-    uint64_t current;
 };
 
-Cons::Cons(Kernel &ker, const NodeAttr &attr)
-    : NodeBase(ker, attr)
-{
-    JSONToVariant p;
-    p.Parse(attr.GetParam());
-    if (!p.Done()) {
-        throw std::runtime_error("Could not parse parameters");
-    }
-    Variant param = p.Get();
-    Variant outp = param["outputs"];
-    std::transform(outp.ListBegin(), outp.ListEnd(),
-            std::back_inserter(outputs),
-            std::mem_fun_ref(&Variant::AsString));
-    input = param["input"].AsString();
-    current = param["initial"].AsNumber<uint64_t>();
-}
-
 void Cons::Process() {
+    int num_outputs = GetParam<int>("num outputs", 1);
+    uint64_t current = GetParam<uint64_t>("initial");
     typedef vector< OQueue<uint64_t> > Outport_t;
     Outport_t outports;
-    for (vector<string>::iterator i = outputs.begin(), e = outputs.end();
-            i != e; ++i) {
-        outports.push_back(GetWriter(*i));
+    for (int i = 0; i < num_outputs; ++i) {
+        std::ostringstream oss;
+        oss << "out" << i;
+        outports.push_back(GetOQueue(oss.str()));
     }
-    IQueue<uint64_t> inport = GetReader(input);
+    IQueue<uint64_t> inport = GetIQueue("in");
     while (true) {
         for (Outport_t::iterator i = outports.begin(), e = outports.end();
                 i != e; ++i) {

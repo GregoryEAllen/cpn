@@ -19,53 +19,54 @@
 //=============================================================================
 /** \file
  * \author John Bridgman
+ * A CPN node to encapsulate a VBeamformer.
  */
-#include "VBeamformerNode.h"
-#include "Variant.h"
-#include "JSONToVariant.h"
+#include "NodeBase.h"
 #include "IQueue.h"
 #include "OQueue.h"
 #include "VBeamformer.h"
 #include <complex>
+#include <vector>
 #include <algorithm>
 #include <functional>
 
 using std::complex;
 
+class VBeamformerNode : public CPN::NodeBase {
+public:
+    VBeamformerNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)
+        : CPN::NodeBase(ker, attr) {}
+    ~VBeamformerNode() {}
+private:
+    void Process();
+};
+
 CPN_DECLARE_NODE_FACTORY(VBeamformerNode, VBeamformerNode);
 
-VBeamformerNode::VBeamformerNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)
-    : CPN::NodeBase(ker, attr)
-{
-    JSONToVariant parser;
-    parser.Parse(attr.GetParam().data(), attr.GetParam().size());
-    ASSERT(parser.Done(), "Error parsing param line %u column %u", parser.GetLine(), parser.GetColumn());
-    Variant param = parser.Get();
-    inport = param["inport"].AsString();
-    outports.resize(param["outports"].Size());
-    std::transform(param["outports"].ListBegin(), param["outports"].ListEnd(),
-            outports.begin(), std::mem_fun_ref(&Variant::AsString));
-    blocksize = param["blocksize"].AsUnsigned();
-    std::auto_ptr<VBeamformer> vbf = VBLoadFromFile(param["file"].AsString());
-    vbeam = vbf.release();
-    if (param["algorithm"].IsNumber()) {
-        vbeam->SetAlgorithm(param["algorithm"].AsNumber<VBeamformer::Algorithm_t>());
-    }
-
-}
-
-VBeamformerNode::~VBeamformerNode() {
-    delete vbeam;
-}
 
 void VBeamformerNode::Process() {
-    CPN::IQueue<complex<short> > in = GetReader(inport);
+    unsigned blocksize = GetParam<unsigned>("blocksize");
+    unsigned num_outports = GetParam<unsigned>("num_outports");
+
+    std::auto_ptr<VBeamformer> vbeam = VBLoadFromFile(GetParam("file"));
+
+    if (HasParam("algorithm")) {
+        int algo = GetParam<int>("algorithm");
+        vbeam->SetAlgorithm((VBeamformer::Algorithm_t)algo);
+    }
+
+    CPN::IQueue<complex<short> > in = GetIQueue("in");
     std::vector< CPN::OQueue< complex<float> > >::iterator out_itr;
     std::vector< CPN::OQueue< complex<float> > >::iterator out_end;
-    std::vector< CPN::OQueue< complex<float> > > out(outports.size());
+    std::vector< CPN::OQueue< complex<float> > > out;
+
+    for (unsigned port = 0; port < num_outports; ++port) {
+        std::ostringstream oss;
+        oss << "out" << port;
+        out.push_back(GetOQueue(oss.str()));
+    }
+
     out_itr = out.begin();
-    for (std::vector<std::string>::iterator itr = outports.begin(); itr != outports.end(); ++itr)
-        (*out_itr++) = GetWriter(*itr);
     out_end = out.end();
     const unsigned numstaves = in.NumChannels()/vbeam->NumElemsPerStave();
     while (true) {

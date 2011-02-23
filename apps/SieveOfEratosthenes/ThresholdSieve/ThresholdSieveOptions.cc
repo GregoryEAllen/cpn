@@ -44,7 +44,7 @@ void CreateNewFilter(CPN::Kernel &kernel, ThresholdSieveOptions &opts, CPN::Key_
     if (opts.report) {
         fprintf(stderr, "Creating filter %llu on kernel %s\n", opts.filtercount, attr.GetHost().c_str());
     }
-    attr.SetParam(opts.Serialize());
+    attr.SetParam("options", opts.Serialize());
     CPN::Key_t nodekey = kernel.CreateNode(attr);
 
     CPN::QueueAttr qattr(opts.queuesize * sizeof(ThresholdSieveOptions::NumberT),
@@ -91,7 +91,10 @@ std::string ThresholdSieveOptions::Serialize() {
 ThresholdSieveOptions ThresholdSieveOptions::Deserialize(const std::string &str) {
     JSONToVariant p;
     p.Parse(str);
-    ASSERT(p.Done());
+    if (!p.Done()) {
+        fprintf(stderr, "Error parsing options, line %u column %u\n", p.GetLine(), p.GetColumn());
+        ASSERT(false);
+    }
     Variant v = p.Get();
     ThresholdSieveOptions opts;
     opts.maxprime = v["maxprime"].AsNumber<NumberT>();

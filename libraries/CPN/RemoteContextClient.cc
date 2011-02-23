@@ -204,7 +204,11 @@ namespace CPN {
         nodeattr["host"] = attr.GetHost();
         nodeattr["name"] = attr.GetName();
         nodeattr["nodetype"] = attr.GetTypeName();
-        nodeattr["param"] = attr.GetParam();
+        const std::map<std::string, std::string> &params = attr.GetParams();
+        for (std::map<std::string, std::string>::const_iterator i = params.begin(),
+                e = params.end(); i != e; ++i) {
+            nodeattr["param"][i->first] = i->second;
+        }
         nodeattr["key"] = attr.GetKey();
         msg["nodeattr"] = nodeattr;
         SendMessage(msg);
@@ -212,8 +216,15 @@ namespace CPN {
 
     NodeAttr MsgToNodeAttr(const Variant &msg) {
         NodeAttr attr(msg["name"].AsString(), msg["nodetype"].AsString());
-        attr.SetHost(msg["host"].AsString()).SetParam(msg["param"].AsString());
+        attr.SetHost(msg["host"].AsString());
         attr.SetKey(msg["key"].AsNumber<Key_t>());
+        if (msg["param"].IsObject()) {
+            for (Variant::ConstMapIterator i = msg["param"].MapBegin(), e = msg["param"].MapEnd();
+                    i != e; ++i)
+            {
+                attr.SetParam(i->first, i->second.AsString());
+            }
+        }
         return attr;
     }
 

@@ -245,11 +245,11 @@ void VariantCPNLoader::LoadNode(CPN::Kernel *kernel, Variant attr, Variant nodem
         nattr.SetHost(attr["host"].AsString());
     }
     Variant param = attr["param"];
-    if (!param.IsNull()) {
-        if (param.IsString()) {
-            nattr.SetParam(param.AsString());
-        } else {
-            nattr.SetParam(VariantToJSON(param));
+    if (param.IsObject()) {
+        for (Variant::MapIterator i = param.MapBegin(), e = param.MapEnd();
+                i != e; ++i)
+        {
+            nattr.SetParam(i->first, i->second.AsString());
         }
     }
     kernel->CreateNode(nattr);

@@ -51,6 +51,7 @@ static bool LoadXMLConfig(VariantCPNLoader &loader,
         std::cerr << "Could not open the process network definition file\n";
         return false;
     }
+    return true;
 }
 
 static void PrintUsage(const char *progname) {
@@ -162,7 +163,7 @@ int main(int argc, char **argv) {
     loader.Setup(&kernel);
 
     if (load_config) {
-        IQueue<uint64_t> result = kernel.GetPseudoReader(pkey, "in");
+        IQueue<uint64_t> result = kernel.GetPseudoIQueue(pkey, "in");
         uint64_t value;
         do {
             result.Dequeue(&value, 1);

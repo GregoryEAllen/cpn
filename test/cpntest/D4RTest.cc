@@ -60,7 +60,7 @@ public:
     }
 
     void Enqueue(const std::string &qname, unsigned amount) {
-        OQueue<unsigned> out = node->GetWriter(qname);
+        OQueue<unsigned> out = node->GetOQueue(qname);
         Trace("Enqueue %s(%llu): %u", qname.c_str(), out.GetKey(), amount);
 #if 0
         std::vector<unsigned> buf;
@@ -76,7 +76,7 @@ public:
     }
 
     void Dequeue(const std::string &qname, unsigned amount) {
-        IQueue<unsigned> in = node->GetReader(qname);
+        IQueue<unsigned> in = node->GetIQueue(qname);
         Trace("Dequeue %s(%llu): %u", qname.c_str(), in.GetKey(), amount);
 #if 0
         std::vector<unsigned> buf(amount);
@@ -90,7 +90,7 @@ public:
     }
 
     void VerifyReaderSize(const std::string &qname, unsigned amount) {
-        IQueue<unsigned> in = node->GetReader(qname);
+        IQueue<unsigned> in = node->GetIQueue(qname);
         Trace("%s (%llu) %u ?= %u", qname.c_str(), in.GetKey(), in.QueueLength(), amount);
         if (in.QueueLength() != amount) {
             testerbase->Failure(this, "Queuesize is not expected size");
@@ -98,7 +98,7 @@ public:
     }
 
     void VerifyWriterSize(const std::string &qname, unsigned amount) {
-        OQueue<unsigned> out = node->GetWriter(qname);
+        OQueue<unsigned> out = node->GetOQueue(qname);
         Trace("%s (%llu) %u ?= %u", qname.c_str(), out.GetKey(), out.QueueLength(), amount);
         if (out.QueueLength() != amount) {
             testerbase->Failure(this, "Queuesize is not expected size");

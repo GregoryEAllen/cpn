@@ -64,12 +64,12 @@ void PrintArray(std::ostream &os, NumberT *arr, unsigned len, const char *sep) {
 ThresholdSieveProducer::ThresholdSieveProducer(CPN::Kernel& ker, const CPN::NodeAttr& attr)
     : CPN::NodeBase(ker, attr)
 {
-    opts = ThresholdSieveOptions::Deserialize(attr.GetParam());
+    opts = ThresholdSieveOptions::Deserialize(GetParam("options"));
 }
 
 void ThresholdSieveProducer::Process(void) {
     DEBUG("%s started\n", GetName().c_str());
-    CPN::OQueue<NumberT> out = GetWriter(CONTROL_PORT);
+    CPN::OQueue<NumberT> out = GetOQueue(CONTROL_PORT);
     const NumberT cutoff = opts.maxprime;
     const unsigned long threshold = opts.threshold;
     if (opts.numPrimesSource > 0) {
@@ -89,7 +89,7 @@ void ThresholdSieveProducer::Process(void) {
         out.Enqueue(primes, opts.numPrimesSource);
         out.Release();
         CreateNewFilter(kernel, opts, GetKey());
-        out = GetWriter(OUT_PORT);
+        out = GetOQueue(OUT_PORT);
         unsigned roundLength = source.RoundLength();
         bool loop = true;
         while (loop) {
@@ -112,7 +112,7 @@ void ThresholdSieveProducer::Process(void) {
         DEBUG("%s using simple loop\n", GetName().c_str());
         out.Release();
         CreateNewFilter(kernel, opts, GetKey());
-        out = GetWriter(OUT_PORT);
+        out = GetOQueue(OUT_PORT);
         NumberT counter = 2;
         while (counter < cutoff) {
             NumberT index = 0;

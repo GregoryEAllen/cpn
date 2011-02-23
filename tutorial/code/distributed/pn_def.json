@@ -2,18 +2,13 @@
     "nodes": [
         {
             "name": "summer",
-            "type": "Summer",
-            "param": {
-                "inputs": [ "A", "B" ],
-                "output": "C"
-            }
+            "type": "Summer"
         },
         {
             "name": "Cons 1",
             "type": "Cons",
             "param": {
-                "input": "in",
-                "outputs": [ "A", "B" ],
+                "num outputs": 2,
                 "initial": 1
             }
         },
@@ -21,8 +16,7 @@
             "name": "Cons 2",
             "type": "Cons",
             "param": {
-                "input": "in",
-                "outputs": [ "A", "B" ],
+                "num outputs": 2,
                 "initial": 1
             }
         }
@@ -37,7 +31,7 @@
             "readernode": "summer",
             "readerport": "A",
             "writernode": "Cons 1",
-            "writerport": "A"
+            "writerport": "out0"
         },
         {
             "size": 16,
@@ -47,7 +41,7 @@
             "readernode": "summer",
             "readerport": "B",
             "writernode": "Cons 2",
-            "writerport": "A"
+            "writerport": "out0"
         },
         {
             "size": 16,
@@ -67,7 +61,7 @@
             "readernode": "Cons 2",
             "readerport": "in",
             "writernode": "Cons 1",
-            "writerport": "B"
+            "writerport": "out1"
         },
         {
             "size": 16,
@@ -77,7 +71,7 @@
             "readernode": "result",
             "readerport": "in",
             "writernode": "Cons 2",
-            "writerport": "B"
+            "writerport": "out1"
         }
     ]
 

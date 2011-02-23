@@ -4,6 +4,7 @@
 #pragma once
 
 #include "NodeBase.h"
+#include <iosfwd>
 
 #define MOCKNODE_TYPENAME "MockNode"
 /**
@@ -21,8 +22,18 @@ public:
     static std::string GetModeName(Mode_t mode);
     static Mode_t GetMode(const std::string &param);
 private:
-    Mode_t mode;
 };
 
+inline std::ostream &operator<<(std::ostream &os, MockNode::Mode_t mode) {
+    os << MockNode::GetModeName(mode);
+    return os;
+}
+
+inline std::istream &operator>>(std::istream &is, MockNode::Mode_t &mode) {
+    std::string name;
+    is >> name;
+    mode = MockNode::GetMode(name);
+    return is;
+}
 
 #endif

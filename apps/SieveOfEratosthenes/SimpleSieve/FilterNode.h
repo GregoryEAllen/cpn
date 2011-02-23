@@ -27,8 +27,6 @@ public:
     FilterNode(CPN::Kernel& ker, const CPN::NodeAttr& attr);
 private:
     void Process(void);
-    unsigned long filterval;
-    unsigned long threshold;
 };
 
 #endif

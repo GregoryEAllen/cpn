@@ -5,21 +5,16 @@
 #include "NodeFactory.h"
 #include "Kernel.h"
 #include "Assert.h"
-#include "JSONToVariant.h"
 
 
 MockSyncNode::MockSyncNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)
     : CPN::NodeBase(ker, attr)
 {
-    JSONToVariant p;
-    p.Parse(attr.GetParam());
-    ASSERT(p.Done());
-    Variant param = p.Get();
-    mode = param["mode"].AsNumber<Mode_t>();
-    othernode = param["other"].AsString();
 }
 
 void MockSyncNode::Process() {
+    Mode_t mode = GetParam<Mode_t>("mode");
+    std::string othernode = GetParam("other");
     switch (mode) {
     case MODE_SOURCE:
         {
@@ -28,7 +23,7 @@ void MockSyncNode::Process() {
             qattr.SetReader(othernode, "x").SetWriter(GetName(), "y");
             qattr.SetDatatype<unsigned long>();
             kernel.CreateQueue(qattr);
-            CPN::OQueue<unsigned long> out = GetWriter("y");
+            CPN::OQueue<unsigned long> out = GetOQueue("y");
             unsigned long val = 1;
             out.Enqueue(&val, 1);
             //out.Release();
@@ -37,7 +32,7 @@ void MockSyncNode::Process() {
     case MODE_SINK:
         {
             kernel.WaitNodeTerminate(othernode);
-            CPN::IQueue<unsigned long> in = GetReader("x");
+            CPN::IQueue<unsigned long> in = GetIQueue("x");
             unsigned long val;
             ASSERT(in.Dequeue(&val, 1));
             ASSERT(val == 1);
@@ -71,7 +66,7 @@ void SyncSource::Run1(CPN::NodeBase *nb, std::string othernode) {
     qattr.SetReader(othernode, "x").SetWriter(nb->GetName(), "y");
     qattr.SetDatatype<unsigned long>();
     nb->GetKernel()->CreateQueue(qattr);
-    CPN::OQueue<unsigned long> out = nb->GetWriter("y");
+    CPN::OQueue<unsigned long> out = nb->GetOQueue("y");
     unsigned long val = 1;
     out.Enqueue(&val, 1);
 }
@@ -80,7 +75,7 @@ void SyncSource::Run2(CPN::NodeBase *nb, std::string othernode) {
     qattr.SetReader(othernode, "x").SetWriter(nb->GetName(), "y");
     qattr.SetDatatype<unsigned long>();
     nb->GetKernel()->CreateQueue(qattr);
-    CPN::OQueue<unsigned long> out = nb->GetWriter("y");
+    CPN::OQueue<unsigned long> out = nb->GetOQueue("y");
     unsigned long val = 1;
     out.Enqueue(&val, 1);
 }
@@ -89,7 +84,7 @@ void SyncSource::Run3(CPN::NodeBase *nb, std::string othernode) {
     qattr.SetReader(othernode, "x").SetWriter(nb->GetName(), "y");
     qattr.SetDatatype<unsigned long>();
     nb->GetKernel()->CreateQueue(qattr);
-    CPN::OQueue<unsigned long> out = nb->GetWriter("y");
+    CPN::OQueue<unsigned long> out = nb->GetOQueue("y");
     unsigned long val = 1;
     out.Enqueue(&val, 1);
     out.Release();
@@ -100,14 +95,14 @@ void SyncSource::Run4(CPN::NodeBase *nb, std::string othernode) {
     qattr.SetDatatype<unsigned long>();
     qattr.SetReader(othernode, "x").SetWriter(nb->GetName(), "y");
     nb->GetKernel()->CreateQueue(qattr);
-    CPN::OQueue<unsigned long> out = nb->GetWriter("y");
+    CPN::OQueue<unsigned long> out = nb->GetOQueue("y");
     unsigned long val = 1;
     out.Enqueue(&val, 1);
     out.Release();
 }
 // goes only with SyncSink::Run3
 void SyncSource::Run5(CPN::NodeBase *nb, std::string othernode) {
-    CPN::OQueue<unsigned long> out = nb->GetWriter("y");
+    CPN::OQueue<unsigned long> out = nb->GetOQueue("y");
     unsigned long val = 1;
     out.Enqueue(&val, 1);
     out.Release();
@@ -115,14 +110,14 @@ void SyncSource::Run5(CPN::NodeBase *nb, std::string othernode) {
 
 void SyncSink::Run1(CPN::NodeBase *nb, std::string othernode) {
     nb->GetKernel()->WaitNodeTerminate(othernode);
-    CPN::IQueue<unsigned long> in = nb->GetReader("x");
+    CPN::IQueue<unsigned long> in = nb->GetIQueue("x");
     unsigned long val;
     ASSERT(in.Dequeue(&val, 1));
     ASSERT(val == 1);
     ASSERT(!in.Dequeue(&val, 1));
 }
 void SyncSink::Run2(CPN::NodeBase *nb, std::string othernode) {
-    CPN::IQueue<unsigned long> in = nb->GetReader("x");
+    CPN::IQueue<unsigned long> in = nb->GetIQueue("x");
     unsigned long val;
     ASSERT(in.Dequeue(&val, 1));
     ASSERT(val == 1);
@@ -134,7 +129,7 @@ void SyncSink::Run3(CPN::NodeBase *nb, std::string othernode) {
     qattr.SetDatatype<unsigned long>();
     qattr.SetWriter(othernode, "y").SetReader(nb->GetName(), "x");
     nb->GetKernel()->CreateQueue(qattr);
-    CPN::IQueue<unsigned long> in = nb->GetReader("x");
+    CPN::IQueue<unsigned long> in = nb->GetIQueue("x");
     unsigned long val;
     ASSERT(in.Dequeue(&val, 1));
     ASSERT(val == 1);

@@ -15,7 +15,6 @@
 MockNode::MockNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)
     : CPN::NodeBase(ker, attr)
 {
-    mode = GetMode(attr.GetParam());
 }
 
 std::string MockNode::GetModeName(Mode_t mode) {
@@ -38,6 +37,7 @@ MockNode::Mode_t MockNode::GetMode(const std::string &param) {
     else return MODE_NOP;
 }
 void MockNode::Process() {
+    Mode_t mode = GetMode(GetParam("mode"));
     std::string ourname = GetName();
     DEBUG("%s started\n", ourname.c_str());
     unsigned long counter = 0;
@@ -45,7 +45,7 @@ void MockNode::Process() {
     switch (mode) {
         case MODE_SOURCE:
             {
-                CPN::OQueue<unsigned long> out = GetWriter("y");
+                CPN::OQueue<unsigned long> out = GetOQueue("y");
                 DEBUG("%s acting as producer\n", ourname.c_str());
                 while (counter < threshold) {
                     out.Enqueue(&counter, 1);
@@ -57,8 +57,8 @@ void MockNode::Process() {
             break;
         case MODE_TRANSMUTE:
             {
-                CPN::OQueue<unsigned long> out = GetWriter("y");
-                CPN::IQueue<unsigned long> in = GetReader("x");
+                CPN::OQueue<unsigned long> out = GetOQueue("y");
+                CPN::IQueue<unsigned long> in = GetIQueue("x");
                 DEBUG("%s acting as transmuter\n", ourname.c_str());
                 while (counter < threshold) {
                     unsigned long value = 0;
@@ -75,7 +75,7 @@ void MockNode::Process() {
             break;
         case MODE_SINK:
             {
-                CPN::IQueue<unsigned long> in = GetReader("x");
+                CPN::IQueue<unsigned long> in = GetIQueue("x");
                 DEBUG("%s acting as sink\n", ourname.c_str());
                 while (true) {
                     unsigned long value = 0;

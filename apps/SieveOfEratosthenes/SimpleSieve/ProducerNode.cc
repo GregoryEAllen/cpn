@@ -7,7 +7,6 @@
 #include "OQueue.h"
 #include "Kernel.h"
 #include "Assert.h"
-#include "JSONToVariant.h"
 #include <stdexcept>
 
 #if _DEBUG
@@ -24,20 +23,14 @@
 #endif
 
 ProducerNode::ProducerNode(CPN::Kernel& ker, const CPN::NodeAttr& attr)
-    : CPN::NodeBase(ker, attr)
-{
-    JSONToVariant p;
-    p.Parse(attr.GetParam());
-    ASSERT(p.Done());
-    Variant param = p.Get();
-    numberBound = param["numberBound"].AsNumber<unsigned long>();
-}
+    : CPN::NodeBase(ker, attr) {}
 
 CPN_DECLARE_NODE_FACTORY(SieveProducerNode, ProducerNode);
 
 void ProducerNode::Process(void) {
     DEBUG("ProducerNode %s start\n", GetName().c_str());
-    CPN::OQueue<unsigned long> out = GetWriter("y");
+    const unsigned long numberBound = GetParam<unsigned long>("numberBound");
+    CPN::OQueue<unsigned long> out = GetOQueue("y");
     const unsigned long cutoff = numberBound;
     unsigned long counter = 2;
     while (cutoff == 0 || counter < cutoff) {

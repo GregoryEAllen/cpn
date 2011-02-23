@@ -7,7 +7,6 @@
 #include "MockNode.h"
 #include "MockSyncNode.h"
 #include "VariantCPNLoader.h"
-#include "VariantToJSON.h"
 #include <stdexcept>
 #include <string>
 #include <string.h>
@@ -57,9 +56,9 @@ void KernelTest::SimpleTwoNodeTest() {
     DEBUG("%s\n",__PRETTY_FUNCTION__);
     CPN::Kernel kernel(KernelAttr("test").UseD4R(false));
     NodeAttr attr("source", MOCKNODE_TYPENAME);
-    attr.SetParam(MockNode::GetModeName(MockNode::MODE_SOURCE));
+    attr.SetParam("mode", MockNode::MODE_SOURCE);
     kernel.CreateNode(attr);
-    attr.SetName("sink").SetParam(MockNode::GetModeName(MockNode::MODE_SINK));
+    attr.SetName("sink").SetParam("mode", MockNode::MODE_SINK);
     kernel.CreateNode(attr);
     QueueAttr qattr(16, 16);
     qattr.SetDatatype<unsigned long>();
@@ -75,10 +74,10 @@ void KernelTest::SimpleTwoNodeTestFromVariant() {
     args["name"] = "test";
     args["nodes"][0]["name"] = "source";
     args["nodes"][0]["type"] = MOCKNODE_TYPENAME;
-    args["nodes"][0]["param"] = MockNode::GetModeName(MockNode::MODE_SOURCE);
+    args["nodes"][0]["param"]["mode"] = MockNode::GetModeName(MockNode::MODE_SOURCE);
     args["nodes"][1]["name"] = "sink";
     args["nodes"][1]["type"] = MOCKNODE_TYPENAME;
-    args["nodes"][1]["param"] = MockNode::GetModeName(MockNode::MODE_SINK);
+    args["nodes"][1]["param"]["mode"] = MockNode::GetModeName(MockNode::MODE_SINK);
     args["queues"][0]["size"] = 16;
     args["queues"][0]["threshold"] = 16;
     args["queues"][0]["datatype"] = CPN::TypeName<unsigned long>();
@@ -95,7 +94,7 @@ void KernelTest::SimpleTwoNodeTestFromVariant() {
 void KernelTest::AddNoOps(CPN::Kernel &kernel) {
 
     NodeAttr attr = NodeAttr("no op 1", MOCKNODE_TYPENAME);
-    attr.SetParam(MockNode::GetModeName(MockNode::MODE_NOP));
+    attr.SetParam("mode", MockNode::MODE_NOP);
     // Create some nodes...
     kernel.CreateNode(attr);
     attr.SetName("no op 2");
@@ -108,15 +107,13 @@ void KernelTest::AddNoOps(CPN::Kernel &kernel) {
 void KernelTest::TestSync() {
     DEBUG("%s\n",__PRETTY_FUNCTION__);
     CPN::Kernel kernel(KernelAttr("test").UseD4R(false));
-    Variant param;
-    param["mode"] = MockSyncNode::MODE_SOURCE;
-    param["other"] = "sync2";
     NodeAttr attr("sync1", MOCKSYNCNODE_TYPENAME);
-    attr.SetParam(VariantToJSON(param));
+    attr.SetParam("mode", MockSyncNode::MODE_SOURCE);
+    attr.SetParam("other", "sync2");
     kernel.CreateNode(attr);
-    param["mode"] = MockSyncNode::MODE_SINK;
-    param["other"] = "sync1";
-    attr.SetName("sync2").SetParam(VariantToJSON(param));
+    attr.SetName("sync2");
+    attr.SetParam("mode", MockSyncNode::MODE_SINK);
+    attr.SetParam("other", "sync1");
     kernel.CreateNode(attr);
     kernel.WaitNodeTerminate("sync2");
 }

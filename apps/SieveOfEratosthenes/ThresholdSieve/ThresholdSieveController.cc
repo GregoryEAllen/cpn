@@ -56,17 +56,17 @@ CPN_DECLARE_NODE_FACTORY(ThresholdSieveController, ThresholdSieveController);
 ThresholdSieveController::ThresholdSieveController(CPN::Kernel &ker, const CPN::NodeAttr &attr)
     : CPN::NodeBase(ker, attr)
 {
-    opts = ThresholdSieveOptions::Deserialize(attr.GetParam());
+    opts = ThresholdSieveOptions::Deserialize(GetParam("options"));
 }
 
 void ThresholdSieveController::Process(void) {
     DEBUG("%s started\n", GetName().c_str());
     Initialize();
     NumberT filterCount = opts.filtercount;
-    CPN::IQueue<NumberT> in = GetReader(ToString(FILTER_FORMAT, filterCount));
+    CPN::IQueue<NumberT> in = GetIQueue(ToString(FILTER_FORMAT, filterCount));
     CPN::OQueue<NumberT> out;
     if (!opts.outputport.empty()) {
-        out = GetWriter(opts.outputport);
+        out = GetOQueue(opts.outputport);
     }
     bool print = opts.printprimes;
     const unsigned long threshold = opts.threshold;
@@ -84,7 +84,7 @@ void ThresholdSieveController::Process(void) {
                 }
                 ++filterCount;
                 in.Release();
-                in = GetReader(ToString(FILTER_FORMAT, filterCount));
+                in = GetIQueue(ToString(FILTER_FORMAT, filterCount));
                 REPORT("Consumer swapped input to %llu\n", filterCount);
                 continue;
             } else {
@@ -113,7 +113,7 @@ void ThresholdSieveController::Initialize(void) {
     opts.consumerkey = GetKey();
 
     CPN::NodeAttr attr(PRODUCER_NAME, THRESHOLDSIEVEPRODUCER_TYPENAME);
-    attr.SetParam(opts.Serialize());
+    attr.SetParam("options", opts.Serialize());
     CPN::Key_t prodkey = kernel.CreateNode(attr);
 
     CPN::QueueAttr qattr(opts.queuesize * sizeof(NumberT), opts.threshold * sizeof(NumberT));

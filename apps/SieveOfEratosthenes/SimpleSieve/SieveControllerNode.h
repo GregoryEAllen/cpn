@@ -32,9 +32,7 @@ private:
     CPN::QueueAttr GetQueueAttr();
     unsigned long primeBound;
     unsigned long numberBound;
-    CPN::QueueHint_t queuehint;
     unsigned long queueSize;
-    unsigned long threshold;
     unsigned long lastprime;
 };
 

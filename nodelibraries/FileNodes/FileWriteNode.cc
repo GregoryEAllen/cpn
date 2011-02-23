@@ -22,8 +22,6 @@
  * A node which reads from a queue and writes to a file descriptor.
  */
 #include "NodeBase.h"
-#include "Variant.h"
-#include "JSONToVariant.h"
 #include "IQueue.h"
 #include <string>
 #include <unistd.h>
@@ -34,34 +32,20 @@ using std::string;
 class FileWriteNode : public NodeBase {
 public:
     FileWriteNode(Kernel &ker, const NodeAttr &attr)
-        : NodeBase(ker, attr), fd(-1), input("input"), blocksize_set(false)
+        : NodeBase(ker, attr)
     {
-        JSONToVariant p;
-        p.Parse(attr.GetParam());
-        ASSERT(p.Done(), "Error parsing param line %u column %u", p.GetLine(), p.GetColumn());
-        Variant param = p.Get();
-        ASSERT(!param["fd"].IsNull(), "FileReadNode must have fd parameter");
-        fd = param["fd"].AsInt();
-        if (!param["inport"].IsNull()) {
-            input = param["inport"].AsString();
-        }
-        if (!param["blocksize"].IsNull()) {
-            blocksize = param["blocksize"].AsUnsigned();
-            blocksize_set = true;
-        }
     }
 private:
     void Process();
-    int fd;
-    string input;
-    bool blocksize_set;
-    unsigned blocksize;
 };
 
 CPN_DECLARE_NODE_FACTORY(FileWriteNode, FileWriteNode);
 
 void FileWriteNode::Process() {
-    IQueue<void> in = GetReader(input);
+    int fd = GetParam<int>("fd");
+    bool blocksize_set = HasParam("blocksize");
+    unsigned blocksize = GetParam<unsigned>("blocksize", 0);
+    IQueue<void> in = GetIQueue("input");
     try {
         while (true) {
             unsigned blksz;

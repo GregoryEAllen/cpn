@@ -25,7 +25,8 @@ public:
     ~RINFactory() {}
     CPN::shared_ptr<CPN::NodeBase> Create(CPN::Kernel& ker, const CPN::NodeAttr& attr) {
         JSONToVariant parse;
-        parse.Parse(attr.GetParam().data(), attr.GetParam().size());
+        std::string param = attr.GetParams().find("state")->second;
+        parse.Parse(param.data(), param.size());
         ASSERT(parse.Done());
         Variant args = parse.Get();
         return CPN::shared_ptr<CPN::NodeBase>(
@@ -142,7 +143,7 @@ void RandomInstructionNode::CreateRIN(CPN::Kernel& kernel, unsigned iterations,
         state["nodeID"] = i;
         CPN::NodeAttr attr(GetNodeNameFromID(i),
                 RANDOMINSTRUCTIONNODE_TYPENAME);
-        attr.SetParam(VariantToJSON(state));
+        attr.SetParam("state", VariantToJSON(state));
         attr.SetHost(kernelnames[(i % kernelnames.size())]);
         kernel.CreateNode(attr);
     }
@@ -161,7 +162,7 @@ void RandomInstructionNode::DoCreateNode(unsigned newNodeID, unsigned creatorNod
         RINState state = RINState(newNodeID, iterations, kernelnames, GetState());
         CPN::NodeAttr attr(GetNodeNameFromID(state.nodeID),
                 RANDOMINSTRUCTIONNODE_TYPENAME);
-        attr.SetParam(state.ToJSON());
+        attr.SetParam("state", state.ToJSON());
         attr.SetHost(kernelnames[(newNodeID % kernelnames.size())]);
         kernel.CreateNode(attr);
     }
@@ -188,7 +189,7 @@ void RandomInstructionNode::DoProducerNode(unsigned nodeID, unsigned dstNodeID) 
 
         CreateQueue(nodeID, dstNodeID);
 
-        CPN::OQueue<unsigned> out = GetWriter(CurrentOutPort());
+        CPN::OQueue<unsigned> out = GetOQueue(CurrentOutPort());
         unsigned *data = out.GetEnqueuePtr(2);
         dbprintf(1, "(%u) =%lu> %u\n", nodeID, out.GetKey(), dstNodeID);
         data[0] = nodeID;
@@ -206,8 +207,8 @@ void RandomInstructionNode::DoTransmuterNode(unsigned nodeID, unsigned srcNodeID
 
         CreateQueue(nodeID, dstNodeID);
 
-        CPN::OQueue<unsigned> out = GetWriter(CurrentOutPort());
-        CPN::IQueue<unsigned> in = GetReader(CurrentInPort());
+        CPN::OQueue<unsigned> out = GetOQueue(CurrentOutPort());
+        CPN::IQueue<unsigned> in = GetIQueue(CurrentInPort());
         const unsigned *indata = in.GetDequeuePtr(2);
         dbprintf(1, "%u =%lu> (%u) -> %u\n", srcNodeID, in.GetKey(), nodeID, dstNodeID);
         ASSERT(indata);
@@ -232,7 +233,7 @@ void RandomInstructionNode::DoConsumerNode(unsigned nodeID, unsigned srcNodeID) 
     if (myID == nodeID) {
         ASSERT(!die);
         //RandomInstructionGenerator::DoConsumerNode(nodeID, srcNodeID);
-        CPN::IQueue<unsigned> in = GetReader(CurrentInPort());
+        CPN::IQueue<unsigned> in = GetIQueue(CurrentInPort());
         const unsigned *indata = in.GetDequeuePtr(2);
         dbprintf(1, "%u =%lu> (%u)\n", srcNodeID, in.GetKey(), nodeID);
         ASSERT(indata);

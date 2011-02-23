@@ -22,8 +22,6 @@
  * A node which reads from a file descriptor and output the result to a queue.
  */
 #include "NodeBase.h"
-#include "Variant.h"
-#include "JSONToVariant.h"
 #include "OQueue.h"
 #include <string>
 #include <unistd.h>
@@ -34,28 +32,18 @@ using std::string;
 class FileReadNode : public NodeBase {
 public:
     FileReadNode(Kernel &ker, const NodeAttr &attr)
-        : NodeBase(ker, attr), fd(-1), output("output")
+        : NodeBase(ker, attr)
     {
-        JSONToVariant p;
-        p.Parse(attr.GetParam());
-        ASSERT(p.Done(), "Error parsing param line %u column %u", p.GetLine(), p.GetColumn());
-        Variant param = p.Get();
-        ASSERT(!param["fd"].IsNull(), "FileReadNode must have fd parameter");
-        fd = param["fd"].AsInt();
-        if (!param["outport"].IsNull()) {
-            output = param["outport"].AsString();
-        }
     }
 private:
     void Process();
-    int fd;
-    string output;
 };
 
 CPN_DECLARE_NODE_FACTORY(FileReadNode, FileReadNode);
 
 void FileReadNode::Process() {
-    OQueue<void> out = GetWriter(output);
+    int fd = GetParam<int>("fd");
+    OQueue<void> out = GetOQueue("output");
     try {
         while (true) {
             unsigned blocksize = out.MaxThreshold();
@@ -69,6 +57,7 @@ void FileReadNode::Process() {
         }
     } catch (...) {
         close(fd);
+        throw;
     }
     close(fd);
 }

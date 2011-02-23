@@ -19,14 +19,15 @@
 //=============================================================================
 /** \file
  * \author John Bridgman
+ * The JoinNode reads from the inputs in a round robbin fashion and
+ * then writes to the output, optionally discarding some portion read.
  */
-#include "JoinNode.h"
+#include "NodeBase.h"
 #include "IQueue.h"
 #include "OQueue.h"
-#include "Variant.h"
-#include "JSONToVariant.h"
-#include <complex>
 #include <algorithm>
+#include <string>
+#include <vector>
 
 using CPN::shared_ptr;
 using CPN::NodeBase;
@@ -38,39 +39,30 @@ using CPN::OQueue;
 using std::for_each;
 using std::mem_fun_ref;
 
+class JoinNode : public CPN::NodeBase {
+public:
+    JoinNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)
+        : CPN::NodeBase(ker, attr) {}
+private:
+    void Process();
+};
+
 CPN_DECLARE_NODE_FACTORY(JoinNode, JoinNode);
 
-JoinNode::JoinNode(Kernel &ker, const NodeAttr &attr)
-    : CPN::NodeBase(ker, attr)
-{
-    JSONToVariant parser;
-    parser.Parse(attr.GetParam().data(), attr.GetParam().size());
-    ASSERT(parser.Done(), "Error parsing param line %u column %u", parser.GetLine(), parser.GetColumn());
-    Variant param = parser.Get();
-    outport = param["outport"].AsString();
-    for (Variant::ListIterator i = param["inports"].ListBegin();
-            i != param["inports"].ListEnd(); ++i) {
-        inports.push_back(i->AsString());
-    }
-    if (param["size"].IsNumber()) {
-        size = param["size"].AsUnsigned();
-    } else {
-        size = 0;
-    }
-    if (param["overlap"].IsNumber()) {
-        overlap = param["overlap"].AsUnsigned();
-    } else {
-        overlap = 0;
-    }
-}
-
 void JoinNode::Process() {
-    OQueue<void> out = GetWriter(outport);
-    vector<IQueue<void> > in(inports.size());
-    vector<IQueue<void> >::iterator current = in.begin();
-    for (vector<std::string>::iterator itr = inports.begin(); itr != inports.end(); ++itr)
-        *(current++) = GetReader(*itr);
+    unsigned num_inputs = GetParam<unsigned>("num_inports", 1);
+    unsigned size = GetParam<unsigned>("size", 0);
+    unsigned overlap = GetParam<unsigned>("overlap", 0);
 
+    OQueue<void> out = GetOQueue("out");
+    vector<IQueue<void> > in;
+    for (unsigned port = 0; port < num_inputs; ++port) {
+        std::ostringstream oss;
+        oss << "in" << port;
+        in.push_back(GetIQueue(oss.str()));
+    }
+
+    vector<IQueue<void> >::iterator current = in.begin();
     const vector<IQueue<void> >::iterator end = in.end();
     bool loop = true;
     while (loop) {

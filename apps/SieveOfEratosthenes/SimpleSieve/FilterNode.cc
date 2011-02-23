@@ -7,7 +7,6 @@
 #include "OQueue.h"
 #include "IQueue.h"
 #include "NodeFactory.h"
-#include "JSONToVariant.h"
 #include <stdexcept>
 
 #if _DEBUG
@@ -26,20 +25,13 @@
 CPN_DECLARE_NODE_FACTORY(SieveFilterNode, FilterNode);
 
 FilterNode::FilterNode(CPN::Kernel& ker, const CPN::NodeAttr& attr)
-    : CPN::NodeBase(ker, attr)
-{
-    JSONToVariant p;
-    p.Parse(attr.GetParam());
-    ASSERT(p.Done());
-    Variant param = p.Get();
-    filterval = param["filterval"].AsNumber<unsigned long>();
-    threshold = param["filterval"].AsNumber<unsigned long>();
-}
+    : CPN::NodeBase(ker, attr) {}
 
 void FilterNode::Process(void) {
     DEBUG("FilterNode %s start\n", GetName().c_str());
-    CPN::OQueue<unsigned long> out = GetWriter("prodport");
-    CPN::IQueue<unsigned long> in = GetReader("x");
+    const unsigned long filterval = GetParam<unsigned long>("filterval");
+    CPN::OQueue<unsigned long> out = GetOQueue("prodport");
+    CPN::IQueue<unsigned long> in = GetIQueue("x");
     bool sendtoresult = true;
     unsigned long nextFilter = filterval;
     unsigned long readVal = 0;
@@ -58,7 +50,7 @@ void FilterNode::Process(void) {
             DBPRINT("Filter %s put %lu\n", GetName().c_str(), readVal);
             out.Enqueue(&readVal, 1);
             if (sendtoresult) {
-                out = GetWriter("y");
+                out = GetOQueue("y");
                 sendtoresult = false;
             }
         }
