@@ -56,6 +56,7 @@ namespace CPN {
         hostkey(0),
         context(kattr.GetContext()),
         useremote(kattr.GetRemoteEnabled()),
+        nodecond_signal(false),
         useD4R(kattr.UseD4R()),
         swallowbrokenqueue(kattr.SwallowBrokenQueueExceptions()),
         growmaxthresh(kattr.GrowQueueMaxThreshold())
@@ -414,6 +415,7 @@ namespace CPN {
             SendWakeup();
         }
         nodecond.Signal();
+        nodecond_signal = true;
     }
 
     void Kernel::ClearGarbage() {
@@ -431,6 +433,7 @@ namespace CPN {
             server->Wakeup();
         }
         nodecond.Signal();
+        nodecond_signal = true;
     }
 
     void *Kernel::EntryPoint() {
@@ -448,7 +451,10 @@ namespace CPN {
                 ClearGarbage();
                 Sync::AutoReentrantLock arlock(nodelock);
                 while (status.Get() == RUNNING) {
-                    nodecond.Wait(nodelock);
+                    if (!nodecond_signal) {
+                        nodecond.Wait(nodelock);
+                        nodecond_signal = false;
+                    }
                     arlock.Unlock();
                     ClearGarbage();
                     arlock.Lock();
@@ -473,7 +479,10 @@ namespace CPN {
             arlock.Lock();
             // Wait for all nodes to end
             while (!nodemap.empty()) {
-                nodecond.Wait(nodelock);
+                if (!nodecond_signal) {
+                    nodecond.Wait(nodelock);
+                    nodecond_signal = false;
+                }
                 arlock.Unlock();
                 ClearGarbage();
                 arlock.Lock();

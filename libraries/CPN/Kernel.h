@@ -333,6 +333,7 @@ namespace CPN {
         // nodelock serializes access to nodemap
         Sync::ReentrantLock nodelock;
         Sync::ReentrantCondition nodecond;
+        bool nodecond_signal;
         NodeMap nodemap;
         Sync::ReentrantLock garbagelock;
         NodeList garbagenodes;

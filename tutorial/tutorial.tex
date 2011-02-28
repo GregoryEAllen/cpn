@@ -25,11 +25,9 @@ The first type of node is a summing node that takes two inputs and one output.
 The summing node takes one token from each input, sums them together and then enqueues the result
 on the output.
 We shall call the second type of node the cons node.
-The cons node has an initial value, an input, and two outputs.
-The current value is set to the initial value.
-Then the node proceeds by enqueueing its current value to all outputs.
-The node sets its current value from the input and repeat.
-All the examples will use the pseudo node interface for the collection of the PN output.
+The cons node has an initial value, an input, and two identical outputs.
+The cons node first outputs its initial value, then copies its input to the outputs.
+All the examples will use the external endpoint interface for the collection of the PN output.
 The topology of the example PN is in Figure \ref{fig:fibinocci}.
 Note that all arithmetic in the nodes is done using 64 bit unsigned integers and 12200160415121876738 is the largest
 Fibonacci number that can be represented in 64 bits unsigned.
@@ -45,7 +43,7 @@ Asking for a maximum number any larger than this will result in overflow and inc
 First, some introduction to supporting classes will be given in sections \ref{sec:variant} and \ref{sec:variantcpnloader}.
 A discussion of how nodes are loaded is given in section \ref{sec:node loader}.
 Then a discussion of how to create nodes with examples is in section \ref{sec:nodes}.
-Finally, a discussion of how to distributed the PN is given in \ref{sec:distributing}.
+Finally, a discussion of how to distribute a PN is given in \ref{sec:distributing}.
 
 \section{Variant}
 \label{sec:variant}
