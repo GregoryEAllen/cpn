@@ -132,4 +132,9 @@ namespace CPN {
 extern "C" CPN::shared_ptr<CPN::NodeFactory> cpninit ## type (void);\
 CPN::shared_ptr<CPN::NodeFactory> cpninit ## type (void) { return CPN::shared_ptr<CPN::NodeFactory>(new type ## Factory); }
 
+#define CPN_DECLARE_NODE_AND_FACTORY(type,klass) class klass : public CPN::NodeBase { \
+    public : klass(CPN::Kernel &kern, const CPN::NodeAttr& attr) : CPN::NodeBase(kern,attr) {} \
+    private: void Process(); }; \
+CPN_DECLARE_NODE_FACTORY(type,klass)
+
 #endif
