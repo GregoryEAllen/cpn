@@ -103,6 +103,9 @@ namespace CPN {
          * has been called.
          */
         Key_t CreateNode(const NodeAttr &attr);
+        Key_t CreateNode(const std::string &name_, const std::string &nodetype_) {
+            return CreateNode(NodeAttr(name_,nodetype_));
+        }
 
         /**
          * \brief Instantiating a function node.
