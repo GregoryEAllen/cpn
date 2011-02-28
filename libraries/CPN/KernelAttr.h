@@ -52,6 +52,15 @@ namespace CPN {
             growmaxthresh(true)
         {}
 
+        KernelAttr(const char* name_)
+            : name(name_),
+            hostname("localhost"),
+            servname(""),
+            remote_enabled(false),
+            useD4R(true), swallowbrokenqueue(false),
+            growmaxthresh(true)
+        {}
+
         KernelAttr &SetName(const std::string &n) {
             name = n;
             return *this;
