@@ -31,7 +31,7 @@
 class Pthread;
 
 /**
- * An implementation for the RemoteDBClient that is paired with RemoteContextDaemon.
+ * An implementation for the RemoteContextClient that is paired with RemoteContextDaemon.
  */
 class CPN_API RemoteContext : public CPN::RemoteContextClient, public SocketHandle {
 public:

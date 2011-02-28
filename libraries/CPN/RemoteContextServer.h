@@ -75,7 +75,7 @@
         "servname"  : service name to use to connecto to this kernel,
         "live"      : true or false,
         "type"      : "endpointinfo",
-        "client"    : the name of the RemoteDBClient that we are to send kernel message to
+        "client"    : the name of the RemoteContextClient that we are to send kernel message to
     }
 
     nodeinfo = {

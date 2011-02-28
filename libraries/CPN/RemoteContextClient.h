@@ -42,7 +42,7 @@ namespace CPN {
      * \brief This abstract class is the remote context client.
      * 
      * An implementor only needs to override SendMessage to send the necessary
-     * messages to the RemoteDBServer and then call DispatchMessage for the
+     * messages to the RemoteContextServer and then call DispatchMessage for the
      * replies from the server.
      */
     class RemoteContextClient : public Context {
@@ -100,7 +100,7 @@ namespace CPN {
         virtual bool RequireRemote();
 
         /**
-         * Handle a message from the RemoteDBServer.
+         * Handle a message from the RemoteContextServer.
          * \param msg the message
          */
         void DispatchMessage(const Variant &msg);
@@ -108,7 +108,7 @@ namespace CPN {
         RemoteContextClient();
         /**
          * Called by the functions to send a message to the
-         * RemoteDBServer.
+         * RemoteContextServer.
          * \param msg the message
          */
         virtual void SendMessage(const Variant &msg) = 0;
@@ -117,7 +117,7 @@ namespace CPN {
     private:
 
         /**
-         * Struct to hold information for a call to the RemoteDBServer
+         * Struct to hold information for a call to the RemoteContextServer
          * which returns a result. This is used by RemoteCall.
          */
         struct WaiterInfo {

@@ -32,7 +32,7 @@
 #include <memory>
 
 /**
- * The RemoteContextDaemon is an implementation of RemoteDBServer that uses
+ * The RemoteContextDaemon is an implementation of RemoteContextServer that uses
  * simple tcp/ip and listens on an address you specify.
  */
 class CPN_API RemoteContextDaemon : public CPN::RemoteContextServer, public ServerSocketHandle {
