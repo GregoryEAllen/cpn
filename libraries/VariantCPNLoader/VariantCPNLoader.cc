@@ -292,6 +292,9 @@ void VariantCPNLoader::LoadQueue(CPN::Kernel *kernel, Variant attr) {
     if (!attr["alpha"].IsNull()) {
         qattr.SetAlpha(attr["alpha"].AsDouble());
     }
+    if (attr["name"].IsString()) {
+        qattr.SetName(attr["name"].AsString());
+    }
     kernel->CreateQueue(qattr);
 }
 

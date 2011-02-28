@@ -82,6 +82,12 @@ namespace CPN {
         WriterMap writers;
         writers.swap(writermap);
         arl.Unlock();
+        for (ReaderMap::iterator i = readers.begin(); i != readers.end(); ++i) {
+            i->second->GetQueue()->ShutdownReader();
+        }
+        for (WriterMap::iterator i = writers.begin(); i != writers.end(); ++i) {
+            i->second->GetQueue()->ShutdownWriter();
+        }
         readers.clear();
         writers.clear();
 

@@ -62,16 +62,6 @@
             "readerport": "in",
             "writernode": "Cons 1",
             "writerport": "out1"
-        },
-        {
-            "size": 16,
-            "threshold": 8,
-            "type": "default",
-            "datatype": "uint64_t",
-            "readernode": "result",
-            "readerport": "in",
-            "writernode": "Cons 2",
-            "writerport": "out1"
         }
     ]
 

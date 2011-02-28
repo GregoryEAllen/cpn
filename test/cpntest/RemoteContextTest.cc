@@ -283,7 +283,7 @@ void RemoteContextTest::ConnectTest() {
 
     Key_t wkey = lrdbc.GetCreateWriterKey(m_nodekey, "bogus writer");
     Key_t rkey = lrdbc.GetCreateReaderKey(m_nodekey, "bogus reader");
-    lrdbc.ConnectEndpoints(wkey, rkey);
+    lrdbc.ConnectEndpoints(wkey, rkey, "name");
 
     CPPUNIT_ASSERT_EQUAL(wkey, lrdbc.GetReadersWriter(rkey));
     CPPUNIT_ASSERT_EQUAL(rkey, lrdbc.GetWritersReader(wkey));

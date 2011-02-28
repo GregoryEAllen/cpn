@@ -59,7 +59,7 @@ void RemoteQueueTest::setUp() {
  
     writerkey = context->GetCreateWriterKey(nodekey, "writer");
     readerkey = context->GetCreateReaderKey(nodekey, "reader");
-    context->ConnectEndpoints(writerkey, readerkey);
+    context->ConnectEndpoints(writerkey, readerkey, "q");
 
     SimpleQueueAttr attr;
     attr.SetLength(QUEUESIZE*2).SetMaxThreshold(QUEUESIZE).SetNumChannels(1);

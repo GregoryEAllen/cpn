@@ -481,13 +481,14 @@ namespace CPN {
         return info["name"].AsString();
     }
 
-    void RemoteContextClient::ConnectEndpoints(Key_t writerkey, Key_t readerkey) {
+    void RemoteContextClient::ConnectEndpoints(Key_t writerkey, Key_t readerkey, const std::string &qname) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
         Variant msg(Variant::ObjectType);
         msg["type"] = RCTXMT_CONNECT_ENDPOINTS;
         msg["readerkey"] = readerkey;
         msg["writerkey"] = writerkey;
+        msg["qname"] = qname;
         SendMessage(msg);
     }
 

@@ -90,7 +90,7 @@ namespace CPN {
         virtual CPN::Key_t GetWriterHost(CPN::Key_t portkey);
         virtual std::string GetWriterName(CPN::Key_t portkey);
 
-        virtual void ConnectEndpoints(CPN::Key_t writerkey, CPN::Key_t readerkey);
+        virtual void ConnectEndpoints(CPN::Key_t writerkey, CPN::Key_t readerkey, const std::string &qname);
         virtual CPN::Key_t GetReadersWriter(CPN::Key_t readerkey);
         virtual CPN::Key_t GetWritersReader(CPN::Key_t writerkey);
 

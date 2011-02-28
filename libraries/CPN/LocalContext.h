@@ -66,6 +66,7 @@ namespace CPN {
         /** Struct to hold the endpoint information */
         struct PortInfo {
             std::string name;
+            std::string qname;
             Key_t nodekey;
             Key_t opposingport;
             bool dead;
@@ -117,7 +118,7 @@ namespace CPN {
         virtual Key_t GetWriterHost(Key_t portkey);
         virtual std::string GetWriterName(Key_t portkey);
 
-        virtual void ConnectEndpoints(Key_t writerkey, Key_t readerkey);
+        virtual void ConnectEndpoints(Key_t writerkey, Key_t readerkey, const std::string &qname);
         virtual Key_t GetReadersWriter(Key_t readerkey);
         virtual Key_t GetWritersReader(Key_t writerkey);
 

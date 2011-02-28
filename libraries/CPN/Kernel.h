@@ -137,46 +137,48 @@ namespace CPN {
          * \@}
          */
 
-        /**
-         * \brief Create a new Pseudo node.
+        /** \brief Create an external reader.
          *
-         * A pseudo node is a handle that can be used to create endpoints
-         * for applications to use outside of the network to input and output
-         * data
+         * A external reader is a handle for applications to use outside of the
+         * network to input and output data
          * 
-         * Note that a pseudo node can only be used on the kernel it is created on.
+         * Note that a external reader can only be used on the kernel it is
+         * created on.
          *
-         * \param nodename The name of the pseudo node
-         * \return a unique key for the pseudo node to use in other pseudo functions.
+         * Implementation detail: External endpoints create a node internally
+         * with the same name.  This means that they can be waited on with
+         * WaitNodeStart and WaitNodeTerminate.  Also, WaitForAllNodeEnd will
+         * not return until all external endpoints have been destroyed.
+         * Additionally, external endpoint names must be unique across the
+         * network and cannot share the same name as any node.
+         *
+         * \param name the name of the reader
          */
-        Key_t CreatePseudoNode(const std::string &nodename);
+        void CreateExternalReader(const std::string &name);
+        /** Dual of CreateExternalReader */
+        void CreateExternalWriter(const std::string &name);
+
         /**
-         * Get the key for an already created pseudo node.
-         * \param nodename the name
-         * \return the key
+         * Get an OQueue for the given external writer.
+         * \param name the name of the writer
+         * \return A pointer to an object that oQueue will accept.
          */
-        Key_t GetPseudoNode(const std::string &nodename);
+        shared_ptr<QueueWriter> GetExternalOQueue(const std::string &name);
+
         /**
-         * Get a writer for the given pseudo node.
-         * \param key the pseudo key
-         * \param portname the name of the port
-         * \return a QueueWriter
+         * Get a IQueue for the given external reader.
+         * \param name the name of the reader
+         * \return A pointer to an object that IQueue will accept.
          */
-        shared_ptr<QueueWriter> GetPseudoOQueue(Key_t key, const std::string &portname);
+        shared_ptr<QueueReader> GetExternalIQueue(const std::string &name);
+
         /**
-         * Get a reader for the given pseudo node.
-         * \param key the pseudo key
-         * \param portname the name of the port
-         * \return a QueueReader
-         */
-        shared_ptr<QueueReader> GetPseudoIQueue(Key_t key, const std::string &portname);
-        /**
-         * Mark the end of the pseudo node.
+         * Clean up the external endpoint.
          * Anybody waiting on it will then return.
          * Note that calling WaitForAllNodeEnd will block
-         * until all pseudo nodes have died or Terminate is called.
+         * until all external endpoints have died or Terminate is called.
          */
-        void DestroyPseudoNode(Key_t key);
+        void DestroyExternalEndpoint(const std::string &name);
 
         /**
          * Check for the existance of the given node. Returns
@@ -295,6 +297,8 @@ namespace CPN {
         // Not copyable
         Kernel(const Kernel&);
         Kernel &operator=(const Kernel&);
+
+        void CreateExternalEndpoint(const std::string &name, bool iswriter);
 
         void CreateReaderEndpoint(const SimpleQueueAttr &attr);
         void CreateWriterEndpoint(const SimpleQueueAttr &attr);

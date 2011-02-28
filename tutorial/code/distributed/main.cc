@@ -152,25 +152,27 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    Key_t pkey = 0;
-
     Kernel kernel(loader.GetKernelAttr());
 
     if (load_config) {
-        pkey = kernel.CreatePseudoNode("result");
+        kernel.CreateExternalReader("result");
     }
 
     loader.Setup(&kernel);
 
     if (load_config) {
-        IQueue<uint64_t> result = kernel.GetPseudoIQueue(pkey, "in");
+        QueueAttr qattr(2*sizeof(uint64_t), sizeof(uint64_t));
+        qattr.SetWriter("Cons 2", "out1");
+        qattr.SetExternalReader("result");
+        kernel.CreateQueue(qattr);
+
+        IQueue<uint64_t> result = kernel.GetExternalIQueue("result");
         uint64_t value;
         do {
             result.Dequeue(&value, 1);
             std::cout << "- " << value << std::endl;
         } while (value < max_fib);
-        result.Release();
-        kernel.DestroyPseudoNode(pkey);
+        kernel.DestroyExternalEndpoint("result");
     } else {
         kernel.WaitNodeTerminate("result");
     }

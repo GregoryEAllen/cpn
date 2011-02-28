@@ -94,6 +94,7 @@
     endpointinfo = {
         "key"       : The key for this endpoint,
         "name"      : the name of this endpoint,
+        "qname"     : the name of the queue if set and connected
         "nodekey"   : The key of the node this endpoint belongs to,
         "hostkey"   : the key of the host this node endpoint is on,
         "live"      : true or false

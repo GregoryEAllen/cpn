@@ -51,18 +51,19 @@ int main(int argc, char **argv) {
     attr.SetParam("numberBound", maxprime);
     attr.SetParam("queueSize", queueSize);
     kernel.CreateNode(attr);
-    CPN::Key_t pseudokey = kernel.CreatePseudoNode("output");
+    kernel.CreateExternalReader("output");
     CPN::QueueAttr qattr(100*sizeof(unsigned long), 100*sizeof(unsigned long));
     qattr.SetWriter("controller", "output");
-    qattr.SetReader("output", "out");
+    qattr.SetExternalReader("output");
     kernel.CreateQueue(qattr);
     double start = getTime();
-    CPN::IQueue<unsigned long> in = kernel.GetPseudoIQueue(pseudokey, "out");
+    CPN::IQueue<unsigned long> in = kernel.GetExternalIQueue("output");
     unsigned long val;
     while (in.Dequeue(&val, 1)) {
         results.push_back(val);
     }
-    kernel.DestroyPseudoNode(pseudokey);
+    in.Release();
+    kernel.DestroyExternalEndpoint("output");
     kernel.WaitNodeTerminate("controller");
     double stop = getTime();
     printf("Duration: %f\n", (stop - start));

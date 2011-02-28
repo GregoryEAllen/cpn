@@ -1,18 +1,9 @@
 #include "NodeBase.h"
 #include "IQueue.h"
 #include "OQueue.h"
-#include "JSONToVariant.h"
-#include <vector>
-#include <string>
-#include <stdexcept>
-#include <algorithm>
-#include <iterator>
-#include <functional>
 #include <stdint.h>
 
 using namespace CPN;
-using std::vector;
-using std::string;
 
 class Summer : public NodeBase {
 public:

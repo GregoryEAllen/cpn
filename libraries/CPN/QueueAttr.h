@@ -82,6 +82,26 @@ namespace CPN {
             return *this;
         }
 
+        QueueAttr &SetName(const std::string &qname) {
+            queuename = qname;
+            return *this;
+        }
+
+        QueueAttr &SetEndpoints(const std::string &readernode, const std::string &readerport,
+                const std::string &writernode, const std::string &writerport) {
+            SetReader(readernode, readerport);
+            SetWriter(writernode, writerport);
+            return *this;
+        }
+
+        QueueAttr &SetExternalReader(const std::string &readername) {
+            return SetReader(readername, readername);
+        }
+
+        QueueAttr &SetExternalWriter(const std::string &writername) {
+            return SetWriter(writername, writername);
+        }
+
         QueueAttr &SetReader(const std::string &nodename,
                 const std::string &portname) {
             readernodename = nodename;
@@ -175,10 +195,12 @@ namespace CPN {
         QueueHint_t GetHint() const { return queuehint; }
         const std::string &GetDatatype() const { return datatype; }
         double GetAlpha() const { return alpha; }
+        const std::string &GetName() const { return queuename; }
 
     private:
         QueueHint_t queuehint;
         std::string datatype;
+        std::string queuename;
         unsigned queueLength;
         unsigned maxThreshold;
         unsigned numChannels;

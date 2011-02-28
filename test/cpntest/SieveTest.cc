@@ -238,14 +238,14 @@ void SieveTest::RunTest(void) {
     qattr.SetWriter(filtername, PORT_RESULT);
     qattr.SetReader("TheResult", portname);
     kernel.CreateQueue(qattr);
-    CPN::Key_t pseudokey = kernel.CreatePseudoNode("output");
+    kernel.CreateExternalReader("output");
     qattr.SetWriter("TheResult", PORT_RESULT);
-    qattr.SetReader("output", PORT_RESULT);
+    qattr.SetExternalReader("output");
     kernel.CreateQueue(qattr);
-    CPN::IQueue<SieveNumber> in = kernel.GetPseudoIQueue(pseudokey, PORT_RESULT);
+    CPN::IQueue<SieveNumber> in = kernel.GetExternalIQueue("output");
     in.Dequeue(&result[0], result.size());
     in.Release();
-    kernel.DestroyPseudoNode(pseudokey);
+    kernel.DestroyExternalEndpoint("output");
 
     kernel.WaitNodeTerminate("TheResult");
     for (SieveNumber i = 0; i < NUMPRIMES; i++) {
@@ -286,14 +286,14 @@ void SieveTest::RunTwoKernelTest() {
     qattr.SetReader("TheResult", portname);
     kone.CreateQueue(qattr);
 
-    CPN::Key_t pseudokey = kone.CreatePseudoNode("output");
+    kone.CreateExternalReader("output");
     qattr.SetWriter("TheResult", PORT_RESULT);
-    qattr.SetReader("output", PORT_RESULT);
+    qattr.SetExternalReader("output");
     kone.CreateQueue(qattr);
-    CPN::IQueue<SieveNumber> in = kone.GetPseudoIQueue(pseudokey, PORT_RESULT);
+    CPN::IQueue<SieveNumber> in = kone.GetExternalIQueue("output");
     in.Dequeue(&result[0], result.size());
     in.Release();
-    kone.DestroyPseudoNode(pseudokey);
+    kone.DestroyExternalEndpoint("output");
 
     kone.WaitNodeTerminate("TheResult");
     for (SieveNumber i = 0; i < NUMPRIMES; i++) {

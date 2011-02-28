@@ -331,8 +331,11 @@ namespace CPN {
     void RemoteContextServer::ConnectEndpoints(const Variant &msg) {
         Key_t wkey = msg["writerkey"].AsNumber<Key_t>();
         Key_t rkey = msg["readerkey"].AsNumber<Key_t>();
+        std::string qname = msg["qname"].AsString();
         datamap[wkey]["readerkey"] = rkey;
         datamap[rkey]["writerkey"] = wkey;
+        datamap[rkey]["qname"] = qname;
+        datamap[wkey]["qname"] = qname;
     }
 
     Key_t RemoteContextServer::NewKey() {

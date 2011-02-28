@@ -425,7 +425,7 @@ namespace CPN {
         return entry->second->name;
     }
 
-    void LocalContext::ConnectEndpoints(Key_t writerkey, Key_t readerkey) {
+    void LocalContext::ConnectEndpoints(Key_t writerkey, Key_t readerkey, const std::string &qname) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
         PortMap::iterator writeentry = writeports.find(writerkey);
@@ -436,8 +436,12 @@ namespace CPN {
         if (readentry == readports.end()) {
             throw std::invalid_argument("Read port does not exist.");
         }
+
         writeentry->second->opposingport = readerkey;
         readentry->second->opposingport = writerkey;
+
+        readentry->second->qname = qname;
+        writeentry->second->qname = qname;
     }
 
     Key_t LocalContext::GetReadersWriter(Key_t readerkey) {

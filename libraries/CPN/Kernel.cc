@@ -156,55 +156,74 @@ namespace CPN {
         return nodekey;
     }
 
-    Key_t Kernel::CreatePseudoNode(const std::string &nodename) {
-        Key_t nodekey = context->CreateNodeKey(hostkey, nodename);
+    class ExternalEndpoint : public PseudoNode {
+    public:
+        ExternalEndpoint(const std::string &name, Key_t nodekey, shared_ptr<Context> context,
+                bool iswriter_)
+            : PseudoNode(name, nodekey, context), iswriter(iswriter_) {}
+        virtual ~ExternalEndpoint() {}
+
+        bool IsWriter() const { return iswriter; }
+    private:
+        bool iswriter;
+    };
+
+    void Kernel::CreateExternalReader(const std::string &name) {
+        CreateExternalEndpoint(name, false);
+    }
+
+    void Kernel::CreateExternalWriter(const std::string &name) {
+        CreateExternalEndpoint(name, true);
+    }
+
+    void Kernel::CreateExternalEndpoint(const std::string &name, bool iswriter) {
+        Key_t nodekey = context->CreateNodeKey(hostkey, name);
         shared_ptr<PseudoNode> pnode;
-        pnode.reset(new PseudoNode(nodename, nodekey, context));
+        pnode.reset(new ExternalEndpoint(name, nodekey, context, iswriter));
         Sync::AutoReentrantLock arlock(nodelock);
         nodemap.insert(std::make_pair(nodekey, pnode));
         arlock.Unlock();
         context->SignalNodeStart(nodekey);
-        return nodekey;
     }
 
-    Key_t Kernel::GetPseudoNode(const std::string &nodename) {
-        Key_t nodekey = context->GetNodeKey(nodename);
-        Sync::AutoReentrantLock arlock(nodelock);
-        NodeMap::iterator entry = nodemap.find(nodekey);
-        if (entry == nodemap.end() || !entry->second->IsPurePseudo()) {
-            throw std::invalid_argument("Not a valid PseudoNode.");
-        }
-        return nodekey;
-    }
-
-    shared_ptr<QueueWriter> Kernel::GetPseudoOQueue(Key_t key, const std::string &portname) {
+    shared_ptr<QueueWriter> Kernel::GetExternalOQueue(const std::string &name) {
+        Key_t key = context->GetNodeKey(name);
         Sync::AutoReentrantLock arlock(nodelock);
         NodeMap::iterator entry = nodemap.find(key);
         if (entry == nodemap.end() || !entry->second->IsPurePseudo()) {
-            throw std::invalid_argument("Not a valid PseudoNode.");
+            throw std::invalid_argument("Not a valid external reader.");
         }
-        shared_ptr<PseudoNode> pnode = entry->second;
+        shared_ptr<ExternalEndpoint> pnode = dynamic_pointer_cast<ExternalEndpoint>(entry->second);
         arlock.Unlock();
-        return pnode->GetOQueue(portname);
+        if (pnode && pnode->IsWriter()) {
+            return pnode->GetOQueue(name);
+        }
+        throw std::invalid_argument("Not a valid external reader.");
     }
 
-    shared_ptr<QueueReader> Kernel::GetPseudoIQueue(Key_t key, const std::string &portname) {
+    shared_ptr<QueueReader> Kernel::GetExternalIQueue(const std::string &name) {
+        Key_t key = context->GetNodeKey(name);
         Sync::AutoReentrantLock arlock(nodelock);
         NodeMap::iterator entry = nodemap.find(key);
         if (entry == nodemap.end() || !entry->second->IsPurePseudo()) {
-            throw std::invalid_argument("Not a valid PseudoNode.");
+            throw std::invalid_argument("Not a valid external writer.");
         }
-        shared_ptr<PseudoNode> pnode = entry->second;
+        shared_ptr<ExternalEndpoint> pnode = dynamic_pointer_cast<ExternalEndpoint>(entry->second);
         arlock.Unlock();
-        return pnode->GetIQueue(portname);
+        if (pnode && !pnode->IsWriter()) {
+            return pnode->GetIQueue(name);
+        }
+        throw std::invalid_argument("Not a valid external writer.");
     }
 
-    void Kernel::DestroyPseudoNode(Key_t key) {
+    void Kernel::DestroyExternalEndpoint(const std::string &name) {
+        Key_t key = context->GetNodeKey(name);
         Sync::AutoReentrantLock arlock(nodelock);
         NodeMap::iterator entry = nodemap.find(key);
         if (entry == nodemap.end() || !entry->second->IsPurePseudo()) {
-            throw std::invalid_argument("Not a valid PseudoNode.");
+            throw std::invalid_argument("Not a valid external endpoint.");
         }
+        arlock.Unlock();
         NodeTerminated(key);
     }
 
@@ -265,7 +284,7 @@ namespace CPN {
             attr.SetWriterNodeKey(context->GetWriterNode(attr.GetWriterKey()));
         }
 
-        context->ConnectEndpoints(attr.GetWriterKey(), attr.GetReaderKey());
+        context->ConnectEndpoints(attr.GetWriterKey(), attr.GetReaderKey(), qattr.GetName());
 
         Key_t readerhost = context->GetNodeHost(attr.GetReaderNodeKey());
         Key_t writerhost = context->GetNodeHost(attr.GetWriterNodeKey());

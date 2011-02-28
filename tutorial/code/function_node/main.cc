@@ -56,11 +56,11 @@ int main(int argc, char **argv) {
     kernel.CreateFunctionNode("summer", Summer);
     kernel.CreateFunctionNode("Cons 1", Cons, 1);
     kernel.CreateFunctionNode("Cons 2", Cons, 1);
-    Key_t pkey = kernel.CreatePseudoNode("result");
+    kernel.CreateExternalReader("result");
 
     QueueAttr qattr(2*sizeof(uint64_t), sizeof(uint64_t));
     qattr.SetDatatype<uint64_t>();
-    qattr.SetWriter("Cons 1", "out0").SetReader("summer", "A");
+    qattr.SetEndpoints("summer", "A", "Cons 1", "out0");
     kernel.CreateQueue(qattr);
     qattr.SetWriter("Cons 2", "out0").SetReader("summer", "B");
     kernel.CreateQueue(qattr);
@@ -68,17 +68,22 @@ int main(int argc, char **argv) {
     kernel.CreateQueue(qattr);
     qattr.SetWriter("Cons 1", "out1").SetReader("Cons 2", "in");
     kernel.CreateQueue(qattr);
-    qattr.SetWriter("Cons 2", "out1").SetReader("result", "in");
+
+    qattr.SetWriter("Cons 2", "out1").SetExternalReader("result");
     kernel.CreateQueue(qattr);
 
-    IQueue<uint64_t> result = kernel.GetPseudoIQueue(pkey, "in");
-    uint64_t value;
-    do {
-        result.Dequeue(&value, 1);
-        std::cout << "- " << value << std::endl;
-    } while (value < max_fib);
-    result.Release();
-    kernel.DestroyPseudoNode(pkey);
+    // This is our result reader.
+    {
+        IQueue<uint64_t> result = kernel.GetExternalIQueue("result");
+        uint64_t value;
+        do {
+            result.Dequeue(&value, 1);
+            std::cout << "- " << value << std::endl;
+        } while (value < max_fib);
+        result.Release();
+    }
+
+    kernel.DestroyExternalEndpoint("result");
     kernel.WaitForAllNodeEnd();
     return 0;
 }

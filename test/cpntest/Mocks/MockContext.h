@@ -51,7 +51,7 @@ public:
     virtual CPN::Key_t GetWriterHost(CPN::Key_t portkey) { return 0; }
     virtual std::string GetWriterName(CPN::Key_t portkey) { return blank; }
 
-    virtual void ConnectEndpoints(CPN::Key_t writerkey, CPN::Key_t readerkey) { }
+    virtual void ConnectEndpoints(CPN::Key_t writerkey, CPN::Key_t readerkey, const std::string &) { }
     virtual CPN::Key_t GetReadersWriter(CPN::Key_t readerkey) { return 0; }
     virtual CPN::Key_t GetWritersReader(CPN::Key_t writerkey) { return 0; }
 

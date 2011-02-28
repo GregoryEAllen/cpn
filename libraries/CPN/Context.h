@@ -237,7 +237,7 @@ namespace CPN {
          * \throw ShutdownException
          * \throw std::invalid_argument
          */
-        virtual void ConnectEndpoints(Key_t writerkey, Key_t readerkey) = 0;
+        virtual void ConnectEndpoints(Key_t writerkey, Key_t readerkey, const std::string &qname) = 0;
         /** \param readerkey a unique reader key
          * \return the writer key associated with this reader key if there is one
          * \throw ShutdownException

@@ -95,25 +95,28 @@ using CPN::IQueue;
 
 static Variant SieveTest(VariantCPNLoader &loader, bool verbose) {
     CPN::Kernel kernel(loader.GetKernelAttr());
-    CPN::Key_t pseudokey = 0;
     Variant result = Variant::ObjectType;
     tms tmsStart;
     tms tmsStop;
     times(&tmsStart);
     double start = getTime();
     if (verbose) {
-        pseudokey = kernel.CreatePseudoNode(VERBOSE_NAME);
+        kernel.CreateExternalReader(VERBOSE_NAME);
     }
     loader.Setup(&kernel);
     if (verbose) {
+        CPN::QueueAttr qattr(512*sizeof(NumberT), sizeof(NumberT));
+        qattr.SetWriter(CONTROL_NAME, OUT_PORT).SetExternalReader(VERBOSE_NAME);
+        kernel.CreateQueue(qattr);
+
         result["result"] = Variant::ArrayType;
-        IQueue<NumberT> out = kernel.GetPseudoIQueue(pseudokey, IN_PORT);
+        IQueue<NumberT> out = kernel.GetExternalIQueue(VERBOSE_NAME);
         NumberT value = 0;
         while (out.Dequeue(&value, 1)) {
             result["result"].Append(value);
         }
         out.Release();
-        kernel.DestroyPseudoNode(pseudokey);
+        kernel.DestroyExternalEndpoint(VERBOSE_NAME);
         result["numprimes"] = result["result"].Size();
     }
     kernel.WaitNodeTerminate(CONTROL_NAME);
@@ -281,15 +284,6 @@ int main(int argc, char **argv) {
     if (internal_config) {
         if (verbose) {
             param["outputport"] = OUT_PORT;
-
-            Variant queue = Variant::ObjectType;
-            queue["size"] = param["queuesize"];
-            queue["threshold"] = param["threshold"];
-            queue["writernode"] = CONTROL_NAME;
-            queue["writerport"] = OUT_PORT;
-            queue["readerport"] = IN_PORT;
-            queue["readernode"] = VERBOSE_NAME;
-            loader.AddQueue(queue);
         }
         Variant node = Variant::ObjectType;
         node["name"] = CONTROL_NAME;
