@@ -1,6 +1,4 @@
 //=============================================================================
-//	$Id: s.Pthread.cc 1.10 03/11/07 17:23:40-06:00 gallen@ph.arlut.utexas.edu $
-//-----------------------------------------------------------------------------
 //	Pthread class
 //-----------------------------------------------------------------------------
 //	POSIX Pthread class library
@@ -23,10 +21,10 @@
 //=============================================================================
 
 #ifdef EXTERNAL_TEMPLATES
-#     pragma implementation "Pthread.h"
+#     pragma implementation "PthreadLib.h"
 #endif
 
-#include "Pthread.h"
+#include "PthreadLib.h"
 #ifdef _POSIX_THREADS
 
 
@@ -165,9 +163,3 @@ void Pthread::PthreadCleanup(void* arg)
 
 
 #endif
-
-static const char rcsid[] = "@(#) $Id: s.Pthread.cc 1.10 03/11/07 17:23:40-06:00 gallen@ph.arlut.utexas.edu $";
-
-//=============================================================================
-//	$Log: <Not implemented> $
-//=============================================================================

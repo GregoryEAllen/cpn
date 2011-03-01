@@ -1,6 +1,4 @@
 //=============================================================================
-//	$Id: s.PthreadScheduleParam.h 1.8 03/11/07 17:23:43-06:00 gallen@ph.arlut.utexas.edu $
-//-----------------------------------------------------------------------------
 //	PthreadScheduleParam class
 //-----------------------------------------------------------------------------
 //	POSIX Pthread class library
@@ -24,6 +22,7 @@
 
 #ifndef PthreadScheduleParam_h
 #define PthreadScheduleParam_h
+#pragma once
 
 #ifdef EXTERNAL_TEMPLATES
 #     pragma interface
@@ -60,7 +59,3 @@ class PthreadScheduleParam {
 
 
 #endif
-
-//=============================================================================
-//	$Log: <Not implemented> $
-//=============================================================================

@@ -1,6 +1,4 @@
 //=============================================================================
-//	$Id: s.PthreadFunctional.h 1.5 03/11/07 17:23:42-06:00 gallen@ph.arlut.utexas.edu $
-//-----------------------------------------------------------------------------
 //	PthreadFunctional (higher order function) class
 //-----------------------------------------------------------------------------
 //	POSIX Pthread class library
@@ -24,11 +22,12 @@
 
 #ifndef PthreadFunctional_h
 #define PthreadFunctional_h
+#pragma once
 
 #include "PthreadDefs.h"
 #ifdef _POSIX_THREADS
 
-#include "Pthread.h"
+#include "PthreadLib.h"
 
 //-----------------------------------------------------------------------------
 //	The (virtual) base class
@@ -73,7 +72,3 @@ PthreadFunctional* CreatePthreadFunctional(T* obj, void* (T::*meth)(void), const
 
 #endif
 #endif
-
-//=============================================================================
-//	$Log: <Not implemented> $
-//=============================================================================

@@ -1,6 +1,4 @@
 //=============================================================================
-//	$Id: PthreadMutexAttr.cc 1.9 2007/04/30 15:14:20-05:00 koffer@rowlf.arlut.utexas.edu $
-//-----------------------------------------------------------------------------
 //	PthreadMutexAttr class
 //-----------------------------------------------------------------------------
 //	POSIX Pthread class library
@@ -107,8 +105,3 @@ PthreadMutexAttr& PthreadMutexAttr::ProcessShared(int pshared)
 
 
 #endif
-static const char rcsid[] = "@(#) $Id: PthreadMutexAttr.cc 1.9 2007/04/30 15:14:20-05:00 koffer@rowlf.arlut.utexas.edu $";
-
-//=============================================================================
-//	$Log: <Not implemented> $
-//=============================================================================

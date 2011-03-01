@@ -1,6 +1,4 @@
 //=============================================================================
-//	$Id: s.PthreadReadWriteLock.h 1.5 03/11/07 17:23:43-06:00 gallen@ph.arlut.utexas.edu $
-//-----------------------------------------------------------------------------
 //	PthreadReadWriteLock and protection classes
 //-----------------------------------------------------------------------------
 //	POSIX Pthread class library
@@ -25,6 +23,7 @@
 
 #ifndef PthreadReadWriteLock_h
 #define PthreadReadWriteLock_h
+#pragma once
 
 #include "PthreadDefs.h"
 #ifdef _POSIX_THREADS
@@ -78,7 +77,3 @@ class PthreadWriteLockProtected {
 
 #endif
 #endif
-
-//=============================================================================
-//	$Log: <Not implemented> $
-//=============================================================================

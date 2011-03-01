@@ -1,6 +1,4 @@
 //=============================================================================
-//	$Id: s.PthreadBase.cc 1.10 03/11/07 17:23:41-06:00 gallen@ph.arlut.utexas.edu $
-//-----------------------------------------------------------------------------
 //	PthreadBase class
 //-----------------------------------------------------------------------------
 //	POSIX Pthread class library
@@ -28,7 +26,7 @@
 #     pragma implementation "PthreadScheduleParam.h"
 #endif
 
-#include "Pthread.h"
+#include "PthreadLib.h"
 #ifdef _POSIX_THREADS
 
 
@@ -174,8 +172,3 @@ void PthreadBase::SetScheduleParams(int policy, PthreadScheduleParam& sp)
 
 
 #endif
-static const char rcsid[] = "@(#) $Id: s.PthreadBase.cc 1.10 03/11/07 17:23:41-06:00 gallen@ph.arlut.utexas.edu $";
-
-//=============================================================================
-//	$Log: <Not implemented> $
-//=============================================================================

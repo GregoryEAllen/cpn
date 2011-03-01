@@ -1,6 +1,4 @@
 //=============================================================================
-//	$Id: s.PthreadErrorHandler.h 1.8 03/11/07 17:23:42-06:00 gallen@ph.arlut.utexas.edu $
-//-----------------------------------------------------------------------------
 //	PthreadErrorHandler class
 //-----------------------------------------------------------------------------
 //	POSIX Pthread class library
@@ -24,6 +22,7 @@
 
 #ifndef PthreadErrorHandler_h
 #define PthreadErrorHandler_h
+#pragma once
 
 #ifdef EXTERNAL_TEMPLATES
 #     pragma interface
@@ -58,7 +57,3 @@ inline void PthreadErrorHandler::TrapError(int err)
 
 #endif
 #endif
-
-//=============================================================================
-//	$Log: <Not implemented> $
-//=============================================================================

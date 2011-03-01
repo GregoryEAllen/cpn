@@ -1,6 +1,4 @@
 //=============================================================================
-//	$Id: s.PthreadCondition.cc 1.9 03/11/07 17:23:41-06:00 gallen@ph.arlut.utexas.edu $
-//-----------------------------------------------------------------------------
 //	PthreadCondition class
 //-----------------------------------------------------------------------------
 //	POSIX Pthread class library
@@ -128,8 +126,3 @@ int PthreadCondition::TimedWait(PthreadMutex& mutex, double reltime)
 
 
 #endif
-static const char rcsid[] = "@(#) $Id: s.PthreadCondition.cc 1.9 03/11/07 17:23:41-06:00 gallen@ph.arlut.utexas.edu $";
-
-//=============================================================================
-//	$Log: <Not implemented> $
-//=============================================================================

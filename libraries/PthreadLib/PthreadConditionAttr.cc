@@ -1,6 +1,4 @@
 //=============================================================================
-//	$Id: s.PthreadConditionAttr.cc 1.7 03/11/07 17:23:41-06:00 gallen@ph.arlut.utexas.edu $
-//-----------------------------------------------------------------------------
 //	PthreadConditionAttr class
 //-----------------------------------------------------------------------------
 //	POSIX Pthread class library
@@ -70,8 +68,3 @@ PthreadConditionAttr& PthreadConditionAttr::ProcessShared(int pshared)
 
 
 #endif
-static const char rcsid[] = "@(#) $Id: s.PthreadConditionAttr.cc 1.7 03/11/07 17:23:41-06:00 gallen@ph.arlut.utexas.edu $";
-
-//=============================================================================
-//	$Log: <Not implemented> $
-//=============================================================================

@@ -1,6 +1,4 @@
 //=============================================================================
-//	$Id: s.PthreadReadWriteLock.cc 1.6 03/11/07 17:23:43-06:00 gallen@ph.arlut.utexas.edu $
-//-----------------------------------------------------------------------------
 //	PthreadReadWriteLock and protection classes
 //-----------------------------------------------------------------------------
 //	POSIX Pthread class library
@@ -99,8 +97,3 @@ void PthreadReadWriteLock::WriteUnlock(void)
 
 
 #endif
-static const char rcsid[] = "@(#) $Id: s.PthreadReadWriteLock.cc 1.6 03/11/07 17:23:43-06:00 gallen@ph.arlut.utexas.edu $";
-
-//=============================================================================
-//	$Log: <Not implemented> $
-//=============================================================================

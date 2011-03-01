@@ -1,6 +1,4 @@
 //=============================================================================
-//	$Id: s.TestPthread.cc 1.8 03/11/07 17:23:43-06:00 gallen@ph.arlut.utexas.edu $
-//-----------------------------------------------------------------------------
 //	Pthread testing program
 //-----------------------------------------------------------------------------
 //	POSIX Pthread class library
@@ -22,105 +20,94 @@
 //	World Wide Web at http://www.fsf.org.
 //=============================================================================
 
-#include "Pthread.h"
 #include "PthreadAttr.h"
 #include "PthreadMutex.h"
 #include "PthreadMutexAttr.h"
+#include "PthreadFunctional.h"
+
 #ifdef _POSIX_THREADS
 
 #include <stdio.h>
-
+#include <string>
+#include <vector>
 
 //-----------------------------------------------------------------------------
-class MyThread : public Pthread
+class MyCounter {
 //-----------------------------------------------------------------------------
-{
   public:
-	MyThread(char* str, PthreadAttr& attr);
-   ~MyThread(void);
-
-	virtual void* EntryPoint(void);
-
+	MyCounter(const char* name_, unsigned count_)
+		: name(name_), count(count_) {}
+	void* DoCounting(void);
   private:
-	char *name;
-	int i; // current increment value
+	std::string name;
+	unsigned count;
 };
 
-
 //-----------------------------------------------------------------------------
-MyThread::MyThread(char* str, PthreadAttr& attr)
-//-----------------------------------------------------------------------------
-:	Pthread(attr), i(-1)
-{
-	name = str;
-	printf("Spawning pThread-%s\n", name);
-	Start();
-}
-
-
-//-----------------------------------------------------------------------------
-MyThread::~MyThread(void)
+void* MyCounter::DoCounting(void)
 //-----------------------------------------------------------------------------
 {
-	Join();
-}
-
-
-//-----------------------------------------------------------------------------
-void* MyThread::EntryPoint(void)
-//-----------------------------------------------------------------------------
-{
-	for (i = 0;  i < 3; i++) {
-		printf("%s = %d\n", name, i);
-		Yield();
+	for (unsigned i = 0;  i<count; i++) {
+		printf("%s = %u\n", name.c_str(), i);
+		Pthread::Yield();
 	}
 	return (void*)0;
 }
 
 
-int main (int argc, char **argv) __attribute__((weak));
+int main (int argc, char* const argv[]) __attribute__((weak));
 //-----------------------------------------------------------------------------
-int main(int, char* [])
+int main(int argc, char* const argv[])
 //-----------------------------------------------------------------------------
 {
-	printf("### TestPthread executing...\n");
+	printf("### %s executing...\n", argv[0]);
+
+	unsigned numThreads = 5;
+	unsigned count = 3;
+	if (argc>1)
+		numThreads = atoi(argv[1]);
+	if (argc>2)
+		count = atoi(argv[2]);
+
 	setbuf(stdout, NULL);
 	setbuf(stderr, NULL);
 
 	PthreadAttr pthreadAttr;
 	pthreadAttr.SystemScope();
 
-#ifndef MERCURY
 	PthreadBase thisThread;
-#endif
 
-	MyThread pThreadA("A", pthreadAttr);
-	MyThread pThreadB("B", pthreadAttr);
-	MyThread pThreadC("C", pthreadAttr);
-	MyThread pThreadD("D", pthreadAttr);
-	MyThread pThreadE("E", pthreadAttr);
+	std::vector<MyCounter*> counters(numThreads);
+	std::vector<PthreadFunctional*> threads(numThreads);
 
-	for (int i=0; i<20; i++) { 
-		// exit loop when all threads are done
-		if (pThreadA.Done() &&
-			pThreadB.Done() &&
-			pThreadC.Done() &&
-			pThreadD.Done() &&
-			pThreadE.Done())
-			break;
+	char name[80];
+	for (unsigned i=0; i<numThreads; i++) {
+		snprintf(name,80,"p%u",i);
+		counters[i] = new MyCounter(name,count);
+		threads[i] = CreatePthreadFunctional(counters[i], &MyCounter::DoCounting);
+		printf("Spawning %s\n", name);
+		threads[i]->Start();
+	}
 
-		printf("Still going...\n");
+	int done = 0;
+	for (int loops=0; !done; loops++) {
+		done = 1;
+		for (unsigned i=0; i<numThreads && done; i++) {
+			done &= threads[i]->Done();
+		}
 
+		printf("main = %u\n", loops);
 		Pthread::Yield();
 	}
 
-	pThreadA.Join();
-	pThreadB.Join();
-	pThreadC.Join();
-	pThreadD.Join();
-	pThreadE.Join();
+	printf("Joining\n");
+	for (unsigned i=0; i<numThreads; i++) {
+		threads[i]->Join();
+		delete threads[i];
+		delete counters[i];
+	}
 
-	printf("### TestPthread exiting...\n");
+	printf("### %s exiting...\n", argv[0]);
 	return(0);
 }
 
@@ -128,7 +115,7 @@ int main(int, char* [])
 
 #include <stdio.h>
 //-----------------------------------------------------------------------------
-int main(int argc, char* argv[])
+int main(int argc, char* const argv[])
 //-----------------------------------------------------------------------------
 {
 	printf("### Error: POSIX Pthreads are not implemented on this system.\n");
@@ -136,8 +123,3 @@ int main(int argc, char* argv[])
 
 
 #endif
-static const char rcsid[] = "@(#) $Id: s.TestPthread.cc 1.8 03/11/07 17:23:43-06:00 gallen@ph.arlut.utexas.edu $";
-
-//=============================================================================
-//	$Log: <Not implemented> $
-//=============================================================================

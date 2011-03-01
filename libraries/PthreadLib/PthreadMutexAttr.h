@@ -1,6 +1,4 @@
 //=============================================================================
-//	$Id: PthreadMutexAttr.h 1.10 2007/04/30 15:14:21-05:00 koffer@rowlf.arlut.utexas.edu $
-//-----------------------------------------------------------------------------
 //	PthreadMutexAttr class
 //-----------------------------------------------------------------------------
 //	POSIX Pthread class library
@@ -25,6 +23,7 @@
 
 #ifndef PthreadMutexAttr_h
 #define PthreadMutexAttr_h
+#pragma once
 
 #ifdef EXTERNAL_TEMPLATES
 #     pragma interface
@@ -80,7 +79,3 @@ class PthreadMutexAttr : public PthreadErrorHandler {
 
 #endif
 #endif
-
-//=============================================================================
-//	$Log: <Not implemented> $
-//=============================================================================

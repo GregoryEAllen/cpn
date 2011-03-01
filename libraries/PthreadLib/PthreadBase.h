@@ -1,6 +1,4 @@
 //=============================================================================
-//	$Id: s.PthreadBase.h 1.11 03/11/07 17:23:41-06:00 gallen@ph.arlut.utexas.edu $
-//-----------------------------------------------------------------------------
 //	PthreadBase class
 //-----------------------------------------------------------------------------
 //	POSIX Pthread class library
@@ -24,6 +22,7 @@
 
 #ifndef PthreadBase_h
 #define PthreadBase_h
+#pragma once
 
 #ifdef EXTERNAL_TEMPLATES
 #     pragma interface
@@ -129,7 +128,3 @@ class PthreadBase : public PthreadErrorHandler {
 
 #endif
 #endif
-
-//=============================================================================
-//	$Log: <Not implemented> $
-//=============================================================================

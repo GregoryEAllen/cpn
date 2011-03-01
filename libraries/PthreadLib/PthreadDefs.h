@@ -1,6 +1,4 @@
 //=============================================================================
-//	$Id: PthreadDefs.h 1.17 2007/04/30 15:14:20-05:00 koffer@rowlf.arlut.utexas.edu $
-//-----------------------------------------------------------------------------
 //	Definitions used throughout the Pthread class library
 //-----------------------------------------------------------------------------
 //	POSIX Pthread class library
@@ -25,6 +23,7 @@
 
 #ifndef	PthreadDefs_h
 #define PthreadDefs_h
+#pragma once
 
 #ifdef MERCURY
 	// Mercury's pthread support is unmaintained and broken in several ways...
@@ -100,7 +99,4 @@
 	#endif
 #endif
 
-//=============================================================================
-//	$Log: <Not implemented> $
-//=============================================================================
 #endif

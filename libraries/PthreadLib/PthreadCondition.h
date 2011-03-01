@@ -1,6 +1,4 @@
 //=============================================================================
-//	$Id: s.PthreadCondition.h 1.10 03/11/07 17:23:41-06:00 gallen@ph.arlut.utexas.edu $
-//-----------------------------------------------------------------------------
 //	PthreadCondition and PthreadConditionProtected classes
 //-----------------------------------------------------------------------------
 //	POSIX Pthread class library
@@ -25,6 +23,7 @@
 
 #ifndef PthreadCondition_h
 #define PthreadCondition_h
+#pragma once
 
 #ifdef EXTERNAL_TEMPLATES
 #     pragma interface
@@ -63,7 +62,3 @@ class PthreadCondition : public PthreadErrorHandler {
 
 #endif
 #endif
-
-//=============================================================================
-//	$Log: <Not implemented> $
-//=============================================================================

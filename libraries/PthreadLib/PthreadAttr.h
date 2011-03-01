@@ -1,6 +1,4 @@
 //=============================================================================
-//	$Id: s.PthreadAttr.h 1.9 03/11/07 17:23:41-06:00 gallen@ph.arlut.utexas.edu $
-//-----------------------------------------------------------------------------
 //	PthreadAttr class
 //-----------------------------------------------------------------------------
 //	POSIX Pthread class library
@@ -24,6 +22,7 @@
 
 #ifndef PthreadAttr_h
 #define PthreadAttr_h
+#pragma once
 
 #ifdef EXTERNAL_TEMPLATES
 #     pragma interface
@@ -118,7 +117,3 @@ class PthreadAttr : public PthreadErrorHandler {
 
 #endif
 #endif
-
-//=============================================================================
-//	$Log: <Not implemented> $
-//=============================================================================

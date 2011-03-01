@@ -1,6 +1,4 @@
 //=============================================================================
-//	$Id: s.PthreadMutex.h 1.9 03/11/07 17:23:42-06:00 gallen@ph.arlut.utexas.edu $
-//-----------------------------------------------------------------------------
 //	PthreadMutex and PthreadMutexProtected classes
 //-----------------------------------------------------------------------------
 //	POSIX Pthread class library
@@ -25,6 +23,7 @@
 
 #ifndef PthreadMutex_h
 #define PthreadMutex_h
+#pragma once
 
 #ifdef EXTERNAL_TEMPLATES
 #     pragma interface
@@ -69,7 +68,3 @@ class PthreadMutexProtected {
 
 #endif
 #endif
-
-//=============================================================================
-//	$Log: <Not implemented> $
-//=============================================================================
