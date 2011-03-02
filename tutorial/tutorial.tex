@@ -105,7 +105,7 @@ A node definition is a map with the following fields:
 \item[``name''] The unique name for the node (required).
 \item[``type''] The type name of this node (required).
 \item[``param''] Parameters to pass to this node (optional). If parameters is a Variant then it will be serialized as JSON.
-\item[``host''] The name of the host that this node should be loaded on (optional). The nodemap overrides this option.
+\item[``kernel''] The name of the kernel that this node should be loaded on (optional). The nodemap overrides this option.
 \end{description}
 
 The queue definition is a map with the following fields:
@@ -192,8 +192,8 @@ The full source code for this example is in section \ref{derived source}.
 
 To construct a derived node one must pass a \verb!CPN::NodeAttr! object to the kernel.
 The node attribute object requires a node name and a node type name as constructor arguments.
-The methods of interest are \verb!NodeAttr::SetParam!, \verb!NodeAttr::GetParam! and \verb!NodeAttr::SetHost!.
-The \verb!NodeAttr::SetHost! is used when distributing the process network.
+The methods of interest are \verb!NodeAttr::SetParam!, \verb!NodeAttr::GetParam! and \verb!NodeAttr::SetKernel!.
+The \verb!NodeAttr::SetKernel! is used when distributing the process network.
 See section \ref{sec:distributing}.
 To construct a node in this fashion the node loader must be able to find the node factory.
 See section \ref{sec:node loader} for more details on how the node loader finds factories.
@@ -446,7 +446,7 @@ This section assumes you have read the sections on \verb!Variant! and the \verb!
 In order to use the distributed features you need to have setup a remote context daemon.
 A simple daemon implementation is in \url{apps/RemoteContext}.
 When setting up the kernels you then have to use a remote context instance in the kernel attribute and possibly set the host name in the attribute.
-Then when creating nodes you specify which kernel that node should be created on using the \verb!NodeAttr::SetHost! method.
+Then when creating nodes you specify which kernel that node should be created on using the \verb!NodeAttr::SetKernel! method.
 If everything works right, then that's all the additional things that must be done over running on a single kernel.
 You of course have to ensure that every process possesses the node definitions that you try to load on it.
 The usual method of ensuring this used in the examples so far is to make all processes the same executable and the difference
