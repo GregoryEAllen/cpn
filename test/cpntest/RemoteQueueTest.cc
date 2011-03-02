@@ -53,9 +53,9 @@ void RemoteQueueTest::setUp() {
 
 
     SocketAddress addr = server->GetAddress();
-    hostkey = context->SetupHost("bogus", addr.GetHostName(), addr.GetServName(), this);
+    kernelkey = context->SetupKernel("bogus", addr.GetHostName(), addr.GetServName(), this);
 
-    nodekey = context->CreateNodeKey(hostkey, "Bogus");
+    nodekey = context->CreateNodeKey(kernelkey, "Bogus");
  
     writerkey = context->GetCreateWriterKey(nodekey, "writer");
     readerkey = context->GetCreateReaderKey(nodekey, "reader");

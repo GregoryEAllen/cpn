@@ -68,84 +68,84 @@ namespace CPN {
          * \throw ShutdownException
          * \throw std::invalid_argument
          */
-        virtual Key_t SetupHost(const std::string &name, const std::string &hostname,
+        virtual Key_t SetupKernel(const std::string &name, const std::string &hostname,
                 const std::string &servname, KernelBase *kernel) = 0;
         /** \brief Called by the kernel when it is not in remote mode.
          * \param name the kernel name
          * \param kernel callback reference
          * \return the unique key for the new kernel
          */
-        virtual Key_t SetupHost(const std::string &name, KernelBase *kernel) = 0;
-        /** \param host the name of the host
-         * \return the key for the given hostname.
+        virtual Key_t SetupKernel(const std::string &name, KernelBase *kernel) = 0;
+        /** \param kernel the name of the kernel
+         * \return the key for the given kernel.
          * \throw ShutdownException
          * \throw std::invalid_argument
          */
-        virtual Key_t GetHostKey(const std::string &host) = 0;
-        /** \param hostkey the key to the host
-         * \return the name for the host
+        virtual Key_t GetKernelKey(const std::string &kernel) = 0;
+        /** \param kernelkey the key to the kernel
+         * \return the name for the kernel
          * \throw ShutdownException
          * \throw std::invalid_argument
          */
-        virtual std::string GetHostName(Key_t hostkey) = 0;
-        /** \brief obtain the connection information for the given host
-         * \param hostkey the unique id for the host
+        virtual std::string GetKernelName(Key_t kernelkey) = 0;
+        /** \brief obtain the connection information for the given kernel
+         * \param kernelkey the unique id for the kernel
          * \param hostname (output) string to be filled with the hostname
          * \param servname (output) string to be filled with the service name
          * \throw ShutdownException
          * \throw std::invalid_argument
          */
-        virtual void GetHostConnectionInfo(Key_t hostkey, std::string &hostname, std::string &servname) = 0;
-        /** \brief Signal to the Context that the given host is dead.
-         * \param hostkey id of the host that died
+        virtual void GetKernelConnectionInfo(Key_t kernelkey, std::string &hostname, std::string &servname) = 0;
+        /** \brief Signal to the Context that the given kernel is dead.
+         * \param kernelkey id of the kernel that died
          * \throw std::invalid_argument
          */
-        virtual void SignalHostEnd(Key_t hostkey) = 0;
-        /** \brief Does not return until the given host has started.
-         * \param host the name of the host (the key may not be known yet)
+        virtual void SignalKernelEnd(Key_t kernelkey) = 0;
+        /** \brief Does not return until the given kernel has started.
+         * \param kernel the name of the kernel (the key may not be known yet)
          * \throw ShutdownException
          */
-        virtual Key_t WaitForHostStart(const std::string &host) = 0;
-        /** \brief Signal to the context that the given host has started
-         * \param hostkey the id for the host
+        virtual Key_t WaitForKernelStart(const std::string &kernel) = 0;
+        /** \brief Signal to the context that the given kernel has started
+         * \param kernelkey the id for the kernel
          * \throw ShutdownException
          * \throw std::invalid_argument
          */
-        virtual void SignalHostStart(Key_t hostkey) = 0;
+        virtual void SignalKernelStart(Key_t kernelkey) = 0;
 
-        /** \brief Tell a given host that it needs to create a queue write end.
-         * \param hostkey the id of the host
+        /** \brief Tell a given kernel that it needs to create a queue write end.
+         * \param kernelkey the id of the kernel
          * \param attr the queue attribute
          * \throw ShutdownException
          */
-        virtual void SendCreateWriter(Key_t hostkey, const SimpleQueueAttr &attr) = 0;
-        /** \brief Tell a given host that it needs to create a queue read end.
-         * \param hostkey the id of the host
+        virtual void SendCreateWriter(Key_t kernelkey, const SimpleQueueAttr &attr) = 0;
+        /** \brief Tell a given kernel that it needs to create a queue read end.
+         * \param kernelkey the id of the kernel
          * \param attr the queue attribute
          * \throw ShutdownException
          */
-        virtual void SendCreateReader(Key_t hostkey, const SimpleQueueAttr &attr) = 0;
-        /** \brief Tell a given host that it needs to create a queue.
-         * \param hostkey the id of the host
+        virtual void SendCreateReader(Key_t kernelkey, const SimpleQueueAttr &attr) = 0;
+        /** \brief Tell a given kernel that it needs to create a queue.
+         * \param kernelkey the id of the kernel
          * \param attr the queue attribute
          * \throw ShutdownException
          */
-        virtual void SendCreateQueue(Key_t hostkey, const SimpleQueueAttr &attr) = 0;
-        /** \brief Tell a given host that it needs to create a node.
-         * \param hostkey the id of the host
+        virtual void SendCreateQueue(Key_t kernelkey, const SimpleQueueAttr &attr) = 0;
+        /** \brief Tell a given kernel that it needs to create a node.
+         * \param kernelkey the id of the kernel
          * \param attr the node attribute
          * \throw ShutdownException
          */
-        virtual void SendCreateNode(Key_t hostkey, const NodeAttr &attr) = 0;
+        virtual void SendCreateNode(Key_t kernelkey, const NodeAttr &attr) = 0;
 
         /** \brief Tell the context to allocate a new node key and data structure for
-         * a node with nodename which is on hostkey.
-         * \param hostkey the id of the kernel that the node will run on
+         * a node with nodename which is on kernelkey.
+         * \param kernelkey the id of the kernel that the node will run on
          * \param nodename the name of the node
          * \throw ShutdownException
          * \throw std::invalid_argument
          */
-        virtual Key_t CreateNodeKey(Key_t hostkey, const std::string &nodename) = 0;
+        virtual Key_t CreateNodeKey(Key_t kernelkey, const std::string &nodename) = 0;
         /** \return the unique key associated with the given node name.
          * \throw ShutdownException
          * \throw std::invalid_argument
@@ -157,11 +157,11 @@ namespace CPN {
          */
         virtual std::string GetNodeName(Key_t nodekey) = 0;
         /** \param nodekey the unique key for the node
-         * \return the key for the host the node is running on
+         * \return the key for the kernel the node is running on
          * \throw ShutdownException
          * \throw std::invalid_argument
          */
-        virtual Key_t GetNodeHost(Key_t nodekey) = 0;
+        virtual Key_t GetNodeKernel(Key_t nodekey) = 0;
         /** \brief Called by the node startup routine to indicate that the node has started.
          * \param nodekey the unique key for the node
          * \throw ShutdownException
@@ -208,11 +208,11 @@ namespace CPN {
          */
         virtual Key_t GetReaderNode(Key_t portkey) = 0;
         /** \param portkey the unique id for the port
-         * \return the key for the host this port is on
+         * \return the key for the kernel this port is on
          * \throw ShutdownException
          * \throw std::invalid_argument
          */
-        virtual Key_t GetReaderHost(Key_t portkey) = 0;
+        virtual Key_t GetReaderKernel(Key_t portkey) = 0;
         /** \param portkey the unique id for the port
          * \return the name of the port
          * \throw ShutdownException
@@ -224,8 +224,8 @@ namespace CPN {
         virtual Key_t GetCreateWriterKey(Key_t nodekey, const std::string &portname) = 0;
         /** \see GetReaderNode */
         virtual Key_t GetWriterNode(Key_t portkey) = 0;
-        /** \see GetReaderHost */
-        virtual Key_t GetWriterHost(Key_t portkey) = 0;
+        /** \see GetReaderKernel */
+        virtual Key_t GetWriterKernel(Key_t portkey) = 0;
         /** \see GetReaderName */
         virtual std::string GetWriterName(Key_t portkey) = 0;
 

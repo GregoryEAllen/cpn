@@ -58,9 +58,9 @@ namespace CPN {
     template<typename Function>
     Key_t Kernel::CreateFunctionNode(const std::string &nodename, Function func)
     {
-        Key_t nodekey = context->CreateNodeKey(hostkey, nodename);
+        Key_t nodekey = context->CreateNodeKey(kernelkey, nodename);
         NodeAttr attr(nodename, "FunctionNode0");
-        attr.SetKey(nodekey).SetHostKey(hostkey);
+        attr.SetKey(nodekey).SetKernelKey(kernelkey);
         Sync::AutoReentrantLock arlock(nodelock);
         shared_ptr<NodeBase> node;
         node.reset(new FunctionNode0<Function>(*this, attr, func));
@@ -85,9 +85,9 @@ namespace CPN {
     template<typename Function, typename Argument1>
     Key_t Kernel::CreateFunctionNode(const std::string &nodename, Function func, Argument1 arg1)
     {
-        Key_t nodekey = context->CreateNodeKey(hostkey, nodename);
+        Key_t nodekey = context->CreateNodeKey(kernelkey, nodename);
         NodeAttr attr(nodename, "FunctionNode1");
-        attr.SetKey(nodekey).SetHostKey(hostkey);
+        attr.SetKey(nodekey).SetKernelKey(kernelkey);
         Sync::AutoReentrantLock arlock(nodelock);
         shared_ptr<NodeBase> node;
         node.reset(new FunctionNode1<Function, Argument1>(*this, attr, func, arg1));
@@ -113,9 +113,9 @@ namespace CPN {
     template<typename Function, typename Argument1, typename Argument2>
     Key_t Kernel::CreateFunctionNode(const std::string &nodename, Function func, Argument1 arg1, Argument2 arg2)
     {
-        Key_t nodekey = context->CreateNodeKey(hostkey, nodename);
+        Key_t nodekey = context->CreateNodeKey(kernelkey, nodename);
         NodeAttr attr(nodename, "FunctionNode2");
-        attr.SetKey(nodekey).SetHostKey(hostkey);
+        attr.SetKey(nodekey).SetKernelKey(kernelkey);
         Sync::AutoReentrantLock arlock(nodelock);
         shared_ptr<NodeBase> node;
         node.reset(new FunctionNode2<Function, Argument1, Argument2>(*this, attr, func, arg1, arg2));
@@ -142,9 +142,9 @@ namespace CPN {
     template<typename Function, typename Argument1, typename Argument2, typename Argument3>
     Key_t Kernel::CreateFunctionNode(const std::string &nodename, Function func, Argument1 arg1, Argument2 arg2, Argument3 arg3)
     {
-        Key_t nodekey = context->CreateNodeKey(hostkey, nodename);
+        Key_t nodekey = context->CreateNodeKey(kernelkey, nodename);
         NodeAttr attr(nodename, "FunctionNode3");
-        attr.SetKey(nodekey).SetHostKey(hostkey);
+        attr.SetKey(nodekey).SetKernelKey(kernelkey);
         Sync::AutoReentrantLock arlock(nodelock);
         shared_ptr<NodeBase> node;
         node.reset(new FunctionNode3<Function, Argument1, Argument2, Argument3>(*this, attr, func, arg1, arg2, arg3));
@@ -172,9 +172,9 @@ namespace CPN {
     template<typename Function, typename Argument1, typename Argument2, typename Argument3, typename Argument4>
     Key_t Kernel::CreateFunctionNode(const std::string &nodename, Function func, Argument1 arg1, Argument2 arg2, Argument3 arg3, Argument4 arg4)
     {
-        Key_t nodekey = context->CreateNodeKey(hostkey, nodename);
+        Key_t nodekey = context->CreateNodeKey(kernelkey, nodename);
         NodeAttr attr(nodename, "FunctionNode4");
-        attr.SetKey(nodekey).SetHostKey(hostkey);
+        attr.SetKey(nodekey).SetKernelKey(kernelkey);
         Sync::AutoReentrantLock arlock(nodelock);
         shared_ptr<NodeBase> node;
         node.reset(new FunctionNode4<Function, Argument1, Argument2, Argument3, Argument4>(*this, attr, func, arg1, arg2, arg3, arg4));
@@ -203,9 +203,9 @@ namespace CPN {
     template<typename Function, typename Argument1, typename Argument2, typename Argument3, typename Argument4, typename Argument5>
     Key_t Kernel::CreateFunctionNode(const std::string &nodename, Function func, Argument1 arg1, Argument2 arg2, Argument3 arg3, Argument4 arg4, Argument5 arg5)
     {
-        Key_t nodekey = context->CreateNodeKey(hostkey, nodename);
+        Key_t nodekey = context->CreateNodeKey(kernelkey, nodename);
         NodeAttr attr(nodename, "FunctionNode5");
-        attr.SetKey(nodekey).SetHostKey(hostkey);
+        attr.SetKey(nodekey).SetKernelKey(kernelkey);
         Sync::AutoReentrantLock arlock(nodelock);
         shared_ptr<NodeBase> node;
         node.reset(new FunctionNode5<Function, Argument1, Argument2, Argument3, Argument4, Argument5>(*this, attr, func, arg1, arg2, arg3, arg4, arg5));
@@ -235,9 +235,9 @@ namespace CPN {
     template<typename Function, typename Argument1, typename Argument2, typename Argument3, typename Argument4, typename Argument5, typename Argument6>
     Key_t Kernel::CreateFunctionNode(const std::string &nodename, Function func, Argument1 arg1, Argument2 arg2, Argument3 arg3, Argument4 arg4, Argument5 arg5, Argument6 arg6)
     {
-        Key_t nodekey = context->CreateNodeKey(hostkey, nodename);
+        Key_t nodekey = context->CreateNodeKey(kernelkey, nodename);
         NodeAttr attr(nodename, "FunctionNode6");
-        attr.SetKey(nodekey).SetHostKey(hostkey);
+        attr.SetKey(nodekey).SetKernelKey(kernelkey);
         Sync::AutoReentrantLock arlock(nodelock);
         shared_ptr<NodeBase> node;
         node.reset(new FunctionNode6<Function, Argument1, Argument2, Argument3, Argument4, Argument5, Argument6>(*this, attr, func, arg1, arg2, arg3, arg4, arg5, arg6));
@@ -268,9 +268,9 @@ namespace CPN {
     template<typename Function, typename Argument1, typename Argument2, typename Argument3, typename Argument4, typename Argument5, typename Argument6, typename Argument7>
     Key_t Kernel::CreateFunctionNode(const std::string &nodename, Function func, Argument1 arg1, Argument2 arg2, Argument3 arg3, Argument4 arg4, Argument5 arg5, Argument6 arg6, Argument7 arg7)
     {
-        Key_t nodekey = context->CreateNodeKey(hostkey, nodename);
+        Key_t nodekey = context->CreateNodeKey(kernelkey, nodename);
         NodeAttr attr(nodename, "FunctionNode7");
-        attr.SetKey(nodekey).SetHostKey(hostkey);
+        attr.SetKey(nodekey).SetKernelKey(kernelkey);
         Sync::AutoReentrantLock arlock(nodelock);
         shared_ptr<NodeBase> node;
         node.reset(new FunctionNode7<Function, Argument1, Argument2, Argument3, Argument4, Argument5, Argument6, Argument7>(*this, attr, func, arg1, arg2, arg3, arg4, arg5, arg6, arg7));
@@ -302,9 +302,9 @@ namespace CPN {
     template<typename Function, typename Argument1, typename Argument2, typename Argument3, typename Argument4, typename Argument5, typename Argument6, typename Argument7, typename Argument8>
     Key_t Kernel::CreateFunctionNode(const std::string &nodename, Function func, Argument1 arg1, Argument2 arg2, Argument3 arg3, Argument4 arg4, Argument5 arg5, Argument6 arg6, Argument7 arg7, Argument8 arg8)
     {
-        Key_t nodekey = context->CreateNodeKey(hostkey, nodename);
+        Key_t nodekey = context->CreateNodeKey(kernelkey, nodename);
         NodeAttr attr(nodename, "FunctionNode8");
-        attr.SetKey(nodekey).SetHostKey(hostkey);
+        attr.SetKey(nodekey).SetKernelKey(kernelkey);
         Sync::AutoReentrantLock arlock(nodelock);
         shared_ptr<NodeBase> node;
         node.reset(new FunctionNode8<Function, Argument1, Argument2, Argument3, Argument4, Argument5, Argument6, Argument7, Argument8>(*this, attr, func, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8));
@@ -337,9 +337,9 @@ namespace CPN {
     template<typename Function, typename Argument1, typename Argument2, typename Argument3, typename Argument4, typename Argument5, typename Argument6, typename Argument7, typename Argument8, typename Argument9>
     Key_t Kernel::CreateFunctionNode(const std::string &nodename, Function func, Argument1 arg1, Argument2 arg2, Argument3 arg3, Argument4 arg4, Argument5 arg5, Argument6 arg6, Argument7 arg7, Argument8 arg8, Argument9 arg9)
     {
-        Key_t nodekey = context->CreateNodeKey(hostkey, nodename);
+        Key_t nodekey = context->CreateNodeKey(kernelkey, nodename);
         NodeAttr attr(nodename, "FunctionNode9");
-        attr.SetKey(nodekey).SetHostKey(hostkey);
+        attr.SetKey(nodekey).SetKernelKey(kernelkey);
         Sync::AutoReentrantLock arlock(nodelock);
         shared_ptr<NodeBase> node;
         node.reset(new FunctionNode9<Function, Argument1, Argument2, Argument3, Argument4, Argument5, Argument6, Argument7, Argument8, Argument9>(*this, attr, func, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9));

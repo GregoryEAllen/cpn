@@ -42,8 +42,8 @@ namespace CPN {
     public:
         typedef std::map< std::string, Key_t > NameMap;
 
-        /** Struct to hold host information. */
-        struct HostInfo {
+        /** Struct to hold kernel information. */
+        struct KernelInfo {
             std::string name;
             std::string hostname;
             std::string servname;
@@ -56,7 +56,7 @@ namespace CPN {
         /** Struct to hold the node information */
         struct NodeInfo {
             std::string name;
-            Key_t hostkey;
+            Key_t kernelkey;
             bool started;
             NameMap readers;
             NameMap writers;
@@ -72,7 +72,7 @@ namespace CPN {
             bool dead;
         };
 
-        typedef std::map< Key_t, shared_ptr<HostInfo> > HostMap;
+        typedef std::map< Key_t, shared_ptr<KernelInfo> > KernelMap;
         typedef std::map< Key_t, shared_ptr<NodeInfo> > NodeMap;
         typedef std::map< Key_t, shared_ptr<PortInfo> > PortMap;
 
@@ -83,25 +83,25 @@ namespace CPN {
         virtual int LogLevel() const;
         virtual int LogLevel(int level);
 
-        virtual Key_t SetupHost(const std::string &name, const std::string &hostname,
+        virtual Key_t SetupKernel(const std::string &name, const std::string &hostname,
                 const std::string &servname, KernelBase *kernel);
-        virtual Key_t SetupHost(const std::string &name, KernelBase *kernel);
-        virtual Key_t GetHostKey(const std::string &host);
-        virtual std::string GetHostName(Key_t hostkey);
-        virtual void GetHostConnectionInfo(Key_t hostkey, std::string &hostname, std::string &servname);
-        virtual void SignalHostEnd(Key_t hostkey);
-        virtual Key_t WaitForHostStart(const std::string &host);
-        virtual void SignalHostStart(Key_t hostkey);
+        virtual Key_t SetupKernel(const std::string &name, KernelBase *kernel);
+        virtual Key_t GetKernelKey(const std::string &kernel);
+        virtual std::string GetKernelName(Key_t kernelkey);
+        virtual void GetKernelConnectionInfo(Key_t kernelkey, std::string &hostname, std::string &servname);
+        virtual void SignalKernelEnd(Key_t kernelkey);
+        virtual Key_t WaitForKernelStart(const std::string &kernel);
+        virtual void SignalKernelStart(Key_t kernelkey);
 
-        virtual void SendCreateWriter(Key_t hostkey, const SimpleQueueAttr &attr);
-        virtual void SendCreateReader(Key_t hostkey, const SimpleQueueAttr &attr);
-        virtual void SendCreateQueue(Key_t hostkey, const SimpleQueueAttr &attr);
-        virtual void SendCreateNode(Key_t hostkey, const NodeAttr &attr);
+        virtual void SendCreateWriter(Key_t kernelkey, const SimpleQueueAttr &attr);
+        virtual void SendCreateReader(Key_t kernelkey, const SimpleQueueAttr &attr);
+        virtual void SendCreateQueue(Key_t kernelkey, const SimpleQueueAttr &attr);
+        virtual void SendCreateNode(Key_t kernelkey, const NodeAttr &attr);
 
-        virtual Key_t CreateNodeKey(Key_t hostkey, const std::string &nodename);
+        virtual Key_t CreateNodeKey(Key_t kernelkey, const std::string &nodename);
         virtual Key_t GetNodeKey(const std::string &nodename);
         virtual std::string GetNodeName(Key_t nodekey);
-        virtual Key_t GetNodeHost(Key_t nodekey);
+        virtual Key_t GetNodeKernel(Key_t nodekey);
         virtual void SignalNodeStart(Key_t nodekey);
         virtual void SignalNodeEnd(Key_t nodekey);
         virtual Key_t WaitForNodeStart(const std::string &nodename);
@@ -110,12 +110,12 @@ namespace CPN {
 
         virtual Key_t GetCreateReaderKey(Key_t nodekey, const std::string &portname);
         virtual Key_t GetReaderNode(Key_t portkey);
-        virtual Key_t GetReaderHost(Key_t portkey);
+        virtual Key_t GetReaderKernel(Key_t portkey);
         virtual std::string GetReaderName(Key_t portkey);
 
         virtual Key_t GetCreateWriterKey(Key_t nodekey, const std::string &portname);
         virtual Key_t GetWriterNode(Key_t portkey);
-        virtual Key_t GetWriterHost(Key_t portkey);
+        virtual Key_t GetWriterKernel(Key_t portkey);
         virtual std::string GetWriterName(Key_t portkey);
 
         virtual void ConnectEndpoints(Key_t writerkey, Key_t readerkey, const std::string &qname);
@@ -131,10 +131,10 @@ namespace CPN {
         int loglevel;
         mutable PthreadMutex lock;
         PthreadCondition nodelivedead;
-        PthreadCondition hostlivedead;
-        NameMap hostnames;
+        PthreadCondition kernellivedead;
+        NameMap kernelnames;
         NameMap nodenames;
-        HostMap hostmap;
+        KernelMap kernelmap;
         NodeMap nodemap;
         PortMap readports;
         PortMap writeports;

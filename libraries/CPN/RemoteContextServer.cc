@@ -54,17 +54,17 @@ namespace CPN {
         }
         RCTXMT_t type = msg["type"].AsNumber<RCTXMT_t>();
         switch (type) {
-        case RCTXMT_SETUP_HOST:
-            SetupHost(sender, msg);
+        case RCTXMT_SETUP_KERNEL:
+            SetupKernel(sender, msg);
             break;
-        case RCTXMT_SIGNAL_HOST_START:
-            SignalHostStart(msg);
+        case RCTXMT_SIGNAL_KERNEL_START:
+            SignalKernelStart(msg);
             break;
-        case RCTXMT_SIGNAL_HOST_END:
-            SignalHostEnd(msg);
+        case RCTXMT_SIGNAL_KERNEL_END:
+            SignalKernelEnd(msg);
             break;
-        case RCTXMT_GET_HOST_INFO:
-            GetHostInfo(sender, msg);
+        case RCTXMT_GET_KERNEL_INFO:
+            GetKernelInfo(sender, msg);
             break;
         case RCTXMT_CREATE_WRITER:
         case RCTXMT_CREATE_READER:
@@ -120,76 +120,76 @@ namespace CPN {
         shutdown = true;
     }
 
-    void RemoteContextServer::SetupHost(const std::string &sender, const Variant &msg) {
+    void RemoteContextServer::SetupKernel(const std::string &sender, const Variant &msg) {
         std::string name = msg["name"].AsString();
         Variant reply(Variant::ObjectType);
         reply["msgid"] = msg["msgid"];
         reply["msgtype"] = "reply";
-        if (hostmap.find(name) != hostmap.end()) {
+        if (kernelmap.find(name) != kernelmap.end()) {
             reply["success"] = false;
             return;
         } else {
-            Variant hostinfo(Variant::ObjectType);
-            Key_t hostkey = NewKey();
-            hostinfo["key"] = hostkey;
-            hostinfo["name"] = name;
-            hostinfo["hostname"] = msg["hostname"];
-            hostinfo["servname"] = msg["servname"];
-            hostinfo["live"] = false;
-            hostinfo["type"] = "hostinfo";
-            hostinfo["client"] = sender;
-            datamap.insert(std::make_pair(hostkey, hostinfo));
-            hostmap.insert(std::make_pair(name, hostkey));
-            dbprintf(2, "Host %s created\n", name.c_str());
+            Variant kernelinfo(Variant::ObjectType);
+            Key_t kernelkey = NewKey();
+            kernelinfo["key"] = kernelkey;
+            kernelinfo["name"] = name;
+            kernelinfo["hostname"] = msg["hostname"];
+            kernelinfo["servname"] = msg["servname"];
+            kernelinfo["live"] = false;
+            kernelinfo["type"] = "kernelinfo";
+            kernelinfo["client"] = sender;
+            datamap.insert(std::make_pair(kernelkey, kernelinfo));
+            kernelmap.insert(std::make_pair(name, kernelkey));
+            dbprintf(2, "Kernel %s created\n", name.c_str());
             reply["success"] = true;
-            reply["hostinfo"] = hostinfo.Copy();
+            reply["kernelinfo"] = kernelinfo.Copy();
         }
         SendMessage(sender, reply);
     }
 
-    void RemoteContextServer::SignalHostStart(const Variant &msg) {
-        Key_t hostkey = msg["key"].AsNumber<Key_t>();
-        Variant hostinfo = datamap[hostkey];
-        ASSERT(hostinfo["type"].AsString() == "hostinfo");
-        hostinfo["live"] = true;
-        dbprintf(2, "Host %s started\n", hostinfo["name"].AsString().c_str());
+    void RemoteContextServer::SignalKernelStart(const Variant &msg) {
+        Key_t kernelkey = msg["key"].AsNumber<Key_t>();
+        Variant kernelinfo = datamap[kernelkey];
+        ASSERT(kernelinfo["type"].AsString() == "kernelinfo");
+        kernelinfo["live"] = true;
+        dbprintf(2, "Kernel %s started\n", kernelinfo["name"].AsString().c_str());
         Variant notice = NewBroadcastMessage();
-        notice["hostinfo"] = hostinfo.Copy();
+        notice["kernelinfo"] = kernelinfo.Copy();
         BroadcastMessage(notice);
     }
 
-    void RemoteContextServer::SignalHostEnd(const Variant &msg) {
-        Key_t hostkey = msg["key"].AsNumber<Key_t>();
-        Variant hostinfo = datamap[hostkey];
-        ASSERT(hostinfo["type"].AsString() == "hostinfo");
-        hostinfo["live"] = false;
-        dbprintf(2, "Host %s stopped\n", hostinfo["name"].AsString().c_str());
+    void RemoteContextServer::SignalKernelEnd(const Variant &msg) {
+        Key_t kernelkey = msg["key"].AsNumber<Key_t>();
+        Variant kernelinfo = datamap[kernelkey];
+        ASSERT(kernelinfo["type"].AsString() == "kernelinfo");
+        kernelinfo["live"] = false;
+        dbprintf(2, "Kernel %s stopped\n", kernelinfo["name"].AsString().c_str());
         Variant notice = NewBroadcastMessage();
-        notice["hostinfo"] = hostinfo.Copy();
+        notice["kernelinfo"] = kernelinfo.Copy();
         BroadcastMessage(notice);
     }
 
-    void RemoteContextServer::GetHostInfo(const std::string &sender, const Variant &msg) {
-        Key_t hostkey;
+    void RemoteContextServer::GetKernelInfo(const std::string &sender, const Variant &msg) {
+        Key_t kernelkey;
         Variant reply(Variant::ObjectType);
         reply["msgtype"] = "reply";
         reply["msgid"] = msg["msgid"];
         reply["success"] = false;
         if (msg["name"].IsString()) {
-            NameKeyMap::iterator entry = hostmap.find(msg["name"].AsString());
-            if (entry == hostmap.end()) {
+            NameKeyMap::iterator entry = kernelmap.find(msg["name"].AsString());
+            if (entry == kernelmap.end()) {
                 SendMessage(sender, reply);
                 return;
             }
-            hostkey = entry->second;
+            kernelkey = entry->second;
         } else {
-            hostkey = msg["key"].AsNumber<Key_t>();
+            kernelkey = msg["key"].AsNumber<Key_t>();
         }
-        DataMap::iterator entry = datamap.find(hostkey);
+        DataMap::iterator entry = datamap.find(kernelkey);
         if (entry != datamap.end()) {
-            ASSERT(entry->second["type"].AsString() == "hostinfo");
+            ASSERT(entry->second["type"].AsString() == "kernelinfo");
             reply["success"] = true;
-            reply["hostinfo"] = entry->second.Copy();
+            reply["kernelinfo"] = entry->second.Copy();
         }
         SendMessage(sender, reply);
     }
@@ -206,7 +206,7 @@ namespace CPN {
             Variant nodeinfo(Variant::ObjectType);
             nodeinfo["name"] = nodename;
             nodeinfo["key"] = nodekey;
-            nodeinfo["hostkey"] = msg["hostkey"];
+            nodeinfo["kernelkey"] = msg["kernelkey"];
             nodeinfo["started"] = false;
             nodeinfo["dead"] = false;
             nodeinfo["type"] = "nodeinfo";
@@ -301,7 +301,7 @@ namespace CPN {
                 epinfo["key"] = epkey;
                 epinfo["name"] = name;
                 epinfo["nodekey"] = nodekey;
-                epinfo["hostkey"] = nodeinfo["hostkey"];
+                epinfo["kernelkey"] = nodeinfo["kernelkey"];
                 epinfo["live"] = true;
                 epinfo["type"] = "endpointinfo";
                 datamap[epkey] = epinfo;
@@ -344,9 +344,9 @@ namespace CPN {
     }
 
     void RemoteContextServer::RouteKernelMessage(const Variant &msg) {
-        Key_t hostkey = msg["hostkey"].AsNumber<Key_t>();
-        Variant hostinfo = datamap[hostkey];
-        SendMessage(hostinfo["client"].AsString(), msg);
+        Key_t kernelkey = msg["kernelkey"].AsNumber<Key_t>();
+        Variant kernelinfo = datamap[kernelkey];
+        SendMessage(kernelinfo["client"].AsString(), msg);
     }
 
     Variant RemoteContextServer::NewBroadcastMessage() {

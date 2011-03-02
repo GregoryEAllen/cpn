@@ -56,7 +56,7 @@ public:
     void Process();
     void CreateNextFilter(SieveNumber filternum);
 private:
-    std::vector<std::string> hosts;
+    std::vector<std::string> kernels;
 };
 
 CPN_DECLARE_NODE_FACTORY(SieveResultNode, SieveResultNode);
@@ -64,12 +64,12 @@ CPN_DECLARE_NODE_FACTORY(SieveResultNode, SieveResultNode);
 SieveResultNode::SieveResultNode(CPN::Kernel& ker, const CPN::NodeAttr& attr)
     : CPN::NodeBase(ker, attr)
 {
-    if (HasParam("hosts")) {
-        std::istringstream iss(GetParam("hosts"));
+    if (HasParam("kernels")) {
+        std::istringstream iss(GetParam("kernels"));
         iss >> std::skipws;
         std::string h;
         while (iss >> h) {
-            hosts.push_back(h);
+            kernels.push_back(h);
         }
     }
 }
@@ -106,8 +106,8 @@ void SieveResultNode::Process() {
 void SieveResultNode::CreateNextFilter(SieveNumber filternum) {
     std::string nodename = ToString(FILTER_FORMAT, filternum); 
     CPN::NodeAttr nattr(nodename, "SieveFilterNode");
-    if (!hosts.empty()) {
-        nattr.SetHost(hosts[filternum%hosts.size()]);
+    if (!kernels.empty()) {
+        nattr.SetKernel(kernels[filternum%kernels.size()]);
     }
     kernel.CreateNode(nattr);
     // A queue between us and next
@@ -272,7 +272,7 @@ void SieveTest::RunTwoKernelTest() {
 
     nattr.SetName("TheResult");
     nattr.SetTypeName("SieveResultNode");
-    nattr.SetParam("hosts", "one two");
+    nattr.SetParam("kernels", "one two");
     kone.CreateNode(nattr);
 
     CPN::QueueAttr qattr(100, 100);

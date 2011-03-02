@@ -11,25 +11,25 @@ public:
     virtual int LogLevel(int level) { return level; }
     virtual void Log(int level, const std::string &msg) {}
 
-    virtual CPN::Key_t SetupHost(const std::string &name, const std::string &hostname,
+    virtual CPN::Key_t SetupKernel(const std::string &name, const std::string &hostname,
             const std::string &servname, CPN::KernelBase *) { return 0; }
-    virtual CPN::Key_t SetupHost(const std::string &name, CPN::KernelBase*) { return 0; }
-    virtual CPN::Key_t GetHostKey(const std::string &host) { return 0; }
-    virtual std::string GetHostName(CPN::Key_t hostkey) { return blank; }
-    virtual void GetHostConnectionInfo(CPN::Key_t hostkey, std::string &hostname, std::string &servname) { }
-    virtual void SignalHostEnd(CPN::Key_t hostkey) { }
-    virtual CPN::Key_t WaitForHostStart(const std::string &host) { return 0; }
-    virtual void SignalHostStart(CPN::Key_t hostkey) { }
+    virtual CPN::Key_t SetupKernel(const std::string &name, CPN::KernelBase*) { return 0; }
+    virtual CPN::Key_t GetKernelKey(const std::string &kernel) { return 0; }
+    virtual std::string GetKernelName(CPN::Key_t kernelkey) { return blank; }
+    virtual void GetKernelConnectionInfo(CPN::Key_t kernelkey, std::string &hostname, std::string &servname) { }
+    virtual void SignalKernelEnd(CPN::Key_t kernelkey) { }
+    virtual CPN::Key_t WaitForKernelStart(const std::string &kernel) { return 0; }
+    virtual void SignalKernelStart(CPN::Key_t kernelkey) { }
 
-    virtual void SendCreateWriter(CPN::Key_t hostkey, const CPN::SimpleQueueAttr &attr) { }
-    virtual void SendCreateReader(CPN::Key_t hostkey, const CPN::SimpleQueueAttr &attr) { }
-    virtual void SendCreateQueue(CPN::Key_t hostkey, const CPN::SimpleQueueAttr &attr) { }
-    virtual void SendCreateNode(CPN::Key_t hostkey, const CPN::NodeAttr &attr) { }
+    virtual void SendCreateWriter(CPN::Key_t kernelkey, const CPN::SimpleQueueAttr &attr) { }
+    virtual void SendCreateReader(CPN::Key_t kernelkey, const CPN::SimpleQueueAttr &attr) { }
+    virtual void SendCreateQueue(CPN::Key_t kernelkey, const CPN::SimpleQueueAttr &attr) { }
+    virtual void SendCreateNode(CPN::Key_t kernelkey, const CPN::NodeAttr &attr) { }
 
-    virtual CPN::Key_t CreateNodeKey(CPN::Key_t hostkey, const std::string &nodename) { return 0; }
+    virtual CPN::Key_t CreateNodeKey(CPN::Key_t kernelkey, const std::string &nodename) { return 0; }
     virtual CPN::Key_t GetNodeKey(const std::string &nodename) { return 0; }
     virtual std::string GetNodeName(CPN::Key_t nodekey) { return blank; }
-    virtual CPN::Key_t GetNodeHost(CPN::Key_t nodekey) { return 0; }
+    virtual CPN::Key_t GetNodeKernel(CPN::Key_t nodekey) { return 0; }
     virtual void SignalNodeStart(CPN::Key_t nodekey) { }
     virtual void SignalNodeEnd(CPN::Key_t nodekey) { }
 
@@ -43,12 +43,12 @@ public:
 
     virtual CPN::Key_t GetCreateReaderKey(CPN::Key_t nodekey, const std::string &portname) { return 0; }
     virtual CPN::Key_t GetReaderNode(CPN::Key_t portkey) { return 0; }
-    virtual CPN::Key_t GetReaderHost(CPN::Key_t portkey) { return 0; }
+    virtual CPN::Key_t GetReaderKernel(CPN::Key_t portkey) { return 0; }
     virtual std::string GetReaderName(CPN::Key_t portkey) { return blank; }
 
     virtual CPN::Key_t GetCreateWriterKey(CPN::Key_t nodekey, const std::string &portname) { return 0; }
     virtual CPN::Key_t GetWriterNode(CPN::Key_t portkey) { return 0; }
-    virtual CPN::Key_t GetWriterHost(CPN::Key_t portkey) { return 0; }
+    virtual CPN::Key_t GetWriterKernel(CPN::Key_t portkey) { return 0; }
     virtual std::string GetWriterName(CPN::Key_t portkey) { return blank; }
 
     virtual void ConnectEndpoints(CPN::Key_t writerkey, CPN::Key_t readerkey, const std::string &) { }

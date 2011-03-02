@@ -65,13 +65,13 @@ namespace CPN {
         }
     }
 
-    Key_t RemoteContextClient::SetupHost(const std::string &name, const std::string &hostname,
+    Key_t RemoteContextClient::SetupKernel(const std::string &name, const std::string &hostname,
             const std::string &servname, KernelBase *kernel) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
         if (!kernel) { throw std::invalid_argument("Must have non null Kernel."); }
         Variant msg(Variant::ObjectType);
-        msg["type"] = RCTXMT_SETUP_HOST;
+        msg["type"] = RCTXMT_SETUP_KERNEL;
         msg["name"] = name;
         msg["hostname"] = hostname;
         msg["servname"] = servname;
@@ -79,73 +79,73 @@ namespace CPN {
         if (!reply["success"].IsTrue()) {
            throw std::invalid_argument("Cannot create two kernels with the same name");
         }
-        Key_t key = reply["hostinfo"]["key"].AsNumber<Key_t>();
+        Key_t key = reply["kernelinfo"]["key"].AsNumber<Key_t>();
         kernels.insert(std::make_pair(key, kernel));
         return key;
     }
 
-    Key_t RemoteContextClient::GetHostKey(const std::string &host) {
+    Key_t RemoteContextClient::GetKernelKey(const std::string &kernel) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
         Variant msg(Variant::ObjectType);
-        msg["type"] = RCTXMT_GET_HOST_INFO;
-        msg["name"] = host;
+        msg["type"] = RCTXMT_GET_KERNEL_INFO;
+        msg["name"] = kernel;
         Variant reply = RemoteCall(msg);
         if (!reply["success"].IsTrue()) {
-            throw std::invalid_argument("No such host");
+            throw std::invalid_argument("No such kernel");
         }
-        return reply["hostinfo"]["key"].AsNumber<Key_t>();
+        return reply["kernelinfo"]["key"].AsNumber<Key_t>();
     }
 
-    std::string RemoteContextClient::GetHostName(Key_t hostkey) {
+    std::string RemoteContextClient::GetKernelName(Key_t kernelkey) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
         Variant msg(Variant::ObjectType);
-        msg["type"] = RCTXMT_GET_HOST_INFO;
-        msg["key"] = hostkey;
+        msg["type"] = RCTXMT_GET_KERNEL_INFO;
+        msg["key"] = kernelkey;
         Variant reply = RemoteCall(msg);
         if (!reply["success"].IsTrue()) {
-            throw std::invalid_argument("No such host");
+            throw std::invalid_argument("No such kernel");
         }
-        return reply["hostinfo"]["name"].AsString();
+        return reply["kernelinfo"]["name"].AsString();
     }
 
-    void RemoteContextClient::GetHostConnectionInfo(Key_t hostkey, std::string &hostname, std::string &servname) {
+    void RemoteContextClient::GetKernelConnectionInfo(Key_t kernelkey, std::string &hostname, std::string &servname) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
         Variant msg(Variant::ObjectType);
-        msg["type"] = RCTXMT_GET_HOST_INFO;
-        msg["key"] = hostkey;
+        msg["type"] = RCTXMT_GET_KERNEL_INFO;
+        msg["key"] = kernelkey;
         Variant reply = RemoteCall(msg);
         if (!reply["success"].IsTrue()) {
-            throw std::invalid_argument("No such host");
+            throw std::invalid_argument("No such kernel");
         }
-        Variant hostinfo = reply["hostinfo"];
-        hostname = hostinfo["hostname"].AsString();
-        servname = hostinfo["servname"].AsString();
+        Variant kernelinfo = reply["kernelinfo"];
+        hostname = kernelinfo["hostname"].AsString();
+        servname = kernelinfo["servname"].AsString();
     }
 
-    void RemoteContextClient::SignalHostEnd(Key_t hostkey) {
+    void RemoteContextClient::SignalKernelEnd(Key_t kernelkey) {
         PthreadMutexProtected plock(lock);
         Variant msg(Variant::ObjectType);
-        msg["type"] = RCTXMT_SIGNAL_HOST_END;
-        msg["key"] = hostkey;
+        msg["type"] = RCTXMT_SIGNAL_KERNEL_END;
+        msg["key"] = kernelkey;
         SendMessage(msg);
-        kernels.erase(hostkey);
+        kernels.erase(kernelkey);
     }
 
-    Key_t RemoteContextClient::WaitForHostStart(const std::string &host) {
+    Key_t RemoteContextClient::WaitForKernelStart(const std::string &kernel) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
         GenericWaiterPtr genwait = NewGenericWaiter();
         Variant msg(Variant::ObjectType);
-        msg["type"] = RCTXMT_GET_HOST_INFO;
-        msg["name"] = host;
+        msg["type"] = RCTXMT_GET_KERNEL_INFO;
+        msg["name"] = kernel;
         Variant reply = RemoteCall(msg);
         if (reply["success"].IsTrue()) {
-            Variant hostinfo = reply["hostinfo"];
-            if (hostinfo["live"].IsTrue()) {
-                return hostinfo["key"].AsNumber<Key_t>();
+            Variant kernelinfo = reply["kernelinfo"];
+            if (kernelinfo["live"].IsTrue()) {
+                return kernelinfo["key"].AsNumber<Key_t>();
             }
         }
         while (true) {
@@ -155,53 +155,53 @@ namespace CPN {
             } else {
                 Variant msg = genwait->messages.front();
                 genwait->messages.pop_front();
-                if (msg["hostinfo"].IsObject()) {
-                    Variant hostinfo = msg["hostinfo"];
-                    if (hostinfo["name"].AsString() == host && hostinfo["live"].IsTrue()) {
-                        return hostinfo["key"].AsNumber<Key_t>();
+                if (msg["kernelinfo"].IsObject()) {
+                    Variant kernelinfo = msg["kernelinfo"];
+                    if (kernelinfo["name"].AsString() == kernel && kernelinfo["live"].IsTrue()) {
+                        return kernelinfo["key"].AsNumber<Key_t>();
                     }
                 }
             }
         }
     }
 
-    void RemoteContextClient::SignalHostStart(Key_t hostkey) {
+    void RemoteContextClient::SignalKernelStart(Key_t kernelkey) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
         Variant msg(Variant::ObjectType);
-        msg["key"] = hostkey;
-        msg["type"] = RCTXMT_SIGNAL_HOST_START;
+        msg["key"] = kernelkey;
+        msg["type"] = RCTXMT_SIGNAL_KERNEL_START;
         SendMessage(msg);
     }
 
-    void RemoteContextClient::SendCreateWriter(Key_t hostkey, const SimpleQueueAttr &attr) {
+    void RemoteContextClient::SendCreateWriter(Key_t kernelkey, const SimpleQueueAttr &attr) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
-        SendQueueMsg(hostkey, RCTXMT_CREATE_WRITER, attr);
+        SendQueueMsg(kernelkey, RCTXMT_CREATE_WRITER, attr);
     }
 
-    void RemoteContextClient::SendCreateReader(Key_t hostkey, const SimpleQueueAttr &attr) {
+    void RemoteContextClient::SendCreateReader(Key_t kernelkey, const SimpleQueueAttr &attr) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
-        SendQueueMsg(hostkey, RCTXMT_CREATE_READER, attr);
+        SendQueueMsg(kernelkey, RCTXMT_CREATE_READER, attr);
     }
 
-    void RemoteContextClient::SendCreateQueue(Key_t hostkey, const SimpleQueueAttr &attr) {
+    void RemoteContextClient::SendCreateQueue(Key_t kernelkey, const SimpleQueueAttr &attr) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
-        SendQueueMsg(hostkey, RCTXMT_CREATE_QUEUE, attr);
+        SendQueueMsg(kernelkey, RCTXMT_CREATE_QUEUE, attr);
     }
 
-    void RemoteContextClient::SendCreateNode(Key_t hostkey, const NodeAttr &attr) {
+    void RemoteContextClient::SendCreateNode(Key_t kernelkey, const NodeAttr &attr) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
         Variant msg(Variant::ObjectType);
         msg["msgtype"] = "kernel";
         msg["type"] = RCTXMT_CREATE_NODE;
-        msg["hostkey"] = hostkey;
+        msg["kernelkey"] = kernelkey;
         Variant nodeattr;
-        nodeattr["hostkey"] = hostkey;
-        nodeattr["host"] = attr.GetHost();
+        nodeattr["kernelkey"] = kernelkey;
+        nodeattr["kernel"] = attr.GetKernel();
         nodeattr["name"] = attr.GetName();
         nodeattr["nodetype"] = attr.GetTypeName();
         const std::map<std::string, std::string> &params = attr.GetParams();
@@ -216,7 +216,7 @@ namespace CPN {
 
     NodeAttr MsgToNodeAttr(const Variant &msg) {
         NodeAttr attr(msg["name"].AsString(), msg["nodetype"].AsString());
-        attr.SetHost(msg["host"].AsString());
+        attr.SetKernel(msg["kernel"].AsString());
         attr.SetKey(msg["key"].AsNumber<Key_t>());
         if (msg["param"].IsObject()) {
             for (Variant::ConstMapIterator i = msg["param"].MapBegin(), e = msg["param"].MapEnd();
@@ -228,11 +228,11 @@ namespace CPN {
         return attr;
     }
 
-    void RemoteContextClient::SendQueueMsg(Key_t hostkey, RCTXMT_t msgtype, const SimpleQueueAttr &attr) {
+    void RemoteContextClient::SendQueueMsg(Key_t kernelkey, RCTXMT_t msgtype, const SimpleQueueAttr &attr) {
         Variant msg(Variant::ObjectType);
         msg["msgtype"] = "kernel";
         msg["type"] = msgtype;
-        msg["hostkey"] = hostkey;
+        msg["kernelkey"] = kernelkey;
         Variant queueattr;
         queueattr["queuehint"] = attr.GetHint();
         queueattr["datatype"] = attr.GetDatatype();
@@ -263,12 +263,12 @@ namespace CPN {
         return attr;
     }
 
-    Key_t RemoteContextClient::CreateNodeKey(Key_t hostkey, const std::string &nodename) {
+    Key_t RemoteContextClient::CreateNodeKey(Key_t kernelkey, const std::string &nodename) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
         Variant msg(Variant::ObjectType);
         msg["type"] = RCTXMT_CREATE_NODE_KEY;
-        msg["hostkey"] = hostkey;
+        msg["kernelkey"] = kernelkey;
         msg["name"] = nodename;
         Variant reply = RemoteCall(msg);
         if (!(reply["success"].IsTrue())) {
@@ -421,7 +421,7 @@ namespace CPN {
         }
     }
 
-    Key_t RemoteContextClient::GetNodeHost(Key_t nodekey) {
+    Key_t RemoteContextClient::GetNodeKernel(Key_t nodekey) {
         PthreadMutexProtected plock(lock);
         InternalCheckTerminated();
         Variant msg(Variant::ObjectType);
@@ -431,7 +431,7 @@ namespace CPN {
         if (!(reply["success"].IsTrue())) {
             throw std::invalid_argument("No such node");
         }
-        return reply["nodeinfo"]["hostkey"].AsNumber<Key_t>();
+        return reply["nodeinfo"]["kernelkey"].AsNumber<Key_t>();
     }
 
 
@@ -446,10 +446,10 @@ namespace CPN {
         return info["nodekey"].AsNumber<Key_t>();
     }
 
-    Key_t RemoteContextClient::GetReaderHost(Key_t portkey) {
+    Key_t RemoteContextClient::GetReaderKernel(Key_t portkey) {
         PthreadMutexProtected plock(lock);
         Variant info = GetEndpointInfo(RCTXMT_GET_READER_INFO, portkey);
-        return info["hostkey"].AsNumber<Key_t>();
+        return info["kernelkey"].AsNumber<Key_t>();
     }
 
     std::string RemoteContextClient::GetReaderName(Key_t portkey) {
@@ -469,10 +469,10 @@ namespace CPN {
         return info["nodekey"].AsNumber<Key_t>();
     }
 
-    Key_t RemoteContextClient::GetWriterHost(Key_t portkey) {
+    Key_t RemoteContextClient::GetWriterKernel(Key_t portkey) {
         PthreadMutexProtected plock(lock);
         Variant info = GetEndpointInfo(RCTXMT_GET_WRITER_INFO, portkey);
-        return info["hostkey"].AsNumber<Key_t>();
+        return info["kernelkey"].AsNumber<Key_t>();
     }
 
     std::string RemoteContextClient::GetWriterName(Key_t portkey) {
@@ -613,8 +613,8 @@ namespace CPN {
                 }
             }
         } else if (msgtype == "kernel") {
-            Key_t hostkey = msg["hostkey"].AsNumber<Key_t>();
-            KernelMap::iterator entry = kernels.find(hostkey);
+            Key_t kernelkey = msg["kernelkey"].AsNumber<Key_t>();
+            KernelMap::iterator entry = kernels.find(kernelkey);
             if (entry != kernels.end()) {
                 KernelBase *kernel = entry->second;
                 // Cannot call a kernel method with the lock.
@@ -637,7 +637,7 @@ namespace CPN {
                     ASSERT(false, "Unknown kernel message type");
                 }
             } else {
-                ASSERT(false, "Message for kernel %llu but said kernel doesn't exist!", hostkey);
+                ASSERT(false, "Message for kernel %llu but said kernel doesn't exist!", kernelkey);
             }
         } else {
             ASSERT(false);

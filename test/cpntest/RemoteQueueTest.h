@@ -10,7 +10,7 @@
 #include "RemoteQueueHolder.h"
 #include "PthreadMutex.h"
 #include "PthreadCondition.h"
-#include "Pthread.h"
+#include "PthreadLib.h"
 class RemoteQueueTest : public CppUnit::TestFixture, CPN::KernelBase {
 public:
     void setUp();
@@ -52,7 +52,7 @@ public:
     CPN::shared_ptr<CPN::QueueBase> rqueue;
     CPN::shared_ptr<CPN::Context> context;
 
-    CPN::Key_t hostkey;
+    CPN::Key_t kernelkey;
     CPN::Key_t nodekey;
     CPN::Key_t writerkey;
     CPN::Key_t readerkey;

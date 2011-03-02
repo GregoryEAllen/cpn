@@ -5,7 +5,7 @@
 #include "RemoteContextServer.h"
 #include "AutoUnlock.h"
 
-#include "Pthread.h"
+#include "PthreadLib.h"
 #include "PthreadMutex.h"
 #include "PthreadCondition.h"
 #include "PthreadFunctional.h"
@@ -143,34 +143,34 @@ void RemoteContextTest::tearDown() {
     serv = 0;
 }
 
-void RemoteContextTest::HostSetupTest() {
+void RemoteContextTest::KernelSetupTest() {
     DEBUG("%s\n",__PRETTY_FUNCTION__);
     LocalRContextClient lrdbc(serv, __PRETTY_FUNCTION__);
     std::string hostname = "bogus1";
     std::string servname = "bogus2";
     std::string name = "bogus3";
 
-    Key_t hostkey = lrdbc.SetupHost(name, hostname, servname, this);
-    lrdbc.SignalHostStart(hostkey);
-    CPPUNIT_ASSERT(hostkey > 0);
-    CPPUNIT_ASSERT(lrdbc.GetHostKey(name) == hostkey);
-    CPPUNIT_ASSERT(lrdbc.GetHostName(hostkey) == name);
-    CPPUNIT_ASSERT(lrdbc.WaitForHostStart(name) == hostkey);
+    Key_t kernelkey = lrdbc.SetupKernel(name, hostname, servname, this);
+    lrdbc.SignalKernelStart(kernelkey);
+    CPPUNIT_ASSERT(kernelkey > 0);
+    CPPUNIT_ASSERT(lrdbc.GetKernelKey(name) == kernelkey);
+    CPPUNIT_ASSERT(lrdbc.GetKernelName(kernelkey) == name);
+    CPPUNIT_ASSERT(lrdbc.WaitForKernelStart(name) == kernelkey);
     std::string hname, sname;
-    lrdbc.GetHostConnectionInfo(hostkey, hname, sname);
+    lrdbc.GetKernelConnectionInfo(kernelkey, hname, sname);
     CPPUNIT_ASSERT(hname == hostname);
     CPPUNIT_ASSERT(sname == servname);
-    lrdbc.SignalHostEnd(hostkey);
+    lrdbc.SignalKernelEnd(kernelkey);
 }
 
-void RemoteContextTest::WaitForHostTest() {
+void RemoteContextTest::WaitForKernelTest() {
     DEBUG("%s\n",__PRETTY_FUNCTION__);
     LocalRContextClient lrdbc(serv, __PRETTY_FUNCTION__);
     std::string hostname = "bogus1";
     std::string servname = "bogus2";
     std::string name = "bogus3";
-    m_hostname = name;
-    Pthread *waiter = CreatePthreadFunctional(this, &RemoteContextTest::WaitForHostSetup);
+    m_kernelname = name;
+    Pthread *waiter = CreatePthreadFunctional(this, &RemoteContextTest::WaitForKernelSetup);
     CPPUNIT_ASSERT_EQUAL(0, waiter->Error());
     lock.Lock();
     signaled = false;
@@ -179,22 +179,22 @@ void RemoteContextTest::WaitForHostTest() {
         cond.Wait(lock);
     }
     lock.Unlock();
-    Key_t hostkey = lrdbc.SetupHost(name, hostname, servname, this);
-    CPPUNIT_ASSERT(hostkey > 0);
-    lrdbc.SignalHostStart(hostkey);
+    Key_t kernelkey = lrdbc.SetupKernel(name, hostname, servname, this);
+    CPPUNIT_ASSERT(kernelkey > 0);
+    lrdbc.SignalKernelStart(kernelkey);
     waiter->Join();
     delete waiter;
-    CPPUNIT_ASSERT_EQUAL(m_hostkey, hostkey);
+    CPPUNIT_ASSERT_EQUAL(m_kernelkey, kernelkey);
 }
 
-void *RemoteContextTest::WaitForHostSetup() {
+void *RemoteContextTest::WaitForKernelSetup() {
     LocalRContextClient lrdbc(serv, __PRETTY_FUNCTION__);
     lock.Lock();
     signaled = true;
     cond.Signal();
     lock.Unlock();
-    m_hostkey = lrdbc.WaitForHostStart(m_hostname);
-    ASSERT(m_hostkey > 0);
+    m_kernelkey = lrdbc.WaitForKernelStart(m_kernelname);
+    ASSERT(m_kernelkey > 0);
     return 0;
 }
 
@@ -206,7 +206,7 @@ void RemoteContextTest::CreateNodeTest() {
     CPPUNIT_ASSERT(m_nodename > 0);
     CPPUNIT_ASSERT(lrdbc.GetNodeKey(m_nodename) == m_nodekey);
     CPPUNIT_ASSERT(lrdbc.GetNodeName(m_nodekey) == m_nodename);
-    CPPUNIT_ASSERT(lrdbc.GetNodeHost(m_nodekey) == 1234);
+    CPPUNIT_ASSERT(lrdbc.GetNodeKernel(m_nodekey) == 1234);
     lrdbc.SignalNodeStart(m_nodekey);
     CPPUNIT_ASSERT(lrdbc.WaitForNodeStart(m_nodename) == m_nodekey);
     lrdbc.SignalNodeEnd(m_nodekey);
@@ -257,7 +257,7 @@ void RemoteContextTest::ReaderTest() {
     Key_t rkey = lrdbc.GetCreateReaderKey(m_nodekey, "bogus key");
     CPPUNIT_ASSERT(rkey > 0);
     CPPUNIT_ASSERT_EQUAL(m_nodekey, lrdbc.GetReaderNode(rkey));
-    CPPUNIT_ASSERT_EQUAL((Key_t)4321, lrdbc.GetReaderHost(rkey));
+    CPPUNIT_ASSERT_EQUAL((Key_t)4321, lrdbc.GetReaderKernel(rkey));
     CPPUNIT_ASSERT_EQUAL(std::string("bogus key"), lrdbc.GetReaderName(rkey));
 }
 
@@ -271,7 +271,7 @@ void RemoteContextTest::WriterTest() {
     Key_t wkey = lrdbc.GetCreateWriterKey(m_nodekey, "bogus key");
     CPPUNIT_ASSERT(wkey > 0);
     CPPUNIT_ASSERT_EQUAL(m_nodekey, lrdbc.GetWriterNode(wkey));
-    CPPUNIT_ASSERT_EQUAL((Key_t)4321, lrdbc.GetWriterHost(wkey));
+    CPPUNIT_ASSERT_EQUAL((Key_t)4321, lrdbc.GetWriterKernel(wkey));
     CPPUNIT_ASSERT_EQUAL(std::string("bogus key"), lrdbc.GetWriterName(wkey));
 }
 

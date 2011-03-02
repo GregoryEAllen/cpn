@@ -53,25 +53,25 @@ namespace CPN {
         virtual int LogLevel(int level);
         virtual void Log(int level, const std::string &logmsg);
 
-        virtual CPN::Key_t SetupHost(const std::string &name, const std::string &hostname,
+        virtual CPN::Key_t SetupKernel(const std::string &name, const std::string &hostname,
                 const std::string &servname, CPN::KernelBase *kernel);
-        virtual CPN::Key_t SetupHost(const std::string &name, KernelBase *kernel) { ASSERT(false, "RemoteContextClient requires remote operation is turned on."); }
-        virtual CPN::Key_t GetHostKey(const std::string &host);
-        virtual std::string GetHostName(CPN::Key_t hostkey);
-        virtual void GetHostConnectionInfo(CPN::Key_t hostkey, std::string &hostname, std::string &servname);
-        virtual CPN::Key_t WaitForHostStart(const std::string &host);
-        virtual void SignalHostStart(CPN::Key_t hostkey);
-        virtual void SignalHostEnd(CPN::Key_t hostkey);
+        virtual CPN::Key_t SetupKernel(const std::string &name, KernelBase *kernel) { ASSERT(false, "RemoteContextClient requires remote operation is turned on."); }
+        virtual CPN::Key_t GetKernelKey(const std::string &kernel);
+        virtual std::string GetKernelName(CPN::Key_t kernelkey);
+        virtual void GetKernelConnectionInfo(CPN::Key_t kernelkey, std::string &hostname, std::string &servname);
+        virtual CPN::Key_t WaitForKernelStart(const std::string &kernel);
+        virtual void SignalKernelStart(CPN::Key_t kernelkey);
+        virtual void SignalKernelEnd(CPN::Key_t kernelkey);
 
-        virtual void SendCreateWriter(CPN::Key_t hostkey, const CPN::SimpleQueueAttr &attr);
-        virtual void SendCreateReader(CPN::Key_t hostkey, const CPN::SimpleQueueAttr &attr);
-        virtual void SendCreateQueue(CPN::Key_t hostkey, const CPN::SimpleQueueAttr &attr);
-        virtual void SendCreateNode(CPN::Key_t hostkey, const CPN::NodeAttr &attr);
+        virtual void SendCreateWriter(CPN::Key_t kernelkey, const CPN::SimpleQueueAttr &attr);
+        virtual void SendCreateReader(CPN::Key_t kernelkey, const CPN::SimpleQueueAttr &attr);
+        virtual void SendCreateQueue(CPN::Key_t kernelkey, const CPN::SimpleQueueAttr &attr);
+        virtual void SendCreateNode(CPN::Key_t kernelkey, const CPN::NodeAttr &attr);
 
-        virtual CPN::Key_t CreateNodeKey(CPN::Key_t hostkey, const std::string &nodename);
+        virtual CPN::Key_t CreateNodeKey(CPN::Key_t kernelkey, const std::string &nodename);
         virtual CPN::Key_t GetNodeKey(const std::string &nodename);
         virtual std::string GetNodeName(CPN::Key_t nodekey);
-        virtual CPN::Key_t GetNodeHost(CPN::Key_t nodekey);
+        virtual CPN::Key_t GetNodeKernel(CPN::Key_t nodekey);
         virtual void SignalNodeStart(CPN::Key_t nodekey);
         virtual void SignalNodeEnd(CPN::Key_t nodekey);
 
@@ -82,12 +82,12 @@ namespace CPN {
 
         virtual CPN::Key_t GetCreateReaderKey(CPN::Key_t nodekey, const std::string &portname);
         virtual CPN::Key_t GetReaderNode(CPN::Key_t portkey);
-        virtual CPN::Key_t GetReaderHost(CPN::Key_t portkey);
+        virtual CPN::Key_t GetReaderKernel(CPN::Key_t portkey);
         virtual std::string GetReaderName(CPN::Key_t portkey);
 
         virtual CPN::Key_t GetCreateWriterKey(CPN::Key_t nodekey, const std::string &portname);
         virtual CPN::Key_t GetWriterNode(CPN::Key_t portkey);
-        virtual CPN::Key_t GetWriterHost(CPN::Key_t portkey);
+        virtual CPN::Key_t GetWriterKernel(CPN::Key_t portkey);
         virtual std::string GetWriterName(CPN::Key_t portkey);
 
         virtual void ConnectEndpoints(CPN::Key_t writerkey, CPN::Key_t readerkey, const std::string &qname);
@@ -138,7 +138,7 @@ namespace CPN {
         };
         typedef shared_ptr<GenericWaiter> GenericWaiterPtr;
 
-        void SendQueueMsg(CPN::Key_t hostkey, RCTXMT_t msgtype, const CPN::SimpleQueueAttr &attr);
+        void SendQueueMsg(CPN::Key_t kernelkey, RCTXMT_t msgtype, const CPN::SimpleQueueAttr &attr);
         unsigned NewTranID();
         void AddWaiter(WaiterInfo *info);
         GenericWaiterPtr NewGenericWaiter();

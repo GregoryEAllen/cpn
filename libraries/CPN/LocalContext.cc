@@ -55,15 +55,15 @@ namespace CPN {
         return loglevel = level;
     }
 
-    Key_t LocalContext::SetupHost(const std::string &name, const std::string &hostname,
+    Key_t LocalContext::SetupKernel(const std::string &name, const std::string &hostname,
             const std::string &servname, KernelBase *kernel) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
         if (!kernel) { throw std::invalid_argument("Must have non null Kernel."); }
-        if (hostnames.find(name) != hostnames.end()) {
+        if (kernelnames.find(name) != kernelnames.end()) {
            throw std::invalid_argument("Cannot create two kernels with the same name");
         }
-        shared_ptr<HostInfo> hinfo = shared_ptr<HostInfo>(new HostInfo);
+        shared_ptr<KernelInfo> hinfo = shared_ptr<KernelInfo>(new KernelInfo);
         hinfo->name = name;
         hinfo->hostname = hostname;
         hinfo->servname = servname;
@@ -72,149 +72,149 @@ namespace CPN {
         hinfo->live = false;
         hinfo->allowremote = true;
         Key_t key = NewKey();
-        hostmap.insert(std::make_pair(key, hinfo));
-        hostnames.insert(std::make_pair(name, key));
+        kernelmap.insert(std::make_pair(key, hinfo));
+        kernelnames.insert(std::make_pair(name, key));
         return key;
     }
 
-    Key_t LocalContext::SetupHost(const std::string &name, KernelBase *kernel) {
+    Key_t LocalContext::SetupKernel(const std::string &name, KernelBase *kernel) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
         if (!kernel) { throw std::invalid_argument("Must have non null Kernel."); }
-        if (hostnames.find(name) != hostnames.end()) {
+        if (kernelnames.find(name) != kernelnames.end()) {
            throw std::invalid_argument("Cannot create two kernels with the same name");
         }
-        shared_ptr<HostInfo> hinfo = shared_ptr<HostInfo>(new HostInfo);
+        shared_ptr<KernelInfo> hinfo = shared_ptr<KernelInfo>(new KernelInfo);
         hinfo->name = name;
         hinfo->kernel = kernel;
         hinfo->dead = false;
         hinfo->live = false;
         hinfo->allowremote = false;
         Key_t key = NewKey();
-        hostmap.insert(std::make_pair(key, hinfo));
-        hostnames.insert(std::make_pair(name, key));
+        kernelmap.insert(std::make_pair(key, hinfo));
+        kernelnames.insert(std::make_pair(name, key));
         return key;
 
     }
 
-    Key_t LocalContext::GetHostKey(const std::string &host) {
+    Key_t LocalContext::GetKernelKey(const std::string &kernel) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
-        NameMap::iterator entry = hostnames.find(host);
-        if (entry == hostnames.end()) {
-            throw std::invalid_argument("No such host");
+        NameMap::iterator entry = kernelnames.find(kernel);
+        if (entry == kernelnames.end()) {
+            throw std::invalid_argument("No such kernel");
         }
         return entry->second;
     }
 
-    std::string LocalContext::GetHostName(Key_t hostkey) {
+    std::string LocalContext::GetKernelName(Key_t kernelkey) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
-        HostMap::iterator entry = hostmap.find(hostkey);
-        if (entry == hostmap.end()) {
-            throw std::invalid_argument("No such host");
+        KernelMap::iterator entry = kernelmap.find(kernelkey);
+        if (entry == kernelmap.end()) {
+            throw std::invalid_argument("No such kernel");
         }
         return entry->second->name;
     }
 
-    void LocalContext::GetHostConnectionInfo(Key_t hostkey, std::string &hostname, std::string &servname) {
+    void LocalContext::GetKernelConnectionInfo(Key_t kernelkey, std::string &hostname, std::string &servname) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
-        HostMap::iterator entry = hostmap.find(hostkey);
-        if (entry == hostmap.end()) {
-            throw std::invalid_argument("No such host");
+        KernelMap::iterator entry = kernelmap.find(kernelkey);
+        if (entry == kernelmap.end()) {
+            throw std::invalid_argument("No such kernel");
         }
-        ASSERT(entry->second->allowremote, "Host does not have remote configured.");
+        ASSERT(entry->second->allowremote, "Kernel does not have remote configured.");
         hostname = entry->second->hostname;
         servname = entry->second->servname;
     }
 
-    void LocalContext::SignalHostEnd(Key_t hostkey) {
+    void LocalContext::SignalKernelEnd(Key_t kernelkey) {
         PthreadMutexProtected pl(lock);
-        HostMap::iterator entry = hostmap.find(hostkey);
-        if (entry == hostmap.end()) {
-            throw std::invalid_argument("No such host");
+        KernelMap::iterator entry = kernelmap.find(kernelkey);
+        if (entry == kernelmap.end()) {
+            throw std::invalid_argument("No such kernel");
         }
         entry->second->dead = true;
-        hostlivedead.Broadcast();
+        kernellivedead.Broadcast();
     }
 
-    Key_t LocalContext::WaitForHostStart(const std::string &host) {
+    Key_t LocalContext::WaitForKernelStart(const std::string &kernel) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
         while (true) {
-            NameMap::iterator entry = hostnames.find(host);
-            if (entry != hostnames.end()) {
-                HostMap::iterator hentry = hostmap.find(entry->second);
+            NameMap::iterator entry = kernelnames.find(kernel);
+            if (entry != kernelnames.end()) {
+                KernelMap::iterator hentry = kernelmap.find(entry->second);
                 if (hentry->second->live) {
                     return entry->second;
                 }
             }
-            hostlivedead.Wait(lock);
+            kernellivedead.Wait(lock);
             InternalCheckTerminated();
         }
     }
 
-    void LocalContext::SignalHostStart(Key_t hostkey) {
+    void LocalContext::SignalKernelStart(Key_t kernelkey) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
-        HostMap::iterator entry = hostmap.find(hostkey);
-        if (entry == hostmap.end()) {
-            throw std::invalid_argument("No such host");
+        KernelMap::iterator entry = kernelmap.find(kernelkey);
+        if (entry == kernelmap.end()) {
+            throw std::invalid_argument("No such kernel");
         }
         entry->second->live = true;
-        hostlivedead.Broadcast();
+        kernellivedead.Broadcast();
     }
 
-    void LocalContext::SendCreateWriter(Key_t hostkey, const SimpleQueueAttr &attr) {
+    void LocalContext::SendCreateWriter(Key_t kernelkey, const SimpleQueueAttr &attr) {
         KernelBase *kernel;
         {
             PthreadMutexProtected pl(lock);
             InternalCheckTerminated();
-            shared_ptr<HostInfo> hinfo = hostmap[hostkey];
+            shared_ptr<KernelInfo> hinfo = kernelmap[kernelkey];
             kernel = hinfo->kernel;
         }
         ASSERT(kernel);
         kernel->RemoteCreateWriter(attr);
     }
 
-    void LocalContext::SendCreateReader(Key_t hostkey, const SimpleQueueAttr &attr) {
+    void LocalContext::SendCreateReader(Key_t kernelkey, const SimpleQueueAttr &attr) {
         KernelBase *kernel;
         {
             PthreadMutexProtected pl(lock);
             InternalCheckTerminated();
-            shared_ptr<HostInfo> hinfo = hostmap[hostkey];
+            shared_ptr<KernelInfo> hinfo = kernelmap[kernelkey];
             kernel = hinfo->kernel;
         }
         ASSERT(kernel);
         kernel->RemoteCreateReader(attr);
     }
 
-    void LocalContext::SendCreateQueue(Key_t hostkey, const SimpleQueueAttr &attr) {
+    void LocalContext::SendCreateQueue(Key_t kernelkey, const SimpleQueueAttr &attr) {
         KernelBase *kernel;
         {
             PthreadMutexProtected pl(lock);
             InternalCheckTerminated();
-            shared_ptr<HostInfo> hinfo = hostmap[hostkey];
+            shared_ptr<KernelInfo> hinfo = kernelmap[kernelkey];
             kernel = hinfo->kernel;
         }
         ASSERT(kernel);
         kernel->RemoteCreateQueue(attr);
     }
 
-    void LocalContext::SendCreateNode(Key_t hostkey, const NodeAttr &attr) {
+    void LocalContext::SendCreateNode(Key_t kernelkey, const NodeAttr &attr) {
         KernelBase *kernel;
         {
             PthreadMutexProtected pl(lock);
             InternalCheckTerminated();
-            shared_ptr<HostInfo> hinfo = hostmap[hostkey];
+            shared_ptr<KernelInfo> hinfo = kernelmap[kernelkey];
             kernel = hinfo->kernel;
         }
         ASSERT(kernel);
         kernel->RemoteCreateNode(attr);
     }
 
-    Key_t LocalContext::CreateNodeKey(Key_t hostkey, const std::string &nodename) {
+    Key_t LocalContext::CreateNodeKey(Key_t kernelkey, const std::string &nodename) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
         NameMap::iterator nameentry = nodenames.find(nodename);
@@ -224,7 +224,7 @@ namespace CPN {
             ninfo->name = nodename;
             ninfo->started = false;
             ninfo->dead = false;
-            ninfo->hostkey = hostkey;
+            ninfo->kernelkey = kernelkey;
             key = NewKey();
             nodenames.insert(std::make_pair(nodename, key));
             nodemap.insert(std::make_pair(key, ninfo));
@@ -321,14 +321,14 @@ namespace CPN {
         }
     }
 
-    Key_t LocalContext::GetNodeHost(Key_t nodekey) {
+    Key_t LocalContext::GetNodeKernel(Key_t nodekey) {
         PthreadMutexProtected pl(lock);
         InternalCheckTerminated();
         NodeMap::iterator entry = nodemap.find(nodekey);
         if (entry == nodemap.end()) {
             throw std::invalid_argument("No such node");
         }
-        return entry->second->hostkey;
+        return entry->second->kernelkey;
     }
 
     Key_t LocalContext::GetCreateReaderKey(Key_t nodekey, const std::string &portname) {
@@ -363,9 +363,9 @@ namespace CPN {
         return entry->second->nodekey;
     }
 
-    Key_t LocalContext::GetReaderHost(Key_t portkey) {
+    Key_t LocalContext::GetReaderKernel(Key_t portkey) {
         Key_t nodekey = GetReaderNode(portkey);
-        return GetNodeHost(nodekey);
+        return GetNodeKernel(nodekey);
     }
 
     std::string LocalContext::GetReaderName(Key_t portkey) {
@@ -410,9 +410,9 @@ namespace CPN {
         return entry->second->nodekey;
     }
 
-    Key_t LocalContext::GetWriterHost(Key_t portkey) {
+    Key_t LocalContext::GetWriterKernel(Key_t portkey) {
         Key_t nodekey = GetWriterNode(portkey);
-        return GetNodeHost(nodekey);
+        return GetNodeKernel(nodekey);
     }
 
     std::string LocalContext::GetWriterName(Key_t portkey) {
@@ -465,15 +465,15 @@ namespace CPN {
     }
 
     void LocalContext::Terminate() {
-        HostMap mapcopy;
+        KernelMap mapcopy;
         {
             PthreadMutexProtected pl(lock);
             shutdown = true;
             nodelivedead.Broadcast();
-            hostlivedead.Broadcast();
-            mapcopy = hostmap;
+            kernellivedead.Broadcast();
+            mapcopy = kernelmap;
         }
-        HostMap::iterator itr = mapcopy.begin();
+        KernelMap::iterator itr = mapcopy.begin();
         while (itr != mapcopy.end()) {
             if (!itr->second->dead) {
                 itr->second->kernel->NotifyTerminate();

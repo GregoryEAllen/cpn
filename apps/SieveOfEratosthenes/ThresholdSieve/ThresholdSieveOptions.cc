@@ -39,10 +39,10 @@ void CreateNewFilter(CPN::Kernel &kernel, ThresholdSieveOptions &opts, CPN::Key_
         int num = opts.filtercount;
         if (opts.divisor > 0) num /= opts.divisor;
         num %= opts.kernels.size();
-        attr.SetHost(opts.kernels[num]);
+        attr.SetKernel(opts.kernels[num]);
     }
     if (opts.report) {
-        fprintf(stderr, "Creating filter %llu on kernel %s\n", opts.filtercount, attr.GetHost().c_str());
+        fprintf(stderr, "Creating filter %llu on kernel %s\n", opts.filtercount, attr.GetKernel().c_str());
     }
     attr.SetParam("options", opts.Serialize());
     CPN::Key_t nodekey = kernel.CreateNode(attr);

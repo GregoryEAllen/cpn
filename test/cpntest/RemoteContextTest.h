@@ -29,8 +29,8 @@ public:
     void tearDown();
 
     CPPUNIT_TEST_SUITE( RemoteContextTest );
-    CPPUNIT_TEST( HostSetupTest );
-    CPPUNIT_TEST( WaitForHostTest );
+    CPPUNIT_TEST( KernelSetupTest );
+    CPPUNIT_TEST( WaitForKernelTest );
     CPPUNIT_TEST( CreateNodeTest );
     CPPUNIT_TEST( WaitForNodeTest );
     CPPUNIT_TEST( ReaderTest );
@@ -38,12 +38,12 @@ public:
     CPPUNIT_TEST( ConnectTest );
     CPPUNIT_TEST_SUITE_END();
 
-    void HostSetupTest();
-    void WaitForHostTest();
+    void KernelSetupTest();
+    void WaitForKernelTest();
 
-    void *WaitForHostSetup();
-    std::string m_hostname;
-    CPN::Key_t m_hostkey;
+    void *WaitForKernelSetup();
+    std::string m_kernelname;
+    CPN::Key_t m_kernelkey;
 
     void CreateNodeTest();
     std::string m_nodename;

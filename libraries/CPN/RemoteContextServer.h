@@ -44,7 +44,7 @@
         "msgtype"   : "reply",
         "success"   : true or false,
         then the data under the name of the type of reply data
-        "hostinfo" or "nodeinfo" or "endpointinfo" etc.
+        "kernelinfo" or "nodeinfo" or "endpointinfo" etc.
     }
 
     There is another type of message called broadcast that is sent out by
@@ -52,7 +52,7 @@
 
     broadcast = {
         "msgtype"   : "broadcast",
-        then "hostinfo" or "nodeinfo" etc.
+        then "kernelinfo" or "nodeinfo" etc.
         then some status variables like "numlivenodes"
     }
 
@@ -61,16 +61,16 @@
 
     kernel = {
         "msgtype"   : "kernel",
-        "hostkey"   : the destination kernel key,
+        "kernelkey" : the destination kernel key,
         "type"      : numberic message type,
         then "queueattr" or "nodeattr" or other data
     }
 
     the basic storage elements use these formats
 
-    hostinfo = {
-        "key"       : key for the host,
-        "name"      : name of the host,
+    kernelinfo = {
+        "key"       : key for the kernel,
+        "name"      : name of the kernel,
         "hostname"  : name to use for other kernels to connect to this one,
         "servname"  : service name to use to connecto to this kernel,
         "live"      : true or false,
@@ -81,7 +81,7 @@
     nodeinfo = {
         "key"       : the node key,
         "name"      : name of this node,
-        "hostkey"   : the host key,
+        "kernelkey" : the kernel key,
         "started"   : true or false,
         "dead"      : true or false,
         "endpoints" : {
@@ -96,7 +96,7 @@
         "name"      : the name of this endpoint,
         "qname"     : the name of the queue if set and connected
         "nodekey"   : The key of the node this endpoint belongs to,
-        "hostkey"   : the key of the host this node endpoint is on,
+        "kernelkey" : the key of the kernel this node endpoint is on,
         "live"      : true or false
         "writerkey" : the key of the writer this endpoint is connected to if a reader,
         "readerkey" : the key of the reader this endpoint is connected to if a writer,
@@ -149,10 +149,10 @@ namespace CPN {
         void dbprintf(int level, const char *fmt, ...);
     private:
 
-        void SetupHost(const std::string &sender, const Variant &msg);
-        void SignalHostStart(const Variant &msg);
-        void SignalHostEnd(const Variant &msg);
-        void GetHostInfo(const std::string &sender, const Variant &msg);
+        void SetupKernel(const std::string &sender, const Variant &msg);
+        void SignalKernelStart(const Variant &msg);
+        void SignalKernelEnd(const Variant &msg);
+        void GetKernelInfo(const std::string &sender, const Variant &msg);
         void CreateNodeKey(const std::string &sender, const Variant &msg);
         void SignalNodeStart(const Variant &msg);
         void SignalNodeEnd(const Variant &msg);
@@ -170,7 +170,7 @@ namespace CPN {
         typedef std::map<Key_t, Variant> DataMap;
         DataMap datamap;
         typedef std::map<std::string, Key_t> NameKeyMap;
-        NameKeyMap hostmap;
+        NameKeyMap kernelmap;
         NameKeyMap nodemap;
 
         int debuglevel;

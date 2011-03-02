@@ -108,10 +108,10 @@ namespace CPN {
             al.Unlock();
             conn = shared_ptr<PendingConnection>(new PendingConnection(writerkey, this));
             Key_t readerkey = context->GetWritersReader(writerkey);
-            Key_t hostkey = context->GetReaderHost(readerkey);
+            Key_t kernelkey = context->GetReaderKernel(readerkey);
             std::string hostname;
             std::string servname;
-            context->GetHostConnectionInfo(hostkey, hostname, servname);
+            context->GetKernelConnectionInfo(kernelkey, hostname, servname);
             SocketHandle sock;
             sock.Connect(SocketAddress::CreateIP(hostname, servname));
             Packet packet(PACKET_ID_WRITER);

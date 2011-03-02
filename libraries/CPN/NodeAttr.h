@@ -45,10 +45,9 @@ namespace CPN {
      *
      * The other parameters that the user may set are:
      *
-     * The host for the node, can be set as ether the host name
-     * or the host key. The host key is set host name is ignored.
-     * See SetHost and SetHostKey.
-     *
+     * The kernel for the node can be set as either the kernel name
+     * or the kernel key. If the kernel key is set kernel name is ignored.
+     * See SetKernel and SetKernelKey.
      *
      * The parameters sent to the node.
      * See SetParam and GetParam
@@ -60,8 +59,8 @@ namespace CPN {
     public:
         NodeAttr(const std::string &name_,
                 const std::string &nodetype_)
-            : host(),
-            hostkey(0),
+            : kernelname(),
+            kernelkey(0),
             name(name_),
             nodetype(nodetype_),
             key(0)
@@ -77,13 +76,13 @@ namespace CPN {
             return *this;
         }
 
-        NodeAttr &SetHost(const std::string &host_) {
-            host = host_;
+        NodeAttr &SetKernel(const std::string &kname) {
+            kernelname = kname;
             return *this;
         }
 
-        NodeAttr &SetHostKey(Key_t k) {
-            hostkey = k;
+        NodeAttr &SetKernelKey(Key_t k) {
+            kernelkey = k;
             return *this;
         }
 
@@ -105,8 +104,8 @@ namespace CPN {
             return *this;
         }
 
-        const std::string &GetHost() const { return host; }
-        Key_t GetHostKey() const { return hostkey; }
+        const std::string &GetKernel() const { return kernelname; }
+        Key_t GetKernelKey() const { return kernelkey; }
 
         const std::string &GetName() const { return name; }
 
@@ -117,8 +116,8 @@ namespace CPN {
         Key_t GetKey() const { return key; }
 
     private:
-        std::string host;
-        Key_t hostkey;
+        std::string kernelname;
+        Key_t kernelkey;
         std::string name;
         std::string nodetype;
         std::map<std::string, std::string> params;

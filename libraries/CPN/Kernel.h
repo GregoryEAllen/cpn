@@ -48,7 +48,7 @@ namespace CPN {
      * \brief The Kernel declaration.
      *
      * The purpose of the kernel object is to keep track
-     * of all the queues and nodes on a particular host,
+     * of all the queues and nodes on a particular kernel,
      * ensure that they are instantiated and destroyed
      * correctly and to provide a unified interface to
      * the user of the process network.
@@ -216,7 +216,7 @@ namespace CPN {
 
         /** \return the unique key for this kernel
          */
-        Key_t GetKey() const { return hostkey; }
+        Key_t GetKey() const { return kernelkey; }
 
         /** \return the context this kernel is using
          */
@@ -322,7 +322,7 @@ namespace CPN {
         // no explicit synchronization required
         auto_ptr<Pthread> thread;
         const std::string kernelname;
-        Key_t hostkey;
+        Key_t kernelkey;
         Logger logger;
         shared_ptr<Context> context;
         auto_ptr<ConnectionServer> server;

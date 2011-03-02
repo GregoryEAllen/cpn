@@ -240,9 +240,9 @@ void VariantCPNLoader::LoadNodes(CPN::Kernel *kernel, Variant nodelist, Variant 
 void VariantCPNLoader::LoadNode(CPN::Kernel *kernel, Variant attr, Variant nodemap) {
     CPN::NodeAttr nattr(attr["name"].AsString(), attr["type"].AsString());
     if (nodemap.IsObject() && nodemap.At(nattr.GetName()).IsString()) {
-        nattr.SetHost(nodemap.At(nattr.GetName()).AsString());
-    } else if (attr["host"].IsString()) {
-        nattr.SetHost(attr["host"].AsString());
+        nattr.SetKernel(nodemap.At(nattr.GetName()).AsString());
+    } else if (attr["kernel"].IsString()) {
+        nattr.SetKernel(attr["kernel"].AsString());
     }
     Variant param = attr["param"];
     if (param.IsObject()) {

@@ -144,7 +144,7 @@ void RandomInstructionNode::CreateRIN(CPN::Kernel& kernel, unsigned iterations,
         CPN::NodeAttr attr(GetNodeNameFromID(i),
                 RANDOMINSTRUCTIONNODE_TYPENAME);
         attr.SetParam("state", VariantToJSON(state));
-        attr.SetHost(kernelnames[(i % kernelnames.size())]);
+        attr.SetKernel(kernelnames[(i % kernelnames.size())]);
         kernel.CreateNode(attr);
     }
 }
@@ -163,7 +163,7 @@ void RandomInstructionNode::DoCreateNode(unsigned newNodeID, unsigned creatorNod
         CPN::NodeAttr attr(GetNodeNameFromID(state.nodeID),
                 RANDOMINSTRUCTIONNODE_TYPENAME);
         attr.SetParam("state", state.ToJSON());
-        attr.SetHost(kernelnames[(newNodeID % kernelnames.size())]);
+        attr.SetKernel(kernelnames[(newNodeID % kernelnames.size())]);
         kernel.CreateNode(attr);
     }
     if (newNodeID == myID) {

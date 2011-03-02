@@ -52,7 +52,7 @@ namespace CPN {
     Kernel::Kernel(const KernelAttr &kattr)
         : status(INITIALIZED),
         kernelname(kattr.GetName()),
-        hostkey(0),
+        kernelkey(0),
         context(kattr.GetContext()),
         useremote(kattr.GetRemoteEnabled()),
         nodecond_signal(false),
@@ -80,12 +80,12 @@ namespace CPN {
             server.reset(new ConnectionServer(addrlist, context));
 
             SocketAddress addr = server->GetAddress();
-            hostkey = context->SetupHost(kernelname, addr.GetHostName(), addr.GetServName(), this);
+            kernelkey = context->SetupKernel(kernelname, addr.GetHostName(), addr.GetServName(), this);
             remotequeueholder.reset(new RemoteQueueHolder());
 
             logger.Info("New kernel, listening on %s:%s", addr.GetHostName().c_str(), addr.GetServName().c_str());
         } else {
-            hostkey = context->SetupHost(kernelname, this);
+            kernelkey = context->SetupKernel(kernelname, this);
             logger.Info("New kernel");
         }
         // Start up and don't finish until actually started.
@@ -134,24 +134,24 @@ namespace CPN {
 
         NodeAttr nodeattr = attr;
 
-        if (nodeattr.GetHostKey() == 0) {
+        if (nodeattr.GetKernelKey() == 0) {
             Key_t key = 0;
-            if (nodeattr.GetHost().empty()) {
-                key = hostkey;
+            if (nodeattr.GetKernel().empty()) {
+                key = kernelkey;
             } else {
-                key = context->WaitForHostStart(nodeattr.GetHost());
+                key = context->WaitForKernelStart(nodeattr.GetKernel());
             }
-            nodeattr.SetHostKey(key);
+            nodeattr.SetKernelKey(key);
         }
-        Key_t nodekey = context->CreateNodeKey(nodeattr.GetHostKey(), nodeattr.GetName());
+        Key_t nodekey = context->CreateNodeKey(nodeattr.GetKernelKey(), nodeattr.GetName());
         nodeattr.SetKey(nodekey);
 
-        // check the host the node should go on and send
-        // to that particular host
-        if (nodeattr.GetHostKey() == hostkey) {
+        // check the kernel the node should go on and send
+        // to that particular kernel
+        if (nodeattr.GetKernelKey() == kernelkey) {
             InternalCreateNode(nodeattr);
         } else {
-            context->SendCreateNode(nodeattr.GetHostKey(), nodeattr);
+            context->SendCreateNode(nodeattr.GetKernelKey(), nodeattr);
         }
         return nodekey;
     }
@@ -177,7 +177,7 @@ namespace CPN {
     }
 
     void Kernel::CreateExternalEndpoint(const std::string &name, bool iswriter) {
-        Key_t nodekey = context->CreateNodeKey(hostkey, name);
+        Key_t nodekey = context->CreateNodeKey(kernelkey, name);
         shared_ptr<PseudoNode> pnode;
         pnode.reset(new ExternalEndpoint(name, nodekey, context, iswriter));
         Sync::AutoReentrantLock arlock(nodelock);
@@ -286,35 +286,35 @@ namespace CPN {
 
         context->ConnectEndpoints(attr.GetWriterKey(), attr.GetReaderKey(), qattr.GetName());
 
-        Key_t readerhost = context->GetNodeHost(attr.GetReaderNodeKey());
-        Key_t writerhost = context->GetNodeHost(attr.GetWriterNodeKey());
+        Key_t readerkernel = context->GetNodeKernel(attr.GetReaderNodeKey());
+        Key_t writerkernel = context->GetNodeKernel(attr.GetWriterNodeKey());
 
-        if (readerhost == writerhost) {
-            if (readerhost == hostkey) {
+        if (readerkernel == writerkernel) {
+            if (readerkernel == kernelkey) {
                 CreateLocalQueue(attr);
             } else {
                 ASSERT(useremote, "Cannot create remote queue without enabling remote operations.");
-                // Send a message to the other host to create a local queue
-                context->SendCreateQueue(readerhost, attr);
+                // Send a message to the other kernel to create a local queue
+                context->SendCreateQueue(readerkernel, attr);
             }
-        } else if (readerhost == hostkey) {
+        } else if (readerkernel == kernelkey) {
             ASSERT(useremote, "Cannot create remote queue without enabling remote operations.");
             // Create the reader end here and queue up a message
-            // to the writer host that they need to create an endpoint
+            // to the writer kernel that they need to create an endpoint
             CreateReaderEndpoint(attr);
-            context->SendCreateWriter(writerhost, attr);
-        } else if (writerhost == hostkey) {
+            context->SendCreateWriter(writerkernel, attr);
+        } else if (writerkernel == kernelkey) {
             ASSERT(useremote, "Cannot create remote queue without enabling remote operations.");
             // Create the writer end here and queue up a message to
-            // the reader host that they need to create an endpoint
+            // the reader kernel that they need to create an endpoint
             CreateWriterEndpoint(attr);
-            context->SendCreateReader(readerhost, attr);
+            context->SendCreateReader(readerkernel, attr);
         } else {
             ASSERT(useremote, "Cannot create remote queue without enabling remote operations.");
-            // Queue up a message to both the reader and writer host
+            // Queue up a message to both the reader and writer kernel
             // to create endpoints
-            context->SendCreateWriter(writerhost, attr);
-            context->SendCreateReader(readerhost, attr);
+            context->SendCreateWriter(writerkernel, attr);
+            context->SendCreateReader(readerkernel, attr);
         }
     }
 
@@ -439,7 +439,7 @@ namespace CPN {
         FUNCBEGIN;
         status.CompareAndPost(INITIALIZED, RUNNING);
         try {
-            context->SignalHostStart(hostkey);
+            context->SignalKernelStart(kernelkey);
             if (useremote) {
                 while (status.Get() == RUNNING) {
                     ClearGarbage();
@@ -488,7 +488,7 @@ namespace CPN {
             }
         }
         ClearGarbage();
-        context->SignalHostEnd(hostkey);
+        context->SignalKernelEnd(kernelkey);
         status.Post(DONE);
         FUNCEND;
         return 0;
@@ -534,7 +534,7 @@ namespace CPN {
             statename = "done";
             break;
         }
-        logger.Error("Kernel %s (%llu) in state %s", kernelname.c_str(), hostkey, statename.c_str());
+        logger.Error("Kernel %s (%llu) in state %s", kernelname.c_str(), kernelkey, statename.c_str());
         logger.Error("Active nodes: %u, Garbage nodes: %u", nodemap.size(), garbagenodes.size());
         if (useremote) {
             server->LogState();

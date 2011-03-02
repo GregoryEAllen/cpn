@@ -31,17 +31,17 @@ namespace CPN {
      */
     enum RCTXMT_t {
         /**
-         * Commands for dealing with hosts.
+         * Commands for dealing with kernels.
          * @{
          */
-        RCTXMT_SETUP_HOST,
-        RCTXMT_GET_HOST_INFO,
-        RCTXMT_SIGNAL_HOST_START,
-        RCTXMT_SIGNAL_HOST_END,
+        RCTXMT_SETUP_KERNEL,
+        RCTXMT_GET_KERNEL_INFO,
+        RCTXMT_SIGNAL_KERNEL_START,
+        RCTXMT_SIGNAL_KERNEL_END,
         /** @} */
 
         /**
-         * Commands to tell other hosts to create objects.
+         * Commands to tell other kernels to create objects.
          * @{
          */
         RCTXMT_CREATE_WRITER,

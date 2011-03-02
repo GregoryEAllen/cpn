@@ -49,7 +49,7 @@ static void PrintHelp(const std::string &progname) {
     cerr << "\t-j config  Use config in JSON format.\n";
     cerr << "\t-c opts    Specify context options (see -chelp).\n";
     cerr << "\t-w node    Wait for node then terminate, if not specified waits for the kernel to terminate.\n";
-    cerr << "\t-k opts    Comma seperated list of host options (see -khelp).\n";
+    cerr << "\t-k opts    Comma seperated list of kernel options (see -khelp).\n";
     cerr << "\t-C         Print out in JSON format the internal configuration after parsing all options\n";
     cerr << "\t-n 'json'  Add or modify a node.\n";
     cerr << "\t-q 'json'  Add or modify a queue.\n";
