@@ -23,7 +23,7 @@
 
 #include "WakeupHandle.h"
 #include "ErrnoException.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include <unistd.h>
 #include <errno.h>
 

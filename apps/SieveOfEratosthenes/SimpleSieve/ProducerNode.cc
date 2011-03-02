@@ -6,7 +6,7 @@
 #include "NodeFactory.h"
 #include "OQueue.h"
 #include "Kernel.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include <stdexcept>
 
 #if _DEBUG

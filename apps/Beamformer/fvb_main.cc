@@ -1,6 +1,6 @@
 #include "FanVBeamformer.h"
 #include "LoadFromFile.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include "ErrnoException.h"
 #include "FlowMeasure.h"
 #include "NumProcs.h"

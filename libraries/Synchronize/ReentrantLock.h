@@ -27,7 +27,7 @@
 #pragma once
 
 #include "AutoLock.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include <pthread.h>
 #ifdef SYNC_PROFILE
 #include <sys/time.h>

@@ -10,7 +10,7 @@
 #include "OQueue.h"
 #include "NodeFactory.h"
 #include "ToString.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include <cmath>
 #include <stdexcept>
 

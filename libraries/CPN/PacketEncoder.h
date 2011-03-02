@@ -27,7 +27,7 @@
 #include "CPNCommon.h"
 #include "PacketHeader.h"
 #include "CircularQueue.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include <vector>
 // For the iovec definition
 #include <sys/uio.h>

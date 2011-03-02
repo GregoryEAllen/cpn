@@ -22,7 +22,7 @@
  */
 
 #include "Logger.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include <vector>
 #include <iostream>
 #include <stdio.h>

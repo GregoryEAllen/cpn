@@ -27,7 +27,7 @@
 #include "Variant.h"
 #include "VariantToJSON.h"
 #include "JSONToVariant.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 
 #include <stdio.h>
 

@@ -29,7 +29,7 @@
 #include "ThresholdSieveProducer.h"
 #include "ThresholdSieveFilter.h"
 #include "ToString.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include <stdexcept>
 #include <cmath>
 #include <stdio.h>

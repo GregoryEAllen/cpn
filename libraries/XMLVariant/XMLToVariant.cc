@@ -21,7 +21,7 @@
  * \author John Bridgman
  */
 #include "XMLToVariant.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include "ParseBool.h"
 #include <libxml++/libxml++.h>
 #include <deque>

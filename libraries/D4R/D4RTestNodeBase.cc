@@ -23,7 +23,7 @@
 #include "D4RTestNodeBase.h"
 #include "D4RTesterBase.h"
 #include "D4RDeadlockException.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 
 namespace D4R {
 

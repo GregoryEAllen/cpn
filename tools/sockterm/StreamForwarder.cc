@@ -1,6 +1,6 @@
 
 #include "StreamForwarder.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include <stdio.h>
 
 StreamForwarder::StreamForwarder()

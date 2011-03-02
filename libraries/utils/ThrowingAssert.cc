@@ -22,7 +22,7 @@
  * \author John Bridgman
  */
 
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include "StackTrace.h"
 #include <sstream>
 #include <vector>

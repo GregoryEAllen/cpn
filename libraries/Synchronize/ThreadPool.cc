@@ -23,7 +23,7 @@
 #include "ThreadPool.h"
 #include "SysConf.h"
 #include "PthreadFunctional.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include <unistd.h>
 
 namespace Sync {

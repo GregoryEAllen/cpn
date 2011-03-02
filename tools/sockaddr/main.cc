@@ -1,6 +1,6 @@
 
 #include "SocketAddress.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include <unistd.h>
 #include <stdio.h>
 

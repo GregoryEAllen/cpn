@@ -22,7 +22,7 @@
  */
 
 #include "PacketDecoder.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include <string.h>
 
 namespace CPN {

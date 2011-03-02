@@ -26,7 +26,7 @@
 #include "Kernel.h"
 #include "IQueue.h"
 #include "OQueue.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include "PrimeSieveSource.h"
 #include <stdexcept>
 #include <sstream>

@@ -26,7 +26,7 @@
 #include <unistd.h>
 #include <string.h>
 #include "ErrnoException.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 
 using std::complex;
 

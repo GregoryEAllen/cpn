@@ -23,7 +23,7 @@
  */
 #include "FanVBeamformer.h"
 #include "VBeamformer.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include "Variant.h"
 #include "JSONToVariant.h"
 #include <fstream>

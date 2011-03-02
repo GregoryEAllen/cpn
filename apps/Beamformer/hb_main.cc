@@ -1,6 +1,6 @@
 #include "HBeamformer.h"
 #include "LoadFromFile.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include "FlowMeasure.h"
 #include "NumProcs.h"
 #include <complex>

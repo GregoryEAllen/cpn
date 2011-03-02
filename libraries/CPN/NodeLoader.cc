@@ -23,7 +23,7 @@
 
 #include "NodeLoader.h"
 #include "NodeFactory.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include "PathUtils.h"
 #include <fstream>
 #include <dlfcn.h>

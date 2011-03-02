@@ -24,7 +24,7 @@
 
 #include "ThresholdQueue.h"
 #include "QueueAttr.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include <cstring>
 
 namespace CPN {

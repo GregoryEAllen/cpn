@@ -21,7 +21,7 @@
  * \author John Bridgman
  */
 #include "VariantToXML.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include <sstream>
 #include <libxml++/libxml++.h>
 

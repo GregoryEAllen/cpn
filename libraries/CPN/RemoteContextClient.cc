@@ -24,7 +24,7 @@
 #include "RemoteContextClient.h"
 #include "KernelBase.h"
 #include "Exceptions.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include "AutoUnlock.h"
 #include "Base64.h"
 #include "VariantToJSON.h"

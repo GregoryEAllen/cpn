@@ -34,8 +34,8 @@
  *
  * \author John Bridgman
  */
-#ifndef ASSERT_H
-#define ASSERT_H
+#ifndef THROWINGASSERT_H
+#define THROWINGASSERT_H
 #pragma once
 
 #include "Exception.h"

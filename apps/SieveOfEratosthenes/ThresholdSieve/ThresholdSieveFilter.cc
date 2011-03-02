@@ -27,7 +27,7 @@
 #include "OQueue.h"
 #include "ToString.h"
 #include "PrimeSieve.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include <cmath>
 #include <stdexcept>
 #include <sstream>

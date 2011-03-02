@@ -21,7 +21,7 @@
  * \author John Bridgman
  */
 #include "JSONToVariant.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 
 JSONToVariant::JSONToVariant() {
 }

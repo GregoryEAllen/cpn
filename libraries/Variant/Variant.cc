@@ -24,7 +24,7 @@
  */
 
 #include "Variant.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include "ParseBool.h"
 #include <sstream>
 

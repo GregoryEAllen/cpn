@@ -4,7 +4,7 @@
 #include "IQueue.h"
 #include "NodeFactory.h"
 #include "Kernel.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 
 
 MockSyncNode::MockSyncNode(CPN::Kernel &ker, const CPN::NodeAttr &attr)

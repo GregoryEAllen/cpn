@@ -24,7 +24,7 @@
 #include "PacketHeader.h"
 #include "Context.h"
 #include "AutoLock.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include "ErrnoException.h"
 #include <deque>
 #include <cassert>

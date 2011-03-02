@@ -25,7 +25,7 @@
 #include "KernelBase.h"
 #include "KernelAttr.h"
 #include "Exceptions.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include <iostream>
 #include <stdexcept>
 

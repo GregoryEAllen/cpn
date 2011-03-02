@@ -3,7 +3,7 @@
 #include "D4RTestQueue.h"
 #include "D4RTester.h"
 #include "D4RDeadlockException.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include <sstream>
 
 namespace D4R {

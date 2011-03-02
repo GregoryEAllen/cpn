@@ -23,7 +23,7 @@
 
 #include "RemoteContextServer.h"
 #include "RCTXMT.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include "VariantToJSON.h"
 #include <stdio.h>
 #include <stdarg.h>

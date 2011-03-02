@@ -1,6 +1,6 @@
 
 #include "D4RTestQueue.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include <stdio.h>
 
 namespace D4R {

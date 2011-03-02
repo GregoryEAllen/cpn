@@ -31,7 +31,7 @@
 #include "RemoteQueueHolder.h"
 #include "RemoteQueue.h"
 #include "SocketAddress.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include "Logger.h"
 #include "ErrnoException.h"
 #include "PthreadFunctional.h"

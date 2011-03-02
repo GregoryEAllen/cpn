@@ -23,7 +23,7 @@
  */
 #include "HBeamformer.h"
 #include "Variant.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include "JSONToVariant.h"
 #include <complex>
 #include <iterator>

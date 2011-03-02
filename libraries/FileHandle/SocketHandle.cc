@@ -23,7 +23,7 @@
 
 #include "SocketHandle.h"
 #include "ErrnoException.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>

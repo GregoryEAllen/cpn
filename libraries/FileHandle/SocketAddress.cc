@@ -23,7 +23,7 @@
 
 #include "SocketAddress.h"
 #include "ErrnoException.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include <string.h>
 #include <netdb.h>
 #include <sstream>

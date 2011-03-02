@@ -3,7 +3,7 @@
 #include "Variant.h"
 #include "JSONToVariant.h"
 #include "VariantToJSON.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 
 unsigned DataFromFile(FILE *f, void *ptr, unsigned maxlength,
         unsigned chanstride, unsigned numchans) {

@@ -27,7 +27,7 @@
  */
 
 #include "CircularQueue.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include <cstring>
 
 

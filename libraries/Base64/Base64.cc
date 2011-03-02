@@ -24,7 +24,7 @@
  */
 
 #include "Base64.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 
 Base64Encoder::Base64Encoder(unsigned cpl)
     : step(step_A), chars_per_line(cpl), result(0), stepcount(0)

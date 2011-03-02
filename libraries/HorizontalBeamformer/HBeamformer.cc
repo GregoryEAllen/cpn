@@ -21,7 +21,7 @@
  * \author John Bridgman
  */
 #include "HBeamformer.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include "ErrnoException.h"
 #include "NumProcs.h"
 #include <pmmintrin.h>
