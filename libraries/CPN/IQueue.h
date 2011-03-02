@@ -89,10 +89,10 @@ namespace CPN {
 
         /// \return the number of channels
         unsigned NumChannels() const { return queue->NumChannels(); }
-        /// \return the maximum threshold in bytes
+        /// \return the maximum threshold in data elements
         unsigned MaxThreshold() const { return queue->MaxThreshold()/GetTypeSize<T>(); }
         unsigned QueueLength() const { return queue->QueueLength()/GetTypeSize<T>(); }
-        /// \return the number of bytes in the channel
+        /// \return the number of data elements in the channel
         unsigned Count() const { return queue->Count()/GetTypeSize<T>(); }
         /// \return true if empty, false otherwise
         bool Empty() const { return queue->Empty(); }
