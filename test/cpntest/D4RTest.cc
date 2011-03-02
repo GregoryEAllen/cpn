@@ -184,7 +184,7 @@ void D4RTest::RunTest(int numkernels) {
         } catch (const CPN::ShutdownException &e) {
         }
 
-        context->WaitForAllNodeEnd();
+        kernels.front()->WaitForAllNodes();
         while (!kernels.empty()) {
             delete kernels.back();
             kernels.pop_back();

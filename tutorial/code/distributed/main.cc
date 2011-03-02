@@ -174,9 +174,9 @@ int main(int argc, char **argv) {
         } while (value < max_fib);
         kernel.DestroyExternalEndpoint("result");
     } else {
-        kernel.WaitNodeTerminate("result");
+        kernel.WaitForNode("result");
     }
-    kernel.WaitForAllNodeEnd();
+    kernel.WaitForAllNodes();
 
     return 0;
 }

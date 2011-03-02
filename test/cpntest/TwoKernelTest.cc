@@ -67,8 +67,8 @@ void TwoKernelTest::SimpleTwoNodeTest() {
     qattr.SetDatatype<unsigned long>();
     qattr.SetReader("sink", "x").SetWriter("source", "y");
     kone->CreateQueue(qattr);
-    kone->WaitNodeTerminate("sink");
-    kone->WaitNodeTerminate("source");
+    kone->WaitForNode("sink");
+    kone->WaitForNode("source");
 }
 
 void TwoKernelTest::TestSync() {
@@ -80,7 +80,7 @@ void TwoKernelTest::TestSync() {
     attr.SetName("sync2").SetParam("mode", MockSyncNode::MODE_SINK);
     attr.SetParam("other", "sync1");
     ktwo->CreateNode(attr);
-    ktwo->WaitForAllNodeEnd();
+    ktwo->WaitForAllNodes();
 }
 
 
@@ -100,8 +100,8 @@ void TwoKernelTest::DoSyncTest(void (*fun1)(CPN::NodeBase*, std::string),
         kone->CreateFunctionNode(sinkname, fun2, sourcename);
     }
 
-    kone->WaitNodeTerminate(sinkname);
-    kone->WaitNodeTerminate(sourcename);
+    kone->WaitForNode(sinkname);
+    kone->WaitForNode(sourcename);
 }
 
 void TwoKernelTest::TestSyncSourceSink() {
@@ -138,7 +138,7 @@ void TwoKernelTest::QueueShutdownTest() {
     kone->CreateQueue(qattr);
     qattr.SetReader("sink", "x").SetWriter("source", "y");
     kone->CreateQueue(qattr);
-    kone->WaitNodeTerminate("source");
+    kone->WaitForNode("source");
 
     ktwo->Terminate();
     ktwo->Wait();

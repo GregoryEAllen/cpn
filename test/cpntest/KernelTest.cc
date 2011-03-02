@@ -64,8 +64,8 @@ void KernelTest::SimpleTwoNodeTest() {
     qattr.SetDatatype<unsigned long>();
     qattr.SetReader("sink", "x").SetWriter("source", "y");
     kernel.CreateQueue(qattr);
-    kernel.WaitNodeTerminate("sink");
-    kernel.WaitNodeTerminate("source");
+    kernel.WaitForNode("sink");
+    kernel.WaitForNode("source");
 }
 
 void KernelTest::SimpleTwoNodeTestFromVariant() {
@@ -88,7 +88,7 @@ void KernelTest::SimpleTwoNodeTestFromVariant() {
 
     CPN::Kernel kernel(VariantCPNLoader::GetKernelAttr(args));
     VariantCPNLoader::Setup(&kernel, args);
-    kernel.WaitForAllNodeEnd();
+    kernel.WaitForAllNodes();
 }
 
 void KernelTest::AddNoOps(CPN::Kernel &kernel) {
@@ -115,7 +115,7 @@ void KernelTest::TestSync() {
     attr.SetParam("mode", MockSyncNode::MODE_SINK);
     attr.SetParam("other", "sync1");
     kernel.CreateNode(attr);
-    kernel.WaitNodeTerminate("sync2");
+    kernel.WaitForNode("sync2");
 }
 
 #define SINKNAME "sinkname"
@@ -129,8 +129,8 @@ static void DoSyncTest(void (*fun1)(NodeBase*, std::string),
     kernel.CreateFunctionNode(SOURCENAME, fun1, SINKNAME);
     kernel.CreateFunctionNode(SINKNAME, fun2, SOURCENAME);
 
-    kernel.WaitNodeTerminate(SINKNAME);
-    kernel.WaitNodeTerminate(SOURCENAME);
+    kernel.WaitForNode(SINKNAME);
+    kernel.WaitForNode(SOURCENAME);
 }
 
 void KernelTest::TestSyncSourceSink() {

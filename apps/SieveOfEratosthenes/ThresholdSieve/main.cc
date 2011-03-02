@@ -119,8 +119,8 @@ static Variant SieveTest(VariantCPNLoader &loader, bool verbose) {
         kernel.DestroyExternalEndpoint(VERBOSE_NAME);
         result["numprimes"] = result["result"].Size();
     }
-    kernel.WaitNodeTerminate(CONTROL_NAME);
-    kernel.WaitForAllNodeEnd();
+    kernel.WaitForNode(CONTROL_NAME);
+    kernel.WaitForAllNodes();
     double stop = getTime();
     times(&tmsStop);
     result["realtime"] = stop - start;

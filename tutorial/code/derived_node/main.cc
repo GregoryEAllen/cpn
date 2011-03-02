@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
     result.Release();
 
     kernel.DestroyExternalEndpoint("result");
-    kernel.WaitForAllNodeEnd();
+    kernel.WaitForAllNodes();
 
     return 0;
 }

@@ -296,7 +296,7 @@ int main(int argc, char **argv) {
     if (config["wait-node"].IsNull()) {
         kernel.Wait();
     } else {
-        kernel.WaitNodeTerminate(config["wait-node"].AsString());
+        kernel.WaitForNode(config["wait-node"].AsString());
     }
     return 0;
 }

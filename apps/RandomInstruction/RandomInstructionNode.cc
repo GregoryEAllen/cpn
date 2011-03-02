@@ -169,7 +169,7 @@ void RandomInstructionNode::DoCreateNode(unsigned newNodeID, unsigned creatorNod
     if (newNodeID == myID) {
         ASSERT(false, "A node is undead!");
     }
-    kernel.WaitNodeStart(GetNodeNameFromID(newNodeID));
+    kernel.WaitForNodeStart(GetNodeNameFromID(newNodeID));
 }
 
 void RandomInstructionNode::DoDeleteNode(unsigned nodeID) {
@@ -178,7 +178,7 @@ void RandomInstructionNode::DoDeleteNode(unsigned nodeID) {
         RandomInstructionGenerator::DoDeleteNode(nodeID);
         die = true;
     } else {
-        kernel.WaitNodeTerminate(GetNodeNameFromID(nodeID));
+        kernel.WaitForNode(GetNodeNameFromID(nodeID));
     }
 }
 

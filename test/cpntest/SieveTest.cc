@@ -247,7 +247,7 @@ void SieveTest::RunTest(void) {
     in.Release();
     kernel.DestroyExternalEndpoint("output");
 
-    kernel.WaitNodeTerminate("TheResult");
+    kernel.WaitForNode("TheResult");
     for (SieveNumber i = 0; i < NUMPRIMES; i++) {
         CPPUNIT_ASSERT_EQUAL(result[i], PRIMES[i]);
     }
@@ -295,7 +295,7 @@ void SieveTest::RunTwoKernelTest() {
     in.Release();
     kone.DestroyExternalEndpoint("output");
 
-    kone.WaitNodeTerminate("TheResult");
+    kone.WaitForNode("TheResult");
     for (SieveNumber i = 0; i < NUMPRIMES; i++) {
         CPPUNIT_ASSERT_EQUAL(result[i], PRIMES[i]);
     }

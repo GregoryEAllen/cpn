@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
     }
     in.Release();
     kernel.DestroyExternalEndpoint("output");
-    kernel.WaitNodeTerminate("controller");
+    kernel.WaitForNode("controller");
     double stop = getTime();
     printf("Duration: %f\n", (stop - start));
     for (unsigned i = 0; i < results.size(); i++) {

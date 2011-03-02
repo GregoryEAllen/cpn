@@ -227,16 +227,16 @@ namespace CPN {
         NodeTerminated(key);
     }
 
-    void Kernel::WaitNodeTerminate(const std::string &nodename) {
+    void Kernel::WaitForNode(const std::string &nodename) {
         FUNCBEGIN;
         context->WaitForNodeEnd(nodename);
     }
 
-    void Kernel::WaitForAllNodeEnd() {
+    void Kernel::WaitForAllNodes() {
         context->WaitForAllNodeEnd();
     }
 
-    void Kernel::WaitNodeStart(const std::string &nodename) {
+    void Kernel::WaitForNodeStart(const std::string &nodename) {
         FUNCBEGIN;
         context->WaitForNodeStart(nodename);
     }

@@ -69,7 +69,7 @@ namespace CPN {
         /**
          * Waits until the main loop terminates. Will not happen until
          * a terminate signal or Terminate is called.
-         * Use WaitNodeTerminate if you wish to wait for the nodes to be
+         * Use WaitForNode if you wish to wait for the nodes to be
          * done.
          */
         void Wait();
@@ -150,7 +150,7 @@ namespace CPN {
          *
          * Implementation detail: External endpoints create a node internally
          * with the same name.  This means that they can be waited on with
-         * WaitNodeStart and WaitNodeTerminate.  Also, WaitForAllNodeEnd will
+         * WaitForNodeStart and WaitForNode.  Also, WaitForAllNodes will
          * not return until all external endpoints have been destroyed.
          * Additionally, external endpoint names must be unique across the
          * network and cannot share the same name as any node.
@@ -178,7 +178,7 @@ namespace CPN {
         /**
          * Clean up the external endpoint.
          * Anybody waiting on it will then return.
-         * Note that calling WaitForAllNodeEnd will block
+         * Note that calling WaitForAllNodes will block
          * until all external endpoints have died or Terminate is called.
          */
         void DestroyExternalEndpoint(const std::string &name);
@@ -189,14 +189,14 @@ namespace CPN {
          * \param nodename the name of the node to wait for
          * \throws ShutdownException if the kernel has shutdown
          */
-        void WaitNodeTerminate(const std::string &nodename);
+        void WaitForNode(const std::string &nodename);
         /** \brief Waits until there are no running nodes.
          */
-        void WaitForAllNodeEnd();
+        void WaitForAllNodes();
         /** \brief Wait for the given node to start
          * \param nodename the name of the node to wait for
          */
-        void WaitNodeStart(const std::string &nodename);
+        void WaitForNodeStart(const std::string &nodename);
 
         /** \brief Create a new queue
          *

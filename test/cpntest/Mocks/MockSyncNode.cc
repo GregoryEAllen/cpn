@@ -18,7 +18,7 @@ void MockSyncNode::Process() {
     switch (mode) {
     case MODE_SOURCE:
         {
-            kernel.WaitNodeStart(othernode);
+            kernel.WaitForNodeStart(othernode);
             CPN::QueueAttr qattr(sizeof(unsigned long), sizeof(unsigned long));
             qattr.SetReader(othernode, "x").SetWriter(GetName(), "y");
             qattr.SetDatatype<unsigned long>();
@@ -31,7 +31,7 @@ void MockSyncNode::Process() {
         break;
     case MODE_SINK:
         {
-            kernel.WaitNodeTerminate(othernode);
+            kernel.WaitForNode(othernode);
             CPN::IQueue<unsigned long> in = GetIQueue("x");
             unsigned long val;
             ASSERT(in.Dequeue(&val, 1));
@@ -61,7 +61,7 @@ CPN::shared_ptr<CPN::NodeFactory> cpninitmocksyncnodetypename(void) {
 }
 
 void SyncSource::Run1(CPN::NodeBase *nb, std::string othernode) {
-    nb->GetKernel()->WaitNodeStart(othernode);
+    nb->GetKernel()->WaitForNodeStart(othernode);
     CPN::QueueAttr qattr(sizeof(unsigned long), sizeof(unsigned long));
     qattr.SetReader(othernode, "x").SetWriter(nb->GetName(), "y");
     qattr.SetDatatype<unsigned long>();
@@ -90,7 +90,7 @@ void SyncSource::Run3(CPN::NodeBase *nb, std::string othernode) {
     out.Release();
 }
 void SyncSource::Run4(CPN::NodeBase *nb, std::string othernode) {
-    nb->GetKernel()->WaitNodeStart(othernode);
+    nb->GetKernel()->WaitForNodeStart(othernode);
     CPN::QueueAttr qattr(sizeof(unsigned long), sizeof(unsigned long));
     qattr.SetDatatype<unsigned long>();
     qattr.SetReader(othernode, "x").SetWriter(nb->GetName(), "y");
@@ -109,7 +109,7 @@ void SyncSource::Run5(CPN::NodeBase *nb, std::string othernode) {
 }
 
 void SyncSink::Run1(CPN::NodeBase *nb, std::string othernode) {
-    nb->GetKernel()->WaitNodeTerminate(othernode);
+    nb->GetKernel()->WaitForNode(othernode);
     CPN::IQueue<unsigned long> in = nb->GetIQueue("x");
     unsigned long val;
     ASSERT(in.Dequeue(&val, 1));
