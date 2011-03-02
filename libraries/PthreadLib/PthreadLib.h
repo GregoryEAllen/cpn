@@ -35,6 +35,23 @@
 #include "PthreadMutex.h"
 #include "PthreadCondition.h"
 
+//=============================================================================
+//  WARNING: subclassing class Pthread can lead to race conditions.
+//  It is recommended that you instead use PthreadFunctional.
+//-----------------------------------------------------------------------------
+//  This Pthread class was written in the style of the Java Thread class.
+//  Unfortunately, C++ has some behaviors that can cause problems when you
+//  use inheritance with a thread class. Some simple rules can mitigate:
+//  1) NEVER call Start() in the constructor of a derived class. There are
+//      no virtual methods inside of C++ constructors, and Pthread::EntryPoint()
+//      must be virtual. This can lead to attempted execution before the
+//      vtables are initialized.
+//  2) ALWAYS call Join() before doing anything else in the destructor of EVERY
+//      class that is an inheritance descendent of the Pthread class. Because of
+//      the calling order of destructors, your destructor could be executing at
+//      the same time as your spawned thread. This could lead to your thread
+//      operating on descructed data and deallocated memory.
+//=============================================================================
 
 class Pthread : public PthreadBase {
   public:
