@@ -4,7 +4,7 @@ proc command {maxprime queuesize threshold ppn iterations wheel zerocopy filenam
     return "\$(PROG) -m $maxprime -q $queuesize -t $threshold -p $ppn -i $iterations -w $wheel -z $zerocopy -f $filename"
 }
 proc mkfilename {maxprime queuesize threshold ppn iterations wheel zerocopy} {
-    return "result.$maxprime.$queuesize.threshold.[join [split $ppn {,}] {-}].$iterations.$wheel.$zerocopy-\$(OS)"
+    return "result.$maxprime.$queuesize.$threshold.[join [split $ppn {,}] {-}].$iterations.$wheel.$zerocopy-\$(OS)"
 }
 proc mkrule {maxprime queuesize threshold ppn iterations wheel zerocopy filename} {
     return "$filename:\n\t[command $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy $filename]\n"
@@ -21,9 +21,20 @@ set iterations 5
 set wheel 0
 set zerocopy 0
 set minimumprime 1000
-set maximumprime 100000000
+set maximumprime 10000000
 
 # First test for ppn = 1, w = 0
+
+set threshold 1
+for {set maxprime $minimumprime} {$maxprime <= $maximumprime} {set maxprime [expr $maxprime * 10]} {
+    set filename [mkfilename $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy]
+    lappend resultrules [mkrule $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy $filename]
+    lappend resultdec $filename
+    incr num
+}
+set threshold 2500
+set maximumprime 100000000
+
 
 for {set maxprime $minimumprime} {$maxprime <= $maximumprime} {set maxprime [expr $maxprime * 10]} {
     set filename [mkfilename $maxprime $queuesize $threshold $ppn $iterations $wheel $zerocopy]
