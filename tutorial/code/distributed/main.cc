@@ -157,7 +157,6 @@ int main(int argc, char **argv) {
     if (load_config) {
         kernel.CreateExternalReader("result");
     }
-
     loader.Setup(&kernel);
 
     if (load_config) {

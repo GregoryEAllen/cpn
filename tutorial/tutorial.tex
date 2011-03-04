@@ -7,7 +7,12 @@
 \author{John Bridgman}
 \begin{document}
 \maketitle
-\lstset{language=c++}
+\lstset{
+    basicstyle=\small,
+    language=c++,
+    stringstyle=\ttfamily,
+    tabsize=4
+}
 
 \section{Introduction}
 This tutorial aims to give a basic walk through of how to use the Computational Process Network (CPN) library.
@@ -45,17 +50,9 @@ A discussion of how nodes are loaded is given in section \ref{sec:node loader}.
 Then a discussion of how to create nodes with examples is in section \ref{sec:nodes}.
 Finally, a discussion of how to distribute a PN is given in \ref{sec:distributing}.
 
-\section{Variant}
-\label{sec:variant}
+\section{Kernel}
 
-The Variant class is a simple container that can represent a set of data structures.
-What Variant can represent is directly mappable into the JavaScript Object Notation (JSON) specification and back again.
-There are a set of classes and functions for parsing JSON to a Variant and back again.
-There is also a set of classes and functions for parsing to an XML format and back again.
-This means that an application that is setup right with Variant can accept both JSON and XML
-input. More details on the JSON format can be found at \url{www.json.org}.
-There is an example application in the \url{apps/XML-JSON} which reads in JSON to Variant and then outputs in our XML format
-or reads in or XML format and outputs JSON.
+\section{Context}
 
 \section{VariantCPNLoader}
 \label{sec:variantcpnloader}
@@ -73,55 +70,19 @@ The CPNKernel application is in \url{apps/CPNKernel/main.cc}.
 
 The configuration that the \verb!VariantCPNLoader! wants to see 
 is a key value map at the base. There are nine keys that specify options for the kernel and three
-that specify how to load the PN.
-The nine options for the kernel are:
-\begin{description}
-\item[``name''] The name that the kernel will use (required).
-\item[``host''] The host name that the kernel will use to listen on (CPN uses POSIX \verb|getaddrinfo| for 
-address lookup and as such supports any host name or port name format that \verb|getaddrinfo| can turn into a \verb|sockaddr| struct) (optional).
-\item[``port''] The port number or name that the kernel will use to listen on (optional).
-\item[``d4r''] Whether to use the D4R algorithm or not (optional, default true).
-\item[``swallow-broken-queue-exceptions''] Whether to swallow the BrokenQueueException that can be emitted from an enqueue (optional, default false).
-\item[``grow-queue-max-threshold''] Whether to automatically grow the queue if a larger threshold is asked for than the queue can handle (optional, default true)
-\item[``libs''] A list of shared libraries that contain node definitions that the node loader should load up immediately.
-\item[``liblist''] A list of node list files that contain information about where to find the shared libraries for nodes that are not statically linked in or manually loaded.
-\item[``context''] A sub-map that describes options for what kind of context to load and what options on the context to set. Those options are:
-\begin{description}
-\item[``host''] What host name the context daemon is listening on (optional, if present ``port'' must also be specified, else the local context implementation will be used).
-\item[``port''] What port number or name the context daemon is listening on.
-\item[``loglevel''] Specify the logging level for the internal CPN logger. This is mainly used for debugging the internals of the CPN library.
-\end{description}
-\end{description}
+that specify how to load the PN. The specification of what it wants to see is given in section \ref{appendix b}.
 
-The three keys that specify how to load the PN are:
-\begin{description}
-\item[``nodes''] A list of node definitions.
-\item[``queues''] A list of queue definitions.
-\item[``nodemap''] A key value map with node names as keys and the kernel name which that node should be run on as values.
-\end{description}
+\subsection{Variant}
+\label{sec:variant}
 
-A node definition is a map with the following fields:
-\begin{description}
-\item[``name''] The unique name for the node (required).
-\item[``type''] The type name of this node (required).
-\item[``param''] Parameters to pass to this node (optional). If parameters is a Variant then it will be serialized as JSON.
-\item[``kernel''] The name of the kernel that this node should be loaded on (optional). The nodemap overrides this option.
-\end{description}
-
-The queue definition is a map with the following fields:
-\begin{description}
-\item[``size''] The size in bytes of this queue (required).
-\item[``threshold''] The size in bytes of the threshold (required).
-\item[``readernode''] The name of the node that will read from this queue (required).
-\item[``readerport''] The port name that the reader node will use (required).
-\item[``writernode''] The name of the node that will write to this queue (required).
-\item[``writerport''] The port name that the writer node will use (required).
-\item[``type''] The type of queue, either ``threshold'' or ``default'' (optional, default is ``default'').
-\item[``datatype''] A string that specifies the data type for the queue (optional, default ``void''). 
-Some valid types are ``void'', and the various types names defined in ``stdint.h'' like ``int32\_t'' as well as ``float'', ``double'', and ``complex$<$T$>$'' where ``T'' is any of the previous types.
-\item[``numchannels''] The number of channels for this queue (optional, default 1).
-\item[``alpha''] A parameter used only by the remote queue allowing one to specify how much space to split between the two sides (optional, default 0.5).
-\end{description}
+The Variant class is a simple container that can represent a set of data structures.
+What Variant can represent is directly mappable into the JavaScript Object Notation (JSON) specification and back again.
+There are a set of classes and functions for parsing JSON to a Variant and back again.
+There is also a set of classes and functions for parsing to an XML format and back again.
+This means that an application that is setup right with Variant can accept both JSON and XML
+input. More details on the JSON format can be found at \url{www.json.org}.
+There is an example application in the \url{apps/XML-JSON} which reads in JSON to Variant and then outputs in our XML format
+or reads in or XML format and outputs JSON.
 
 
 \section{Node Loader}
@@ -198,85 +159,42 @@ See section \ref{sec:distributing}.
 To construct a node in this fashion the node loader must be able to find the node factory.
 See section \ref{sec:node loader} for more details on how the node loader finds factories.
 
-\begin{figure}[htbp]
-\begin{lstlisting}[caption=Declaration for the summing node,label=summer declaration]{}
+\begin{lstlisting}[caption=Declaration for the summing node,label=summer declaration]
 class Summer : public NodeBase {
 public:
-    Summer(Kernel &ker, const NodeAttr &attr);
+    Summer(Kernel &ker, const NodeAttr &attr)
+    : NodeBase(ker, attr) {}
 private:
     void Process();
-    vector<string> inputs;
-    string output;
 };
 \end{lstlisting}
-\end{figure}
 
 \verb!CPN::NodeBase! has one purely virtual method with the signature \verb!void Process()!.
 This method will be called in a separate thread to execute the node.
 When this method returns the kernel assumes the node has finished and starts freeing resources.
+All the constructor does here is pass its parameters to NodeBase.
 
-The \verb!NodeAttr::SetParam! and \verb!NodeAttr::GetParam! methods allow the passing of a
-string parameter to the node.
-The parameter is only available in the constructor as the \verb!NodeAttr! is not kept around.
-In our example we shall use the \verb!Variant! class and the JSON parser to turn the
-string into a \verb!Variant! data structure which is then queried to initialize the
-node variables.
-The constructor is in Listing \ref{summer constructor}
-Notice that we cannot call \verb|GetReader| or \verb|GetWriter| in the constructor because
+The \verb!NodeAttr::SetParam! method allow the passing of a
+string parameters to the node.
+Notice that we cannot call \verb|GetIQueue| or \verb|GetOQueue| in the constructor because
 a node must exist before a queue can be created for it and the node does not exist until
 after the constructor returns.
 
-\begin{lstlisting}[caption=Summing node constructor declaration,label=summer constructor]{}
-Summer::Summer(Kernel &ker, const NodeAttr &attr)
-    : NodeBase(ker, attr)
-{
-    JSONToVariant p;
-    p.Parse(attr.GetParam());
-    if (!p.Done()) {
-        throw std::runtime_error("Could not parse parameters");
-    }
-    Variant param = p.Get();
-    Variant inp = param["inputs"];
-    std::transform(inp.ListBegin(), inp.ListEnd(),
-            std::back_inserter(inputs),
-            std::mem_fun_ref(&Variant::AsString));
-    output = param["output"].AsString();
-}
-\end{lstlisting}
-
-The first thing the constructor does is to passes its parameters on to \verb!CPN::NodeBase! so that
-the base class may initialize itself.
-Then it parses the parameter string.
-If unsuccessful the constructor throws a \verb!std::runtime_error!.
-Then the constructor sets its member method values from the parsed parameters.
 
 When the kernel starts the node the \verb!Process()! method is called in a separate thread.
 The code for the summing node's \verb!Process()! method is in Listing \ref{summer process}.
 
-\begin{lstlisting}[caption=Summing node process declaration,label=summer process]{}
+\begin{lstlisting}[caption=Summing node process declaration,label=summer process]
 void Summer::Process() {
-    typedef vector< IQueue<uint64_t> > Inport_t;
-    Inport_t inports;
-    for (vector<string>::iterator i = inputs.begin(), e = inputs.end();
-            i != e; ++i) {
-        inports.push_back(GetReader(*i));
-    }
-    OQueue<uint64_t> outport = GetWriter(output);
-    bool loop = true;
-    while (loop) {
-        uint64_t sum = 0;
-        for (Inport_t::iterator i = inports.begin(), e = inports.end();
-                i != e; ++i) {
-            uint64_t val = 0;
-            if (i->Dequeue(&val, 1)) {
-                sum += val;
-            } else {
-                loop = false;
-                break;
-            }
-        }
-        if (!loop) break;
-        outport.Enqueue(&sum, 1);
+    IQueue<uint64_t> in_a = GetIQueue("A");
+    IQueue<uint64_t> in_b = GetIQueue("B");
+    OQueue<uint64_t> out = GetOQueue("C");
+    while (true) {
+        uint64_t val_a, val_b, sum;
+        if (!in_a.Dequeue(&val_a, 1)) break;
+        if (!in_b.Dequeue(&val_b, 1)) break;
+        sum = val_a + val_b;
+        out.Enqueue(&sum, 1);
     }
 }
 \end{lstlisting}
@@ -304,6 +222,10 @@ This macro defines a node factory and then the special symbol that the node load
 the node type at run time.
 Note that the type name must be a valid symbol (limited to alphanumeric and underscore).
 Usually it is the same as the node class name.
+There is an additional macro \verb!CPN_DECLARE_NODE_AND_FACTORY(class, typename)! which
+declares both the node and the factory.
+This macro is convenient for when the node has no state.
+We could have used this macro for the summing node and the cons node uses this macro.
 Full code for the summing node is available in Listing \ref{lst:summer}.
 The cons nodes are very similar. Full code for the cons node is in Listing \ref{lst:cons}.
 
@@ -318,7 +240,7 @@ The first is to not use the D4R algorithm.
 The second is swallow broken queue exceptions.
 By default the broken queue exceptions are left unhandled and end up with a call to \verb!std::terminate! ending in application termination.
 
-\begin{lstlisting}{}
+\begin{lstlisting}
     Kernel kernel(KernelAttr("kernel")
         .UseD4R(false)
         .SwallowBrokenQueueExceptions(true));
@@ -327,58 +249,56 @@ By default the broken queue exceptions are left unhandled and end up with a call
 Next, the nodes need to be created. It is important to notice that the nodes for a queue must exist before
 the queue can be created. Attribute objects can be reused.
 
-\begin{lstlisting}{}
-    NodeAttr nattr("summer", "Summer", "{\"inputs\":[ \"A\","
-           " \"B\"], \"output\": \"C\"}");
-    kernel.CreateNode(nattr);
-    nattr = NodeAttr("Cons 1", "Cons", "{\"input\": \"in\","
-           " \"outputs\":[ \"A\", \"B\" ], \"initial\": 1}");
+\begin{lstlisting}
+    kernel.CreateNode("summer", "Summer");
+    NodeAttr nattr("Cons 1", "Cons");
+    nattr.SetParam("initial", 1).SetParam("num outputs", 2);
     kernel.CreateNode(nattr);
     nattr.SetName("Cons 2");
     kernel.CreateNode(nattr);
-    Key_t pkey = kernel.CreatePseudoNode("result");
+    kernel.CreateExternalReader("result");
 \end{lstlisting}
 
 Then the queues can be created.
 
-\begin{lstlisting}{}
+\begin{lstlisting}
     QueueAttr qattr(2*sizeof(uint64_t), sizeof(uint64_t));
     qattr.SetDatatype<uint64_t>();
-    qattr.SetWriter("Cons 1", "A").SetReader("summer", "A");
+    qattr.SetWriter("Cons 1", "out0").SetReader("summer", "A");
     kernel.CreateQueue(qattr);
-    qattr.SetWriter("Cons 2", "A").SetReader("summer", "B");
+    qattr.SetWriter("Cons 2", "out0").SetReader("summer", "B");
     kernel.CreateQueue(qattr);
     qattr.SetWriter("summer", "C").SetReader("Cons 1", "in");
     kernel.CreateQueue(qattr);
-    qattr.SetWriter("Cons 1", "B").SetReader("Cons 2", "in");
+    qattr.SetWriter("Cons 1", "out1").SetReader("Cons 2", "in");
     kernel.CreateQueue(qattr);
-    qattr.SetWriter("Cons 2", "B").SetReader("result", "in");
+    qattr.SetWriter("Cons 2", "out1").SetExternalReader("result");
     kernel.CreateQueue(qattr);
 \end{lstlisting}
 
-Finally, use the created pseudo node to gather the results.
-Notice that we must explicitly destroy the pseudo node.
+Finally, use the created external reader to gather the results.
+Notice that we must explicitly destroy the external reader.
 When the endpoint is released the queues on the other nodes get shut down, causing all the nodes to exit.
 We set the swallow broken queue exceptions flag on the kernel above so that we would obtain this behavior.
 
-\begin{lstlisting}{}
-    IQueue<uint64_t> result = kernel.GetPseudoReader(pkey, "in");
+\begin{lstlisting}
+    IQueue<uint64_t> result = kernel.GetExternalIQueue("result");
     uint64_t value;
     do {
         result.Dequeue(&value, 1);
         std::cout << "- " << value << std::endl;
     } while (value < max_fib);
     result.Release();
-    kernel.DestroyPseudoNode(pkey);
-    kernel.WaitForAllNodeEnd();
+    kernel.DestroyExternalEndpoint("result");
+    kernel.WaitForAllNodes();
 \end{lstlisting}
 
-This gathering of results gives a simple example of how to use the pseudo nodes.
-The pseudo nodes were added for the explicit reason of having outside code that needed
+This gathering of results gives a simple example of how to use the external endpoints.
+The external endpoints were added for the explicit reason of having outside code that needed
 to act as a source or sink into the PN.
 For example if you were using CPN as processing glue between two independent subsystems that both used
 callbacks.
-You could supply the pseudo node key and the kernel to each callback and the two systems could
+You could supply external endpoints to each callback and the two systems could
 then work as sources and sinks in the PN.
 
 \subsection{Function Node Example}
@@ -398,12 +318,11 @@ To create the Fibonacci generator we have been discussing we need two nodes. Thi
 functions for the nodes. The functions should take as the first argument a pointer to a \verb!CPN::NodeBase!.
 The summer and cons node functions are defined as:
 
-\begin{lstlisting}{}
-static void Summer(NodeBase *node, string input_a, string input_b,
-        string output) {
-    IQueue<uint64_t> in_a = node->GetReader(input_a);
-    IQueue<uint64_t> in_b = node->GetReader(input_b);
-    OQueue<uint64_t> out = node->GetWriter(output);
+\begin{lstlisting}
+static void Summer(NodeBase *node) {
+    IQueue<uint64_t> in_a = node->GetIQueue("A");
+    IQueue<uint64_t> in_b = node->GetIQueue("B");
+    OQueue<uint64_t> out = node->GetOQueue("C");
     while (true) {
         uint64_t val_a, val_b, sum;
         if (!in_a.Dequeue(&val_a, 1)) break;
@@ -412,11 +331,11 @@ static void Summer(NodeBase *node, string input_a, string input_b,
         out.Enqueue(&sum, 1);
     }
 }
-static void Cons(NodeBase *node, string input, string output_a,
-        string output_b, uint64_t initial) {
-    IQueue<uint64_t> in = node->GetReader(input);
-    OQueue<uint64_t> out_a = node->GetWriter(output_a);
-    OQueue<uint64_t> out_b = node->GetWriter(output_b);
+
+static void Cons(NodeBase *node, uint64_t initial) {
+    IQueue<uint64_t> in = node->GetIQueue("in");
+    OQueue<uint64_t> out_a = node->GetOQueue("out0");
+    OQueue<uint64_t> out_b = node->GetOQueue("out1");
     uint64_t current = initial;
     while (true) {
         out_a.Enqueue(&current, 1);
@@ -427,14 +346,11 @@ static void Cons(NodeBase *node, string input, string output_a,
 \end{lstlisting}
 
 Then to create the nodes we have:
-\begin{lstlisting}{}
-    kernel.CreateFunctionNode("summer", Summer, string("A"), string("B"),
-            string("C"));
-    kernel.CreateFunctionNode("Cons 1", Cons, string("in"), string("A"),
-            string("B"), 1ull);
-    kernel.CreateFunctionNode("Cons 2", Cons, string("in"), string("A"),
-            string("B"), 1ull);
-    Key_t pkey = kernel.CreatePseudoNode("result");
+\begin{lstlisting}
+    kernel.CreateFunctionNode("summer", Summer);
+    kernel.CreateFunctionNode("Cons 1", Cons, 1);
+    kernel.CreateFunctionNode("Cons 2", Cons, 1);
+    kernel.CreateExternalReader("result");
 \end{lstlisting}
 Everything else is the same as the derived node example.
 The full example is in Listing \ref{lst:function node}.
@@ -470,7 +386,7 @@ what goes into the loader.
 Now a description of the program.
 The first thing the program does is setup some default values and instantiates a VariantCPNLoader and calls it \verb|loader|.
 
-\begin{lstlisting}{}
+\begin{lstlisting}
     uint64_t max_fib = 100;
     bool load_config = true;
     bool print_config = false;
@@ -489,35 +405,38 @@ The configurations are loaded in the order provided and any duplicate entries ov
 
 Now that we finished loading the configuration comes the easy part, running the configuration.
 First we get the loader to create a \verb!KernelAttr! for us.
-\begin{lstlisting}{}
+\begin{lstlisting}
     Kernel kernel(loader.GetKernelAttr());
 \end{lstlisting}
 Then if we are the loading kernel we will first create a pseudo node to get the results and then
 load up the configuration.
-\begin{lstlisting}{}
+\begin{lstlisting}
     if (load_config) {
-        pkey = kernel.CreatePseudoNode("result");
+        kernel.CreateExternalReader("result");
     }
     loader.Setup(&kernel);
 \end{lstlisting}
 Once the configuration is done, we read out the results and clean up.
 \begin{lstlisting}{}
     if (load_config) {
-        IQueue<uint64_t> result =
-             kernel.GetPseudoReader(pkey, "in");
+        QueueAttr qattr(2*sizeof(uint64_t), sizeof(uint64_t));
+        qattr.SetWriter("Cons 2", "out1");
+        qattr.SetExternalReader("result");
+        kernel.CreateQueue(qattr);
+
+        IQueue<uint64_t> result = kernel.GetExternalIQueue("result");
         uint64_t value;
         do {
             result.Dequeue(&value, 1);
             std::cout << "- " << value << std::endl;
         } while (value < max_fib);
-        result.Release();
-        kernel.DestroyPseudoNode(pkey);
+        kernel.DestroyExternalEndpoint("result");
     } else {
-        kernel.WaitNodeTerminate("result");
+        kernel.WaitForNode("result");
     }
-    kernel.WaitForAllNodeEnd();
+    kernel.WaitForAllNodes();
 \end{lstlisting}
-Notice that the kernels not reading out the result wait for the result pseudo node to terminate.
+Notice that the kernels not reading out the result wait for the result node to terminate.
 This ensures that the other kernels will stick around until we are done with the PN.
 We also could have called the \verb!Kernel::Wait()! function on the kernel and in the kernel that loaded the configuration
 call \verb!Kernel::Terminate()!. This would have had almost the same effect.
@@ -538,5 +457,61 @@ call \verb!Kernel::Terminate()!. This would have had almost the same effect.
 \lstinputlisting[caption=Common definitions between kernels,label=lst:common_defs]{code/distributed/common_defs.json}
 \lstinputlisting[caption=Process Network Definition,label=lst:pn_def]{code/distributed/pn_def.json}
 \lstinputlisting[caption=Node mapping,label=lst:nodemap]{code/distributed/nodemap.json}
+
+\section{Appendix B}
+\label{appendix b}
+
+Kernel loader data formats.
+
+The nine options for the kernel are:
+\begin{description}
+\item[``name''] The name that the kernel will use (required).
+\item[``host''] The host name that the kernel will use to listen on (CPN uses POSIX \verb|getaddrinfo| for 
+address lookup and as such supports any host name or port name format that \verb|getaddrinfo| can turn into a \verb|sockaddr| struct) (optional).
+\item[``port''] The port number or name that the kernel will use to listen on (optional).
+\item[``d4r''] Whether to use the D4R algorithm or not (optional, default true).
+\item[``swallow-broken-queue-exceptions''] Whether to swallow the BrokenQueueException that can be emitted from an enqueue (optional, default false).
+\item[``grow-queue-max-threshold''] Whether to automatically grow the queue if a larger threshold is asked for than the queue can handle (optional, default true)
+\item[``libs''] A list of shared libraries that contain node definitions that the node loader should load up immediately.
+\item[``liblist''] A list of node list files that contain information about where to find the shared libraries for nodes that are not statically linked in or manually loaded.
+\item[``context''] A sub-map that describes options for what kind of context to load and what options on the context to set. Those options are:
+\begin{description}
+\item[``host''] What host name the context daemon is listening on (optional, if present ``port'' must also be specified, else the local context implementation will be used).
+\item[``port''] What port number or name the context daemon is listening on.
+\item[``loglevel''] Specify the logging level for the internal CPN logger. This is mainly used for debugging the internals of the CPN library.
+\end{description}
+\end{description}
+
+The three keys that specify how to load the PN are:
+\begin{description}
+\item[``nodes''] A list of node definitions.
+\item[``queues''] A list of queue definitions.
+\item[``nodemap''] A key value map with node names as keys and the kernel name which that node should be run on as values.
+\end{description}
+
+A node definition is a map with the following fields:
+\begin{description}
+\item[``name''] The unique name for the node (required).
+\item[``type''] The type name of this node (required).
+\item[``param''] Parameters to pass to this node (optional). If parameters is a Variant then it will be serialized as JSON.
+\item[``kernel''] The name of the kernel that this node should be loaded on (optional). The nodemap overrides this option.
+\end{description}
+
+The queue definition is a map with the following fields:
+\begin{description}
+\item[``size''] The size in bytes of this queue (required).
+\item[``threshold''] The size in bytes of the threshold (required).
+\item[``readernode''] The name of the node that will read from this queue (required).
+\item[``readerport''] The port name that the reader node will use (required).
+\item[``writernode''] The name of the node that will write to this queue (required).
+\item[``writerport''] The port name that the writer node will use (required).
+\item[``type''] The type of queue, either ``threshold'' or ``default'' (optional, default is ``default'').
+\item[``datatype''] A string that specifies the data type for the queue (optional, default ``void''). 
+Some valid types are ``void'', and the various types names defined in ``stdint.h'' like ``int32\_t'' as well as ``float'', ``double'', and ``complex$<$T$>$'' where ``T'' is any of the previous types.
+\item[``numchannels''] The number of channels for this queue (optional, default 1).
+\item[``alpha''] A parameter used only by the remote queue allowing one to specify how much space to split between the two sides (optional, default 0.5).
+\end{description}
+
+
 
 \end{document}

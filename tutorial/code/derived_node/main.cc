@@ -25,11 +25,9 @@ int main(int argc, char **argv) {
             .SwallowBrokenQueueExceptions(true));
 
     // Create the three nodes use the same parameters for both the cons nodes
-    NodeAttr nattr("summer", "Summer");
-    kernel.CreateNode(nattr);
-    nattr = NodeAttr("Cons 1", "Cons");
-    nattr.SetParam("initial", 1);
-    nattr.SetParam("num outputs", 2);
+    kernel.CreateNode("summer", "Summer");
+    NodeAttr nattr("Cons 1", "Cons");
+    nattr.SetParam("initial", 1).SetParam("num outputs", 2);
     kernel.CreateNode(nattr);
     nattr.SetName("Cons 2");
     kernel.CreateNode(nattr);

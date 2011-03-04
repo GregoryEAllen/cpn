@@ -5,13 +5,7 @@
 
 using namespace CPN;
 
-class Cons : public NodeBase {
-public:
-    Cons(Kernel &ker, const NodeAttr &attr)
-        : NodeBase(ker, attr) {}
-private:
-    void Process();
-};
+CPN_DECLARE_NODE_AND_FACTORY(Cons, Cons);
 
 void Cons::Process() {
     IQueue<uint64_t> in = GetIQueue("in");
@@ -25,4 +19,3 @@ void Cons::Process() {
     }
 }
 
-CPN_DECLARE_NODE_FACTORY(Cons, Cons);
