@@ -41,7 +41,7 @@ out = sys.stdout
 out.write(license)
 out.write('''
 #include "FanVBeamformer.h"
-#include "Assert.h"
+#include "ThrowingAssert.h"
 #include <tmmintrin.h>
 #include <complex>
 
