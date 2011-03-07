@@ -172,11 +172,10 @@ int main(int argc, char **argv) {
             std::cout << "- " << value << std::endl;
         } while (value < max_fib);
         kernel.DestroyExternalEndpoint("result");
+        kernel.WaitForAllNodes();
     } else {
-        kernel.WaitForNode("result");
+        kernel.Wait();
     }
-    kernel.WaitForAllNodes();
-
     return 0;
 }
 

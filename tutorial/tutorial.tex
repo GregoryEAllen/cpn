@@ -25,13 +25,13 @@ F_n = F_{n-1} + F_{n-2}\\
 F_0 = 1\\
 F_1 = 1
 \end{eqnarray}
-This is a very simple PN and requires only two types of nodes.
+This can be represented by a very simple PN and requires only two types of nodes.
 The first type of node is a summing node that takes two inputs and one output.
 The summing node takes one token from each input, sums them together and then enqueues the result
 on the output.
 We shall call the second type of node the cons node.
 The cons node has an initial value, an input, and two identical outputs.
-The cons node first outputs its initial value, then copies its input to the outputs.
+The cons node first outputs its initial value, then copies each token from the input to both outputs.
 All the examples will use the external endpoint interface for the collection of the PN output.
 The topology of the example PN is in Figure \ref{fig:fibinocci}.
 Note that all arithmetic in the nodes is done using 64 bit unsigned integers and 12200160415121876738 is the largest
@@ -52,46 +52,62 @@ Finally, a discussion of how to distribute a PN is given in \ref{sec:distributin
 
 \section{Kernel}
 
-\section{Context}
+The main class used in CPN is the \verb|CPN::Kernel|.
+The kernel is responsible for creating nodes and queues, maintaining the state of the
+network, and cleaning up resources.
+The kernel contains the node loader which it uses for creating nodes with type names.
+See section \ref{sec:node loader} for detail of the node loader.
+The kernel contains two ways of creating a new node.
+There is also an interface for getting at queue endpoints outside the network by using
+the external endpoint interface.
+The kernel contains a context which it uses to store and query the configuration of the network
+and talk to other kernels.
+The details of the context are described in section \ref{sec:context}
 
-\section{VariantCPNLoader}
-\label{sec:variantcpnloader}
+\subsection{Construction}
+The kernel takes a \verb|KernelAttr| parameter object in the constructor.
+The only non optional parameter to the kernel is the name which is taken in the \verb|KernelAttr| constructor.
+The setter methods are:
+\begin{description}
+\item[SetName] The name for the kernel.
+\item[SetHostName] The hostname to bind to for making remote queue connections.
+\item[SetServName] The service name or port number to bind to for making remote queue connections.
+\item[UseD4R] Option to turn D4R off or on. Default is on.
+\item[SetContext] The context for execution. If not given a local context is generated.
+\item[SetRemoteEnabled] Force enable remote operations even when the context is not remote enabled and no host name or service name given.
+\item[SwallowBrokenQueueExceptions] Whether to handle broken queue exceptions that propagate out of the node.
+\item[GrowQueueMaxThreshold] Whether to grow the queue max threshold if a request for more than the max threshold is made.
+\item[AddSharedLib] Add a shared library to the list of libraries to preload in the node loader for node lookup.
+\item[AddNodeList] Add a node list to the node loader to parse for node lookup.
+\end{description}
 
-The \verb!VariantCPNLoader! is a class and a set of static methods that take a Variant object with data in a specific format and
-use that data to call methods on a kernel object.
-The \verb!VariantCPNLoader! also has a method for constructing a KernelAttr object from a Variant object.
-An example of the loaders usage is given in the distributed section.
-The \verb!VariantCPNLoader! has a validator that goes through the configuration and ensures that all required fields are present
-and that there are no obvious errors like two nodes with the same name.
+\subsection{Context}
+\label{sec:context}
 
-The CPNKernel application is an example of an application that will load up any set of derived nodes from a node library using
-configuration files.
-The CPNKernel application is in \url{apps/CPNKernel/main.cc}.
+The context provides the mechanism through which the kernel keeps state about the network.
+In order to distribute the network across multiple processes some shared state and message passing is required.
+The context provides this shared state and message passing.
+Under normal circumstances the user should have no need to call any method on the context directly.
+The only reason the user needs to do anything with the context is when the process network is distributed.
+The context class was specifically designed so that multiple implementations could be made.
+Provided in the CPN library are three implementations.
+The first implementation is \verb|LocalContext| which provides the context interface to one or more kernels
+in the same process.
+The second implementation is \verb|RemoteContext| which combined with the remote context server
+gives a context object that provides state across multiple processes.
+The \verb|RemoteContext| and server is built on top of two abstract base classes which provide everything
+except the transportation medium.
+The context was designed in this fashion to make it possible to implement custom state handling.
+For example, it would be possible to implement a context that used a database and a synchronization service like ZooKeeper.
 
-The configuration that the \verb!VariantCPNLoader! wants to see 
-is a key value map at the base. There are nine keys that specify options for the kernel and three
-that specify how to load the PN. The specification of what it wants to see is given in section \ref{appendix b}.
-
-\subsection{Variant}
-\label{sec:variant}
-
-The Variant class is a simple container that can represent a set of data structures.
-What Variant can represent is directly mappable into the JavaScript Object Notation (JSON) specification and back again.
-There are a set of classes and functions for parsing JSON to a Variant and back again.
-There is also a set of classes and functions for parsing to an XML format and back again.
-This means that an application that is setup right with Variant can accept both JSON and XML
-input. More details on the JSON format can be found at \url{www.json.org}.
-There is an example application in the \url{apps/XML-JSON} which reads in JSON to Variant and then outputs in our XML format
-or reads in or XML format and outputs JSON.
-
-
-\section{Node Loader}
+\subsection{Node Loader}
 \label{sec:node loader}
 
 When you ask the kernel to create a node by type name, it asks the node loader
 for a node factory that can create a node of that type.
 If there is a factory in that map it will return it.
-If not then there are several places the node loader will look to see if it can find one.
+You can explicitly add a factory to the map using \verb|RegisterNodeFactory|.
+If no factory is found then there are several places the node loader will look to see if it can find one.
 The first thing the node loader will do is search the executable for a symbol which is
 the type name added to an identifier.
 If a symbol with that name is found it is treated as a function that will return
@@ -128,17 +144,42 @@ Even more linkers support the `-u' option which tells them to consider the given
 But using `-u' requires knowledge of the symbols that must be loaded and this is compiler and platform
 specific.
 
+\subsection{VariantCPNLoader}
+\label{sec:variantcpnloader}
+
+The \verb!VariantCPNLoader! is a class and a set of static methods that take a Variant object with data in a specific format and
+use that data to call methods on a kernel object.
+The \verb!VariantCPNLoader! also has a method for constructing a KernelAttr object from a Variant object.
+An example of the loaders usage is given in the distributed section.
+The \verb!VariantCPNLoader! has a validator that goes through the configuration and ensures that all required fields are present
+and that there are no obvious errors like two nodes with the same name.
+
+The CPNKernel application is an example of an application that will load up any set of derived nodes from a node library using
+configuration files.
+The CPNKernel application is in \url{apps/CPNKernel/main.cc}.
+
+The configuration that the \verb!VariantCPNLoader! wants to see 
+is a key value map at the base. There are nine keys that specify options for the kernel and three
+that specify how to load the PN. The specification of what it wants to see is given in section \ref{sec:appendix b}.
+
+\subsubsection{Variant}
+\label{sec:variant}
+
+The Variant class is a simple container that can represent a set of data structures.
+What Variant can represent is directly mappable into the JavaScript Object Notation (JSON) specification and back again.
+There are a set of classes and functions for parsing JSON to a Variant and back again.
+There is also a set of classes and functions for parsing to an XML format and back again.
+This means that an application that is setup right with Variant can accept both JSON and XML
+input. More details on the JSON format can be found at \url{www.json.org}.
+There is an example application in the \url{apps/XML-JSON} which reads in JSON to Variant and then outputs in our XML format
+or reads in or XML format and outputs JSON.
+
 \section{Nodes}
 \label{sec:nodes}
-There are three different ways to define or create a node.
+There are two different ways to define or create a node.
 The first way is to derive a node from \verb!CPN::NodeBase!. This method is rather verbose but allows one to load
 the node through the \verb!VariantCPNLoader!. The second way is by asking the kernel to create a function node.
 A function node is a node which calls a function with a pointer to a \verb!CPN::NodeBase! and any additional supplied parameters.
-The final way of creating a node is to create a pseudo node.
-A pseudo node is a handle that one can use to get queue endpoints.
-This facility is designed for when your data source or sink is some other library where you provide callback functions.
-So, by providing the right kind of callback functions you can easily turn that source or sink into a source or sink node in CPN.
-
 
 \subsection{Derived Node Example}
 \label{sec:derived node example}
@@ -147,15 +188,23 @@ In order to provide a derived node one must inherit from \verb!CPN::NodeBase!.
 Also, if the standard node factory declaration macro is used the constructor must take a reference
 to the \verb!CPN::Kernel! as the first parameter and a \verb|const| reference to the \verb!CPN::NodeAttr!
 as the second parameter.
+There is an additional macro for declaring a stateless node and factory together.
 These are the parameters that the constructor for \verb!CPN::NodeBase! takes.
 The declaration for the summing node is in Listing \ref{summer declaration}
 The full source code for this example is in section \ref{derived source}.
 
-To construct a derived node one must pass a \verb!CPN::NodeAttr! object to the kernel.
+To construct a derived node one must pass a \verb!CPN::NodeAttr! object to the kernel method \verb|CreateNode|.
 The node attribute object requires a node name and a node type name as constructor arguments.
-The methods of interest are \verb!NodeAttr::SetParam!, \verb!NodeAttr::GetParam! and \verb!NodeAttr::SetKernel!.
-The \verb!NodeAttr::SetKernel! is used when distributing the process network.
-See section \ref{sec:distributing}.
+There is an overloaded version of \verb|CreateNode| which takes the name and type directly for when no additional
+parameters are needed.
+The main methods of interest on \verb|NodeAttr| are \verb!NodeAttr::SetParam! and \verb!NodeAttr::SetKernel!.
+The \verb!NodeAttr::SetParam! method allow the passing of
+string parameters to the node.
+The parameters are given to the node as a string to string mapping and are available through the methods
+\verb|NodeBase::GetParam| family of methods.
+The \verb!NodeAttr::SetKernel! is used to tell the kernel which kernel we want the node to be created on
+when distributing the process network.
+See section \ref{sec:distributing} for details.
 To construct a node in this fashion the node loader must be able to find the node factory.
 See section \ref{sec:node loader} for more details on how the node loader finds factories.
 
@@ -169,17 +218,17 @@ private:
 };
 \end{lstlisting}
 
+Note that we could have used the macro \verb|CPN_DECLARE_NODE_AND_FACTORY| here, but we want to show
+how to write a node declaration out. The cons node uses this macro.
 \verb!CPN::NodeBase! has one purely virtual method with the signature \verb!void Process()!.
 This method will be called in a separate thread to execute the node.
 When this method returns the kernel assumes the node has finished and starts freeing resources.
 All the constructor does here is pass its parameters to NodeBase.
 
-The \verb!NodeAttr::SetParam! method allow the passing of a
-string parameters to the node.
-Notice that we cannot call \verb|GetIQueue| or \verb|GetOQueue| in the constructor because
+Note that the node does not officially exist until the constructor returns.
+So, we cannot call \verb|GetIQueue| or \verb|GetOQueue| in the constructor because
 a node must exist before a queue can be created for it and the node does not exist until
 after the constructor returns.
-
 
 When the kernel starts the node the \verb!Process()! method is called in a separate thread.
 The code for the summing node's \verb!Process()! method is in Listing \ref{summer process}.
@@ -405,6 +454,8 @@ The configurations are loaded in the order provided and any duplicate entries ov
 
 Now that we finished loading the configuration comes the easy part, running the configuration.
 First we get the loader to create a \verb!KernelAttr! for us.
+The loader knows about the two default context types and automatically creates a remote context
+if a context host and port are specified.
 \begin{lstlisting}
     Kernel kernel(loader.GetKernelAttr());
 \end{lstlisting}
@@ -431,12 +482,12 @@ Once the configuration is done, we read out the results and clean up.
             std::cout << "- " << value << std::endl;
         } while (value < max_fib);
         kernel.DestroyExternalEndpoint("result");
+        kernel.WaitForAllNodes();
     } else {
-        kernel.WaitForNode("result");
+        kernel.Wait();
     }
-    kernel.WaitForAllNodes();
 \end{lstlisting}
-Notice that the kernels not reading out the result wait for the result node to terminate.
+Notice that the kernels not reading out the result wait for the network to terminate.
 This ensures that the other kernels will stick around until we are done with the PN.
 We also could have called the \verb!Kernel::Wait()! function on the kernel and in the kernel that loaded the configuration
 call \verb!Kernel::Terminate()!. This would have had almost the same effect.
@@ -459,7 +510,7 @@ call \verb!Kernel::Terminate()!. This would have had almost the same effect.
 \lstinputlisting[caption=Node mapping,label=lst:nodemap]{code/distributed/nodemap.json}
 
 \section{Appendix B}
-\label{appendix b}
+\label{sec:appendix b}
 
 Kernel loader data formats.
 
