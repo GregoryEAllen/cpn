@@ -34,7 +34,7 @@
 
 
 const RandomInstructionGenerator::LFSR_t RandomInstructionGenerator::DEFAULT_SEED = 1;
-const RandomInstructionGenerator::LFSR_t RandomInstructionGenerator::DEFAULT_FEED = 0xF82F;
+const RandomInstructionGenerator::LFSR_t RandomInstructionGenerator::DEFAULT_FEED = 0xeb979d48;
 
 //-----------------------------------------------------------------------------
 RandomInstructionGenerator::RandomInstructionGenerator(unsigned numNodes)
