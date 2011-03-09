@@ -144,7 +144,12 @@ int main(int argc, char **argv) {
     shared_ptr<RemoteContext> context = shared_ptr<RemoteContext>(new RemoteContext(addrs));
     context->LogLevel(loglevel);
 
-    Kernel kernel(KernelAttr(name).SetHostName(bindip).SetContext(context));
+    KernelAttr kattr(name);
+    kattr.SetContext(context);
+    if (!bindip.empty()) {
+        kattr.SetHostName(bindip);
+    }
+    Kernel kernel(kattr);
 
     if (name == starter) {
         printf("Creating %u nodes\n", numNodes);
