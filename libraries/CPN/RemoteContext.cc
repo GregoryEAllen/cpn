@@ -29,71 +29,81 @@
 using std::auto_ptr;
 
 RemoteContext::RemoteContext(const SocketAddress &addr)
+    : endwrite(false)
 { 
     thread.reset(CreatePthreadFunctional(this, &RemoteContext::EntryPoint));
-    Connect(addr);
-    SetNoDelay(true);
+    sock.Connect(addr);
+    sock.SetNoDelay(true);
     thread->Start();
 }
 
 RemoteContext::RemoteContext(const SockAddrList &addrs)
+    : endwrite(false)
 { 
     thread.reset(CreatePthreadFunctional(this, &RemoteContext::EntryPoint));
-    Connect(addrs);
-    SetNoDelay(true);
+    sock.Connect(addrs);
+    sock.SetNoDelay(true);
     thread->Start();
 }
 
 RemoteContext::~RemoteContext() {
+    EndWrite();
     thread->Join();
 }
 
 void RemoteContext::SendMessage(const Variant &msg) {
-    if (!Closed()) {
+    // We have the lock
+    if (!sock.Closed() && !endwrite) {
         std::string message = VariantToJSON(msg);
         //printf("<<< %s\n", message.c_str());
-        Write(message.data(), message.size());
+        sock.Write(message.data(), message.size());
     }
 }
 
 void *RemoteContext::EntryPoint() {
+    const unsigned BUF_SIZE = 4*1024;
+    char buf[BUF_SIZE];
     try {
-        Readable(false);
-        while (Good() && !IsTerminated()) {
-            Poll(-1);
-            Read();
+        sock.Readable(false);
+        sock.Poll(-1);
+        while (sock.Good()) {
+            unsigned numread = sock.Recv(buf, BUF_SIZE, false);
+            if (numread == 0) {
+                if (sock.Eof()) {
+                    Terminate();
+                    return 0;
+                }
+                sock.Poll(-1);
+            } else {
+                unsigned numparsed = 0;
+                while (numparsed < numread) {
+                    numparsed += parse.Parse(buf + numparsed, numread - numparsed);
+                    if (parse.Done()) {
+                        DispatchMessage(parse.Get());
+                        parse.Reset();
+                    } else if (parse.Error()) {
+                        fprintf(stderr, "RemoteContext: Error parsing input!\n");
+                        parse.Reset();
+                    }
+                }
+            }
         }
     } catch (const ErrnoException &e) {
-        printf("RemoteContext: Uncaught errno exception (%d): %s\n", e.Error(), e.what());
+        fprintf(stderr, "RemoteContext: Uncaught errno exception (%d): %s\n", e.Error(), e.what());
         Terminate();
     }
-    Close();
+    sock.Close();
     return 0;
 }
 
-void RemoteContext::Read() {
-    const unsigned BUF_SIZE = 4*1024;
-    char buf[BUF_SIZE];
-    while (Good()) {
-        unsigned numread = Recv(buf, BUF_SIZE, false);
-        if (numread == 0) {
-            if (Eof()) {
-                Terminate();
-                Close();
-            }
-            break;
-        }
-        unsigned numparsed = 0;
-        while (numparsed < numread) {
-            numparsed += parse.Parse(buf + numparsed, numread - numparsed);
-            if (parse.Done()) {
-                DispatchMessage(parse.Get());
-                parse.Reset();
-            } else if (parse.Error()) {
-                printf("Error parsing input!\n");
-                parse.Reset();
-            }
-        }
-    }
+void RemoteContext::EndWrite() {
+    PthreadMutexProtected alock(lock);
+    endwrite = true;
+    sock.ShutdownWrite();
+}
+
+bool RemoteContext::IsEndWrite() {
+    PthreadMutexProtected alock(lock);
+    return endwrite;
 }
 

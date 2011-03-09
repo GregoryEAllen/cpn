@@ -176,7 +176,9 @@ void RemoteContextDaemon::Client::Read() {
             }
         }
     } catch (const ErrnoException &e) {
-        daemon->dbprintf(0, "Error on read from %s:%d: %s\n", name.c_str(), e.Error(), e.what());
+        if (!daemon->IsTerminated()) {
+            daemon->dbprintf(1, "Unable to read from %s:%d: %s\n", name.c_str(), e.Error(), e.what());
+        }
     }
 }
 
@@ -191,7 +193,7 @@ void RemoteContextDaemon::Client::Send(const Variant &msg) {
             numwritten += Write(message.data() + numwritten, message.size() - numwritten);
         }
     } catch (const ErrnoException &e) {
-        daemon->dbprintf(0, "Error on write to %s:%d: %s\n", name.c_str(), e.Error(), e.what());
+        daemon->dbprintf(1, "Unable to write to %s:%d: %s\n", name.c_str(), e.Error(), e.what());
         daemon->Terminate(name);
     }
 }

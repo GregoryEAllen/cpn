@@ -33,7 +33,7 @@ class Pthread;
 /**
  * An implementation for the RemoteContextClient that is paired with RemoteContextDaemon.
  */
-class CPN_API RemoteContext : public CPN::RemoteContextClient, public SocketHandle {
+class CPN_API RemoteContext : public CPN::RemoteContextClient {
 public:
     RemoteContext(const SocketAddress &addr);
     RemoteContext(const SockAddrList &addrs);
@@ -41,9 +41,12 @@ public:
 protected:
     void SendMessage(const Variant &msg);
     void *EntryPoint();
-    void Read();
 private:
+    void EndWrite();
+    bool IsEndWrite();
     JSONToVariant parse;
     std::auto_ptr<Pthread> thread;
+    SocketHandle sock;
+    bool endwrite;
 };
 #endif
