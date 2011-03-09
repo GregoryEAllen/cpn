@@ -312,7 +312,7 @@ int cpnbf_main(int argc, char **argv) {
             repetitions = atoi(optarg);
             break;
         case 'R':
-            num_rr = std::min(1,atoi(optarg));
+            num_rr = std::max(1,atoi(optarg));
             break;
         case 's':
             size_mult = atoi(optarg);
