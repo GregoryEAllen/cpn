@@ -14,6 +14,8 @@
 #include <omp.h>
 #endif
 
+static const unsigned BLOCKSIZE = 8192;
+static const unsigned OVERLAP = 2048;
 using std::complex;
 
 static const char* const VALID_OPTS = "h:i:o:er:np:l";
@@ -120,7 +122,7 @@ int hb_main(int argc, char **argv) {
         former->Run(&input[0], former->Length(), &output[0], former->Length());
         fprintf(stderr, ". Done\n");
         former->PrintTimes();
-        measure.Tick(former->Length());
+        measure.Tick(former->Length() - OVERLAP);
     }
     fprintf(stderr,
             "Output:\nAvg:\t%f Hz\nMax:\t%f Hz\nMin:\t%f Hz\n",

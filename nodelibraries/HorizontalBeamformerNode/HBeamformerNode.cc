@@ -54,6 +54,7 @@ CPN_DECLARE_NODE_FACTORY(HBeamformerNode, HBeamformerNode);
 void HBeamformerNode::Process() {
     std::auto_ptr<HBeamformer> hbeam = HBLoadFromFile(GetParam("file"), GetParam<bool>("estimate", false));
     int half = GetParam<int>("half", 0);
+    unsigned outoverlap = GetParam<unsigned>("out overlap", 0);
     CPN::IQueue<complex<float> > in = GetIQueue("in");
     CPN::OQueue<complex<float> > out = GetOQueue("out");
     if (half == 0) {
@@ -65,7 +66,7 @@ void HBeamformerNode::Process() {
             complex<float> *outbuff = out.GetEnqueuePtr(hbeam->Length());
             hbeam->Run(inbuff, in.ChannelStride(), outbuff, out.ChannelStride());
             in.Dequeue(hbeam->Length());
-            out.Enqueue(hbeam->Length()); // change
+            out.Enqueue(hbeam->Length() - outoverlap); // change
         }
     } else if (half == 1) {
         const unsigned outlen = hbeam->NumVStaves() * hbeam->Length();
@@ -87,7 +88,7 @@ void HBeamformerNode::Process() {
             complex<float> *outbuff = out.GetEnqueuePtr(hbeam->Length());
             hbeam->RunSecondHalf(inbuff, outbuff, out.ChannelStride());
             in.Dequeue(inlen);
-            out.Enqueue(hbeam->Length()); // change
+            out.Enqueue(hbeam->Length() - outoverlap); // change
         }
     }
 }

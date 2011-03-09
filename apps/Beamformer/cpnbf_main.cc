@@ -386,6 +386,7 @@ int cpnbf_main(int argc, char **argv) {
         node["type"] = "HBeamformerNode";
         node["param"]["estimate"] = estimate;
         node["param"]["file"] = horizontal_config;
+        node["param"]["out overlap"] = OVERLAP;
         for (unsigned i = 0; i < num_fans; ++i) {
             for (unsigned j = 0; j < num_rr; ++j) {
                 if (split_horizontal) {
@@ -419,7 +420,7 @@ int cpnbf_main(int argc, char **argv) {
         node["name"] = "output";
         node["type"] = "CPNBFOutputNode";
         node["param"]["num_inports"] = num_fans;
-        node["param"]["blocksize"] = BLOCKSIZE;
+        node["param"]["blocksize"] = BLOCKSIZE - OVERLAP;
         node["param"]["outfile"] = output_file;
         node["param"]["nooutput"] = nooutput;
         loader.AddNode(node);
@@ -437,6 +438,7 @@ int cpnbf_main(int argc, char **argv) {
             node["param"]["overlap"] = 0;
             node["param"]["num_outports"] = 1;
             node["param"]["num_inports"] = num_rr;
+            node["param"]["size"] = BLOCKSIZE - OVERLAP;
             for (unsigned i = 0; i < num_fans; ++i) {
                 node["name"] = ToString(JOIN_FMT, i);
                 loader.AddNode(node);
