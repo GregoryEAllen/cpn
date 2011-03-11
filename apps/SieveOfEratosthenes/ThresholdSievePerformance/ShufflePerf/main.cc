@@ -35,6 +35,7 @@ std::string BuildLegendString(Variant run) {
         else oss << "] ";
     }
     oss << "zc: " << run["zerocopy"].AsInt() << " ";
+    oss << "thresh: " << run["threshold"].AsInt() << " ";
     return oss.str();
 }
 
