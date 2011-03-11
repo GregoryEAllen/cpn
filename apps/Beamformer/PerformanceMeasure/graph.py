@@ -3,8 +3,8 @@ import pylab
 import sys
 
 num_cores = int(sys.argv[1])
-files = sys.argv[3:]
-outfile = sys.argv[2]
+files = sys.argv[2:]
+outfile = sys.argv[1]
 params = {
 'text.fontsize': 10,
 'legend.fontsize': 10,
