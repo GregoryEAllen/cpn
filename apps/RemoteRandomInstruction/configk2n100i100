@@ -1,7 +1,6 @@
 {
     "iterations"    : 100,
     "numnodes"      : 100,
-    "numkernels"    : 20,
     "debuglevel"    : 1,
     "loglevel"      : 25,
     "kernels"       : [
