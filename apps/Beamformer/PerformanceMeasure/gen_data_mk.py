@@ -36,4 +36,4 @@ for action_type in ['avg', 'min', 'max']:
     for type in ['full', 'half']:
         file = 'result.' +  type + '.' + action_type + '.%'
         stdout.write(file + ': $(' + type + '_' + action_type + '_files) graph.py\n')
-        stdout.write('\tpython graph.py $@ $(' + type + '_' + action_type + '_files)\n\n')
+        stdout.write('\tpython graph.py ' + str(num_cores) + ' $@ $(' + type + '_' + action_type + '_files)\n\n')
