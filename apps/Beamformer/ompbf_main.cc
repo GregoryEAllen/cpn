@@ -17,6 +17,7 @@
 #endif
 
 static const unsigned BLOCKSIZE = 8192;
+static const unsigned OVERLAP = 2048;
 
 using std::complex;
 
@@ -175,7 +176,7 @@ int ompbf_main(int argc, char **argv) {
             hformer->Run(&voutput[i * stride * numStaves], numOutSamples, &houtput[i * hformer->Length() * hformer->NumBeams()], hformer->Length());
         }
         fprintf(stderr, ". Done (%f ms)\n", (getTime() - start) * 1000);
-        measure.Tick(numSamples);
+        measure.Tick(numSamples - OVERLAP);
     }
     fprintf(stderr, "Avg:\t%f Hz\nMax:\t%f Hz\nMin:\t%f Hz\n", measure.AverageRate(), measure.LargestRate(), measure.SmallestRate());
 
