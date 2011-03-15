@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <vector>
 #include <signal.h>
+#include <sstream>
 
 using CPN::shared_ptr;
 using CPN::Context;
@@ -24,25 +25,36 @@ using CPN::KernelAttr;
 
 // one interesting seed is 37733
 
-const char* const VALID_OPTS = "hb:";
+const char* const VALID_OPTS = "hb:i:n:s:d:l:S:c:";
 
-const char* const HELP_OPTS = "Usage: %s <config> <name> <context hostname> <context port>\n"
+const char* const HELP_OPTS = "Usage: %s <name> <context hostname> <context port>\n"
+"All options can be done as a mixture of command line and configuration files which override each other.\n"
 "\t-h\tPrint out this message\n"
 "\t-b\tSpecify an IP for the kernel to bind to.\n"
+"\t-i n\tRun for n iterations (default 10)\n"
+"\t-n n\tStart with n nodes (default 10)\n"
+"\t-s n\tStart with n as the seed\n"
+"\t-d n\tUse debug level n (default 0)\n"
+"\t-l n\tUse log level n (default 75)\n"
+"\t-k 'space sperated list of kernel names'\n"
+"\t-S n\tSay kernel n should be the starter\n"
+"\t-c cfg\tA config file.\n"
 "\n"
-"The config file should be of the format:\n"
+"The config file can have any of the following keys:\n"
 "\n" 
 "{\n"
 "\t\"iterations\"\t: number of iterations,\n"
 "\t\"numnodes\"\t: number of starting nodes,\n"
-"\t\"seed\"\t\t: (optional) starting seed,\n"
-"\t\"debugLevel\"\t: (optional) number for debug level,\n"
-"\t\"loglevel\"\t: (optional) number for log level,\n"
+"\t\"seed\"\t\t: starting seed,\n"
+"\t\"debugLevel\"\t: number for debug level,\n"
+"\t\"loglevel\"\t: number for log level,\n"
 "\t\"kernels\"\t: [\n"
 "\t\t\"kernelone\", \"kerneltwo\", ...\n"
-"\t]\n"
+"\t],\n"
 "\t\"starter\"\t: \"kernelname to start all nodes\"\n"
 "}\n"
+"Options after -c will override the config options and options before -c will be overridden by the config.\n"
+"-c can be specified multiple times\n"
 ;
 
 int main(int argc, char **argv) {
@@ -54,6 +66,8 @@ int main(int argc, char **argv) {
     int loglevel = 75;
     LFSR::LFSR_t seed = RandomInstructionGenerator::DEFAULT_SEED;
     std::string bindip = "";
+    std::string starter = "";
+    std::vector<std::string> kernelnames;
 
     bool procOpts = true;
     while (procOpts) {
@@ -64,6 +78,61 @@ int main(int argc, char **argv) {
         case 'b':
             bindip = optarg;
             break;
+        case 'i':
+            iterations = atoi(optarg);
+            break;
+        case 'd':
+            debugLevel = atoi(optarg);
+            break;
+        case 'n':
+            numNodes = atoi(optarg);
+            break;
+        case 'l':
+            loglevel = atoi(optarg);
+            break;
+        case 'S':
+            starter = optarg;
+            break;
+        case 'k':
+            {
+                std::istringstream iss(optarg);
+                iss >> std::skipws;
+                kernelnames.clear();
+                std::string k;
+                while (iss >> k) {
+                    kernelnames.push_back(k);
+                }
+            }
+        case 'c':
+            {
+                JSONToVariant parser;
+                parser.ParseFile(optarg);
+                if (!parser.Done()) {
+                    printf("Error parsing %s on line %d column %d\n", optarg, parser.GetLine(), parser.GetColumn());
+                    return 1;
+                }
+                Variant conf = parser.Get();
+#define check(name, var, type, typeconvert) \
+                if (conf.Contains(name) == Variant::type) {\
+                    var = conf[name].typeconvert();\
+                } else (void)0
+                check("iterations", iterations, NumberType, AsUnsigned);
+                check("numnodes", numNodes, NumberType, AsUnsigned);
+                check("debugLevel", debugLevel, NumberType, AsInt);
+                check("loglevel", loglevel, NumberType, AsInt);
+                check("starter", starter, StringType, AsString);
+                check("seed", seed, NumberType, AsNumber<LFSR::LFSR_t>);
+#undef check
+                if (conf.Contains("kernels") == Variant::ArrayType) {
+                    Variant k = conf["kernels"];
+                    kernelnames.clear();
+                    for (Variant::ListIterator i = k.ListBegin(); i != k.ListEnd(); ++i) {
+                        kernelnames.push_back(i->AsString());
+                    }
+                }
+
+            }
+            break;
         case -1:
             procOpts = false;
             break;
@@ -72,74 +141,26 @@ int main(int argc, char **argv) {
             return 0;
         }
     }
-    if (argc < optind + 4) {
+    if (argc < optind + 3) {
         printf("Not enough arguments\n");
         printf(HELP_OPTS, argv[0]);
         return 1;
     }
 
-    FILE *config = fopen(argv[optind], "r");
-    if (0 == config) {
-        perror("failed to open config");
-        return 1;
-    }
-    JSONToVariant parse;
-    std::vector<char> buffer(4000, 0);
-    while (!feof(config) && parse.Ok()) {
-        unsigned numread = fread(&buffer[0], 1, buffer.size(), config);
-        parse.Parse(&buffer[0], numread);
-    }
-    fclose(config);
-    config = 0;
 
-    std::string name = argv[optind+1];
-    std::string hostname = argv[optind+2];
-    std::string servname = argv[optind+3];
-
-    if (!parse.Done()) {
-        printf("Unable to parse config file.\n");
-        printf("Stopped on line %u column %u\n", parse.GetLine(), parse.GetColumn());
-        return 1;
-    }
-    Variant conf = parse.Get();
-
-    Variant val = conf["iterations"];
-    if (val.IsNumber()) {
-        iterations = val.AsUnsigned();
-    }
-    val = conf["numnodes"];
-    if (val.IsNumber()) {
-        numNodes = val.AsUnsigned();
-    }
-    val = conf["seed"];
-    if (val.IsNumber()) {
-        seed = val.AsNumber<LFSR::LFSR_t>();
-    }
-    val = conf["debuglevel"];
-    if (val.IsNumber()) {
-        debugLevel = val.AsInt();
-    }
-    val = conf["loglevel"];
-    if (val.IsNumber()) {
-        loglevel = val.AsInt();
-    }
-
-    std::string starter = conf["starter"].AsString();
+    std::string name = argv[optind];
+    std::string hostname = argv[optind+1];
+    std::string servname = argv[optind+2];
 
     SockAddrList addrs = SocketAddress::CreateIP(hostname, servname);
 
-    val = conf["kernels"];
-    std::vector<std::string> kernelnames;
-    for (Variant::List::const_iterator i = val.AsArray().begin();
-            i != val.AsArray().end();
-            ++i)
-    {
-        kernelnames.push_back(i->AsString());
-    }
-
 
     printf("%s started\n", name.c_str());
-    printf("debug level %d seed %lu and iterations %u numnodes %u\n", debugLevel, seed, iterations, numNodes);
+    if (starter == name) {
+        printf("debug level %d seed %lu and iterations %u numnodes %u\n", debugLevel, seed, iterations, numNodes);
+    } else {
+        printf("in slave mode\n");
+    }
 
     shared_ptr<RemoteContext> context = shared_ptr<RemoteContext>(new RemoteContext(addrs));
     context->LogLevel(loglevel);
@@ -151,7 +172,7 @@ int main(int argc, char **argv) {
     }
     Kernel kernel(kattr);
 
-    if (name == starter) {
+    if (starter == name) {
         printf("Creating %u nodes\n", numNodes);
         RandomInstructionNode::CreateRIN(kernel, iterations, numNodes, debugLevel, seed, kernelnames);
     }
@@ -159,6 +180,7 @@ int main(int argc, char **argv) {
     // Wait for one of the nodes to start before we wait for all nodes to be gone
     context->WaitForNodeStart(RandomInstructionNode::GetNodeNameFromID(0));
     context->WaitForAllNodeEnd();
+    printf("Done\n");
 
     return 0;
 }
