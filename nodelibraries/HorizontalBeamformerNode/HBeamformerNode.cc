@@ -55,6 +55,7 @@ void HBeamformerNode::Process() {
     std::auto_ptr<HBeamformer> hbeam = HBLoadFromFile(GetParam("file"), GetParam<bool>("estimate", false));
     int half = GetParam<int>("half", 0);
     unsigned outoverlap = GetParam<unsigned>("out overlap", 0);
+    unsigned inoverlap = GetParam<unsigned>("in overlap", 0);
     CPN::IQueue<complex<float> > in = GetIQueue("in");
     CPN::OQueue<complex<float> > out = GetOQueue("out");
     if (half == 0) {
@@ -65,8 +66,8 @@ void HBeamformerNode::Process() {
             if (!inbuff) { break; }
             complex<float> *outbuff = out.GetEnqueuePtr(hbeam->Length());
             hbeam->Run(inbuff, in.ChannelStride(), outbuff, out.ChannelStride());
-            in.Dequeue(hbeam->Length());
-            out.Enqueue(hbeam->Length() - outoverlap); // change
+            in.Dequeue(hbeam->Length() - inoverlap);
+            out.Enqueue(hbeam->Length() - outoverlap);
         }
     } else if (half == 1) {
         const unsigned outlen = hbeam->NumVStaves() * hbeam->Length();
@@ -75,7 +76,7 @@ void HBeamformerNode::Process() {
             if (!inbuff) { break; }
             complex<float> *outbuff = out.GetEnqueuePtr(outlen);
             hbeam->RunFirstHalf(inbuff, in.ChannelStride(), outbuff);
-            in.Dequeue(hbeam->Length());
+            in.Dequeue(hbeam->Length() - inoverlap);
             out.Enqueue(outlen);
         }
     } else if (half == 2) {
@@ -88,7 +89,7 @@ void HBeamformerNode::Process() {
             complex<float> *outbuff = out.GetEnqueuePtr(hbeam->Length());
             hbeam->RunSecondHalf(inbuff, outbuff, out.ChannelStride());
             in.Dequeue(inlen);
-            out.Enqueue(hbeam->Length() - outoverlap); // change
+            out.Enqueue(hbeam->Length() - outoverlap);
         }
     }
 }

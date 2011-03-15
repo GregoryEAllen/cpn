@@ -106,6 +106,7 @@ public:
         unsigned blocksize = GetParam<unsigned>("blocksize");
         unsigned element_size = GetParam<unsigned>("element_size");
         unsigned repetitions = GetParam<unsigned>("repetitions", 1);
+        unsigned skip_iters = GetParam<unsigned>("skip iters", 0);
         bool forced_length = GetParam<bool>("forced_length", false);
         std::string infile = GetParam("infile");
 
@@ -149,14 +150,18 @@ public:
         unsigned qsize = out.QueueLength();
         unsigned rep = 0;
         unsigned written = 0;
-        measure.Start();
         while (rep < repetitions && written < qsize) {
             unsigned len = std::min(qsize - written, length);
             out.Enqueue(&data[0], len, numChans, length);
-            measure.Tick(len / element_size);
             written += len;
             ++rep;
         }
+        for (unsigned i = 0; i < skip_iters; ++i) {
+            out.GetEnqueuePtr(length);
+            out.Enqueue(length);
+            ++rep;
+        }
+        measure.Start();
         for (; rep < repetitions; ++rep) {
             out.GetEnqueuePtr(length);
             out.Enqueue(length);
@@ -169,12 +174,13 @@ public:
 };
 CPN_DECLARE_NODE_FACTORY(CPNBFInputNode, CPNBFInputNode);
 
-static const char* const VALID_OPTS = "h:i:o:er:R:na:s:c:f:F:S:q:p:PCv:V:j:J:l";
+static const char* const VALID_OPTS = "h:i:o:er:R:na:s:c:f:F:S:q:p:PCv:V:j:J:lk:D:";
 
 static const char* const HELP_OPTS = "Usage: %s [options]\n"
 "\t-a n\t Use algorithm n for vertical\n"
 "\t-C\t Print config and exit\n"
 "\t-c y|n\t Load internal config. (default: yes)\n"
+"\t-D num\t A number to divide the number of threads for omp when specifying -p\n"
 "\t-e\t Estimate FFT algorithm rather than measure.\n"
 "\t-f y|n\t Use the 'fan' vertical beamformer (default: yes).\n"
 "\t-F num\t Only do num fans.\n"
@@ -182,6 +188,7 @@ static const char* const HELP_OPTS = "Usage: %s [options]\n"
 "\t-i file\t Use input file\n"
 "\t-j file\t Load file as JSON and merge with config.\n"
 "\t-J JSON\t Load JSON and merge it with config. (allows overrides on the command line)\n"
+"\t-k num\t Number of enqueues before measurements are started on the source node.\n"
 "\t-l \t Force the input to be the full input length by repetition rather than zero fill.\n"
 "\t-n \t No output, just time\n"
 "\t-o file\t Use output file\n"
@@ -216,12 +223,15 @@ int cpnbf_main(int argc, char **argv) {
     unsigned repetitions = 1;
     bool nooutput = false;
     unsigned size_mult = 2;
+    int skip_iters = 0;
     bool print_config = false;
     bool split_horizontal = true;
     bool load_internal_config = true;
     bool forced_length = false;
     bool do_vertical = true;
-    bool rr_force = true;
+    bool rr_force = false;
+    int num_threads = 0;
+    int thread_divisor = 1;
     Variant config;
     config["name"] = "kernel";
     std::string nodelist = RealPath("node.list");
@@ -239,6 +249,9 @@ int cpnbf_main(int argc, char **argv) {
             break;
         case 'c':
             load_internal_config = ParseBool(optarg);
+            break;
+        case 'D':
+            thread_divisor = atoi(optarg);
             break;
         case 'e':
             estimate = true;
@@ -284,6 +297,9 @@ int cpnbf_main(int argc, char **argv) {
                 loader.MergeConfig(parser.Get());
             }
             break;
+        case 'k':
+            skip_iters = atoi(optarg);
+            break;
         case 'l':
             forced_length = true;
             break;
@@ -297,16 +313,10 @@ int cpnbf_main(int argc, char **argv) {
             queue_type = optarg;
             break;
         case 'p':
-            {
-                int num_threads = atoi(optarg);
-                SetNumProcs(num_threads);
-#ifdef _OPENMP
-                omp_set_num_threads(num_threads);
-#endif
-            }
+            num_threads = atoi(optarg);
             break;
         case 'P':
-            rr_force = false;
+            rr_force = true;
             break;
         case 'r':
             repetitions = atoi(optarg);
@@ -359,6 +369,13 @@ int cpnbf_main(int argc, char **argv) {
             return 1;
         }
 
+        if (num_threads > 0) {
+            SetNumProcs(num_threads);
+#ifdef _OPENMP
+            //int divisor = num_fans*num_rr*(split_horizontal ? 2 : 1) + 1;
+            omp_set_num_threads(std::min(1, num_threads/thread_divisor));
+#endif
+        }
 #define HBF_FMT "hbf_%u_%u"
 #define HBF_FMT2 HBF_FMT "_2"
 #define IN_FMT "in%u"
@@ -387,6 +404,7 @@ int cpnbf_main(int argc, char **argv) {
         node["param"]["estimate"] = estimate;
         node["param"]["file"] = horizontal_config;
         node["param"]["out overlap"] = OVERLAP;
+        node["param"]["in overlap"] = ((num_rr > 1 || rr_force) ? 0 : OVERLAP);
         for (unsigned i = 0; i < num_fans; ++i) {
             for (unsigned j = 0; j < num_rr; ++j) {
                 if (split_horizontal) {
@@ -408,6 +426,7 @@ int cpnbf_main(int argc, char **argv) {
         node["param"]["infile"] = input_file;
         node["param"]["repetitions"] = repetitions;
         node["param"]["forced_length"] = forced_length;
+        node["param"]["skip iters"] = skip_iters;
         node["param"]["blocksize"] = BLOCKSIZE; //should be the same as the blocksize for the vertical beamformer.
         if (do_vertical) {
             node["param"]["element_size"] = sizeof(complex<short>);
