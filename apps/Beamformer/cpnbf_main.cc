@@ -42,6 +42,8 @@ public:
         unsigned num_inports = GetParam<unsigned>("num_inports");
         unsigned blocksize = GetParam<unsigned>("blocksize");
         bool nooutput = GetParam<bool>("nooutput", !HasParam("outfile"));
+        unsigned repetitions = GetParam<unsigned>("repetitions", 1);
+        bool outputonly = GetParam<bool>("outputonly");
         std::string outfile;
         if (!nooutput) {
             outfile = GetParam("outfile");
@@ -82,26 +84,28 @@ public:
         }
         FlowMeasure measure;
         measure.Start();
-        while (true) {
-            if (cur == end) {
-                cur = begin;
-                measure.Tick(blocksize);
-            }
-            unsigned amount = blocksize;
-            const complex<float> *ptr = cur->GetDequeuePtr(amount);
-            if (!ptr) {
-                amount = cur->Count();
-                if (amount > 0) {
-                    ptr = cur->GetDequeuePtr(amount);
-                } else {
-                    break;
+        unsigned i = 0;
+        while (!outputonly || i < repetitions) {
+            cur = begin;
+            while (cur != end) {
+                unsigned amount = blocksize;
+                const complex<float> *ptr = cur->GetDequeuePtr(amount);
+                if (!ptr) {
+                    amount = cur->Count();
+                    if (amount > 0) {
+                        ptr = cur->GetDequeuePtr(amount);
+                    } else {
+                        break;
+                    }
                 }
+                if (!nooutput) {
+                    DataToFile(f, ptr, amount, cur->ChannelStride(), cur->NumChannels());
+                }
+                cur->Dequeue(amount);
+                ++cur;
             }
-            if (!nooutput) {
-                DataToFile(f, ptr, amount, cur->ChannelStride(), cur->NumChannels());
-            }
-            cur->Dequeue(amount);
-            ++cur;
+            measure.Tick(blocksize);
+            ++i;
         }
         fprintf(stderr,
                 "Output:\nAvg:\t%f Hz\nMax:\t%f Hz\nMin:\t%f Hz\n",
@@ -125,6 +129,7 @@ public:
         unsigned repetitions = GetParam<unsigned>("repetitions", 1);
         unsigned skip_iters = GetParam<unsigned>("skip iters", 0);
         bool forced_length = GetParam<bool>("forced_length", false);
+        bool outputonly = GetParam<bool>("outputonly");
         std::string infile = GetParam("infile");
 
         std::ifstream in_file;
@@ -173,7 +178,7 @@ public:
             written += len;
             ++rep;
         }
-        for (unsigned i = 0; i < skip_iters; ++i) {
+        for (unsigned i = 0; i < skip_iters || outputonly; ++i) {
             out.GetEnqueuePtr(length);
             out.Enqueue(length);
             ++rep;
@@ -191,7 +196,7 @@ public:
 };
 CPN_DECLARE_NODE_FACTORY(CPNBFInputNode, CPNBFInputNode);
 
-static const char* const VALID_OPTS = "h:i:o:er:R:na:s:c:f:F:S:q:p:PCv:V:j:J:lk:D:";
+static const char* const VALID_OPTS = "h:i:o:er:R:na:s:c:f:F:S:q:p:PCv:V:j:J:lk:D:O:";
 
 static const char* const HELP_OPTS = "Usage: %s [options]\n"
 "\t-a n\t Use algorithm n for vertical\n"
@@ -209,6 +214,7 @@ static const char* const HELP_OPTS = "Usage: %s [options]\n"
 "\t-l \t Force the input to be the full input length by repetition rather than zero fill.\n"
 "\t-n \t No output, just time\n"
 "\t-o file\t Use output file\n"
+"\t-O y|n\t Measure output only (default: no)\n"
 "\t-q xxx\t Set xxx as the queue type (default: threshold).\n"
 "\t-p num\t Use num processors\n"
 "\t-P\t If R is 1 don't put in Fork and Join nodes.\n"
@@ -249,6 +255,7 @@ int cpnbf_main(int argc, char **argv) {
     bool rr_force = false;
     int num_threads = 0;
     int thread_divisor = 1;
+    bool outputonly = false;
     Variant config;
     config["name"] = "kernel";
     std::string nodelist = RealPath("node.list");
@@ -325,6 +332,9 @@ int cpnbf_main(int argc, char **argv) {
             break;
         case 'o':
             output_file = optarg;
+            break;
+        case 'O':
+            outputonly = ParseBool(optarg);
             break;
         case 'q':
             queue_type = optarg;
@@ -445,6 +455,7 @@ int cpnbf_main(int argc, char **argv) {
         node["param"]["forced_length"] = forced_length;
         node["param"]["skip iters"] = skip_iters;
         node["param"]["blocksize"] = BLOCKSIZE; //should be the same as the blocksize for the vertical beamformer.
+        node["param"]["outputonly"] = outputonly;
         if (do_vertical) {
             node["param"]["element_size"] = sizeof(complex<short>);
         } else {
@@ -456,9 +467,11 @@ int cpnbf_main(int argc, char **argv) {
         node["name"] = "output";
         node["type"] = "CPNBFOutputNode";
         node["param"]["num_inports"] = num_fans;
+        node["param"]["repetitions"] = repetitions;
         node["param"]["blocksize"] = BLOCKSIZE - OVERLAP;
         node["param"]["outfile"] = output_file;
         node["param"]["nooutput"] = nooutput;
+        node["param"]["outputonly"] = outputonly;
         loader.AddNode(node);
         node = Variant::NullType;
         if (num_rr > 1 || rr_force) {

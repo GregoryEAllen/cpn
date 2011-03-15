@@ -168,12 +168,15 @@ int ompbf_main(int argc, char **argv) {
                         &voutput[i * stride * numStaves], stride));
         }
         double start = getTime();
-        numOutSamples = vformer->Run(&vinput[0], stride, numStaves, numSamples, &rv[0], rv.size());
+        numOutSamples = vformer->Run(&vinput[0], stride, numStaves, numSamples - OVERLAP, &rv[0], rv.size());
         fprintf(stderr, ". Done (%f ms)\n", (getTime() - start) * 1000);
         fprintf(stderr, "Horizontal Beamform..");
         start = getTime();
         for (unsigned i = 0; i < numFans; ++i) {
             hformer->Run(&voutput[i * stride * numStaves], numOutSamples, &houtput[i * hformer->Length() * hformer->NumBeams()], hformer->Length());
+            for (unsigned j = 0; j < numStaves; ++j) {
+                memcpy(&voutput[i * stride * numStaves + j * stride + (numSamples - OVERLAP)], &voutput[i * stride * numStaves + j * stride], OVERLAP);
+            }
         }
         fprintf(stderr, ". Done (%f ms)\n", (getTime() - start) * 1000);
         measure.Tick(numSamples - OVERLAP);
