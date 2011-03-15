@@ -63,6 +63,23 @@ public:
             ASSERT(f, "Could not open %s", outfile.c_str());
         }
         cur = begin;
+        while (cur != end) {
+            unsigned amount = blocksize;
+            const complex<float> *ptr = cur->GetDequeuePtr(amount);
+            if (!ptr) {
+                amount = cur->Count();
+                if (amount > 0) {
+                    ptr = cur->GetDequeuePtr(amount);
+                } else {
+                    break;
+                }
+            }
+            if (!nooutput) {
+                DataToFile(f, ptr, amount, cur->ChannelStride(), cur->NumChannels());
+            }
+            cur->Dequeue(amount);
+            ++cur;
+        }
         FlowMeasure measure;
         measure.Start();
         while (true) {
