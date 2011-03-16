@@ -133,6 +133,7 @@ namespace CPN {
 
         const Mode_t mode;
         const double alpha;
+        unsigned maxwritethreshold;
         ConnectionServer *const server;
         RemoteQueueHolder *const holder;
         SocketHandle sock;

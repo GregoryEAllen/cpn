@@ -244,6 +244,7 @@ namespace CPN {
         queueattr["readernodekey"] = attr.GetReaderNodeKey();
         queueattr["writernodekey"] = attr.GetWriterNodeKey();
         queueattr["alpha"] = attr.GetAlpha();
+        queueattr["maxwritethreshold"] = attr.GetMaxWriteThreshold();
         msg["queueattr"] = queueattr;
         SendMessage(msg);
     }
@@ -260,6 +261,7 @@ namespace CPN {
         attr.SetReaderNodeKey(msg["readernodekey"].AsNumber<Key_t>());
         attr.SetWriterNodeKey(msg["writernodekey"].AsNumber<Key_t>());
         attr.SetAlpha(msg["alpha"].AsDouble());
+        attr.SetMaxWriteThreshold(msg["maxwritethreshold"].AsUnsigned());
         return attr;
     }
 

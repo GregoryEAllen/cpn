@@ -58,7 +58,8 @@ namespace CPN {
             : queuehint(QUEUEHINT_DEFAULT), datatype(TypeName<void>()),
             queueLength(0), maxThreshold(0),
             numChannels(1), alpha(0.5),
-            readerkey(0), writerkey(0), readernodekey(0), writernodekey(0)
+            readerkey(0), writerkey(0), readernodekey(0), writernodekey(0),
+            maxwritethreshold(1000000)
         {}
 
         QueueAttr(const unsigned queueLength_,
@@ -66,7 +67,8 @@ namespace CPN {
             : queuehint(QUEUEHINT_DEFAULT), datatype(TypeName<void>()),
             queueLength(queueLength_), maxThreshold(maxThreshold_),
             numChannels(1), alpha(0.5),
-            readerkey(0), writerkey(0), readernodekey(0), writernodekey(0)
+            readerkey(0), writerkey(0), readernodekey(0), writernodekey(0),
+            maxwritethreshold(1000000)
             {}
 
         /** \brief alpha is used by the remote queue to decide how
@@ -79,6 +81,11 @@ namespace CPN {
             if (a < 0) { a = 0; }
             else if (a > 1) { a = 1; }
             alpha = a;
+            return *this;
+        }
+
+        QueueAttr &SetMaxWriteThreshold(unsigned mwt) {
+            maxwritethreshold = mwt;
             return *this;
         }
 
@@ -196,6 +203,7 @@ namespace CPN {
         const std::string &GetDatatype() const { return datatype; }
         double GetAlpha() const { return alpha; }
         const std::string &GetName() const { return queuename; }
+        unsigned GetMaxWriteThreshold() const { return maxwritethreshold; }
 
     private:
         QueueHint_t queuehint;
@@ -213,6 +221,7 @@ namespace CPN {
         Key_t writerkey;
         Key_t readernodekey;
         Key_t writernodekey;
+        unsigned maxwritethreshold;
     };
 
     /**
@@ -224,7 +233,8 @@ namespace CPN {
         SimpleQueueAttr()
             : queuehint(QUEUEHINT_DEFAULT),
             queueLength(0), maxThreshold(0),
-            numChannels(0), alpha(0.5)
+            numChannels(0), alpha(0.5),
+            maxwritethreshold(1000000)
         {}
         SimpleQueueAttr(const QueueAttr &attr)
             : queuehint(attr.GetHint()),
@@ -236,11 +246,17 @@ namespace CPN {
             readerkey(attr.GetReaderKey()),
             writerkey(attr.GetWriterKey()),
             readernodekey(attr.GetReaderNodeKey()),
-            writernodekey(attr.GetWriterNodeKey())
+            writernodekey(attr.GetWriterNodeKey()),
+            maxwritethreshold(attr.GetMaxWriteThreshold())
         {}
 
         SimpleQueueAttr &SetAlpha(double a) {
             alpha = a;
+            return *this;
+        }
+
+        SimpleQueueAttr &SetMaxWriteThreshold(unsigned mwt) {
+            maxwritethreshold = mwt;
             return *this;
         }
 
@@ -306,6 +322,7 @@ namespace CPN {
         QueueHint_t GetHint() const { return queuehint; }
         const std::string &GetDatatype() const { return datatype; }
         double GetAlpha() const { return alpha; }
+        unsigned GetMaxWriteThreshold() const { return maxwritethreshold; }
     private:
         QueueHint_t queuehint;
         std::string datatype;
@@ -317,6 +334,7 @@ namespace CPN {
         Key_t writerkey;
         Key_t readernodekey;
         Key_t writernodekey;
+        unsigned maxwritethreshold;
     };
 }
 #endif

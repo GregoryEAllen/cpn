@@ -49,6 +49,7 @@ namespace CPN {
         : ThresholdQueue(k, attr, QueueLength(attr.GetLength(), attr.GetMaxThreshold(), attr.GetAlpha(), mode_)),
         mode(mode_),
         alpha(attr.GetAlpha()),
+        maxwritethreshold(attr.GetMaxWriteThreshold()),
         server(s),
         holder(h),
         mocknode(new D4R::Node(mode_ == READ ? attr.GetWriterNodeKey() : attr.GetReaderNodeKey())),
@@ -257,13 +258,17 @@ namespace CPN {
 
     void RemoteQueue::SendEnqueuePacket() {
         unsigned count = queue->Count();
+        const unsigned numchannels = queue->NumChannels();
         const unsigned maxthresh = queue->MaxThreshold();
         const unsigned expectedfree = std::max(readerlength, maxthresh) - bytecount;
+        unsigned maxwrite = maxwritethreshold/numchannels;
+        if (maxwrite == 0) maxwrite = 1;
+        if (count > maxwrite) { count = maxwrite; }
         if (count > maxthresh) { count = maxthresh; }
         if (count > expectedfree) { count = expectedfree; }
         if (count == 0) { return; }
         FUNC_TRACE(logger);
-        const unsigned datalength = count * queue->NumChannels();
+        const unsigned datalength = count * numchannels;
         Packet packet(datalength, PACKET_ENQUEUE);
         SetupPacket(packet);
         packet.Count(count);
