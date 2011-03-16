@@ -27,11 +27,11 @@ std::ostream &operator<<(std::ostream &os, const Bytes &b) {
     static const char *const P[] = { "B ", "kB", "MB", "GB", "TB" };
     int p = 0;
     double v = b.v;
-    while (v > 1024 && p < 5) {
-        v /= 1024;
+    while (v > 1000 && p < 5) {
+        v /= 1000;
         p++;
     }
-    os << v << " " << P[p];
+    os << setw(7) << setfill(' ') << setprecision(3) << fixed << v << " " << P[p];
     return os;
 }
 
@@ -48,7 +48,7 @@ std::ostream &operator<<(std::ostream &os, const Time &t) {
         v *= 1000;
         p++;
     }
-    os << v << " " << P[p];
+    os << setw(7) << setfill(' ') << setprecision(3) << fixed << v << " " << P[p];
     return os;
 }
 
@@ -58,8 +58,9 @@ int main(int argc, char **argv) {
     std::string hostname;
     std::string portname;
     int buffer_len = 8192;
+    double report_time = 0.1;
     while (true) {
-        int c = getopt(argc, argv, "sh:p:b:");
+        int c = getopt(argc, argv, "sh:p:b:r:");
         if (c == -1) break;
         switch(c) {
         case 's':
@@ -74,6 +75,9 @@ int main(int argc, char **argv) {
         case 'b':
             buffer_len = atoi(optarg);
             break;
+        case 'r':
+            report_time = strtod(optarg, 0);
+            break;
         default:
             break;
         }
@@ -86,6 +90,7 @@ int main(int argc, char **argv) {
     cout.width(3);
     cout.precision(3);
     cout.setf(ios::fixed);
+    cout << setfill(' ');
     if (server) {
         ServerSocketHandle sockserv(addrs);
         sockserv.SetReuseAddr();
@@ -99,7 +104,7 @@ int main(int argc, char **argv) {
         while (true) {
             double start = getTime();
             uint64_t numread = 0;
-            while (getTime() - start < 1e-3) {
+            while (getTime() - start < report_time) {
                 numread += sock.Read(&buffer[0], buffer.size());
             }
             if (numread == 0) {
@@ -109,7 +114,7 @@ int main(int argc, char **argv) {
             double dur = end - start;
             total_bytes += numread;
             total_time += dur;
-            cout << "Received " << Bytes(numread) << " in " << Time(dur/1000) << " at " <<
+            cout << "Received " << Bytes(numread) << " in " << Time(dur) << " at " <<
                 Bytes(numread/dur) << "/sec; Avg: " << Bytes(total_bytes/total_time) << "/sec" << endl;
         }
     } else {
@@ -120,14 +125,14 @@ int main(int argc, char **argv) {
         while (true) {
             double start = getTime();
             uint64_t numsent = 0;
-            while (getTime() - start < 1e-3) {
+            while (getTime() - start < report_time) {
                 numsent += sock.Write(&buffer[0], buffer.size());
             }
             double end = getTime();
             double dur = end - start;
             total_bytes += numsent;
             total_time += dur;
-            cout << "Sent " << Bytes(numsent) << " in " << Time(dur/1000) << " at " <<
+            cout << "Sent " << Bytes(numsent) << " in " << Time(dur) << " at " <<
                 Bytes(numsent/dur) << "/sec; Avg: " << Bytes(total_bytes/total_time) << "/sec" << endl;
         }
     }
