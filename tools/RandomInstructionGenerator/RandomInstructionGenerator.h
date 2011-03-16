@@ -41,13 +41,15 @@ class RandomInstructionGenerator
         State() {}
 
         // constructor for copying state for new nodes
-        State(unsigned mid, int dbglvl, std::deque<unsigned> ln)
+        State(unsigned mid, int dbglvl, std::deque<unsigned> ln, double cp, double dp)
             : feed(DEFAULT_FEED), seed(DEFAULT_SEED), maxID(mid),
-            debugLevel(dbglvl), liveNodes(ln) {}
+            debugLevel(dbglvl), createProb(cp), destroyProb(dp), liveNodes(ln) {}
 
         LFSR_t feed, seed;
         unsigned maxID;
         int debugLevel;
+        double createProb;
+        double destroyProb;
         std::deque<unsigned> liveNodes;
     };
 
@@ -61,7 +63,7 @@ class RandomInstructionGenerator
   protected:
     LFSR lfsr;
     
-    float probabilityToCreateNode, probabilityToDeleteNode;
+    double probabilityToCreateNode, probabilityToDeleteNode;
     unsigned maxID;
     unsigned createRange, deleteRange, chainRange, noopRange;
     

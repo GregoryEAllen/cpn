@@ -19,7 +19,7 @@ using CPN::KernelAttr;
 
 // one interesting seed is 37733
 
-const char* const VALID_OPTS = "hi:d:n:s:l:k:";
+const char* const VALID_OPTS = "hi:d:n:s:l:k:C:D:";
 
 const char* const HELP_OPTS = "Usage: %s \n"
 "\t-h\tPrint out this message\n"
@@ -29,6 +29,8 @@ const char* const HELP_OPTS = "Usage: %s \n"
 "\t-d n\tUse debug level n (default 0)\n"
 "\t-l n\tUse log level n (default 75)\n"
 "\t-k n\tCreate n kernels (default 1)\n"
+"\t-C n\tSet probability to create (default 0.01)\n"
+"\t-D n\tSet probability to destroy (default 0.01)\n"
 ;
 
 int main(int argc, char **argv) {
@@ -39,6 +41,8 @@ int main(int argc, char **argv) {
     int loglevel = 75;
     unsigned numKernels = 1;
     LFSR::LFSR_t seed = RandomInstructionGenerator::DEFAULT_SEED;
+    double createProb = 0.01;
+    double destroyProb = 0.01;
 
     bool procOpts = true;
     while (procOpts) {
@@ -57,6 +61,12 @@ int main(int argc, char **argv) {
             break;
         case 'k':
             numKernels = atoi(optarg);
+            break;
+        case 'C':
+            createProb = strtod(optarg, 0);
+            break;
+        case 'D':
+            destroyProb = strtod(optarg, 0);
             break;
         case 'h':
             puts(HELP_OPTS);
@@ -94,7 +104,7 @@ int main(int argc, char **argv) {
         kernelnames.push_back(name);
         kernels.push_back(shared_ptr<Kernel>(new Kernel(KernelAttr(name).SetContext(context).SetRemoteEnabled(numKernels > 1))));
     }
-    RandomInstructionNode::CreateRIN(*kernels.front(), iterations, numNodes, debugLevel, seed, kernelnames);
+    RandomInstructionNode::CreateRIN(*kernels.front(), iterations, numNodes, debugLevel, seed, kernelnames, createProb, destroyProb);
 
     context->WaitForAllNodeEnd();
 

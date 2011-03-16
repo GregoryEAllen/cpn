@@ -49,6 +49,8 @@ RandomInstructionNode::RINState::RINState(const Variant &args) {
         state.feed = s["feed"].AsNumber<LFSR::LFSR_t>();
         state.seed = s["seed"].AsNumber<LFSR::LFSR_t>();
         state.maxID = s["maxID"].AsUnsigned();
+        state.createProb = s["createProb"].AsDouble();
+        state.destroyProb = s["destroyProb"].AsDouble();
         state.debugLevel = s["debugLevel"].AsInt();
         Variant::List::const_iterator i = s["liveNodes"].AsArray().begin();
         while (i != s["liveNodes"].AsArray().end()) {
@@ -71,6 +73,16 @@ RandomInstructionNode::RINState::RINState(const Variant &args) {
             state.debugLevel = args["debugLevel"].AsInt();
         } else {
             state.debugLevel = 0;
+        }
+        if (args["createProb"].IsNumber()) {
+            state.createProb = args["createProb"].AsDouble();
+        } else {
+            state.createProb = 0.01;
+        }
+        if (args["destroyProb"].IsNumber()) {
+            state.destroyProb = args["destroyProb"].AsDouble();
+        } else {
+            state.destroyProb = 0.01;
         }
         unsigned numNodes = args["numNodes"].AsUnsigned();
         state.maxID = numNodes;
@@ -95,6 +107,8 @@ std::string RandomInstructionNode::RINState::ToJSON() {
     rigstate["seed"] = state.seed;
     rigstate["debugLevel"] = state.debugLevel;
     rigstate["maxID"] = state.maxID;
+    rigstate["createProb"] = state.createProb;
+    rigstate["destroyProb"] = state.destroyProb;
     Variant liveNodes(Variant::ArrayType);
     std::deque<unsigned>::iterator i = state.liveNodes.begin();
     while (i != state.liveNodes.end()) {
@@ -127,11 +141,14 @@ void RandomInstructionNode::Process(void) {
 }
 
 void RandomInstructionNode::CreateRIN(CPN::Kernel& kernel, unsigned iterations,
-        unsigned numNodes, unsigned debugLevel, LFSR::LFSR_t seed, const std::vector<std::string> &kernelnames) {
+        unsigned numNodes, unsigned debugLevel, LFSR::LFSR_t seed,
+        const std::vector<std::string> &kernelnames, double createProb, double destroyProb) {
 
     Variant state(Variant::ObjectType);
     state["iterations"] = iterations;
     state["seed"] = seed;
+    state["createProb"] = createProb;
+    state["destroyProb"] = destroyProb;
     state["debugLevel"] = debugLevel;
     state["numNodes"] = numNodes;
     std::vector<std::string>::const_iterator ki = kernelnames.begin();

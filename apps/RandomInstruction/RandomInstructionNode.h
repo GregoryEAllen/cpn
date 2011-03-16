@@ -43,7 +43,8 @@ public:
 
     static void CreateRIN(CPN::Kernel& kernel, unsigned iterations,
         unsigned numNodes, unsigned debugLevel, LFSR::LFSR_t seed,
-        const std::vector<std::string> &kernelnames);
+        const std::vector<std::string> &kernelnames,
+        double createProb, double destroyProb);
 private:
     /// Random Instruction Node IDentifier
     unsigned myID;

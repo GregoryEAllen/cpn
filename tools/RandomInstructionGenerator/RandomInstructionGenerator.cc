@@ -53,7 +53,7 @@ RandomInstructionGenerator::RandomInstructionGenerator(const State& state)
 :   lfsr(state.feed, state.seed)
 {
     liveNodes = state.liveNodes;
-    Initialize(state.debugLevel, 0.01, 0.01, state.maxID);
+    Initialize(state.debugLevel, state.createProb, state.destroyProb, state.maxID);
 }
 
 void RandomInstructionGenerator::Initialize(int dbglvl, float probToCreateNode,
@@ -63,7 +63,7 @@ void RandomInstructionGenerator::Initialize(int dbglvl, float probToCreateNode,
     debugLevel = dbglvl;
     probabilityToCreateNode = probToCreateNode;
     probabilityToDeleteNode = probToDeleteNode;
-    dbprintf(2,"# lfsr of order %d, with range 1-%d\n", lfsr.Order(), lfsr.MaxVal());
+    dbprintf(2,"# lfsr of order %ul, with range 1-%ul\n", lfsr.Order(), lfsr.MaxVal());
     ComputeRanges();
 }
 
@@ -91,13 +91,13 @@ void RandomInstructionGenerator::ComputeRanges()
     createRange = unsigned( floor(maxVal*probabilityToCreateNode+0.5) );
     deleteRange = unsigned( floor(maxVal*probabilityToDeleteNode+0.5) );
 
-    dbprintf(2,"# numNodes = %d\n", numNodes);
-    dbprintf(2,"# createRange = %d, deleteRange = %d\n", createRange, deleteRange);
+    dbprintf(2,"# numNodes = %u\n", numNodes);
+    dbprintf(2,"# createRange = %u, deleteRange = %u\n", createRange, deleteRange);
 
     chainRange = ((maxVal-createRange-deleteRange)/numNodes) * numNodes; // int math
     noopRange = maxVal-createRange-deleteRange-chainRange;
 
-    dbprintf(2,"# chainRange = %d, noopRange = %d\n", chainRange, noopRange);
+    dbprintf(2,"# chainRange = %u, noopRange = %u\n", chainRange, noopRange);
     
 //  unsigned totalRange = createRange + deleteRange + chainRange + noopRange;
 //  dbprintf(3,"# totalRange = %d\n", totalRange);
@@ -289,7 +289,7 @@ void RandomInstructionGenerator::RunOnce(void)
 RandomInstructionGenerator::State RandomInstructionGenerator::GetState(void)
 //-----------------------------------------------------------------------------
 {
-    State state = State(maxID, debugLevel, liveNodes);
+    State state = State(maxID, debugLevel, liveNodes, probabilityToCreateNode, probabilityToDeleteNode);
     state.feed = lfsr.Feed();
     state.seed = lfsr.Seed();
     return state;
