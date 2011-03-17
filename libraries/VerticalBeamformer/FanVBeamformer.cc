@@ -469,7 +469,8 @@ static void fvbf_sse_vector_hard(
         }
     }
 }
-void fvbf_sse_vector_hardcode(
+
+void fvbf_sse_vector_hardcode_ne12_fl4_nr3(
     const complex<short> *indata,
     unsigned instride,
     unsigned numStaves,
@@ -483,7 +484,36 @@ void fvbf_sse_vector_hardcode(
     unsigned numres,
     unsigned &numOutSamples
     );
-bool fvbf_sse_vector_hardcode_check(
+bool fvbf_sse_vector_hardcode_ne12_fl4_nr3_check(
+    const complex<short> *indata,
+    unsigned instride,
+    unsigned numStaves,
+    unsigned numSamples,
+    float *filter,
+    complex<float> *bbCorrect,
+    unsigned numStaveTypes,
+    unsigned numElemsPerStave,
+    unsigned filterLen,
+    FanVBeamformer::ResVec *rv,
+    unsigned numres,
+    unsigned &numOutSamples
+    );
+
+void fvbf_sse_vector_hardcode_ne12_fl4_nr2(
+    const complex<short> *indata,
+    unsigned instride,
+    unsigned numStaves,
+    unsigned numSamples,
+    float *filter,
+    complex<float> *bbCorrect,
+    unsigned numStaveTypes,
+    unsigned numElemsPerStave,
+    unsigned filterLen,
+    FanVBeamformer::ResVec *rv,
+    unsigned numres,
+    unsigned &numOutSamples
+    );
+bool fvbf_sse_vector_hardcode_ne12_fl4_nr2_check(
     const complex<short> *indata,
     unsigned instride,
     unsigned numStaves,
@@ -568,25 +598,8 @@ unsigned FanVBeamformer::Run(const std::complex<short> *indata, unsigned instrid
                 );
         break;
     case SSE_VECTOR_HARDCODE:
-        fvbf_sse_vector_hardcode(
-                indata,
-                instride,
-                numStaves,
-                numSamples,
-                filter,
-                bbCorrect,
-                numStaveTypes,
-                numElemsPerStave,
-                filterLen,
-                rv,
-                numres,
-                numOutputSamples
-                );
-        break;
-    case AUTO:
-    default:
 
-        if (fvbf_sse_vector_hardcode_check(
+        if (fvbf_sse_vector_hardcode_ne12_fl4_nr3_check(
                 indata,
                 instride,
                 numStaves,
@@ -599,7 +612,97 @@ unsigned FanVBeamformer::Run(const std::complex<short> *indata, unsigned instrid
                 rv,
                 numres,
                 numOutputSamples)) {
-            fvbf_sse_vector_hardcode(
+            fvbf_sse_vector_hardcode_ne12_fl4_nr3(
+                    indata,
+                    instride,
+                    numStaves,
+                    numSamples,
+                    filter,
+                    bbCorrect,
+                    numStaveTypes,
+                    numElemsPerStave,
+                    filterLen,
+                    rv,
+                    numres,
+                    numOutputSamples
+                    );
+
+        } else if (fvbf_sse_vector_hardcode_ne12_fl4_nr2_check(
+                indata,
+                instride,
+                numStaves,
+                numSamples,
+                filter,
+                bbCorrect,
+                numStaveTypes,
+                numElemsPerStave,
+                filterLen,
+                rv,
+                numres,
+                numOutputSamples)) {
+            fvbf_sse_vector_hardcode_ne12_fl4_nr2(
+                    indata,
+                    instride,
+                    numStaves,
+                    numSamples,
+                    filter,
+                    bbCorrect,
+                    numStaveTypes,
+                    numElemsPerStave,
+                    filterLen,
+                    rv,
+                    numres,
+                    numOutputSamples
+                    );
+        } else {
+            ASSERT(false);
+        }
+        break;
+    case AUTO:
+    default:
+
+        if (fvbf_sse_vector_hardcode_ne12_fl4_nr3_check(
+                indata,
+                instride,
+                numStaves,
+                numSamples,
+                filter,
+                bbCorrect,
+                numStaveTypes,
+                numElemsPerStave,
+                filterLen,
+                rv,
+                numres,
+                numOutputSamples)) {
+            fvbf_sse_vector_hardcode_ne12_fl4_nr3(
+                    indata,
+                    instride,
+                    numStaves,
+                    numSamples,
+                    filter,
+                    bbCorrect,
+                    numStaveTypes,
+                    numElemsPerStave,
+                    filterLen,
+                    rv,
+                    numres,
+                    numOutputSamples
+                    );
+
+        } else if (fvbf_sse_vector_hardcode_ne12_fl4_nr2_check(
+                indata,
+                instride,
+                numStaves,
+                numSamples,
+                filter,
+                bbCorrect,
+                numStaveTypes,
+                numElemsPerStave,
+                filterLen,
+                rv,
+                numres,
+                numOutputSamples)) {
+            fvbf_sse_vector_hardcode_ne12_fl4_nr2(
                     indata,
                     instride,
                     numStaves,

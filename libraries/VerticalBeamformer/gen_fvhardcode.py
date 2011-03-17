@@ -28,9 +28,9 @@ license = """
 import sys
 
 data = {
-        'numElemsPerStave' : 12,
-        'filterLen'        : 4,
-        'numres'           : 3,
+        'numElemsPerStave' : int(sys.argv[1]), #12,
+        'filterLen'        : int(sys.argv[2]), #4,
+        'numres'           : int(sys.argv[3]), #3,
         'BLOCKSIZE'        : 4,
         'CVECSIZE'         : 2,
         'BLOCKSPFILT'      : 1,
@@ -67,7 +67,7 @@ static inline cvector cmult(cvector a, cvector b) {
 
 static inline __m128i &as_m128i(cvector &a) { return *(__m128i*)&a; }
 
-bool fvbf_sse_vector_hardcode_check(
+bool fvbf_sse_vector_hardcode_ne%(numElemsPerStave)d_fl%(filterLen)d_nr%(numres)d_check(
     const complex<short> *indata,
     unsigned instride,
     unsigned numStaves,
@@ -84,7 +84,7 @@ bool fvbf_sse_vector_hardcode_check(
     return (%(filterLen)d == filterLen) && (%(numElemsPerStave)d == numElemsPerStave) && (%(numres)d == numres);
 }
 
-void fvbf_sse_vector_hardcode(
+void fvbf_sse_vector_hardcode_ne%(numElemsPerStave)d_fl%(filterLen)d_nr%(numres)d(
     const complex<short> *indata,
     unsigned instride,
     unsigned numStaves,

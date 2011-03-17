@@ -1,9 +1,14 @@
 
-_gen_FVBHardcode.cc: gen_fvhardcode.py
-	python $< > $@
+_gen_FVBHardcode_ne12_fl4_nr3.cc: gen_fvhardcode.py
+	python $< 12 4 3 > $@
 
-OBJECTS += _gen_FVBHardcode.o
-LINKOBJECTS += $(OSDIR)/_gen_FVBHardcode.o
+_gen_FVBHardcode_ne12_fl4_nr2.cc: gen_fvhardcode.py
+	python $< 12 4 2 > $@
+
+OBJECTS += _gen_FVBHardcode_ne12_fl4_nr2.o
+OBJECTS += _gen_FVBHardcode_ne12_fl4_nr3.o
+LINKOBJECTS += $(OSDIR)/_gen_FVBHardcode_ne12_fl4_nr2.o
+LINKOBJECTS += $(OSDIR)/_gen_FVBHardcode_ne12_fl4_nr3.o
 
 ifneq ($(WITHOUT_OMP),1)
 CC_OTHER += -fopenmp
