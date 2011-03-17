@@ -25,7 +25,7 @@ using CPN::KernelAttr;
 
 // one interesting seed is 37733
 
-const char* const VALID_OPTS = "hb:i:n:s:d:l:S:c:";
+const char* const VALID_OPTS = "hb:i:n:s:d:l:S:c:C:D:";
 
 const char* const HELP_OPTS = "Usage: %s <name> <context hostname> <context port>\n"
 "All options can be done as a mixture of command line and configuration files which override each other.\n"
@@ -39,6 +39,8 @@ const char* const HELP_OPTS = "Usage: %s <name> <context hostname> <context port
 "\t-k 'space sperated list of kernel names'\n"
 "\t-S n\tSay kernel n should be the starter\n"
 "\t-c cfg\tA config file.\n"
+"\t-C n\tSet probability to create (default 0.01)\n"
+"\t-D n\tSet probability to destroy (default 0.01)\n"
 "\n"
 "The config file can have any of the following keys:\n"
 "\n" 
@@ -48,6 +50,8 @@ const char* const HELP_OPTS = "Usage: %s <name> <context hostname> <context port
 "\t\"seed\"\t\t: starting seed,\n"
 "\t\"debugLevel\"\t: number for debug level,\n"
 "\t\"loglevel\"\t: number for log level,\n"
+"\t\"createProb\"\t: probability to create a node,\n"
+"\t\"destroyProb\"\t: probability to destroy a node,\n"
 "\t\"kernels\"\t: [\n"
 "\t\t\"kernelone\", \"kerneltwo\", ...\n"
 "\t],\n"
@@ -68,6 +72,8 @@ int main(int argc, char **argv) {
     std::string bindip = "";
     std::string starter = "";
     std::vector<std::string> kernelnames;
+    double createProb = 0.01;
+    double destroyProb = 0.01;
 
     bool procOpts = true;
     while (procOpts) {
@@ -103,6 +109,12 @@ int main(int argc, char **argv) {
                     kernelnames.push_back(k);
                 }
             }
+        case 'C':
+            createProb = strtod(optarg, 0);
+            break;
+        case 'D':
+            destroyProb = strtod(optarg, 0);
+            break;
         case 'c':
             {
                 JSONToVariant parser;
@@ -122,6 +134,8 @@ int main(int argc, char **argv) {
                 check("loglevel", loglevel, NumberType, AsInt);
                 check("starter", starter, StringType, AsString);
                 check("seed", seed, NumberType, AsNumber<LFSR::LFSR_t>);
+                check("createProb", createProb, NumberType, AsDouble);
+                check("destroyProb", destroyProb, NumberType, AsDouble);
 #undef check
                 if (conf.Contains("kernels") == Variant::ArrayType) {
                     Variant k = conf["kernels"];
@@ -174,7 +188,7 @@ int main(int argc, char **argv) {
 
     if (starter == name) {
         printf("Creating %u nodes\n", numNodes);
-        RandomInstructionNode::CreateRIN(kernel, iterations, numNodes, debugLevel, seed, kernelnames);
+        RandomInstructionNode::CreateRIN(kernel, iterations, numNodes, debugLevel, seed, kernelnames, createProb, destroyProb);
     }
 
     // Wait for one of the nodes to start before we wait for all nodes to be gone
