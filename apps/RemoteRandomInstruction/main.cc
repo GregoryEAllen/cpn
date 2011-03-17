@@ -99,6 +99,16 @@ int main(int argc, char **argv) {
         case 'S':
             starter = optarg;
             break;
+        case 's':
+            {
+                char *end = 0;
+                seed = strtoul(optarg, &end, 0);
+                if (seed == 0) {
+                    printf("Seed cannot be 0\n");
+                    return 1;
+                }
+            }
+            break;
         case 'k':
             {
                 std::istringstream iss(optarg);
