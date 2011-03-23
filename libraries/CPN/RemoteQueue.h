@@ -130,6 +130,8 @@ namespace CPN {
         auto_ptr<Pthread> fileThread;
         auto_ptr<Pthread> actionThread;
         bool pendingAction;
+        bool actionTick;
+        Sync::ReentrantCondition actionCond;
 
         const Mode_t mode;
         const double alpha;

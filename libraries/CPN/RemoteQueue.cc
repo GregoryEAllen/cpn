@@ -26,6 +26,7 @@
 #include "KernelBase.h"
 #include "Exceptions.h"
 #include "AutoLock.h"
+#include "AutoUnlock.h"
 #include "PthreadFunctional.h"
 #include "ConnectionServer.h"
 #include "ErrnoException.h"
@@ -47,6 +48,8 @@ namespace CPN {
     RemoteQueue::RemoteQueue(KernelBase *k, Mode_t mode_,
                 ConnectionServer *s, RemoteQueueHolder *h, const SimpleQueueAttr &attr)
         : ThresholdQueue(k, attr, QueueLength(attr.GetLength(), attr.GetMaxThreshold(), attr.GetAlpha(), mode_)),
+        pendingAction(false),
+        actionTick(false),
         mode(mode_),
         alpha(attr.GetAlpha()),
         maxwritethreshold(attr.GetMaxWriteThreshold()),
@@ -134,7 +137,8 @@ namespace CPN {
         AutoLock<QueueBase> al(*this);
         FUNC_TRACE(logger);
         while (pendingGrow && !dead) {
-            Wait();
+            Signal();
+            actionCond.Wait(lock);
         }
         const unsigned maxthresh = std::max<unsigned>(queue->MaxThreshold(), maxThresh);
         readerlength = QueueLength(queueLen, maxthresh, alpha, READ);
@@ -230,27 +234,37 @@ namespace CPN {
         std::vector<iovec> iovs;
         for (unsigned i = 0; i < numchannels; ++i) {
             iovec iov;
-            iov.iov_base = queue->GetRawEnqueuePtr(count, i);
+            iov.iov_base = ThresholdQueue::InternalGetRawEnqueuePtr(count, i);
             ASSERT(iov.iov_base, "Internal throttle failed! (c: <%llu,%llu,%llu>)", clock, readclock, writeclock);
             iov.iov_len = count;
             iovs.push_back(iov);
         }
-        unsigned numread = 0;
-        unsigned numtoread = packet.DataLength();
-        unsigned i = 0;
-        while (numread < numtoread) {
-            unsigned num = sock.Readv(&iovs[i], iovs.size() - i);
-            numread += num;
-            if (numread == numtoread) break;
-            while (iovs[i].iov_len <= num) {
-                num -= iovs[i].iov_len;
-                ++i;
+        inenqueue = true;
+        {
+            AutoUnlock<QueueBase> aul(*this);
+            unsigned numread = 0;
+            unsigned numtoread = packet.DataLength();
+            unsigned i = 0;
+            while (numread < numtoread) {
+                unsigned num = sock.Readv(&iovs[i], iovs.size() - i);
+                    if (num == 0) {
+                        if (sock.Eof()) {
+                            return;
+                        }
+                    }
+                numread += num;
+                if (numread == numtoread) break;
+                while (iovs[i].iov_len <= num) {
+                    num -= iovs[i].iov_len;
+                    ++i;
+                }
+                iovs[i].iov_len -= num;
+                iovs[i].iov_base = ((char*)iovs[i].iov_base) + num;
             }
-            iovs[i].iov_len -= num;
-            iovs[i].iov_base = ((char*)iovs[i].iov_base) + num;
+            ASSERT(numread == packet.DataLength());
         }
-        ASSERT(numread == packet.DataLength());
-        queue->Enqueue(count);
+        inenqueue = false;
+        ThresholdQueue::InternalEnqueue(count);
         bytecount += count;
         writerequest = 0;
         NotifyData();
@@ -272,7 +286,25 @@ namespace CPN {
         Packet packet(datalength, PACKET_ENQUEUE);
         SetupPacket(packet);
         packet.Count(count);
-        PacketEncoder::SendEnqueue(packet, *queue);
+
+        std::vector<iovec> iovs;
+        iovec header = { &packet.header, sizeof(packet.header) };
+        iovs.push_back(header);
+        for (unsigned i = 0; i < numchannels; ++i) {
+            iovec iov;
+            iov.iov_base = const_cast<void*>(ThresholdQueue::InternalGetRawDequeuePtr(packet.Count(), i));
+            ASSERT(iov.iov_base);
+            iov.iov_len = packet.Count();
+            iovs.push_back(iov);
+        }
+        indequeue = true;
+        {
+            AutoUnlock<QueueBase> aul(*this);
+            WriteBytes(&iovs[0], iovs.size());
+        }
+        indequeue = false;
+        ThresholdQueue::InternalDequeue(packet.Count());
+
         bytecount += count;
         QueueBase::NotifyFreespace();
     }
@@ -284,9 +316,6 @@ namespace CPN {
         ASSERT(!readshutdown);
         readrequest = 0;
         bytecount -= packet.Count();
-        if (!sentEnd) {
-            SendEnqueuePacket();
-        }
     }
 
     void RemoteQueue::SendDequeuePacket() {
@@ -565,6 +594,8 @@ namespace CPN {
         AutoLock<QueueBase> al(*this);
         while (!dead) {
             InternalCheckStatus();
+            actionTick = true;
+            actionCond.Broadcast();
             while(!pendingAction && !dead) {
                 Wait();
             }
@@ -606,9 +637,10 @@ namespace CPN {
                         ThresholdQueue::ShutdownWriter();
                     }
                     // Write as much as we can
-                    while (!queue->Empty() && (bytecount < readerlength)) {
+                    while (!queue->Empty() && (bytecount < readerlength) && !dead) {
                         SendEnqueuePacket();
                     }
+                    if (dead) return;
                     // A pending block is present
                     if (pendingBlock) {
                         // If we have received dequeue packets

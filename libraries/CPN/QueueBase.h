@@ -254,7 +254,6 @@ namespace CPN {
         KernelBase *kernel;
         bool useD4R;
         Logger logger;
-    private:
         Sync::ReentrantLock lock;
         Sync::ReentrantCondition cond;
         std::string datatype;
