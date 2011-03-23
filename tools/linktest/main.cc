@@ -9,9 +9,11 @@
 #include <iomanip>
 #include <cmath>
 #include <errno.h>
+#include <vector>
 #include "SocketHandle.h"
 #include "ServerSocketHandle.h"
 #include "ErrnoException.h"
+#include "Filter.h"
 
 using namespace std;
 
@@ -106,6 +108,11 @@ int main(int argc, char **argv) {
     }
     SockAddrList addrs = SocketAddress::CreateIP(hostname, portname);
 
+    const double a[] = { 1, -1.88903307939452, 0.894874344616636 };
+    const double b[] = { 0.00146031630552773, 0.00292063261105546, 0.00146031630552773 };
+    const unsigned filt_len = 3;
+    std::vector<double> filt_buf(filt_len, 0);
+
     uint64_t total_bytes = 0;
     double total_time = 0;
     double min_rate = std::numeric_limits<double>::infinity();
@@ -141,10 +148,13 @@ int main(int argc, char **argv) {
             double rate = numread/dur;
             min_rate = min(rate, min_rate);
             max_rate = max(rate, max_rate);
+            double lp_rate = Filter(rate, b, filt_len, a, filt_len, &filt_buf[0]);
             cout << "Recv "
                 << Bytes(numread) << " in " << Time(dur) << " at " << Bytes(rate)
-                << "/sec;\n " << " Min: " << Bytes(min_rate) << "/s Max: " << Bytes(max_rate)
-                << "/s Avg: " << Bytes(total_bytes/total_time) << "/s" << endl;
+                << "/sec;\n" << "Min: " << Bytes(min_rate) << "/s Max: " << Bytes(max_rate)
+                << "/s Avg: " << Bytes(total_bytes/total_time) << "/s"
+                << " LP: " << Bytes(lp_rate) << "/s"
+                << endl;
         }
     } else {
         cout << "Connecting" << endl;
@@ -173,10 +183,13 @@ int main(int argc, char **argv) {
             double rate = numsent/dur;
             min_rate = min(rate, min_rate);
             max_rate = max(rate, max_rate);
+            double lp_rate = Filter(rate, b, filt_len, a, filt_len, &filt_buf[0]);
             cout << "Sent "
                 << Bytes(numsent) << " in " << Time(dur) << " at " << Bytes(rate)
-                << "/sec;\n " << " Min: " << Bytes(min_rate) << "/s Max: " << Bytes(max_rate)
-                << "/s Avg: " << Bytes(total_bytes/total_time) << "/s" << endl;
+                << "/sec;\n" << "Min: " << Bytes(min_rate) << "/s Max: " << Bytes(max_rate)
+                << "/s Avg: " << Bytes(total_bytes/total_time) << "/s"
+                << " LP: " << Bytes(lp_rate) << "/s"
+                << endl;
         }
     }
     return 0;
