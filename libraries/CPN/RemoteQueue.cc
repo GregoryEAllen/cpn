@@ -88,6 +88,7 @@ namespace CPN {
     RemoteQueue::~RemoteQueue() {
         ASSERT_ABORT(dead, "Shutdown but not dead!?");
         Signal();
+        actionCond.Broadcast();
         FUNC_TRACE(logger);
         std::string clockstr = ClockString();
         logger.Trace("Destructed (c: %s)", clockstr.c_str());
@@ -107,6 +108,7 @@ namespace CPN {
         AutoLock<const QueueBase> al(*this);
         FUNC_TRACE(logger);
         dead = true;
+        actionCond.Broadcast();
         Signal();
     }
 
@@ -557,8 +559,11 @@ namespace CPN {
                         FileHandle::Poll(fds, fds+2, -1);
                         {
                             AutoLock<QueueBase> al(*this);
-                            Read();
                             Signal();
+                            actionTick = false;
+                            while (!actionTick && !dead) {
+                                actionCond.Wait(lock);
+                            }
                         }
                     }
                 } catch (const ErrnoException &e) {
@@ -605,7 +610,6 @@ namespace CPN {
     }
 
     void RemoteQueue::InternalCheckStatus() {
-        AutoLock<QueueBase> al(*this);
         if (sock.Closed()) {
             return;
         }
@@ -625,6 +629,7 @@ namespace CPN {
         }
 
         try {
+            Read();
 
             if (pendingGrow && !sentEnd) {
                 SendGrowPacket();
@@ -676,6 +681,7 @@ namespace CPN {
                     }
                     sock.Close();
                     dead = true;
+                    actionCond.Broadcast();
                 }
             } else {
                 if (!sentEnd) {
@@ -716,6 +722,7 @@ namespace CPN {
                     }
                     sock.Close();
                     dead = true;
+                    actionCond.Broadcast();
                 }
             }
         } catch (const ErrnoException &e) {
@@ -756,6 +763,7 @@ namespace CPN {
                 sock.Close();
             } catch (const ErrnoException &e) {}
             dead = true;
+            actionCond.Broadcast();
             break;
         default:
             {
