@@ -49,7 +49,7 @@ class PthreadFunctionalTemplate : public PthreadFunctional {
 	PthreadFunctionalTemplate( T& obj, void* (T::*meth)(void) )
 		: theObject(obj), theMethod(meth) { }
 	PthreadFunctionalTemplate( T& obj, void* (T::*meth)(void), const PthreadAttr& attr)
-		: theObject(obj), theMethod(meth), PthreadFunctional(attr) { }
+		: PthreadFunctional(attr), theObject(obj), theMethod(meth) { }
   private:
 	T& theObject;
 	void* (T::*theMethod)(void);
