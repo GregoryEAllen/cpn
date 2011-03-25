@@ -69,7 +69,9 @@ namespace CPN {
         tagUpdated(false),
         dead(false)
     {
-        fileThread = auto_ptr<Pthread>(CreatePthreadFunctional(this, &RemoteQueue::FileThreadEntryPoint));
+        PthreadAttr pattr;
+        pattr.StackSize(16384*2); // magic number, the file thread shouldn't use any more than this
+        fileThread = auto_ptr<Pthread>(CreatePthreadFunctional(this, &RemoteQueue::FileThreadEntryPoint, pattr));
         actionThread = auto_ptr<Pthread>(CreatePthreadFunctional(this, &RemoteQueue::ActionThreadEntryPoint));
         if (mode == READ) {
             SetWriterNode(mocknode);
