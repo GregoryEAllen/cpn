@@ -31,7 +31,6 @@
 
 namespace CPN {
 
-    typedef AutoLock<QueueBase> AutoLock;
 
     QueueBase::QueueBase(KernelBase *k, const SimpleQueueAttr &attr)
         : readerkey(attr.GetReaderKey()),
@@ -58,7 +57,7 @@ namespace CPN {
 
     const void *QueueBase::GetRawDequeuePtr(unsigned thresh, unsigned chan) {
         kernel->CheckTerminated();
-        AutoLock al(*this);
+        AutoLock<QueueBase> al(*this);
         if (indequeue) { ASSERT(dequeuethresh >= thresh); }
         else { dequeuethresh = thresh; }
         while (true) {
@@ -68,12 +67,12 @@ namespace CPN {
                 return ptr;
             }
             if (readshutdown) { throw BrokenQueueException(readerkey); }
-            if (thresh > MaxThreshold() && kernel->GrowQueueMaxThreshold()) {
+            if (thresh > UnlockedMaxThreshold() && kernel->GrowQueueMaxThreshold()) {
                 //printf("Grow(%u, %u)\n", 2*thresh, thresh);
-                Grow(2*thresh, thresh);
+                UnlockedGrow(2*thresh, thresh);
                 Signal();
             } else if (WriteBlocked() && kernel->GrowQueueMaxThreshold()) {
-                Grow(writerequest + thresh, thresh);
+                UnlockedGrow(writerequest + thresh, thresh);
                 Signal();
             } else {
                 readrequest = thresh;
@@ -84,7 +83,7 @@ namespace CPN {
     }
 
     void QueueBase::Dequeue(unsigned count) {
-        AutoLock al(*this);
+        AutoLock<QueueBase> al(*this);
         dequeuethresh = 0;
         indequeue = false;
         if (readshutdown) { throw BrokenQueueException(readerkey); }
@@ -113,7 +112,7 @@ namespace CPN {
 
     void *QueueBase::GetRawEnqueuePtr(unsigned thresh, unsigned chan) {
         kernel->CheckTerminated();
-        AutoLock al(*this);
+        AutoLock<QueueBase> al(*this);
         if (inenqueue) { ASSERT(enqueuethresh >= thresh); }
         else { enqueuethresh = thresh; }
         bool grown = false;
@@ -124,12 +123,12 @@ namespace CPN {
                 return ptr;
             }
             if (readshutdown || writeshutdown) { throw BrokenQueueException(writerkey); }
-            if (thresh > MaxThreshold() && kernel->GrowQueueMaxThreshold()) {
+            if (thresh > UnlockedMaxThreshold() && kernel->GrowQueueMaxThreshold()) {
                 //printf("Grow(%u, %u)\n", 2*thresh, thresh);
-                Grow(2*thresh, thresh);
+                UnlockedGrow(2*thresh, thresh);
                 Signal();
             } else if (!grown && ReadBlocked() && kernel->GrowQueueMaxThreshold()) {
-                Grow(readrequest + thresh, thresh);
+                UnlockedGrow(readrequest + thresh, thresh);
                 Signal();
                 grown = true;
             } else {
@@ -141,7 +140,7 @@ namespace CPN {
     }
 
     void QueueBase::Enqueue(unsigned count) {
-        AutoLock al(*this);
+        AutoLock<QueueBase> al(*this);
         enqueuethresh = 0;
         inenqueue = false;
         if (writeshutdown) { throw BrokenQueueException(writerkey); }
@@ -166,16 +165,79 @@ namespace CPN {
         return RawEnqueue(data, count, 1, 0);
     }
 
+    unsigned QueueBase::NumChannels() const {
+        AutoLock<const QueueBase> al(*this);
+        return UnlockedNumChannels();
+    }
+
+    unsigned QueueBase::Count() const {
+        AutoLock<const QueueBase> al(*this);
+        return UnlockedCount();
+    }
+
+    bool QueueBase::Empty() const {
+        AutoLock<const QueueBase> al(*this);
+        return UnlockedEmpty();
+    }
+
+    unsigned QueueBase::Freespace() const {
+        AutoLock<const QueueBase> al(*this);
+        return UnlockedFreespace();
+    }
+
+    bool QueueBase::Full() const {
+        AutoLock<const QueueBase> al(*this);
+        return UnlockedFull();
+    }
+
+    unsigned QueueBase::MaxThreshold() const {
+        AutoLock<const QueueBase> al(*this);
+        return UnlockedMaxThreshold();
+    }
+
+    unsigned QueueBase::QueueLength() const {
+        AutoLock<const QueueBase> al(*this);
+        return UnlockedQueueLength();
+    }
+
+    unsigned QueueBase::ChannelStride() const {
+        AutoLock<const QueueBase> al(*this);
+        return UnlockedChannelStride();
+    }
+
+    void QueueBase::Grow(unsigned queueLen, unsigned maxThresh) {
+        AutoLock<QueueBase> al(*this);
+        UnlockedGrow(queueLen, maxThresh);
+    }
+
     void QueueBase::ShutdownReader() {
-        AutoLock al(*this);
+        AutoLock<QueueBase> al(*this);
+        UnlockedShutdownReader();
+    }
+
+    void QueueBase::UnlockedShutdownReader() {
         readshutdown = true;
         Signal();
     }
 
     void QueueBase::ShutdownWriter() {
-        AutoLock al(*this);
+        AutoLock<QueueBase> al(*this);
+        UnlockedShutdownWriter();
+    }
+
+    void QueueBase::UnlockedShutdownWriter() {
         writeshutdown = true;
         Signal();
+    }
+
+    unsigned QueueBase::NumEnqueued() const {
+        AutoLock<const QueueBase> al(*this);
+        return UnlockedNumEnqueued();
+    }
+
+    unsigned QueueBase::NumDequeued() const {
+        AutoLock<const QueueBase> al(*this);
+        return UnlockedNumDequeued();
     }
 
     void QueueBase::WaitForData() {
@@ -190,18 +252,18 @@ namespace CPN {
 
     bool QueueBase::ReadBlocked() {
         kernel->CheckTerminated();
-        return Count() < readrequest && !(readshutdown || writeshutdown);
+        return UnlockedCount() < readrequest && !(readshutdown || writeshutdown);
     }
 
     void QueueBase::NotifyData() {
-        if (Count() >= readrequest) {
+        if (UnlockedCount() >= readrequest) {
             cond.Broadcast();
         }
     }
 
     void QueueBase::WaitForFreespace() {
         if (useD4R) {
-            WriteBlock(QueueLength());
+            WriteBlock(UnlockedQueueLength());
         } else {
             while (WriteBlocked()) {
                 cond.Wait(lock);
@@ -211,54 +273,53 @@ namespace CPN {
 
     bool QueueBase::WriteBlocked() {
         kernel->CheckTerminated();
-        return Freespace() < writerequest && !(readshutdown || writeshutdown);
+        return UnlockedFreespace() < writerequest && !(readshutdown || writeshutdown);
     }
 
     void QueueBase::NotifyFreespace() {
-        if (Freespace() >= writerequest) {
+        if (UnlockedFreespace() >= writerequest) {
             cond.Broadcast();
         }
     }
 
     void QueueBase::NotifyTerminate() {
-        AutoLock al(*this);
+        AutoLock<QueueBase> al(*this);
         cond.Broadcast();
     }
 
     void QueueBase::Detect() {
-        AutoLock al(*this);
-        unsigned size = kernel->CalculateGrowSize(Count(), writerequest);
+        unsigned size = kernel->CalculateGrowSize(UnlockedCount(), writerequest);
         logger.Debug("Detect: Grow(%u, %u)", size, writerequest);
-        Grow(size, writerequest);
-        logger.Debug("New size: (%u, %u)", QueueLength(), MaxThreshold());
+        UnlockedGrow(size, writerequest);
+        logger.Debug("New size: (%u, %u)", UnlockedQueueLength(), UnlockedMaxThreshold());
     }
 
     unsigned QueueBase::ReadRequest() {
-        AutoLock al(*this);
+        AutoLock<QueueBase> al(*this);
         return readrequest;
     }
 
     unsigned QueueBase::WriteRequest() {
-        AutoLock al(*this);
+        AutoLock<QueueBase> al(*this);
         return writerequest;
     }
 
     bool QueueBase::IsReaderShutdown() {
-        AutoLock al(*this);
+        AutoLock<QueueBase> al(*this);
         return readshutdown;
     }
 
     bool QueueBase::IsWriterShutdown() {
-        AutoLock al(*this);
+        AutoLock<QueueBase> al(*this);
         return writeshutdown;
     }
 
     void QueueBase::LogState() {
         logger.Error("Printing state (w:%llu r:%llu)", readerkey, writerkey);
         logger.Error("size: %u, maxthresh: %u count: %u free: %u",
-                QueueLength(), MaxThreshold(), Count(), Freespace());
+                UnlockedQueueLength(), UnlockedMaxThreshold(), UnlockedCount(), UnlockedFreespace());
         logger.Error("readrequest: %u, writerequest: %u numenqueued: %u, numdequeued: %u",
-                readrequest, writerequest, NumEnqueued(), NumDequeued());
+                readrequest, writerequest, UnlockedNumEnqueued(), UnlockedNumDequeued());
         if (indequeue) {
             logger.Error("Indequeue (thresh: %u)", dequeuethresh);
         }

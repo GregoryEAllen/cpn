@@ -95,23 +95,19 @@ namespace CPN {
         }
     }
 
-    unsigned ThresholdQueue::NumChannels() const {
-        AutoLock<const QueueBase> al(*this);
+    unsigned ThresholdQueue::UnlockedNumChannels() const {
         return queue->NumChannels();
     }
 
-    unsigned ThresholdQueue::ChannelStride() const {
-        AutoLock<const QueueBase> al(*this);
+    unsigned ThresholdQueue::UnlockedChannelStride() const {
         return queue->ChannelStride();
     }
 
-    unsigned ThresholdQueue::Freespace() const {
-        AutoLock<const QueueBase> al(*this);
+    unsigned ThresholdQueue::UnlockedFreespace() const {
         return queue->Freespace();
     }
 
-    bool ThresholdQueue::Full() const {
-        AutoLock<const QueueBase> al(*this);
+    bool ThresholdQueue::UnlockedFull() const {
         return queue->Full();
     }
 
@@ -138,38 +134,32 @@ namespace CPN {
         queue->Dequeue(count);
     }
 
-    unsigned ThresholdQueue::Count() const {
-        AutoLock<const QueueBase> al(*this);
+    unsigned ThresholdQueue::UnlockedCount() const {
         return queue->Count();
     }
 
-    bool ThresholdQueue::Empty() const {
-        AutoLock<const QueueBase> al(*this);
+    bool ThresholdQueue::UnlockedEmpty() const {
         return queue->Empty();
     }
 
-    unsigned ThresholdQueue::MaxThreshold() const {
-        AutoLock<const QueueBase> al(*this);
+    unsigned ThresholdQueue::UnlockedMaxThreshold() const {
         return queue->MaxThreshold();
     }
 
-    unsigned ThresholdQueue::QueueLength() const {
-        AutoLock<const QueueBase> al(*this);
+    unsigned ThresholdQueue::UnlockedQueueLength() const {
         return queue->QueueLength();
     }
 
-    unsigned ThresholdQueue::NumEnqueued() const {
-        AutoLock<const QueueBase> al(*this);
+    unsigned ThresholdQueue::UnlockedNumEnqueued() const {
         return queue->ElementsEnqueued();
     }
 
-    unsigned ThresholdQueue::NumDequeued() const {
-        AutoLock<const QueueBase> al(*this);
+    unsigned ThresholdQueue::UnlockedNumDequeued() const {
         return queue->ElementsDequeued();
     }
 
-    void ThresholdQueue::Grow(unsigned queueLen, unsigned maxThresh) {
-        AutoLock<QueueBase> al(*this);
+    void ThresholdQueue::UnlockedGrow(unsigned queueLen, unsigned maxThresh) {
+        if (queueLen <= queue->QueueLength() && maxThresh <= queue->MaxThreshold()) return;
         ASSERT(!(inenqueue && indequeue), "Unhandled grow case of having an outstanding dequeue and enqueue");
         if (oldqueue) {
             // If the old queue is still around we have to still be in the same state

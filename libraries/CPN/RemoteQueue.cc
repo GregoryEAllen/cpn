@@ -108,14 +108,17 @@ namespace CPN {
 
     void RemoteQueue::Shutdown() {
         AutoLock<const QueueBase> al(*this);
+        UnlockedShutdown();
+    }
+
+    void RemoteQueue::UnlockedShutdown() {
         FUNC_TRACE(logger);
         dead = true;
         actionCond.Broadcast();
         Signal();
     }
 
-    unsigned RemoteQueue::Count() const {
-        AutoLock<const QueueBase> al(*this);
+    unsigned RemoteQueue::UnlockedCount() const {
         if (mode == READ) {
             return queue->Count();
         } else {
@@ -123,8 +126,7 @@ namespace CPN {
         }
     }
 
-    bool RemoteQueue::Empty() const {
-        AutoLock<const QueueBase> al(*this);
+    bool RemoteQueue::UnlockedEmpty() const {
         if (mode == READ) {
             return queue->Empty();
         } else {
@@ -132,14 +134,13 @@ namespace CPN {
         }
     }
 
-    unsigned RemoteQueue::QueueLength() const {
-        AutoLock<const QueueBase> al(*this);
+    unsigned RemoteQueue::UnlockedQueueLength() const {
         return readerlength + writerlength;
     }
 
-    void RemoteQueue::Grow(unsigned queueLen, unsigned maxThresh) {
-        AutoLock<QueueBase> al(*this);
+    void RemoteQueue::UnlockedGrow(unsigned queueLen, unsigned maxThresh) {
         FUNC_TRACE(logger);
+        if (queueLen <= UnlockedQueueLength() && maxThresh <= UnlockedMaxThreshold()) return;
         while (pendingGrow && !dead) {
             Signal();
             actionCond.Wait(lock);
@@ -148,7 +149,7 @@ namespace CPN {
         readerlength = QueueLength(queueLen, maxthresh, alpha, READ);
         writerlength = QueueLength(queueLen, maxthresh, alpha, WRITE);
         const unsigned newlen = (mode == WRITE ? writerlength : readerlength);
-        ThresholdQueue::Grow(newlen, maxthresh);
+        ThresholdQueue::UnlockedGrow(newlen, maxthresh);
         pendingGrow = true;
         Signal();
     }
@@ -197,20 +198,18 @@ namespace CPN {
         Signal();
     }
 
-    void RemoteQueue::SignalReaderTagChanged() {
-        AutoLock<QueueBase> al(*this);
+    void RemoteQueue::UnlockedSignalReaderTagChanged() {
         FUNC_TRACE(logger);
         ASSERT(mode == READ);
         pendingD4RTag = true;
-        ThresholdQueue::SignalReaderTagChanged();
+        ThresholdQueue::UnlockedSignalReaderTagChanged();
     }
 
-    void RemoteQueue::SignalWriterTagChanged() {
-        AutoLock<QueueBase> al(*this);
+    void RemoteQueue::UnlockedSignalWriterTagChanged() {
         FUNC_TRACE(logger);
         ASSERT(mode == WRITE);
         pendingD4RTag = true;
-        ThresholdQueue::SignalWriterTagChanged();
+        ThresholdQueue::UnlockedSignalWriterTagChanged();
     }
 
     void RemoteQueue::SetupPacket(Packet &packet) {
@@ -233,7 +232,7 @@ namespace CPN {
             logger.Warn("Enqueue packet too large, silently growing queue. "
                     "Packet size: %u, Freespace: %u, MaxThresh: %u, QueueLength: %u",
                     count, queue->Freespace(), queue->MaxThreshold(), queue->QueueLength());
-            ThresholdQueue::Grow(queue->Count() + count, count);
+            ThresholdQueue::UnlockedGrow(queue->Count() + count, count);
         }
         std::vector<iovec> iovs;
         for (unsigned i = 0; i < numchannels; ++i) {
@@ -379,7 +378,7 @@ namespace CPN {
         FUNC_TRACE(logger);
         ASSERT(mode == READ);
         ASSERT(!writeshutdown);
-        QueueBase::ShutdownWriter();
+        QueueBase::UnlockedShutdownWriter();
     }
 
     void RemoteQueue::SendEndOfWritePacket() {
@@ -400,7 +399,7 @@ namespace CPN {
         FUNC_TRACE(logger);
         ASSERT(mode == WRITE);
         ASSERT(!readshutdown);
-        QueueBase::ShutdownReader();
+        QueueBase::UnlockedShutdownReader();
     }
 
     void RemoteQueue::SendEndOfReadPacket() {
@@ -424,7 +423,7 @@ namespace CPN {
         readerlength = QueueLength(queueLen, maxthresh, alpha, READ);
         writerlength = QueueLength(queueLen, maxthresh, alpha, WRITE);
         const unsigned newlen = (mode == WRITE ? writerlength : readerlength);
-        ThresholdQueue::Grow(newlen, maxthresh);
+        ThresholdQueue::UnlockedGrow(newlen, maxthresh);
     }
 
     void RemoteQueue::SendGrowPacket() {
@@ -447,9 +446,9 @@ namespace CPN {
         Signal();
         mocknode->SetPublicTag(tag);
         if (mode == WRITE) {
-            QueueBase::SignalReaderTagChanged();
+            QueueBase::UnlockedSignalReaderTagChanged();
         } else {
-            QueueBase::SignalWriterTagChanged();
+            QueueBase::UnlockedSignalWriterTagChanged();
         }
     }
 
@@ -569,6 +568,7 @@ namespace CPN {
                         }
                     }
                 } catch (const ErrnoException &e) {
+                    AutoLock<QueueBase> al(*this);
                     HandleError(e);
                 }
             }
@@ -592,7 +592,6 @@ namespace CPN {
     }
 
     void RemoteQueue::Signal() {
-        AutoLock<QueueBase> al(*this);
         pendingAction = true;
         QueueBase::Signal();
     }
@@ -622,7 +621,7 @@ namespace CPN {
                 if (!sock.Closed()) {
                     sock.Close();
                 }
-                Shutdown();
+                UnlockedShutdown();
                 return;
             }
             std::string clockstr = ClockString();
@@ -641,7 +640,7 @@ namespace CPN {
             if (mode == WRITE) {
                 if (!sentEnd) {
                     if (terminated) {
-                        ThresholdQueue::ShutdownWriter();
+                        QueueBase::UnlockedShutdownWriter();
                     }
                     // Write as much as we can
                     while (!queue->Empty() && (bytecount < readerlength) && !dead) {
@@ -688,7 +687,7 @@ namespace CPN {
             } else {
                 if (!sentEnd) {
                     if (terminated) {
-                        ThresholdQueue::ShutdownReader();
+                        QueueBase::UnlockedShutdownReader();
                     }
                     // If some bytes have been read from the queue
                     if (bytecount > queue->Count()) {
@@ -753,7 +752,6 @@ namespace CPN {
     }
 
     void RemoteQueue::HandleError(const ErrnoException &e) {
-        AutoLock<QueueBase> al(*this);
         if (readshutdown || writeshutdown) {
             Signal();
         }
@@ -797,9 +795,9 @@ namespace CPN {
 
     std::string RemoteQueue::GetState() {
         std::ostringstream oss;
-        oss << "s: " << QueueLength() << ",mt: " << MaxThreshold() << ",c: " << Count()
-            << ",f: " << Freespace() << ",rr: " << readrequest << ",wr: " << writerequest
-            << ",te: " << NumEnqueued() << ",td: " << NumDequeued()
+        oss << "s: " << UnlockedQueueLength() << ",mt: " << UnlockedMaxThreshold() << ",c: " << UnlockedCount()
+            << ",f: " << UnlockedFreespace() << ",rr: " << readrequest << ",wr: " << writerequest
+            << ",te: " << UnlockedNumEnqueued() << ",td: " << UnlockedNumDequeued()
             << ",M: " << (mode == READ ? "r" : "w") << ",rl: " << readerlength
             << ",wl: " << writerlength << ",c: " << ClockString() << ",bc: "
             << bytecount << ",pb: " << pendingBlock << ",se: " << sentEnd

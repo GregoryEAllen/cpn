@@ -98,14 +98,16 @@ namespace D4R {
          * when thier tag changes.
          * @{
          */
-        virtual void SignalReaderTagChanged();
-        virtual void SignalWriterTagChanged();
+        void SignalReaderTagChanged();
+        void SignalWriterTagChanged();
         /** @} */
     private:
         QueueBase(const QueueBase&);
         QueueBase &operator=(const QueueBase&);
 
     protected:
+        virtual void UnlockedSignalReaderTagChanged();
+        virtual void UnlockedSignalWriterTagChanged();
         /**
          * Wait untill Signal is called.
          * Must be holding the lock to call.

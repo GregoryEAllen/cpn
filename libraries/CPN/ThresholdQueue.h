@@ -56,20 +56,19 @@ namespace CPN {
         virtual const void *InternalGetRawDequeuePtr(unsigned thresh, unsigned chan);
         virtual void InternalDequeue(unsigned count);
 
-    public:
-        virtual unsigned NumChannels() const;
-        virtual unsigned MaxThreshold() const;
-        virtual unsigned QueueLength() const;
-        virtual unsigned Freespace() const;
-        virtual bool Full() const;
-        virtual unsigned Count() const;
-        virtual bool Empty() const;
-        virtual unsigned ChannelStride() const;
+        virtual unsigned UnlockedNumChannels() const;
+        virtual unsigned UnlockedMaxThreshold() const;
+        virtual unsigned UnlockedQueueLength() const;
+        virtual unsigned UnlockedFreespace() const;
+        virtual bool UnlockedFull() const;
+        virtual unsigned UnlockedCount() const;
+        virtual bool UnlockedEmpty() const;
+        virtual unsigned UnlockedChannelStride() const;
 
-        unsigned NumEnqueued() const;
-        unsigned NumDequeued() const;
+        unsigned UnlockedNumEnqueued() const;
+        unsigned UnlockedNumDequeued() const;
 
-        virtual void Grow(unsigned queueLen, unsigned maxThresh);
+        virtual void UnlockedGrow(unsigned queueLen, unsigned maxThresh);
 
     protected:
         /**

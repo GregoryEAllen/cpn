@@ -75,21 +75,24 @@ namespace CPN {
          */
         void Shutdown();
 
-        unsigned Count() const;
-        bool Empty() const;
-        unsigned QueueLength() const;
-        void Grow(unsigned queueLen, unsigned maxThresh);
 
         /// For debug ONLY!
         void LogState();
     private:
+        void UnlockedShutdown();
+
+        unsigned UnlockedCount() const;
+        bool UnlockedEmpty() const;
+        unsigned UnlockedQueueLength() const;
+        void UnlockedGrow(unsigned queueLen, unsigned maxThresh);
+
         void Signal();
         void WaitForData();
         void WaitForFreespace();
         void InternalDequeue(unsigned count);
         void InternalEnqueue(unsigned count);
-        void SignalReaderTagChanged();
-        void SignalWriterTagChanged();
+        void UnlockedSignalReaderTagChanged();
+        void UnlockedSignalWriterTagChanged();
 
         void SetupPacket(Packet &packet);
         void EnqueuePacket(const Packet &packet);
@@ -131,7 +134,7 @@ namespace CPN {
         auto_ptr<Pthread> actionThread;
         bool pendingAction;
         bool actionTick;
-        Sync::ReentrantCondition actionCond;
+        PthreadCondition actionCond;
 
         const Mode_t mode;
         const double alpha;

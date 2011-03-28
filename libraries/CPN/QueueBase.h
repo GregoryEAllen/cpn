@@ -25,7 +25,8 @@
 #define CPN_QUEUEBASE_H
 
 #include "CPNCommon.h"
-#include "ReentrantLock.h"
+#include "PthreadMutex.h"
+#include "PthreadCondition.h"
 #include "D4RQueue.h"
 #include "Logger.h"
 
@@ -140,46 +141,46 @@ namespace CPN {
         /**
          * \return the number of channels supported by this queue.
          */
-        virtual unsigned NumChannels() const = 0;
+        unsigned NumChannels() const;
 
         /**
          * \return the number of bytes in the queue.
          */
-        virtual unsigned Count() const = 0;
+        unsigned Count() const;
 
         /**
          * \return true if the queue is empty
          */
-        virtual bool Empty() const = 0;
+        bool Empty() const;
 
         /**
          * \return the number of bytes we can add to the queue without
          * blocking.
          */
-        virtual unsigned Freespace() const = 0;
+        unsigned Freespace() const;
 
         /**
          * \return true if the queue is full, false otherwise
          */
-        virtual bool Full() const = 0;
+        bool Full() const;
 
         /**
          * \return the maximum threshold this queue supports
          * in bytes
          */
-        virtual unsigned MaxThreshold() const = 0;
+        unsigned MaxThreshold() const;
 
         /**
          * \return the maximum number of bytes that can be
          * put in this queue.
          */
-        virtual unsigned QueueLength() const = 0;
+        unsigned QueueLength() const;
 
         /**
          * \return The current channel stride. May change between calls to enqueue
          * or dequeue.
          */
-        virtual unsigned ChannelStride() const = 0;
+        unsigned ChannelStride() const;
 
         /**
          * Ensure that this queue has at least queueLen bytes
@@ -191,7 +192,7 @@ namespace CPN {
          * \param queueLen the next queue length
          * \param maxThresh the next max threshold
          */
-        virtual void Grow(unsigned queueLen, unsigned maxThresh) = 0;
+        void Grow(unsigned queueLen, unsigned maxThresh);
 
         /** \return the writer key associated with this queue */
         Key_t GetWriterKey() const { return writerkey; }
@@ -200,9 +201,9 @@ namespace CPN {
         /** \return the datatype name associated with this queue */
         const std::string &GetDatatype() const { return datatype; }
         /** \brief Called by the QueueReader when no more data will be read */
-        virtual void ShutdownReader();
+        void ShutdownReader();
         /** \brief Called by the QueueWriter when no more data will be written */
-        virtual void ShutdownWriter();
+        void ShutdownWriter();
         /** \brief Used to tell any waiting threads that the network is terminating */
         void NotifyTerminate();
 
@@ -219,8 +220,8 @@ namespace CPN {
         /// For debugging ONLY!! Otherwise non deterministic output
         virtual void LogState();
 
-        virtual unsigned NumEnqueued() const = 0;
-        virtual unsigned NumDequeued() const = 0;
+        unsigned NumEnqueued() const;
+        unsigned NumDequeued() const;
     protected:
         QueueBase(KernelBase *k, const SimpleQueueAttr &attr);
 
@@ -241,6 +242,20 @@ namespace CPN {
         virtual void *InternalGetRawEnqueuePtr(unsigned thresh, unsigned chan) = 0;
         virtual void InternalEnqueue(unsigned count) = 0;
 
+        virtual unsigned UnlockedNumChannels() const = 0;
+        virtual unsigned UnlockedCount() const = 0;
+        virtual bool UnlockedEmpty() const = 0;
+        virtual unsigned UnlockedFreespace() const = 0;
+        virtual bool UnlockedFull() const = 0;
+        virtual unsigned UnlockedMaxThreshold() const = 0;
+        virtual unsigned UnlockedQueueLength() const = 0;
+        virtual unsigned UnlockedChannelStride() const = 0;
+        virtual void UnlockedGrow(unsigned queueLen, unsigned maxThresh) = 0;
+        virtual void UnlockedShutdownReader();
+        virtual void UnlockedShutdownWriter();
+        virtual unsigned UnlockedNumEnqueued() const = 0;
+        virtual unsigned UnlockedNumDequeued() const = 0;
+
         const Key_t readerkey;
         const Key_t writerkey;
         bool readshutdown;
@@ -254,8 +269,8 @@ namespace CPN {
         KernelBase *kernel;
         bool useD4R;
         Logger logger;
-        Sync::ReentrantLock lock;
-        Sync::ReentrantCondition cond;
+        mutable PthreadMutex lock;
+        PthreadCondition cond;
         std::string datatype;
     };
 

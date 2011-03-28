@@ -137,6 +137,10 @@ namespace D4R {
 
     void QueueBase::SignalReaderTagChanged() {
         AutoLock<QueueBase> al(*this);
+        UnlockedSignalReaderTagChanged();
+    }
+
+    void QueueBase::UnlockedSignalReaderTagChanged() {
         DEBUG("%s: (%llu -> %llu)\n", __PRETTY_FUNCTION__, (writer ? writer->GetPrivateTag().Key() : 0), (reader ? reader->GetPrivateTag().Key() : 0));
         readtagchanged = true;
         Signal();
@@ -144,6 +148,10 @@ namespace D4R {
 
     void QueueBase::SignalWriterTagChanged() {
         AutoLock<QueueBase> al(*this);
+        UnlockedSignalWriterTagChanged();
+    }
+
+    void QueueBase::UnlockedSignalWriterTagChanged() {
         DEBUG("%s: (%llu -> %llu)\n", __PRETTY_FUNCTION__, (writer ? writer->GetPrivateTag().Key() : 0), (reader ? reader->GetPrivateTag().Key() : 0));
         writetagchanged = true;
         Signal();
