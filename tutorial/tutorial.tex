@@ -90,7 +90,7 @@ The context provides this shared state and message passing.
 Under normal circumstances the user should have no need to call any method on the context directly.
 The only reason the user needs to do anything with the context is when the process network is distributed.
 The context class was specifically designed so that multiple implementations could be made.
-Provided in the CPN library are three implementations.
+Provided in the CPN library are two implementations.
 The first implementation is \verb|LocalContext| which provides the context interface to one or more kernels
 in the same process.
 The second implementation is \verb|RemoteContext| which combined with the remote context server
@@ -98,7 +98,7 @@ gives a context object that provides state across multiple processes.
 The \verb|RemoteContext| and server is built on top of two abstract base classes which provide everything
 except the transportation medium.
 The context was designed in this fashion to make it possible to implement custom state handling.
-For example, it would be possible to implement a context that used a database and a synchronization service like ZooKeeper.
+For example, it should be possible to implement a context that used a database and a synchronization service like ZooKeeper.
 
 \subsection{Node Loader}
 \label{sec:node loader}
@@ -118,7 +118,6 @@ If so, it will look through it to see if there is a shared library that can be l
 function that can supply a factory for that node type.
 If all of these fail then the node loader throws an exception indicating that no factory could be found
 for that node type.
-You can manually add a factory to the node loader by the kernel member method \verb|RegisterNodeFactory|.
 Each kernel possesses its own node loader.
 
 A node list is a file that has a very simple format.
@@ -134,7 +133,7 @@ See the file \url{libraries/CPN/NodeLoader.cc} for details.
 One consequence of this loading scheme is that in general nodes will not have any referenced symbols in them.
 This is not normally a problem except when one tries to put a node in a library and use a tool like \verb|jmake|.
 \verb|jmake| collects objects into archives and then uses the linker to load the archive together.
-The problem is linker will prune out object files in archives with no references.
+The problem is the linker will prune out object files in archives with no references.
 This causes objects in which we want to call symbols dynamically to not be linked into the executable.
 So, when using tools like \verb|jmake|, a manual effort to ensure that there is a referenced symbol in the appropriate object
 for all the nodes in archives needs to be made.
@@ -177,7 +176,7 @@ or reads in or XML format and outputs JSON.
 \section{Nodes}
 \label{sec:nodes}
 There are two different ways to define or create a node.
-The first way is to derive a node from \verb!CPN::NodeBase!. This method is rather verbose but allows one to load
+The first way is to derive a node from \verb!CPN::NodeBase!. This method is more verbose but allows one to load
 the node through the \verb!VariantCPNLoader!. The second way is by asking the kernel to create a function node.
 A function node is a node which calls a function with a pointer to a \verb!CPN::NodeBase! and any additional supplied parameters.
 
@@ -188,8 +187,8 @@ In order to provide a derived node one must inherit from \verb!CPN::NodeBase!.
 Also, if the standard node factory declaration macro is used the constructor must take a reference
 to the \verb!CPN::Kernel! as the first parameter and a \verb|const| reference to the \verb!CPN::NodeAttr!
 as the second parameter.
-There is an additional macro for declaring a stateless node and factory together.
 These are the parameters that the constructor for \verb!CPN::NodeBase! takes.
+There is an additional macro for declaring a stateless node and factory together.
 The declaration for the summing node is in Listing \ref{summer declaration}
 The full source code for this example is in section \ref{derived source}.
 
@@ -200,7 +199,7 @@ parameters are needed.
 The main methods of interest on \verb|NodeAttr| are \verb!NodeAttr::SetParam! and \verb!NodeAttr::SetKernel!.
 The \verb!NodeAttr::SetParam! method allow the passing of
 string parameters to the node.
-The parameters are given to the node as a string to string mapping and are available through the methods
+The parameters are given to the node as a string to string mapping and are available through the
 \verb|NodeBase::GetParam| family of methods.
 The \verb!NodeAttr::SetKernel! is used to tell the kernel which kernel we want the node to be created on
 when distributing the process network.
@@ -230,7 +229,7 @@ So, we cannot call \verb|GetIQueue| or \verb|GetOQueue| in the constructor becau
 a node must exist before a queue can be created for it and the node does not exist until
 after the constructor returns.
 
-When the kernel starts the node the \verb!Process()! method is called in a separate thread.
+When the kernel starts the node, the \verb!Process()! method is called in a separate thread.
 The code for the summing node's \verb!Process()! method is in Listing \ref{summer process}.
 
 \begin{lstlisting}[caption=Summing node process declaration,label=summer process]
@@ -251,7 +250,7 @@ void Summer::Process() {
 Note that the raw underlying queue is typeless and simply does a blind bit wise copy of the data.
 This means that only plain old data (POD) types can be sent over the queues in CPN.
 The \verb!CPN::IQueue<T>! and \verb!CPN::OQueue<T>! provide
-type checking and type conversion for the raw queue interface.
+type checking and type coercion for the raw queue interface.
 Each queue has associated with it a string identifying the type that that queue should handle.
 \verb|IQueue| and \verb|OQueue| check this string and throw an exception on assignment if the types do not match.
 
@@ -286,7 +285,7 @@ The constructor requires a \verb!CPN::KernelAttr! object as a parameter object.
 The kernel attribute object only has one required parameter and that is a name for the kernel.
 We set two flags on the \verb|KernelAttr| object.
 The first is to not use the D4R algorithm.
-The second is swallow broken queue exceptions.
+The second is to swallow broken queue exceptions.
 By default the broken queue exceptions are left unhandled and end up with a call to \verb!std::terminate! ending in application termination.
 
 \begin{lstlisting}
@@ -296,7 +295,8 @@ By default the broken queue exceptions are left unhandled and end up with a call
 \end{lstlisting}
 
 Next, the nodes need to be created. It is important to notice that the nodes for a queue must exist before
-the queue can be created. Attribute objects can be reused.
+the queue can be created.
+Attribute objects can be reused as their contents are copied in the function.
 
 \begin{lstlisting}
     kernel.CreateNode("summer", "Summer");
