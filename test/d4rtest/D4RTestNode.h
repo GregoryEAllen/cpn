@@ -2,7 +2,7 @@
 #pragma once
 
 #include "D4RTestNodeBase.h"
-#include "Pthread.h"
+#include "PthreadLib.h"
 #include "PthreadCondition.h"
 #include "Variant.h"
 #include <map>
