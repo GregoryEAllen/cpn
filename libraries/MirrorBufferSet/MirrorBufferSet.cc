@@ -125,7 +125,7 @@ MirrorBufferSet::MirrorBufferSet(ulong bufferSz, ulong mirrorSz, int nBuffers)
     }
 
     // map the entire buffer space, so there will be enough space reserved
-    fprintf1((stderr,"MirrorBufferSet: reserving %d bytes for mapping ", numBytes));
+    fprintf1((stderr,"MirrorBufferSet: reserving %lu bytes for mapping ", numBytes));
     caddr_t baseAddr = (caddr_t) mmap(0, numBytes, PROT_READ|PROT_WRITE, 
             MAP_SHARED|MAP_NORESERVE, fd, (off_t)0);
     if (baseAddr == MAP_FAILED) {
@@ -135,9 +135,9 @@ MirrorBufferSet::MirrorBufferSet(ulong bufferSz, ulong mirrorSz, int nBuffers)
         return;
     }
     bufferBase = baseAddr;
-    fprintf1((stderr,"[0x%08X - 0x%08X)\n", baseAddr, baseAddr+numBytes));
+    fprintf1((stderr,"[%p - %p)\n", (void*)baseAddr, (void*)(baseAddr+numBytes)));
     fprintf1((stderr,"MirrorBufferSet: file \"%s\" is %d bytes\n",
-        fileName, bufferSize*numBuffers));
+        fileName, (int)(bufferSize*numBuffers)));
 
     // now map each of the individual buffers twice
     for (int buf=0; buf<numBuffers; buf++) {
@@ -145,7 +145,7 @@ MirrorBufferSet::MirrorBufferSet(ulong bufferSz, ulong mirrorSz, int nBuffers)
         caddr_t theAddr     = baseAddr+buf*(bufferSize+mirrorSize);
         size_t  theSize     = bufferSize;
         off_t  theOffset   = buf*bufferSize;
-        fprintf2((stderr,"mapping 0x%06lX bytes @ offset 0x%06lX ", theSize, theOffset));
+        fprintf2((stderr,"mapping 0x%06lX bytes @ offset 0x%06lX ", (long unsigned)theSize, (long unsigned)theOffset));
         caddr_t addr = (caddr_t) mmap(theAddr, theSize, PROT_READ|PROT_WRITE,
             MAP_SHARED|MAP_FIXED|MAP_NORESERVE, fd, theOffset);
         if (addr == MAP_FAILED) {
@@ -154,7 +154,7 @@ MirrorBufferSet::MirrorBufferSet(ulong bufferSz, ulong mirrorSz, int nBuffers)
             close(fd);
             return;
         }
-        fprintf2((stderr,"to [0x%08X - 0x%08X)\n", theAddr, theAddr+theSize));
+        fprintf2((stderr,"to [%p - %p)\n", (void*)theAddr, (void*)(theAddr+theSize)));
         if (addr!=theAddr) {
             fprintf(stderr, "### Error: mapped to 0x%p instead of 0x%p\n",
                 addr, theAddr );
@@ -165,7 +165,7 @@ MirrorBufferSet::MirrorBufferSet(ulong bufferSz, ulong mirrorSz, int nBuffers)
         // and again for the mirror
         theAddr     +=bufferSize;
         theSize     = mirrorSize;
-        fprintf2((stderr,"mapping 0x%06lX bytes @ offset 0x%06lX ", theSize, theOffset));
+        fprintf2((stderr,"mapping 0x%06lX bytes @ offset 0x%06lX ", (long unsigned)theSize, (long unsigned)theOffset));
         addr = (caddr_t) mmap(theAddr, theSize, PROT_READ|PROT_WRITE,
             MAP_SHARED|MAP_FIXED|MAP_NORESERVE, fd, theOffset);
         if (addr == MAP_FAILED) {
@@ -174,7 +174,7 @@ MirrorBufferSet::MirrorBufferSet(ulong bufferSz, ulong mirrorSz, int nBuffers)
             close(fd);
             return;
         }
-        fprintf2((stderr,"to [0x%08X - 0x%08X)\n", theAddr, theAddr+theSize));
+        fprintf2((stderr,"to [%p - %p)\n", (void*)theAddr, (void*)(theAddr+theSize)));
         if (addr!=theAddr) {
             fprintf(stderr, "### Error: mapped to 0x%p instead of 0x%p\n", addr, theAddr );
             close(fd);
@@ -245,9 +245,9 @@ MirrorBufferSet::~MirrorBufferSet(void)
     if ( munmap((caddr_t)bufferBase, (bufferSize+mirrorSize)*numBuffers) ) {
         perror("munmap");
     }
-    fprintf2((stderr,"unmapped- \"%s\" [0x%08X - 0x%08X), %d bytes\n",
+    fprintf2((stderr,"unmapped- \"%s\" [%p - %p), %lu bytes\n",
         fileName, bufferBase,
-        (char*)bufferBase+((bufferSize+mirrorSize)*numBuffers),
+        (void*)((char*)bufferBase+((bufferSize+mirrorSize)*numBuffers)),
         ((bufferSize+mirrorSize)*numBuffers)));
 }
 
