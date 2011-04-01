@@ -167,10 +167,15 @@ int main(int argc, char **argv) {
     bool threshold = true;
     double report_time = 0.1;
     double rate_throttle = -1;
+    int maxwritethresh = -1;
+    double alpha = -1;
     while (true) {
-        int c = getopt(argc, argv, "h:p:sb:q:t:lTr:Hm:");
+        int c = getopt(argc, argv, "h:p:sb:q:t:lTr:Hm:R:a:");
         if (c == -1) break;
         switch (c) {
+        case 'a':
+            alpha = strtod(optarg, 0);
+            break;
         case 'h':
             kernelhost = optarg;
             break;
@@ -201,6 +206,9 @@ int main(int argc, char **argv) {
         case 'm':
             rate_throttle = strtod(optarg, 0);
             break;
+        case 'R':
+            maxwritethresh = atoi(optarg);
+            break;
         case 'H':
         default:
             cerr << "Usage: " << *argv << " [options] <context host> <context port>\n"
@@ -214,6 +222,8 @@ int main(int argc, char **argv) {
                 "\t-t n\t Specify threshold size (current " << threshold_size << ")\n"
                 "\t-Tyn\t Specify whether to use the vmm queue (current: " << threshold << ")\n"
                 "\t-r n\t Time in seconds between reports (current: " << report_time << ")\n"
+                "\t-R n\t Set max write threshold on the queue (default: 1000000)\n"
+                "\t-a n\t Set the alpha parameter (default: 0.5)\n"
                 "\t-m n\t Maximum speed in bytes per second to throttle to (<=0 no throttle) (current: "
                 << rate_throttle << ")\n"
                 ;
@@ -229,6 +239,12 @@ int main(int argc, char **argv) {
         qattr.SetWriter("send", "out").SetReader("recv", "in");
         if (threshold) {
             qattr.SetHint(QUEUEHINT_THRESHOLD);
+        }
+        if (maxwritethresh > 0) {
+            qattr.SetMaxWriteThreshold(maxwritethresh);
+        }
+        if (alpha > 0) {
+            qattr.SetAlpha(alpha);
         }
         kernel.CreateQueue(qattr);
         kernel.Wait();
