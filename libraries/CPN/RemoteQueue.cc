@@ -624,8 +624,10 @@ namespace CPN {
                 UnlockedShutdown();
                 return;
             }
+            // We /should/ never get here, output copious amounts of internal information.
             std::string clockstr = ClockString();
             logger.Error("Eof detected but not shutdown! (c: %s)", clockstr.c_str());
+            LogState();
             ASSERT(false, "EOF detected but not shutdown! (c: %s)", clockstr.c_str());
         }
 

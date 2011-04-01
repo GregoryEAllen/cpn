@@ -196,7 +196,7 @@ public:
 };
 CPN_DECLARE_NODE_FACTORY(CPNBFInputNode, CPNBFInputNode);
 
-static const char* const VALID_OPTS = "h:i:o:er:R:na:s:c:f:F:S:q:p:PCv:V:j:J:lk:D:O:H:";
+static const char* const VALID_OPTS = "h:i:o:er:R:na:s:c:f:F:S:q:p:PCv:V:j:J:lk:D:O:H:M:";
 
 static const char* const HELP_OPTS = "Usage: %s [options]\n"
 "\t-a n\t Use algorithm n for vertical\n"
@@ -214,6 +214,7 @@ static const char* const HELP_OPTS = "Usage: %s [options]\n"
 "\t-k num\t Number of enqueues before measurements are started on the source node.\n"
 "\t-l \t Force the input to be the full input length by repetition rather than zero fill.\n"
 "\t-n \t No output, just time\n"
+"\t-M n\t Set max write threshold on the queues\n"
 "\t-o file\t Use output file\n"
 "\t-O y|n\t Measure output only (default: no)\n"
 "\t-q xxx\t Set xxx as the queue type (default: threshold).\n"
@@ -258,6 +259,7 @@ int cpnbf_main(int argc, char **argv) {
     int num_threads = 0;
     int thread_divisor = 1;
     bool outputonly = false;
+    int maxwritethreshold = -1;
     Variant config;
     config["name"] = "kernel";
     std::string nodelist = RealPath("node.list");
@@ -334,6 +336,9 @@ int cpnbf_main(int argc, char **argv) {
             break;
         case 'n':
             nooutput = true;
+            break;
+        case 'M':
+            maxwritethreshold = atoi(optarg);
             break;
         case 'o':
             output_file = optarg;
@@ -514,6 +519,9 @@ int cpnbf_main(int argc, char **argv) {
 
         Variant queue;
         queue["size"] = BLOCKSIZE*size_mult*sizeof(complex<float>);
+        if (maxwritethreshold > 0) {
+            queue["maxwritethreshold"] = maxwritethreshold;
+        }
         queue["threshold"] = BLOCKSIZE*sizeof(complex<float>);
         queue["type"] = queue_type;
         queue["datatype"] = "complex<float>";
@@ -622,6 +630,7 @@ int cpnbf_main(int argc, char **argv) {
     CPN::Kernel kernel(kattr);
     loader.Setup(&kernel);
     kernel.WaitForNode("output");
+    kernel.WaitForAllNodes();
     return 0;
 }
 

@@ -295,6 +295,9 @@ void VariantCPNLoader::LoadQueue(CPN::Kernel *kernel, Variant attr) {
     if (attr["name"].IsString()) {
         qattr.SetName(attr["name"].AsString());
     }
+    if (!attr["maxwritethreshold"].IsNull()) {
+        qattr.SetMaxWriteThreshold(attr["maxwritethreshold"].AsUnsigned());
+    }
     kernel->CreateQueue(qattr);
 }
 
