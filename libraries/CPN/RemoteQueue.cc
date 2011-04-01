@@ -278,9 +278,11 @@ namespace CPN {
         const unsigned numchannels = queue->NumChannels();
         const unsigned maxthresh = queue->MaxThreshold();
         const unsigned expectedfree = std::max(readerlength, maxthresh) - bytecount;
-        unsigned maxwrite = maxwritethreshold/numchannels;
-        if (maxwrite == 0) maxwrite = 1;
-        if (count > maxwrite) { count = maxwrite; }
+        if (maxwritethreshold > 0) {
+            unsigned maxwrite = maxwritethreshold/numchannels;
+            if (maxwrite == 0) maxwrite = 1;
+            if (count > maxwrite) { count = maxwrite; }
+        }
         if (count > maxthresh) { count = maxthresh; }
         if (count > expectedfree) { count = expectedfree; }
         if (count == 0) { return; }

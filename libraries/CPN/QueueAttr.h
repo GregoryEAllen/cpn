@@ -59,7 +59,7 @@ namespace CPN {
             queueLength(0), maxThreshold(0),
             numChannels(1), alpha(0.5),
             readerkey(0), writerkey(0), readernodekey(0), writernodekey(0),
-            maxwritethreshold(1000000)
+            maxwritethreshold(0)
         {}
 
         QueueAttr(const unsigned queueLength_,
@@ -68,7 +68,7 @@ namespace CPN {
             queueLength(queueLength_), maxThreshold(maxThreshold_),
             numChannels(1), alpha(0.5),
             readerkey(0), writerkey(0), readernodekey(0), writernodekey(0),
-            maxwritethreshold(1000000)
+            maxwritethreshold(0)
             {}
 
         /** \brief alpha is used by the remote queue to decide how
@@ -234,7 +234,7 @@ namespace CPN {
             : queuehint(QUEUEHINT_DEFAULT),
             queueLength(0), maxThreshold(0),
             numChannels(0), alpha(0.5),
-            maxwritethreshold(1000000)
+            maxwritethreshold(0)
         {}
         SimpleQueueAttr(const QueueAttr &attr)
             : queuehint(attr.GetHint()),
