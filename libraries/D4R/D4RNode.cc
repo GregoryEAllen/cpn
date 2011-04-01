@@ -65,7 +65,7 @@ namespace D4R {
     void Node::Block(const Tag &t, unsigned qsize) {
         AutoLock<PthreadMutex> al(taglock);
         privateTag.QueueSize(qsize);
-        privateTag.Count(std::max(privateTag.Count(), t.Count()) + 1);
+        privateTag.Count(std::max(publicTag.Count(), t.Count()) + 1);
         DEBUG("Node %llu:%llu block %d\n", privateTag.Count(), privateTag.Key(), (int)privateTag.QueueSize());
         publicTag = privateTag;
         al.Unlock();
