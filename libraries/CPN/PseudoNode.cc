@@ -27,7 +27,8 @@
 namespace CPN {
 
     PseudoNode::PseudoNode(const std::string &n, Key_t k, shared_ptr<Context> ctx)
-        : name(n),
+        : logger(ctx.get(), Logger::WARNING, n),
+        name(n),
         nodekey(k),
         d4rnode(new D4R::Node(k)),
         context(ctx)
@@ -162,6 +163,22 @@ namespace CPN {
     }
 
     void PseudoNode::LogState() {
+        logger.Error("Logging (key: %llu), %u readers, %u writers",
+                nodekey, readermap.size(), writermap.size());
+        D4R::Tag tag = d4rnode->GetPrivateTag();
+        logger.Error("Private key: (%llu, %llu, %llu, %llu)", tag.Count(), tag.Key(), tag.QueueSize(), tag.QueueKey());
+        tag = d4rnode->GetPublicTag();
+        logger.Error("Public key: (%llu, %llu, %llu, %llu)", tag.Count(), tag.Key(), tag.QueueSize(), tag.QueueKey());
+        ReaderMap::iterator r = readermap.begin();
+        while (r != readermap.end()) {
+            r->second->GetQueue()->LogState();
+            ++r;
+        }
+        WriterMap::iterator w = writermap.begin();
+        while (w != writermap.end()) {
+            w->second->GetQueue()->LogState();
+            ++w;
+        }
     }
 }
 

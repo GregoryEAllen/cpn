@@ -95,27 +95,9 @@ namespace CPN {
     }
 
     void NodeBase::LogState() {
-#if 0
-        Logger logger(context.get(), Logger::ERROR);
-        logger.Name(name.c_str());
-        logger.Error("Logging (key: %llu), %u readers, %u writers, %s",
-                nodekey, readermap.size(), writermap.size(), thread->Running() ? "Running" : "done");
-        logger.Error("Thread id: %llu", (unsigned long long)((pthread_t)(*thread.get())));
-        D4R::Tag tag = d4rnode->GetPrivateTag();
-        logger.Error("Private key: (%llu, %llu, %llu, %llu)", tag.Count(), tag.Key(), tag.QueueSize(), tag.QueueKey());
-        tag = d4rnode->GetPublicTag();
-        logger.Error("Public key: (%llu, %llu, %llu, %llu)", tag.Count(), tag.Key(), tag.QueueSize(), tag.QueueKey());
-        ReaderMap::iterator r = readermap.begin();
-        while (r != readermap.end()) {
-            r->second->GetQueue()->LogState();
-            ++r;
-        }
-        WriterMap::iterator w = writermap.begin();
-        while (w != writermap.end()) {
-            w->second->GetQueue()->LogState();
-            ++w;
-        }
-#endif
+        PseudoNode::LogState();
+        logger.Error("Thread id: %llu, %s", (unsigned long long)((pthread_t)(*thread.get())),
+                (thread->Done() ? "done" : "running"));
     }
 }
 

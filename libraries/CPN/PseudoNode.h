@@ -69,7 +69,10 @@ namespace CPN {
         virtual void Shutdown();
         virtual bool IsPurePseudo();
 
+        /// For debugging ONLY!
         virtual void LogState();
+    protected:
+        Logger logger;
     private:
         PseudoNode(const PseudoNode &);
         void ReleaseReader(Key_t ekey);
