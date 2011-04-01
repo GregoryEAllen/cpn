@@ -240,12 +240,6 @@ int main(int argc, char **argv) {
         if (threshold) {
             qattr.SetHint(QUEUEHINT_THRESHOLD);
         }
-        if (maxwritethresh > 0) {
-            qattr.SetMaxWriteThreshold(maxwritethresh);
-        }
-        if (alpha > 0) {
-            qattr.SetAlpha(alpha);
-        }
         kernel.CreateQueue(qattr);
         kernel.Wait();
     } else {
@@ -263,7 +257,13 @@ int main(int argc, char **argv) {
             if (threshold) {
                 qattr.SetHint(QUEUEHINT_THRESHOLD);
             }
-            kernel.CreateQueue(qattr);
+            if (maxwritethresh > 0) {
+                qattr.SetMaxWriteThreshold(maxwritethresh);
+            }
+            if (alpha > 0) {
+                qattr.SetAlpha(alpha);
+            }
+                kernel.CreateQueue(qattr);
             kernel.Wait();
         } else {
             Kernel kernel(KernelAttr("recv").SetContext(context).SetHostName(kernelhost).SetServName(kernelport).UseD4R(false));
