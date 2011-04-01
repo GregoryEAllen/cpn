@@ -130,7 +130,7 @@ Filenames with spaces and other special characters may be quoted.
 The format also supports backslashes to escape any special meaning of the next character in unquoted strings and the \# character for single line comments.
 See the file \url{libraries/CPN/NodeLoader.cc} for details.
 
-One consequence of this loading scheme is that in general nodes will not have any referenced symbols in them.
+One consequence of this loading scheme is that, in general, nodes will not have any referenced symbols in them.
 This is not normally a problem except when one tries to put a node in a library and use a tool like \verb|jmake|.
 \verb|jmake| collects objects into archives and then uses the linker to load the archive together.
 The problem is the linker will prune out object files in archives with no references.
@@ -489,9 +489,11 @@ Once the configuration is done, we read out the results and clean up.
 \end{lstlisting}
 Notice that the kernels not reading out the result wait for the network to terminate.
 This ensures that the other kernels will stick around until we are done with the PN.
-We also could have called the \verb!Kernel::Wait()! function on the kernel and in the kernel that loaded the configuration
-call \verb!Kernel::Terminate()!. This would have had almost the same effect.
 
+\section{Kahn Example}
+
+Also included with the code for this tutorial is an example usage of CPN to create
+the process network that Kahn used in his paper.
 
 \section{Appendix A}
 
