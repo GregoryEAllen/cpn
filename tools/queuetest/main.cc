@@ -105,7 +105,7 @@ void Receiver(NodeBase *node, int buffer_len, double report_time) {
 
 int main(int argc, char **argv) {
     string kernelhost = "localhost";
-    string kernelport = "0";
+    string kernelport = "";
     int buffer_len = 8192;
     bool local = false;
     bool sender = false;
@@ -166,7 +166,7 @@ int main(int argc, char **argv) {
         shared_ptr<Context> context;
         context.reset(new RemoteContext(SocketAddress::CreateIP(argv[optind], argv[optind+1])));
         if (sender) {
-            Kernel kernel(KernelAttr("send").SetContext(context).SetHostName(kernelhost).SetServName(kernelport));
+            Kernel kernel(KernelAttr("send").SetContext(context).SetHostName(kernelhost).SetServName(kernelport).UseD4R(false));
             kernel.CreateFunctionNode("send", Sender, buffer_len, report_time);
             QueueAttr qattr( max(queue_size, 2*buffer_len), max(threshold_size, buffer_len) );
             qattr.SetWriter("send", "out").SetReader("recv", "in");
@@ -174,7 +174,7 @@ int main(int argc, char **argv) {
             kernel.CreateQueue(qattr);
             kernel.Wait();
         } else {
-            Kernel kernel(KernelAttr("recv").SetContext(context).SetHostName(kernelhost).SetServName(kernelport));
+            Kernel kernel(KernelAttr("recv").SetContext(context).SetHostName(kernelhost).SetServName(kernelport).UseD4R(false));
             kernel.CreateFunctionNode("recv", Receiver, buffer_len, report_time);
             kernel.Wait();
         }
