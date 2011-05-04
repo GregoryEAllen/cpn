@@ -10,5 +10,8 @@ pushd test
 jmake Makefiles
 rm Makefile*
 popd
+pushd tools
+jmake Makefiles
+rm Makefile*
+popd
 hg add "re:.*/Makefile\..*"
-hg commit -m"Generated makefiles."
