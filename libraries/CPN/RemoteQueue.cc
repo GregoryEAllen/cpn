@@ -576,7 +576,7 @@ namespace CPN {
             }
         } catch (const ShutdownException &e) {
             std::string clockstr = ClockString();
-            logger.Debug("Forced Shutdown thrue exception (c: %s)", clockstr.c_str());
+            logger.Debug("Forced Shutdown threw exception (c: %s)", clockstr.c_str());
             // Do nothing, this just breaks us out of the loop
             // Can be thrown from ConnectWriter or ConnectReader
         } catch (const ErrnoException &e) {

@@ -964,8 +964,8 @@ int main(int argc, char **argv) {
     double total_time = 0;
     double min_rate = std::numeric_limits<double>::infinity();
     double max_rate = 0;
-    int max_send_wr = 10;
-    int max_recv_wr = 10;
+    int max_send_wr = 100;
+    int max_recv_wr = 100;
     uint64_t counter = 0;
     std::vector<double> filt_buf(filt_len, 0);
     if (server) {
