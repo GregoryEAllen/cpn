@@ -18,4 +18,8 @@ pushd tools
 jmake Makefiles
 rm Makefile*
 popd
+pushd tutorial/code
+jmake Makefiles
+rm Makefile*
+popd
 hg add "re:.*/Makefile\..*"
