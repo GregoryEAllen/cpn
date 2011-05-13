@@ -6,6 +6,10 @@ rm Makefile*
 cd SieveOfEratosthenes
 rm Makefile*
 popd
+pushd nodelibraries
+jmake Makefiles
+rm Makefile*
+popd
 pushd test
 jmake Makefiles
 rm Makefile*
