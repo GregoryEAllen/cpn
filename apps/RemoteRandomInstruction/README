@@ -1,0 +1,5 @@
+
+The RemoteRandomInstruction application is setup to run the random instruction
+nodes in the CPN framwork with the RemoteContext.  This application requires a
+remote context daemon to be running.  See the help text for details on how to
+run this application.

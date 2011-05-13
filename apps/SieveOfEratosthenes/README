@@ -1,0 +1,12 @@
+
+SimpleSieve is a simple implementation of the Sieve of Eratosthenes.
+
+ThresholdSieve is a more complex implementation of the Sieve of Eratosthenes.
+This implementation uses prime wheels and does multiple tokens per firing.  See
+the option help for more details on all the options that may be chosen.
+
+ThresholdSievePerformance is a set of scripts for running the ThresholdSieve on
+a single machine and looking at a measure of performance.
+
+ThresholdSieveClusterPerformance is a set of scripts for running the
+ThresholdSieve on a cluster and looking at a measure of performance.

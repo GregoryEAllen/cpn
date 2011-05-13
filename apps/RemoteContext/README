@@ -1,0 +1,5 @@
+
+This is an implementation of a remote context daemon.  This application
+provides an implementation for the remote context in the CPN framework.
+See the help text for details on how to run this application.
+

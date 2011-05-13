@@ -1,0 +1,4 @@
+
+The CPNKernel application is an example of a generic command line CPN
+implementation that loads up nodes from shared objects then executes the
+network.

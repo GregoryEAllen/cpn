@@ -1,0 +1,18 @@
+
+See the help text for each program for specifics on how to run them.
+Many options are mandatory.
+
+cpnbf
+    - The full beamformer using the CPN framework
+ompbf
+    - The full beamformer using only OpenMP
+fvBeamformer
+    - The fan vertical beamformer (does all fans with one pass)
+vBeamformer
+    - The regular beamformer
+hBeamformer
+    - The horizontal beamformer
+
+The source file LoadFromFile.cc contains the code which loads up coefficients,
+the data to process and writes out processed data. The format is simply a json
+header followed by a null byte, then the data dumped as a C formatted array.

@@ -28,6 +28,29 @@ dealing with the CPN library are in cpntest. Some of the other libraries have a
 test directory.  The XML features require libxml++.
 
 * Added features since last release:
+    * Renamed some the interfaces.
+        * GetWriter -> GetOQueue
+        * GetReader -> GetIQueue
+        * QueueReaderAdapter -> IQueue
+        * QueueWriterAdapter -> OQueue
+        * Pseudo Nodes changed to external endpoints
+        * Renamed CPN::Database to CPN::Context.
+        * WaitNodeTerminate -> WaitForNode
+    * Added a tutorial with examples on how to use the CPN framework.
+    * Added more nodes to the nodelibrary.
+    * Fixed a known issue with the remote queues and D4R.
+    * Improved remote queue performance.
+    * Fixed a previously unknown race condition in the Kernel.
+    * Added CPN_DECLARE_NODE_AND_FACTORY for when the node is stateless.
+    * Some fixes and modifications to the PthreadLib
+    * Some fixes to the beamformer case study.
+    * Some improvements to the remote context.
+    * Added options to the random instruction application for more control.
+    * Added a simple test application to test the speed of tcp sockets.
+    * Added a simple test application to test the speed of CPN queues.
+    * Fixed a typo bug in the D4R implementation, used the wrong variable.
+
+* Added features in previous release:
     * D4R
     * External endpoints (see ``About External Endpoints'' below)
     * Functional nodes (see ``About Function Nodes'' below)
@@ -41,12 +64,6 @@ test directory.  The XML features require libxml++.
     * Added node library (see ``Node Library'' below)
     * Made node loading be through symbol name lookup
     * Updated sieve case studies
-
-* Known issues:
-    * Possible for D4R implementation to transmit a tag while unblocking, this
-      can cause D4R to think a deadlock has occurred when there is no deadlock. I
-      have only seen this happen when running tests for hours on a fully loaded
-      box.
 
 * Case studies and Applications
 
@@ -115,7 +132,7 @@ out.  One has to be careful though as all the same rules apply for determinism
 and deadlock. The idea behind this was that CPN could be used in a larger
 application where CPN is just a library used to compute some intermediate value
 for the application.  One of the design goals in mind while writing CPN was
-that it should be usable in as many types of situations as possible.
+that it should be usable in as many situations as possible.
 
 Example:
 
@@ -156,16 +173,16 @@ kernel.CreateFunctionNode("node name", testnode, std::string("endpoint name"));
 
 * Node Library
 
-One of the additions has been dynamic node type loading. The way this works is
-that there is a node loader class which has a list of places to search for
-nodes.  The first thing the node loader does is look through the symbol table
-of the program for a symbol which is a mangling of the node type name.  If this
-symbol is found it will call it as a function to get a node factory for that
-node type.  If it is not found then it will look into an internal dictionary to
-see if some dynamic library can be loaded which will provide the symbol.  The
-way the node loader knows if there is a library it can load is by telling it
-with a node list file.  The node list file has a very simple syntax.  There are
-two kinds of directives, include and defining a node type name and its library.
+One of the features is dynamic node type loading. The way this works is that
+there is a node loader class which has a list of places to search for nodes.
+The first thing the node loader does is look through the symbol table of the
+program for a symbol which is a mangling of the node type name.  If this symbol
+is found it will call it as a function to get a node factory for that node
+type.  If it is not found then it will look into an internal dictionary to see
+if some dynamic library can be loaded which will provide the symbol.  The way
+the node loader knows if there is a library it can load is by telling it with a
+node list file.  The node list file has a very simple syntax.  There are two
+kinds of directives, include and defining a node type name and its library.
 The include is simply the keyword include followed by arbitrary white space
 then a list of files to include separated by white space. All commands end in a
 semicolon.  The library node type name is the keyword lib followed by white
@@ -176,6 +193,10 @@ the mangled node type name and finished with a semicolon.
 
 To define a node, subclass CPN::NodeBase. Then somewhere in the implementation
 file put the macro CPN_DECLARE_NODE_FACTORY(typename, classname);. Note that
-typename must be a valid as a symbol name.
+typename must be a valid as a symbol name.  There is also a macro
+CPN_DECLARE_NODE_AND_FACTORY(typename, classname); which allows one to declare
+the node and factory all at once and all that is required is a definition of
+the classname::Process() function. This allows stateless nodes to be created
+more easily.
 
 
