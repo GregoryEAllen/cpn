@@ -96,6 +96,7 @@ namespace CPN {
         unsigned Count() const { return queue->Count()/GetTypeSize<T>(); }
         /// \return true if empty, false otherwise
         bool Empty() const { return queue->Empty(); }
+        /// \return the current channel stride, only call this right after a successful call to GetDequeuePtr.
         unsigned ChannelStride() const { return queue->ChannelStride()/GetTypeSize<T>(); }
         /// \return the endpoint key
         Key_t GetKey() const { return queue->GetKey(); }

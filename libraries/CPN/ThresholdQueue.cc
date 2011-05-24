@@ -99,8 +99,20 @@ namespace CPN {
         return queue->NumChannels();
     }
 
-    unsigned ThresholdQueue::UnlockedChannelStride() const {
-        return queue->ChannelStride();
+    unsigned ThresholdQueue::UnlockedEnqueueChannelStride() const {
+        if (enqueueUseOld) {
+            return oldqueue->ChannelStride();
+        } else {
+            return queue->ChannelStride();
+        }
+    }
+
+    unsigned ThresholdQueue::UnlockedDequeueChannelStride() const {
+        if (dequeueUseOld) {
+            return oldqueue->ChannelStride();
+        } else {
+            return queue->ChannelStride();
+        }
     }
 
     unsigned ThresholdQueue::UnlockedFreespace() const {

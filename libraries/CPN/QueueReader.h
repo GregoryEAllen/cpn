@@ -127,7 +127,12 @@ namespace CPN {
          */
         const std::string &GetDatatype() const { return queue->GetDatatype(); }
 
-        unsigned ChannelStride() const { return queue->ChannelStride(); }
+        /**
+         * \return The current channel stride, the returned value is only
+         * guaranteed to be consistent when called between calls to GetRawDequeuePtr
+         * and Dequeue.
+         */
+        unsigned ChannelStride() const { return queue->DequeueChannelStride(); }
 
         /**
          * \return the key associated with this endpoint

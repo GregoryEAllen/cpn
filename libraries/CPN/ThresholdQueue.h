@@ -63,7 +63,8 @@ namespace CPN {
         virtual bool UnlockedFull() const;
         virtual unsigned UnlockedCount() const;
         virtual bool UnlockedEmpty() const;
-        virtual unsigned UnlockedChannelStride() const;
+        virtual unsigned UnlockedEnqueueChannelStride() const;
+        virtual unsigned UnlockedDequeueChannelStride() const;
 
         unsigned UnlockedNumEnqueued() const;
         unsigned UnlockedNumDequeued() const;

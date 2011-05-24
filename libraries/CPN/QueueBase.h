@@ -177,10 +177,17 @@ namespace CPN {
         unsigned QueueLength() const;
 
         /**
-         * \return The current channel stride. May change between calls to enqueue
-         * or dequeue.
+         * \return The current enqueue channel stride.
+         * This value is only guaranteed to be consistent inbetween a call
+         * to GetEnqueuePtr and Enqueue.
          */
-        unsigned ChannelStride() const;
+        unsigned EnqueueChannelStride() const;
+        /**
+         * \return The current dequeue channel stride.
+         * This value is only guaranteed to be consistent inbetween a call
+         * to GetDequeuePtr and Dequeue.
+         */
+        unsigned DequeueChannelStride() const;
 
         /**
          * Ensure that this queue has at least queueLen bytes
@@ -249,7 +256,8 @@ namespace CPN {
         virtual bool UnlockedFull() const = 0;
         virtual unsigned UnlockedMaxThreshold() const = 0;
         virtual unsigned UnlockedQueueLength() const = 0;
-        virtual unsigned UnlockedChannelStride() const = 0;
+        virtual unsigned UnlockedEnqueueChannelStride() const = 0;
+        virtual unsigned UnlockedDequeueChannelStride() const = 0;
         virtual void UnlockedGrow(unsigned queueLen, unsigned maxThresh) = 0;
         virtual void UnlockedShutdownReader();
         virtual void UnlockedShutdownWriter();

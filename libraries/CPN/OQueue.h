@@ -93,6 +93,7 @@ namespace CPN {
         unsigned QueueLength() const { return queue->QueueLength()/GetTypeSize<T>(); }
         /// \return the amount of freespace in data elements
         unsigned Freespace() const { return queue->Freespace()/GetTypeSize<T>(); }
+        /// \return the current channel stride, only call this after a successful call to GetEnqueuePtr.
         unsigned ChannelStride() const { return queue->ChannelStride()/GetTypeSize<T>(); }
         /// \return true if full
         bool Full() const { return queue->Full(); }

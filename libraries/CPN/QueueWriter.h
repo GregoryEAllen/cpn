@@ -129,7 +129,12 @@ namespace CPN {
          */
         bool Full() const { return queue->Full(); }
 
-        unsigned ChannelStride() const { return queue->ChannelStride(); }
+        /**
+         * \return The current channel stride, the returned value is only
+         * guaranteed to be consistent when called between calls to GetRawEnqueuePtr
+         * and Enqueue.
+         */
+        unsigned ChannelStride() const { return queue->EnqueueChannelStride(); }
 
         /**
          * \return the typename for this queue

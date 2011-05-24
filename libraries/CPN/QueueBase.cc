@@ -200,9 +200,14 @@ namespace CPN {
         return UnlockedQueueLength();
     }
 
-    unsigned QueueBase::ChannelStride() const {
+    unsigned QueueBase::EnqueueChannelStride() const {
         AutoLock<const QueueBase> al(*this);
-        return UnlockedChannelStride();
+        return UnlockedEnqueueChannelStride();
+    }
+
+    unsigned QueueBase::DequeueChannelStride() const {
+        AutoLock<const QueueBase> al(*this);
+        return UnlockedDequeueChannelStride();
     }
 
     void QueueBase::Grow(unsigned queueLen, unsigned maxThresh) {
