@@ -1,4 +1,4 @@
-#USE_RMDA=1
+#USE_RDMA=1
 ifdef USE_RDMA
     OS_LIBS += -libverbs
     CC_OTHER += -DENABLE_RDMA
