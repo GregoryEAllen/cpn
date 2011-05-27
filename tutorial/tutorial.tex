@@ -15,7 +15,7 @@
 }
 
 \section{Introduction}
-This tutorial provides an introduction using the Computational Process Network (CPN) library.
+This tutorial provides an introduction to using the Computational Process Network (CPN) library.
 For most of this document, the same example Fibonacci number generator will be used.
 This way you may see several different ways of implementing the same algorithm in CPN.
 The Fibonacci sequence can be described as the following recursive equation and initial values.
@@ -159,7 +159,8 @@ Each queue has an associated type string for data that it carries.
 If a node returns from its \verb!Process()! method, all queue endpoints will be disconnected.
 An endpoint can also be disconnected by calling \verb!Release! on the queue endpoint.
 Trying to enqueue to a disconnected queue will result in a \verb!CPN::BrokenQueueException!
-being thrown (unless SwallowBrokenQueueExceptions is set as a kernel parameter).
+being thrown which will result in a call to \verb!std::terminate! if not caught
+(unless SwallowBrokenQueueExceptions is set as a kernel parameter).
 
 To instantiate a derived node, one must create a \verb!CPN::NodeAttr! that specifies
 the desired node name and node type name, and then pass that \verb!NodeAttr! 
@@ -320,8 +321,8 @@ The full example is in Listing \ref{lst:function node}.
 
 When you ask the kernel to create a node by type name, it asks the node loader
 for a node factory that can create a node of that type.
-If there is a factory in that map it will return it.
-You can explicitly add a factory to the map using \verb|RegisterNodeFactory|.
+If the node loader has a factory for that type it will return it.
+You can explicitly add a factory for a type name to the node loader using \verb|RegisterNodeFactory|.
 If no factory is found then there are several places the node loader will look to see if it can find one.
 The first thing the node loader will do is search the executable for a symbol which is
 the type name added to an identifier.
@@ -379,7 +380,7 @@ The \verb!VariantCPNLoader! has a validator that goes through the configuration 
 and that there are no obvious errors (e.g. two nodes with the same name).
 An example of the loader's usage is given in section \ref{sec:distributing}.
 
-The data contents that requires 
+The format of the Variant that the loader expects
 is a key value map at the base. There are nine keys that specify options for the kernel and three
 that specify how to load the CPN program.
 The specification for the the \verb!VariantCPNLoader! is in section \ref{sec:appendix b}.
@@ -396,22 +397,22 @@ configuration files. It is locate on the path \url{apps/CPNKernel/main.cc}.
 To distribute a CPN program, you first need to execute a remote context daemon, 
 which is located in \url{apps/RemoteContext}.
 Each of the kernels that are created must have a unique name, and must be instructed (with a kernel attribute) to connect to the remote context.
-When when creating nodes in the CPN program, the kernel which should instantiate that node is specified with \verb!NodeAttr::SetKernel!.
+When creating nodes in the CPN program, the kernel which should instantiate that node is specified with \verb!NodeAttr::SetKernel!.
 The approach used in the examples is to have a single program that runs on multiple hosts, and have the
 the differences between them specified by command line arguments and configuration files.
 
 Now we return to our Fibonacci number generator example, while using the distributed features of the CPN library.
 The Summer and Cons node are exactly as shown for the derived nodes (section \ref{sec:derived node example}).
-The \verb!VariantCPNLoader! to load and execute the example program specification.
+The \verb!VariantCPNLoader! is used to load and execute the example program specification.
 (The listings in this section omit some error checking for clarity, but full error checking is included in Listing \ref{lst:distributed}.)
 
 The configuration files that describe the example are included in Listings \ref{lst:common_defs}, \ref{lst:pn_def} and \ref{lst:nodemap}.
 The first file (Listing \ref{lst:common_defs}) provides some definitions that are global for the example.
 The second file (Listing \ref{lst:pn_def}) describes the Fibonacci example by listing the nodes and queues, their parameters, and how they interconnect.
 The third file (Listing \ref{lst:nodemap}) describes how the different nodes are mapped onto different kernels (and therefore potentially different hosts) in the distributed system.
-Because the configuration is split between multiple files, parts of the configuration to be reused and combined in different ways.
+Because the configuration is split between multiple files, parts of the configuration can be reused and combined in different ways.
 For example, it may be interesting to map the same CPN program onto the same distributed system a number of different ways,
-which can be accomplished by changing only mapping file.
+which can be accomplished by changing only the mapping file.
 Frequently, only a small part of the configuration needs to be different for each kernel.
 Once the distributed example is built there is a option `-C' which causes the program
 to load all configuration data then print that data out in JSON format and exit.
