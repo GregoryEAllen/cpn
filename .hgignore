@@ -1,0 +1,47 @@
+# use glob syntax
+syntax: glob
+
+.DS_Store
+._*
+.svn
+_Darwin-powerpc
+_Darwin-i386
+_Darwin-x86_64
+_Linux-ppc
+_Linux-ppc64
+_Linux-i686
+_Linux-x86_64
+_Linux-x86_64-swig
+# generated files
+_gen_*
+# vim temporary file
+.*.swp
+# not interested in the hg backup files
+*.orig
+
+*.log
+*.make
+*.cookie
+*.d
+*.fls
+*.aux
+*.pdf
+*.temp
+
+# Ignore the documentation directory
+documentation
+# individual executables
+
+apps/SieveOfEratosthenes/ThresholdSievePerformance/result*
+apps/SieveOfEratosthenes/ThresholdSieve/ThresholdSieveDefaults.h
+
+nodelibraries/node.list*
+
+# use regexp syntax
+syntax: regexp
+# Ignore all files/directories that have the exact same
+# name as thier parent directory.
+# I.e the default executable name for jmake
+# This match is a little bit broad it will match foobar/bar
+([^/]+)/\1$
+

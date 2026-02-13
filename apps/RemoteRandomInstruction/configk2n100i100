@@ -1,0 +1,11 @@
+{
+    "iterations"    : 100,
+    "numnodes"      : 100,
+    "debuglevel"    : 1,
+    "loglevel"      : 25,
+    "kernels"       : [
+        "kone",
+        "ktwo"
+    ],
+    "starter"       : "kone"
+}

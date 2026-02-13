@@ -1,0 +1,52 @@
+{
+    "nodes" : [
+        {
+            "name" : "A",
+            "key" : 1,
+            "instructions" : [
+                [ "enqueue", "Q", 5],
+                [ "enqueue", "Q", 5],
+                [ "verify writer size", "Q", 10],
+                [ "enqueue", "P", 5],
+                [ "enqueue", "Q", 5],
+                [ "enqueue", "Q", 5],
+                [ "enqueue", "P", 5],
+                [ "enqueue", "Q", 5],
+                [ "enqueue", "Q", 5],
+                [ "enqueue", "P", 5],
+                [ "exit" ]
+            ]
+        },
+        {
+            "name" : "B",
+            "key" : 2,
+            "instructions" : [
+                [ "dequeue", "P", 5],
+                [ "dequeue", "Q", 5],
+                [ "verify reader size", "Q", 10],
+                [ "dequeue", "Q", 5],
+                [ "dequeue", "P", 5],
+                [ "dequeue", "Q", 5],
+                [ "dequeue", "Q", 5],
+                [ "dequeue", "P", 5],
+                [ "dequeue", "Q", 5],
+                [ "dequeue", "Q", 5],
+                [ "exit" ]
+            ]
+        }
+    ],
+    "queues" : [
+        {
+            "name" : "Q",
+            "size" : 5,
+            "reader" : "B",
+            "writer" : "A"
+        },
+        {
+            "name" : "P",
+            "size" : 5,
+            "reader" : "B",
+            "writer" : "A"
+        }
+    ]
+}

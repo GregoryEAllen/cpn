@@ -1,0 +1,68 @@
+{
+    "nodes": [
+        {
+            "name": "summer",
+            "type": "Summer"
+        },
+        {
+            "name": "Cons 1",
+            "type": "Cons",
+            "param": {
+                "num outputs": 2,
+                "initial": 1
+            }
+        },
+        {
+            "name": "Cons 2",
+            "type": "Cons",
+            "param": {
+                "num outputs": 2,
+                "initial": 1
+            }
+        }
+    ],
+
+    "queues": [
+        {
+            "size": 16,
+            "threshold": 8,
+            "type": "default",
+            "datatype": "uint64_t",
+            "readernode": "summer",
+            "readerport": "A",
+            "writernode": "Cons 1",
+            "writerport": "out0"
+        },
+        {
+            "size": 16,
+            "threshold": 8,
+            "type": "default",
+            "datatype": "uint64_t",
+            "readernode": "summer",
+            "readerport": "B",
+            "writernode": "Cons 2",
+            "writerport": "out0"
+        },
+        {
+            "size": 16,
+            "threshold": 8,
+            "type": "default",
+            "datatype": "uint64_t",
+            "readernode": "Cons 1",
+            "readerport": "in",
+            "writernode": "summer",
+            "writerport": "C"
+        },
+        {
+            "size": 16,
+            "threshold": 8,
+            "type": "default",
+            "datatype": "uint64_t",
+            "readernode": "Cons 2",
+            "readerport": "in",
+            "writernode": "Cons 1",
+            "writerport": "out1"
+        }
+    ]
+
+}

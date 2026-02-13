@@ -1,0 +1,5 @@
+
+XML-JSON is a simple application that uses the XML and JSON utilities along
+side the Variant class to convert the JSON langauge to and from the XML
+langauge that the CPN library supports.
+

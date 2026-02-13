@@ -1,0 +1,15 @@
+digraph G {
+    graph [rankdir=LR]
+    edge [arrowhead=open, labelangle=60];
+    i -> p [label="5", taillabel="w"]
+    p -> u [label="10", taillabel="w"]
+    u -> t [label="10", taillabel="w"]
+    t -> s [label="10", taillabel="w"]
+    s -> q [label="100", taillabel="w"]
+    s -> r [label="10", headlabel="r"]
+    r -> o [label="10", headlabel="r"]
+    p -> w [label="10"]
+    w -> v [label="10", headlabel="r"]
+    v -> q [label="10", headlabel="r"]
+    q -> o [label="10"]
+}

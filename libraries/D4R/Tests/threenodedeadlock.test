@@ -1,0 +1,60 @@
+{
+    "nodes" : [
+        {
+            "name" : "A",
+            "key" : 1,
+            "instructions" : [
+                [ "dequeue", "Q", 1],
+                [ "enqueue", "P", 1],
+                [ "dequeue", "Q", 1],
+                [ "enqueue", "P", 1],
+                [ "dequeue", "Q", 1],
+                [ "verify deadlock" ]
+            ]
+        },
+        {
+            "name" : "B",
+            "key" : 2,
+            "instructions" : [
+                [ "dequeue", "P", 1],
+                [ "enqueue", "R", 1],
+                [ "dequeue", "P", 1],
+                [ "enqueue", "R", 1],
+                [ "dequeue", "P", 1],
+                [ "verify deadlock" ]
+            ]
+        },
+        {
+            "name" : "C",
+            "key" : 3,
+            "instructions" : [
+                [ "enqueue", "Q", 1],
+                [ "dequeue", "R", 1],
+                [ "enqueue", "Q", 1],
+                [ "dequeue", "R", 1],
+                [ "dequeue", "R", 1],
+                [ "verify deadlock" ]
+            ]
+        }
+    ],
+    "queues" : [
+        {
+            "name" : "Q",
+            "size" : 1,
+            "reader" : "A",
+            "writer" : "C"
+        },
+        {
+            "name" : "P",
+            "size" : 1,
+            "reader" : "B",
+            "writer" : "A"
+        },
+        {
+            "name" : "R",
+            "size" : 1,
+            "reader" : "C",
+            "writer" : "B"
+        }
+    ]
+}

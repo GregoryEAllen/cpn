@@ -1,0 +1,373 @@
+{
+/* Came from "Efficient execution of process networks"
+by Basten and Hoogerbrugge
+*/
+    "nodes" : [
+        {
+            "name" : "a",
+            "key" : 1,
+            "instructions" : [
+                [ "enqueue", "a->b", 5],
+                [ "enqueue", "a->b", 5],
+                [ "enqueue", "a->b", 5],
+                [ "verify writer size", "a->b", 10],
+                [ "exit" ]
+            ]
+        },
+        {
+            "name" : "b",
+            "key" : 2,
+            "instructions" : [
+                [ "enqueue", "b->c", 5],
+                [ "enqueue", "b->c", 5],
+                [ "enqueue", "b->c", 5],
+                [ "verify writer size", "b->c", 15],
+                [ "enqueue", "b->d", 5],
+                [ "enqueue", "b->d", 5],
+                [ "enqueue", "b->d", 5],
+                [ "verify writer size", "b->d", 15],
+                [ "enqueue", "b->e", 5],
+                [ "enqueue", "b->e", 5],
+                [ "enqueue", "b->e", 5],
+                [ "dequeue", "a->b", 5],
+                [ "dequeue", "a->b", 5],
+                [ "dequeue", "a->b", 5],
+                [ "exit" ]
+            ]
+        },
+        {
+            "name" : "c",
+            "key" : 3,
+            "instructions" : [
+                [ "enqueue", "c->f", 5],
+                [ "enqueue", "c->f", 5],
+                [ "enqueue", "c->f", 5],
+                [ "verify writer size", "c->f", 14],
+                [ "dequeue", "b->c", 5],
+                [ "dequeue", "b->c", 5],
+                [ "dequeue", "b->c", 5],
+                [ "exit" ]
+            ]
+        },
+        {
+            "name" : "d",
+            "key" : 4,
+            "instructions" : [
+                [ "enqueue", "d->g", 5],
+                [ "enqueue", "d->g", 5],
+                [ "enqueue", "d->g", 5],
+                [ "verify writer size", "d->g", 14],
+                [ "enqueue", "d->h", 5],
+                [ "enqueue", "d->h", 5],
+                [ "enqueue", "d->h", 5],
+                [ "dequeue", "b->d", 5],
+                [ "dequeue", "b->d", 5],
+                [ "dequeue", "b->d", 5],
+                [ "exit" ]
+            ]
+        },
+        {
+            "name" : "e",
+            "key" : 5,
+            "instructions" : [
+                [ "dequeue", "b->e", 5],
+                [ "dequeue", "b->e", 5],
+                [ "dequeue", "b->e", 5],
+                [ "verify reader size", "b->e", 10],
+                [ "enqueue", "e->i", 5],
+                [ "enqueue", "e->i", 5],
+                [ "enqueue", "e->i", 5],
+                [ "exit" ]
+            ]
+        },
+        {
+            "name" : "f",
+            "key" : 6,
+            "instructions" : [
+                [ "enqueue", "f->j", 5],
+                [ "enqueue", "f->j", 5],
+                [ "enqueue", "f->j", 5],
+                [ "verify writer size", "f->j", 14],
+                [ "dequeue", "c->f", 5],
+                [ "dequeue", "c->f", 5],
+                [ "dequeue", "c->f", 5],
+                [ "exit" ]
+            ]
+        },
+        {
+            "name" : "g",
+            "key" : 7,
+            "instructions" : [
+                [ "enqueue", "g->k", 5],
+                [ "enqueue", "g->k", 5],
+                [ "enqueue", "g->k", 5],
+                [ "verify writer size", "g->k", 14],
+                [ "dequeue", "d->g", 5],
+                [ "dequeue", "d->g", 5],
+                [ "dequeue", "d->g", 5],
+                [ "exit" ]
+            ]
+        },
+        {
+            "name" : "h",
+            "key" : 8,
+            "instructions" : [
+                [ "dequeue", "d->h", 5],
+                [ "dequeue", "d->h", 5],
+                [ "dequeue", "d->h", 5],
+                [ "verify reader size", "d->h", 10],
+                [ "enqueue", "h->l", 5],
+                [ "enqueue", "h->l", 5],
+                [ "enqueue", "h->l", 5],
+                [ "exit" ]
+            ]
+        },
+        {
+            "name" : "i",
+            "key" : 9,
+            "instructions" : [
+                [ "dequeue", "e->i", 5],
+                [ "dequeue", "e->i", 5],
+                [ "dequeue", "e->i", 5],
+                [ "verify reader size", "e->i", 10],
+                [ "enqueue", "i->m", 5],
+                [ "enqueue", "i->m", 5],
+                [ "enqueue", "i->m", 5],
+                [ "exit" ]
+            ]
+        },
+        {
+            "name" : "j",
+            "key" : 10,
+            "instructions" : [
+                [ "enqueue", "j->n", 5],
+                [ "enqueue", "j->n", 5],
+                [ "enqueue", "j->n", 5],
+                [ "verify writer size", "j->n", 14],
+                [ "dequeue", "f->j", 5],
+                [ "dequeue", "f->j", 5],
+                [ "dequeue", "f->j", 5],
+                [ "exit" ]
+            ]
+        },
+        {
+            "name" : "k",
+            "key" : 11,
+            "instructions" : [
+                [ "enqueue", "k->o", 5],
+                [ "enqueue", "k->o", 5],
+                [ "enqueue", "k->o", 5],
+                [ "verify writer size", "k->o", 14],
+                [ "dequeue", "g->k", 5],
+                [ "dequeue", "g->k", 5],
+                [ "dequeue", "g->k", 5],
+                [ "exit" ]
+            ]
+        },
+        {
+            "name" : "l",
+            "key" : 12,
+            "instructions" : [
+                [ "dequeue", "h->l", 5],
+                [ "dequeue", "h->l", 5],
+                [ "dequeue", "h->l", 5],
+                [ "verify reader size", "h->l", 10],
+                [ "enqueue", "l->p", 5],
+                [ "enqueue", "l->p", 5],
+                [ "enqueue", "l->p", 5],
+                [ "exit" ]
+            ]
+        },
+        {
+            "name" : "m",
+            "key" : 13,
+            "instructions" : [
+                [ "dequeue", "i->m", 5],
+                [ "dequeue", "i->m", 5],
+                [ "dequeue", "i->m", 5],
+                [ "verify reader size", "i->m", 10],
+                [ "enqueue", "m->o", 5],
+                [ "enqueue", "m->o", 5],
+                [ "enqueue", "m->o", 5],
+                [ "exit" ]
+            ]
+        },
+        {
+            "name" : "n",
+            "key" : 14,
+            "instructions" : [
+                [ "enqueue", "n->q", 5],
+                [ "enqueue", "n->q", 5],
+                [ "enqueue", "n->q", 5],
+                [ "verify writer size", "n->q", 14],
+                [ "dequeue", "j->n", 5],
+                [ "dequeue", "j->n", 5],
+                [ "dequeue", "j->n", 5],
+                [ "exit" ]
+            ]
+        },
+        {
+            "name" : "o",
+            "key" : 15,
+            "instructions" : [
+                [ "dequeue", "m->o", 5],
+                [ "dequeue", "m->o", 5],
+                [ "dequeue", "m->o", 5],
+                [ "verify reader size", "m->o", 10],
+                [ "dequeue", "k->o", 5],
+                [ "dequeue", "k->o", 5],
+                [ "dequeue", "k->o", 5],
+                [ "enqueue", "o->q", 5],
+                [ "enqueue", "o->q", 5],
+                [ "enqueue", "o->q", 5],
+                [ "exit" ]
+            ]
+        },
+        {
+            "name" : "p",
+            "key" : 16,
+            "instructions" : [
+                [ "dequeue", "l->p", 5],
+                [ "dequeue", "l->p", 5],
+                [ "dequeue", "l->p", 5],
+                [ "verify reader size", "l->p", 10],
+                [ "enqueue", "p->q", 5],
+                [ "enqueue", "p->q", 5],
+                [ "enqueue", "p->q", 5],
+                [ "exit" ]
+            ]
+        },
+        {
+            "name" : "q",
+            "key" : 17,
+            "instructions" : [
+                [ "dequeue", "p->q", 5],
+                [ "dequeue", "p->q", 5],
+                [ "dequeue", "p->q", 5],
+                [ "dequeue", "n->q", 5],
+                [ "dequeue", "n->q", 5],
+                [ "dequeue", "n->q", 5],
+                [ "dequeue", "o->q", 5],
+                [ "dequeue", "o->q", 5],
+                [ "dequeue", "o->q", 5],
+                [ "exit" ]
+            ]
+        }
+    ],
+    "queues" : [
+        {
+            "name" : "a->b",
+            "size" : 10,
+            "writer" : "a",
+            "reader" : "b"
+        },
+        {
+            "name" : "b->c",
+            "size" : 10,
+            "writer" : "b",
+            "reader" : "c"
+        },
+        {
+            "name" : "b->d",
+            "size" : 10,
+            "writer" : "b",
+            "reader" : "d"
+        },
+        {
+            "name" : "b->e",
+            "size" : 10,
+            "writer" : "b",
+            "reader" : "e"
+        },
+        {
+            "name" : "c->f",
+            "size" : 10,
+            "writer" : "c",
+            "reader" : "f"
+        },
+        {
+            "name" : "d->h",
+            "size" : 10,
+            "writer" : "d",
+            "reader" : "h"
+        },
+        {
+            "name" : "d->g",
+            "size" : 10,
+            "writer" : "d",
+            "reader" : "g"
+        },
+        {
+            "name" : "e->i",
+            "size" : 10,
+            "writer" : "e",
+            "reader" : "i"
+        },
+        {
+            "name" : "f->j",
+            "size" : 10,
+            "writer" : "f",
+            "reader" : "j"
+        },
+        {
+            "name" : "h->l",
+            "size" : 10,
+            "writer" : "h",
+            "reader" : "l"
+        },
+        {
+            "name" : "g->k",
+            "size" : 10,
+            "writer" : "g",
+            "reader" : "k"
+        },
+        {
+            "name" : "i->m",
+            "size" : 10,
+            "writer" : "i",
+            "reader" : "m"
+        },
+        {
+            "name" : "j->n",
+            "size" : 10,
+            "writer" : "j",
+            "reader" : "n"
+        },
+        {
+            "name" : "l->p",
+            "size" : 10,
+            "writer" : "l",
+            "reader" : "p"
+        },
+        {
+            "name" : "k->o",
+            "size" : 10,
+            "writer" : "k",
+            "reader" : "o"
+        },
+        {
+            "name" : "m->o",
+            "size" : 10,
+            "writer" : "m",
+            "reader" : "o"
+        },
+        {
+            "name" : "n->q",
+            "size" : 5,
+            "writer" : "n",
+            "reader" : "q"
+        },
+        {
+            "name" : "p->q",
+            "size" : 10,
+            "writer" : "p",
+            "reader" : "q"
+        },
+        {
+            "name" : "o->q",
+            "size" : 10,
+            "writer" : "o",
+            "reader" : "q"
+        }
+    ]
+}

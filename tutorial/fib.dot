@@ -1,0 +1,14 @@
+
+digraph {
+    summer [label="+"]
+    delay_1 [label="Cons(1)"]
+    delay_2 [label="Cons(1)"]
+    result [label="Output",shape=plaintext]
+    summer -> delay_1 [taillabel="C",headlabel="in"]
+    delay_1 -> summer [taillabel="A",headlabel="A"]
+    delay_1 -> delay_2 [taillabel="B",headlabel="in"]
+    delay_2 -> summer [taillabel="A", headlabel="B"]
+    delay_2 -> result [taillabel="B"]
+    
+}
+

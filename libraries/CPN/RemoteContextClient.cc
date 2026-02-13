@@ -1,0 +1,683 @@
+//=============================================================================
+//	Computational Process Networks class library
+//	Copyright (C) 1997-2006  Gregory E. Allen and The University of Texas
+//
+//	This library is free software; you can redistribute it and/or modify it
+//	under the terms of the GNU Library General Public License as published
+//	by the Free Software Foundation; either version 2 of the License, or
+//	(at your option) any later version.
+//
+//	This library is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//	Library General Public License for more details.
+//
+//	The GNU Public License is available in the file LICENSE, or you
+//	can write to the Free Software Foundation, Inc., 59 Temple Place -
+//	Suite 330, Boston, MA 02111-1307, USA, or you can find it on the
+//	World Wide Web at http://www.fsf.org.
+//=============================================================================
+/** \file
+ * \author John Bridgman
+ */
+
+#include "RemoteContextClient.h"
+#include "KernelBase.h"
+#include "Exceptions.h"
+#include "ThrowingAssert.h"
+#include "AutoUnlock.h"
+#include "Base64.h"
+#include "VariantToJSON.h"
+#include "PthreadFunctional.h"
+#include "ErrnoException.h"
+#include <stdexcept>
+
+namespace CPN {
+
+    RemoteContextClient::RemoteContextClient()
+        : trancounter(0), shutdown(false), loglevel(Logger::WARNING)
+    {
+    }
+
+    RemoteContextClient::~RemoteContextClient() {
+        if (terminateThread.get()) {
+            terminateThread->Join();
+        }
+    }
+
+    int RemoteContextClient::LogLevel() const {
+        PthreadMutexProtected plock(lock);
+        return loglevel;
+    }
+
+    int RemoteContextClient:: LogLevel(int level) {
+        PthreadMutexProtected plock(lock);
+        return loglevel = level;
+    }
+
+    void RemoteContextClient::Log(int level, const std::string &logmsg) {
+        PthreadMutexProtected plock(lock);
+        if (level >= loglevel) {
+            Variant msg(Variant::ObjectType);
+            msg["type"] = RCTXMT_LOG;
+            msg["msg"] = logmsg;
+            SendMessage(msg);
+        }
+    }
+
+    Key_t RemoteContextClient::SetupKernel(const std::string &name, const std::string &hostname,
+            const std::string &servname, KernelBase *kernel) {
+        PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
+        if (!kernel) { throw std::invalid_argument("Must have non null Kernel."); }
+        Variant msg(Variant::ObjectType);
+        msg["type"] = RCTXMT_SETUP_KERNEL;
+        msg["name"] = name;
+        msg["hostname"] = hostname;
+        msg["servname"] = servname;
+        Variant reply = RemoteCall(msg);
+        if (!reply["success"].IsTrue()) {
+           throw std::invalid_argument("Cannot create two kernels with the same name");
+        }
+        Key_t key = reply["kernelinfo"]["key"].AsNumber<Key_t>();
+        kernels.insert(std::make_pair(key, kernel));
+        return key;
+    }
+
+    Key_t RemoteContextClient::GetKernelKey(const std::string &kernel) {
+        PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
+        Variant msg(Variant::ObjectType);
+        msg["type"] = RCTXMT_GET_KERNEL_INFO;
+        msg["name"] = kernel;
+        Variant reply = RemoteCall(msg);
+        if (!reply["success"].IsTrue()) {
+            throw std::invalid_argument("No such kernel");
+        }
+        return reply["kernelinfo"]["key"].AsNumber<Key_t>();
+    }
+
+    std::string RemoteContextClient::GetKernelName(Key_t kernelkey) {
+        PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
+        Variant msg(Variant::ObjectType);
+        msg["type"] = RCTXMT_GET_KERNEL_INFO;
+        msg["key"] = kernelkey;
+        Variant reply = RemoteCall(msg);
+        if (!reply["success"].IsTrue()) {
+            throw std::invalid_argument("No such kernel");
+        }
+        return reply["kernelinfo"]["name"].AsString();
+    }
+
+    void RemoteContextClient::GetKernelConnectionInfo(Key_t kernelkey, std::string &hostname, std::string &servname) {
+        PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
+        Variant msg(Variant::ObjectType);
+        msg["type"] = RCTXMT_GET_KERNEL_INFO;
+        msg["key"] = kernelkey;
+        Variant reply = RemoteCall(msg);
+        if (!reply["success"].IsTrue()) {
+            throw std::invalid_argument("No such kernel");
+        }
+        Variant kernelinfo = reply["kernelinfo"];
+        hostname = kernelinfo["hostname"].AsString();
+        servname = kernelinfo["servname"].AsString();
+    }
+
+    void RemoteContextClient::SignalKernelEnd(Key_t kernelkey) {
+        PthreadMutexProtected plock(lock);
+        Variant msg(Variant::ObjectType);
+        msg["type"] = RCTXMT_SIGNAL_KERNEL_END;
+        msg["key"] = kernelkey;
+        SendMessage(msg);
+        kernels.erase(kernelkey);
+    }
+
+    Key_t RemoteContextClient::WaitForKernelStart(const std::string &kernel) {
+        PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
+        GenericWaiterPtr genwait = NewGenericWaiter();
+        Variant msg(Variant::ObjectType);
+        msg["type"] = RCTXMT_GET_KERNEL_INFO;
+        msg["name"] = kernel;
+        Variant reply = RemoteCall(msg);
+        if (reply["success"].IsTrue()) {
+            Variant kernelinfo = reply["kernelinfo"];
+            if (kernelinfo["live"].IsTrue()) {
+                return kernelinfo["key"].AsNumber<Key_t>();
+            }
+        }
+        while (true) {
+            if (genwait->messages.empty()) {
+                genwait->cond.Wait(lock);
+                InternalCheckTerminated();
+            } else {
+                Variant msg = genwait->messages.front();
+                genwait->messages.pop_front();
+                if (msg["kernelinfo"].IsObject()) {
+                    Variant kernelinfo = msg["kernelinfo"];
+                    if (kernelinfo["name"].AsString() == kernel && kernelinfo["live"].IsTrue()) {
+                        return kernelinfo["key"].AsNumber<Key_t>();
+                    }
+                }
+            }
+        }
+    }
+
+    void RemoteContextClient::SignalKernelStart(Key_t kernelkey) {
+        PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
+        Variant msg(Variant::ObjectType);
+        msg["key"] = kernelkey;
+        msg["type"] = RCTXMT_SIGNAL_KERNEL_START;
+        SendMessage(msg);
+    }
+
+    void RemoteContextClient::SendCreateWriter(Key_t kernelkey, const SimpleQueueAttr &attr) {
+        PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
+        SendQueueMsg(kernelkey, RCTXMT_CREATE_WRITER, attr);
+    }
+
+    void RemoteContextClient::SendCreateReader(Key_t kernelkey, const SimpleQueueAttr &attr) {
+        PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
+        SendQueueMsg(kernelkey, RCTXMT_CREATE_READER, attr);
+    }
+
+    void RemoteContextClient::SendCreateQueue(Key_t kernelkey, const SimpleQueueAttr &attr) {
+        PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
+        SendQueueMsg(kernelkey, RCTXMT_CREATE_QUEUE, attr);
+    }
+
+    void RemoteContextClient::SendCreateNode(Key_t kernelkey, const NodeAttr &attr) {
+        PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
+        Variant msg(Variant::ObjectType);
+        msg["msgtype"] = "kernel";
+        msg["type"] = RCTXMT_CREATE_NODE;
+        msg["kernelkey"] = kernelkey;
+        Variant nodeattr;
+        nodeattr["kernelkey"] = kernelkey;
+        nodeattr["kernel"] = attr.GetKernel();
+        nodeattr["name"] = attr.GetName();
+        nodeattr["nodetype"] = attr.GetTypeName();
+        const std::map<std::string, std::string> &params = attr.GetParams();
+        for (std::map<std::string, std::string>::const_iterator i = params.begin(),
+                e = params.end(); i != e; ++i) {
+            nodeattr["param"][i->first] = i->second;
+        }
+        nodeattr["key"] = attr.GetKey();
+        msg["nodeattr"] = nodeattr;
+        SendMessage(msg);
+    }
+
+    NodeAttr MsgToNodeAttr(const Variant &msg) {
+        NodeAttr attr(msg["name"].AsString(), msg["nodetype"].AsString());
+        attr.SetKernel(msg["kernel"].AsString());
+        attr.SetKey(msg["key"].AsNumber<Key_t>());
+        if (msg["param"].IsObject()) {
+            for (Variant::ConstMapIterator i = msg["param"].MapBegin(), e = msg["param"].MapEnd();
+                    i != e; ++i)
+            {
+                attr.SetParam(i->first, i->second.AsString());
+            }
+        }
+        return attr;
+    }
+
+    void RemoteContextClient::SendQueueMsg(Key_t kernelkey, RCTXMT_t msgtype, const SimpleQueueAttr &attr) {
+        Variant msg(Variant::ObjectType);
+        msg["msgtype"] = "kernel";
+        msg["type"] = msgtype;
+        msg["kernelkey"] = kernelkey;
+        Variant queueattr;
+        queueattr["queuehint"] = attr.GetHint();
+        queueattr["datatype"] = attr.GetDatatype();
+        queueattr["queueLength"] = attr.GetLength();
+        queueattr["maxThreshold"] = attr.GetMaxThreshold();
+        queueattr["numChannels"] = attr.GetNumChannels();
+        queueattr["readerkey"] = attr.GetReaderKey();
+        queueattr["writerkey"] = attr.GetWriterKey();
+        queueattr["readernodekey"] = attr.GetReaderNodeKey();
+        queueattr["writernodekey"] = attr.GetWriterNodeKey();
+        queueattr["alpha"] = attr.GetAlpha();
+        queueattr["maxwritethreshold"] = attr.GetMaxWriteThreshold();
+        msg["queueattr"] = queueattr;
+        SendMessage(msg);
+    }
+
+    SimpleQueueAttr MsgToQueueAttr(const Variant &msg) {
+        SimpleQueueAttr attr;
+        attr.SetHint(msg["queuehint"].AsNumber<CPN::QueueHint_t>());
+        attr.SetDatatype(msg["datatype"].AsString());
+        attr.SetLength(msg["queueLength"].AsUnsigned());
+        attr.SetMaxThreshold(msg["maxThreshold"].AsUnsigned());
+        attr.SetNumChannels(msg["numChannels"].AsUnsigned());
+        attr.SetReaderKey(msg["readerkey"].AsNumber<Key_t>());
+        attr.SetWriterKey(msg["writerkey"].AsNumber<Key_t>());
+        attr.SetReaderNodeKey(msg["readernodekey"].AsNumber<Key_t>());
+        attr.SetWriterNodeKey(msg["writernodekey"].AsNumber<Key_t>());
+        attr.SetAlpha(msg["alpha"].AsDouble());
+        attr.SetMaxWriteThreshold(msg["maxwritethreshold"].AsUnsigned());
+        return attr;
+    }
+
+    Key_t RemoteContextClient::CreateNodeKey(Key_t kernelkey, const std::string &nodename) {
+        PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
+        Variant msg(Variant::ObjectType);
+        msg["type"] = RCTXMT_CREATE_NODE_KEY;
+        msg["kernelkey"] = kernelkey;
+        msg["name"] = nodename;
+        Variant reply = RemoteCall(msg);
+        if (!(reply["success"].IsTrue())) {
+            throw std::invalid_argument("Node " + nodename + " already exists.");
+        }
+        return reply["nodeinfo"]["key"].AsNumber<Key_t>();
+    }
+
+    Key_t RemoteContextClient::GetNodeKey(const std::string &nodename) {
+        PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
+        Variant msg(Variant::ObjectType);
+        msg["type"] = RCTXMT_GET_NODE_INFO;
+        msg["name"] = nodename;
+        Variant reply = RemoteCall(msg);
+        if (!(reply["success"].IsTrue())) {
+            throw std::invalid_argument("No such node");
+        }
+        ASSERT(reply["success"].IsTrue(), "msg: %s", VariantToJSON(reply).c_str());
+        return reply["nodeinfo"]["key"].AsNumber<Key_t>();
+    }
+
+    std::string RemoteContextClient::GetNodeName(Key_t nodekey) {
+        PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
+        Variant msg(Variant::ObjectType);
+        msg["type"] = RCTXMT_GET_NODE_INFO;
+        msg["key"] = nodekey;
+        Variant reply = RemoteCall(msg);
+        if (!(reply["success"].IsTrue())) {
+            throw std::invalid_argument("No such node");
+        }
+        return reply["nodeinfo"]["name"].AsString();
+    }
+
+    void RemoteContextClient::SignalNodeStart(Key_t nodekey) {
+        PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
+        Variant msg(Variant::ObjectType);
+        msg["type"] = RCTXMT_SIGNAL_NODE_START;
+        msg["key"] = nodekey;
+        SendMessage(msg);
+    }
+
+    void RemoteContextClient::SignalNodeEnd(Key_t nodekey) {
+        PthreadMutexProtected plock(lock);
+        Variant msg(Variant::ObjectType);
+        msg["type"] = RCTXMT_SIGNAL_NODE_END;
+        msg["key"] = nodekey;
+        SendMessage(msg);
+    }
+
+    Key_t RemoteContextClient::WaitForNodeStart(const std::string &nodename) {
+        PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
+        GenericWaiterPtr genwait = NewGenericWaiter();
+        Variant msg(Variant::ObjectType);
+        msg["type"] = RCTXMT_GET_NODE_INFO;
+        msg["name"] = nodename;
+        Variant reply = RemoteCall(msg);
+
+        if (reply["success"].IsTrue()) {
+            Variant nodeinfo = reply["nodeinfo"];
+            if (nodeinfo["started"].IsTrue()) {
+                return nodeinfo["key"].AsNumber<Key_t>();
+            }
+        }
+        while (true) {
+            if (genwait->messages.empty()) {
+                genwait->cond.Wait(lock);
+                InternalCheckTerminated();
+            } else {
+                Variant msg = genwait->messages.front();
+                genwait->messages.pop_front();
+                if (msg["nodeinfo"].IsObject()) {
+                    Variant nodeinfo = msg["nodeinfo"];
+                    if (nodeinfo["started"].IsTrue() && nodeinfo["name"].AsString() == nodename) {
+                        return nodeinfo["key"].AsNumber<Key_t>();
+                    }
+                }
+            }
+        }
+    }
+
+    void RemoteContextClient::WaitForNodeEnd(const std::string &nodename) {
+        PthreadMutexProtected plock(lock);
+        if (shutdown) { return; }
+        GenericWaiterPtr genwait = NewGenericWaiter();
+
+        Variant msg(Variant::ObjectType);
+        msg["type"] = RCTXMT_GET_NODE_INFO;
+        msg["name"] = nodename;
+        Variant reply;
+       try {
+          reply  = RemoteCall(msg);
+       } catch (const ShutdownException &e) {
+           return;
+       }
+        if (reply["success"].IsTrue()) {
+            if (reply["nodeinfo"]["dead"].IsTrue()) {
+                return;
+            }
+        }
+        while (true) {
+            if (genwait->messages.empty()) {
+                genwait->cond.Wait(lock);
+                if (shutdown) { return; }
+            } else {
+                Variant msg = genwait->messages.front();
+                genwait->messages.pop_front();
+                if (msg["nodeinfo"].IsObject()) {
+                    Variant nodeinfo = msg["nodeinfo"];
+                    if (nodeinfo["dead"].IsTrue() && nodeinfo["name"].AsString() == nodename) {
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    void RemoteContextClient::WaitForAllNodeEnd() {
+        PthreadMutexProtected plock(lock);
+        if (shutdown) { return; }
+        GenericWaiterPtr genwait = NewGenericWaiter();
+        Variant msg(Variant::ObjectType);
+        msg["type"] = RCTXMT_GET_NUM_NODE_LIVE;
+        Variant reply;
+        try {
+            reply = RemoteCall(msg);
+        } catch (const ShutdownException &e) {
+            return;
+        }
+        ASSERT(reply["success"].IsTrue(), "msg: %s", VariantToJSON(reply).c_str());
+        if (reply["numlivenodes"].AsUnsigned() == 0) {
+            return;
+        }
+        while (true) {
+            if (genwait->messages.empty()) {
+                genwait->cond.Wait(lock);
+                if (shutdown) { return; }
+            } else {
+                Variant msg = genwait->messages.front();
+                genwait->messages.pop_front();
+                if (msg["numlivenodes"].IsNumber()) {
+                    if (msg["numlivenodes"].AsUnsigned() == 0) {
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    Key_t RemoteContextClient::GetNodeKernel(Key_t nodekey) {
+        PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
+        Variant msg(Variant::ObjectType);
+        msg["type"] = RCTXMT_GET_NODE_INFO;
+        msg["key"] = nodekey;
+        Variant reply = RemoteCall(msg);
+        if (!(reply["success"].IsTrue())) {
+            throw std::invalid_argument("No such node");
+        }
+        return reply["nodeinfo"]["kernelkey"].AsNumber<Key_t>();
+    }
+
+
+    Key_t RemoteContextClient::GetCreateReaderKey(Key_t nodekey, const std::string &portname) {
+        PthreadMutexProtected plock(lock);
+        return GetCreateEndpointKey(RCTXMT_GET_CREATE_READER_KEY, nodekey, portname);
+    }
+
+    Key_t RemoteContextClient::GetReaderNode(Key_t portkey) {
+        PthreadMutexProtected plock(lock);
+        Variant info = GetEndpointInfo(RCTXMT_GET_READER_INFO, portkey);
+        return info["nodekey"].AsNumber<Key_t>();
+    }
+
+    Key_t RemoteContextClient::GetReaderKernel(Key_t portkey) {
+        PthreadMutexProtected plock(lock);
+        Variant info = GetEndpointInfo(RCTXMT_GET_READER_INFO, portkey);
+        return info["kernelkey"].AsNumber<Key_t>();
+    }
+
+    std::string RemoteContextClient::GetReaderName(Key_t portkey) {
+        PthreadMutexProtected plock(lock);
+        Variant info = GetEndpointInfo(RCTXMT_GET_READER_INFO, portkey);
+        return info["name"].AsString();
+    }
+
+    Key_t RemoteContextClient::GetCreateWriterKey(Key_t nodekey, const std::string &portname) {
+        PthreadMutexProtected plock(lock);
+        return GetCreateEndpointKey(RCTXMT_GET_CREATE_WRITER_KEY, nodekey, portname);
+    }
+
+    Key_t RemoteContextClient::GetWriterNode(Key_t portkey) {
+        PthreadMutexProtected plock(lock);
+        Variant info = GetEndpointInfo(RCTXMT_GET_WRITER_INFO, portkey);
+        return info["nodekey"].AsNumber<Key_t>();
+    }
+
+    Key_t RemoteContextClient::GetWriterKernel(Key_t portkey) {
+        PthreadMutexProtected plock(lock);
+        Variant info = GetEndpointInfo(RCTXMT_GET_WRITER_INFO, portkey);
+        return info["kernelkey"].AsNumber<Key_t>();
+    }
+
+    std::string RemoteContextClient::GetWriterName(Key_t portkey) {
+        PthreadMutexProtected plock(lock);
+        Variant info = GetEndpointInfo(RCTXMT_GET_WRITER_INFO, portkey);
+        return info["name"].AsString();
+    }
+
+    void RemoteContextClient::ConnectEndpoints(Key_t writerkey, Key_t readerkey, const std::string &qname) {
+        PthreadMutexProtected plock(lock);
+        InternalCheckTerminated();
+        Variant msg(Variant::ObjectType);
+        msg["type"] = RCTXMT_CONNECT_ENDPOINTS;
+        msg["readerkey"] = readerkey;
+        msg["writerkey"] = writerkey;
+        msg["qname"] = qname;
+        SendMessage(msg);
+    }
+
+    Key_t RemoteContextClient::GetReadersWriter(Key_t readerkey) {
+        PthreadMutexProtected plock(lock);
+        Variant info = GetEndpointInfo(RCTXMT_GET_READER_INFO, readerkey);
+        return info["writerkey"].AsNumber<Key_t>();
+    }
+
+    Key_t RemoteContextClient::GetWritersReader(Key_t writerkey) {
+        PthreadMutexProtected plock(lock);
+        Variant info = GetEndpointInfo(RCTXMT_GET_WRITER_INFO, writerkey);
+        return info["readerkey"].AsNumber<Key_t>();
+    }
+
+    void RemoteContextClient::Terminate() {
+        PthreadMutexProtected plock(lock);
+        if (!shutdown) {
+            InternalTerminate();
+            Variant msg(Variant::ObjectType);
+            msg["type"] = RCTXMT_TERMINATE;
+            SendMessage(msg);
+        }
+    }
+
+    void *RemoteContextClient::TerminateThread() {
+        KernelMap mapcopy;
+        {
+            PthreadMutexProtected plock(lock);
+            mapcopy = kernels;
+        }
+        KernelMap::iterator itr, end;
+        itr = mapcopy.begin();
+        end = mapcopy.end();
+        while (itr != end) {
+            itr->second->NotifyTerminate();
+            ++itr;
+        }
+        return 0;
+    }
+
+    void RemoteContextClient::InternalTerminate() {
+        if (shutdown) return;
+        shutdown = true;
+        WaiterMap::iterator cwitr = callwaiters.begin();
+        while (cwitr != callwaiters.end()) {
+            cwitr->second->cond.Signal();
+            ++cwitr;
+        }
+        WaiterList::iterator gwitr;
+        gwitr = waiters.begin();
+        while (gwitr != waiters.end()) {
+            GenericWaiterPtr ptr = gwitr->lock();
+            if (ptr) {
+                ptr->cond.Signal();
+            }
+            ++gwitr;
+        }
+        terminateThread.reset(CreatePthreadFunctional(this, &RemoteContextClient::TerminateThread));
+        terminateThread->Start();
+    }
+
+    bool RemoteContextClient::IsTerminated() {
+        PthreadMutexProtected plock(lock);
+        return shutdown;
+    }
+
+    bool RemoteContextClient::RequireRemote() {
+        return true;
+    }
+
+    void RemoteContextClient::InternalCheckTerminated() {
+        if (shutdown) {
+            throw ShutdownException();
+        }
+    }
+
+    void RemoteContextClient::AddWaiter(WaiterInfo *info) {
+        callwaiters.insert(std::make_pair(info->waiterid, info));
+    }
+
+    RemoteContextClient::GenericWaiterPtr RemoteContextClient::NewGenericWaiter() {
+        GenericWaiterPtr gw = GenericWaiterPtr(new GenericWaiter);
+        waiters.push_back(gw);
+        return gw;
+    }
+
+    unsigned RemoteContextClient::NewTranID() {
+        return ++trancounter;
+    }
+
+    void RemoteContextClient::DispatchMessage(const Variant &msg) {
+        AutoLock<PthreadMutex> plock(lock);
+        if (msg["type"].AsNumber<RCTXMT_t>() == RCTXMT_TERMINATE) {
+            InternalTerminate();
+            return;
+        }
+        // Need to add for the general informative messages.
+        //
+        // The specific reply messages
+        std::string msgtype = msg["msgtype"].AsString();
+        if (msgtype == "reply") {
+            unsigned tranid = msg["msgid"].AsUnsigned();
+            WaiterMap::iterator entry;
+            entry = callwaiters.find(tranid);
+            ASSERT(entry != callwaiters.end());
+            entry->second->msg = msg;
+            entry->second->signaled = true;
+            entry->second->cond.Signal();
+            callwaiters.erase(entry);
+        } else if (msgtype == "broadcast") {
+            WaiterList::iterator entry;
+            entry = waiters.begin();
+            while (entry != waiters.end()) {
+                GenericWaiterPtr waiter = entry->lock();
+                if (waiter) {
+                    waiter->messages.push_back(msg);
+                    waiter->cond.Signal();
+                    ++entry;
+                } else {
+                    entry = waiters.erase(entry);
+                }
+            }
+        } else if (msgtype == "kernel") {
+            Key_t kernelkey = msg["kernelkey"].AsNumber<Key_t>();
+            KernelMap::iterator entry = kernels.find(kernelkey);
+            if (entry != kernels.end()) {
+                KernelBase *kernel = entry->second;
+                // Cannot call a kernel method with the lock.
+                plock.Unlock();
+                ASSERT(kernel);
+                switch (msg["type"].AsNumber<RCTXMT_t>()) {
+                case RCTXMT_CREATE_NODE:
+                    kernel->RemoteCreateNode(MsgToNodeAttr(msg["nodeattr"]));
+                    break;
+                case RCTXMT_CREATE_QUEUE:
+                    kernel->RemoteCreateQueue(MsgToQueueAttr(msg["queueattr"]));
+                    break;
+                case RCTXMT_CREATE_WRITER:
+                    kernel->RemoteCreateWriter(MsgToQueueAttr(msg["queueattr"]));
+                    break;
+                case RCTXMT_CREATE_READER:
+                    kernel->RemoteCreateReader(MsgToQueueAttr(msg["queueattr"]));
+                    break;
+                default:
+                    ASSERT(false, "Unknown kernel message type");
+                }
+            } else {
+                ASSERT(false, "Message for kernel %llu but said kernel doesn't exist!", kernelkey);
+            }
+        } else {
+            ASSERT(false);
+        }
+    }
+
+    Key_t RemoteContextClient::GetCreateEndpointKey(RCTXMT_t msgtype, Key_t nodekey, const std::string &portname) {
+        InternalCheckTerminated();
+        Variant msg(Variant::ObjectType);
+        msg["type"] = msgtype;
+        msg["nodekey"] = nodekey;
+        msg["name"] = portname;
+        Variant reply = RemoteCall(msg);
+        if (!reply["success"].IsTrue()) {
+            throw std::invalid_argument("No such port");
+        }
+        return reply["endpointinfo"]["key"].AsNumber<Key_t>();
+    }
+
+    Variant RemoteContextClient::GetEndpointInfo(RCTXMT_t msgtype, Key_t portkey) {
+        InternalCheckTerminated();
+        Variant msg(Variant::ObjectType);
+        msg["type"] = msgtype;
+        msg["key"] = portkey;
+        Variant reply = RemoteCall(msg);
+        ASSERT(reply["success"].IsTrue(), "msg: %s", VariantToJSON(reply).c_str());
+        return reply["endpointinfo"];
+    }
+
+    Variant RemoteContextClient::RemoteCall(Variant msg) {
+        WaiterInfo winfo(NewTranID());
+        AddWaiter(&winfo);
+        msg["msgid"] = winfo.waiterid;
+        SendMessage(msg);
+        while (!winfo.signaled) {
+            winfo.cond.Wait(lock);
+            InternalCheckTerminated();
+        }
+        return winfo.msg;
+    }
+}

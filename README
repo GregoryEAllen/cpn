@@ -1,0 +1,202 @@
+
+* Computational Process Networks
+
+This is a research and development release. There may be bugs and things
+may change in future releases.  If you find this useful or find a bug let us
+know.
+
+Contact:
+    John Bridgman johnfb@arlut.utexas.edu
+    Greg Allen    gallen@arlut.utexas.edu
+
+* Documentation
+
+An effort to use doxygen documentation syntax was used throughout. A lot of
+additional documentation can be obtained by running doxygen doxygen.conf in the
+repository root. This will generate a set of html pages.
+
+* Library dependencies
+    * cppunit
+    * libxml++
+    * fftw
+
+* Tests
+
+To build the unit tests cppunit must be installed and pkg-config must know how
+to get its compiler flags.  All the tests are in the test directory.  All tests
+dealing with the CPN library are in cpntest. Some of the other libraries have a
+test directory.  The XML features require libxml++.
+
+* Added features since last release:
+    * Renamed some the interfaces.
+        * GetWriter -> GetOQueue
+        * GetReader -> GetIQueue
+        * QueueReaderAdapter -> IQueue
+        * QueueWriterAdapter -> OQueue
+        * Pseudo Nodes changed to external endpoints
+        * Renamed CPN::Database to CPN::Context.
+        * WaitNodeTerminate -> WaitForNode
+    * Added a tutorial with examples on how to use the CPN framework.
+    * Added more nodes to the nodelibrary.
+    * Fixed a known issue with the remote queues and D4R.
+    * Improved remote queue performance.
+    * Fixed a previously unknown race condition in the Kernel.
+    * Added CPN_DECLARE_NODE_AND_FACTORY for when the node is stateless.
+    * Some fixes and modifications to the PthreadLib
+    * Some fixes to the beamformer case study.
+    * Some improvements to the remote context.
+    * Added options to the random instruction application for more control.
+    * Added a simple test application to test the speed of tcp sockets.
+    * Added a simple test application to test the speed of CPN queues.
+    * Fixed a typo bug in the D4R implementation, used the wrong variable.
+
+* Added features in previous release:
+    * D4R
+    * External endpoints (see ``About External Endpoints'' below)
+    * Functional nodes (see ``About Function Nodes'' below)
+    * Beamformer case study
+    * General cleanup and restructure of libraries
+    * Most of the remote queue stuff has been rewritten
+    * Fixed several issues in PthreadLib
+    * Most of the queue stuff has been rewritten
+    * Added the ability to load a network from a Variant config
+    * Added a loader from XML to Variant
+    * Added node library (see ``Node Library'' below)
+    * Made node loading be through symbol name lookup
+    * Updated sieve case studies
+
+* Case studies and Applications
+
+These are contained in the apps directory. Some are very simple test
+applications like XML-JSON which will read in an XML or JSON file into the
+Variant type then output it back as XML or JSON.  Some of these require the
+nodelibraries be built.
+
+** CPNKernel
+
+A loader application which takes a set of command line options and
+configuration files and loads up a CPN network. This expects that all the nodes
+can be looked up with the node loader. (See ``Node Library'')
+
+** Seive of Eratosthenes
+
+There are two versions of this, the first is called SimpleSieve and the second
+is called ThresholdSieve.  To run these go to either
+apps/SieveOfEratosthenes/SimpleSeive or /ThresholdSieve and execute jmake. Then
+run the resulting executable with the -h option to get specific options.
+
+** Random Instruction
+
+There are two ways to run the random instruction test.  The first is all in one
+process. Go to apps/RandomInstruction and jmake.  Then run with -h to get a
+list of options.
+
+The second one is on multiple processes and requires more setup.  First build
+apps/RemoteRandomInstruction then build apps/RemoteContext.  Then create a
+config file for the RemoteRandomInstruction, (the -h option prints out a
+description of what the config is supposed to look like.  As well, there is an
+example config file in that directory).  Now run the RemoteContext specifying
+listening host and port.  Then run each of the RemoteRandomInstruction with
+parameters of config then the name, context host and context port.
+
+For the given example config it would be:
+Run on zeus: RemoteContext zeus 12345
+Run: RemoteRandomInstruction configk2n100i100 kone zeus 12345
+Run: RemoteRandomInstruction configk2n100i100 ktwo zeus 12345
+
+** Beamformer
+
+There are several implementations in one directory. This app requires that
+nodelibraries be built and working. (See ``Node Library'')  These provide basic
+command line driven ways of running the different parts of the beamformer and
+several different tests.  Use the -h option on each symlink after it has been
+built for options on how to run them.
+
+** RemoteContext
+
+This is a realization of the remote context daemon.
+
+** XML-JSON
+
+This is a simple test application for converting between the JSON and XML
+syntaxes supported by the Variant class.
+
+* About External Endpoints
+
+External endpoints are a special handle to a queue endpoints that is not
+associated with a node.  This is useful for the case where you want to input or
+output data to the network of nodes.  For example, instantiate some network of
+nodes, then create two endpoints to be input and output.  Then this allows for
+the application to grab endpoints outside of a node for putting data in and
+out.  One has to be careful though as all the same rules apply for determinism
+and deadlock. The idea behind this was that CPN could be used in a larger
+application where CPN is just a library used to compute some intermediate value
+for the application.  One of the design goals in mind while writing CPN was
+that it should be usable in as many situations as possible.
+
+Example:
+
+kernel.CreateExternalWriter("writer name");
+... generate queues...
+CPN::OQueue<int> out = kernel.GetExternalOQueue("writer name");
+while (data) {
+    ...
+    out.Enqueue(...);
+    ...
+}
+out.Release();
+...
+
+kernel.DestroyExternalEndpoints("writer name");
+
+
+* About Function Nodes
+
+These are special nodes that can be created by passing a function or function
+object to the kernel. It is setup with templates to allow for the passing of up
+to 9 parameters to a function node.  The idea here is that sometimes one wants
+a simple node where writing all the machinery for a full blown node would be
+overkill.  This feature is used in the tests in several places where writing a
+full node would have been painfully verbose.
+
+Example:
+
+void testnode(CPN::NodeBase *node, std::string endpoint) {
+    CPN::IQueue<int> in = node->GetIQueue(endpoint);
+    ... read from in
+}
+
+...
+in setup do
+...
+kernel.CreateFunctionNode("node name", testnode, std::string("endpoint name"));
+
+* Node Library
+
+One of the features is dynamic node type loading. The way this works is that
+there is a node loader class which has a list of places to search for nodes.
+The first thing the node loader does is look through the symbol table of the
+program for a symbol which is a mangling of the node type name.  If this symbol
+is found it will call it as a function to get a node factory for that node
+type.  If it is not found then it will look into an internal dictionary to see
+if some dynamic library can be loaded which will provide the symbol.  The way
+the node loader knows if there is a library it can load is by telling it with a
+node list file.  The node list file has a very simple syntax.  There are two
+kinds of directives, include and defining a node type name and its library.
+The include is simply the keyword include followed by arbitrary white space
+then a list of files to include separated by white space. All commands end in a
+semicolon.  The library node type name is the keyword lib followed by white
+space then the name of the dynamic library to load followed by white space then
+the mangled node type name and finished with a semicolon.
+
+* Defining A Node
+
+To define a node, subclass CPN::NodeBase. Then somewhere in the implementation
+file put the macro CPN_DECLARE_NODE_FACTORY(typename, classname);. Note that
+typename must be a valid as a symbol name.  There is also a macro
+CPN_DECLARE_NODE_AND_FACTORY(typename, classname); which allows one to declare
+the node and factory all at once and all that is required is a definition of
+the classname::Process() function. This allows stateless nodes to be created
+more easily.
+
+

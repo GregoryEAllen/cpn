@@ -1,0 +1,5 @@
+
+This application runs a random instruction node. The random instruction nodes
+randomly build a graph then send information between them. They also randomly
+destroy and create new nodes.  This application is used to help stress test the
+CPN framework.

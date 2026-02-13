@@ -1,0 +1,21 @@
+
+CC_OTHER += -fPIC
+LD_OTHER += -fPIC
+ifeq ($(shell uname -s),Darwin)
+    LD_OTHER += -undefined dynamic_lookup
+endif
+
+sharedlibs: lib 
+	${LD} -shared -o ${SHAREDLIBRARY} ${LINKOBJECTS} ${LD_OTHER} ${OS_LIBS}
+
+
+$(OSDIR)/node.list:$(LIBRARY)
+	echo 'lib' > $@
+	basename $(SHAREDLIBRARY) >> $@
+	# Note the sed command is to remove leading _ on some platforms.
+	nm $(LIBRARY) | grep T.\*cpninit | cut -sf 3 -d ' ' | sed -e 's/^_//' >> $@
+	echo ';' >> $@
+
+lib :: $(OSDIR)/node.list
+
+-include override

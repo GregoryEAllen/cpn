@@ -1,0 +1,12 @@
+
+{
+    "maxprime": 100,
+    "queuesize": 100,
+    "threshold": 2,
+    "ppf": [1],
+    "primewheel": 0,
+    "queuehint": "threshold",
+    "report": false,
+    "zerocopy": 0
+}
+

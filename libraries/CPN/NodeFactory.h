@@ -1,0 +1,67 @@
+//=============================================================================
+//  Computational Process Networks class library
+//  Copyright (C) 1997-2006  Gregory E. Allen and The University of Texas
+//
+//  This library is free software; you can redistribute it and/or modify it
+//  under the terms of the GNU Library General Public License as published
+//  by the Free Software Foundation; either version 2 of the License, or
+//  (at your option) any later version.
+//
+//  This library is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//  Library General Public License for more details.
+//
+//  The GNU Public License is available in the file LICENSE, or you
+//  can write to the Free Software Foundation, Inc., 59 Temple Place -
+//  Suite 330, Boston, MA 02111-1307, USA, or you can find it on the
+//  World Wide Web at http://www.fsf.org.
+//=============================================================================
+/** \file
+ * \brief Definition of the NodeFactory.
+ * \author John Bridgman
+ */
+#ifndef CPN_NODEFACTORY_H
+#define CPN_NODEFACTORY_H
+#pragma once
+
+#include "CPNCommon.h"
+#include <string>
+
+namespace CPN {
+
+    /**
+     * \brief The node factory provides a method for the kernel to
+     * create arbitrary user defined Nodes.
+     */
+    class CPN_API NodeFactory {
+    public:
+        NodeFactory(const std::string &name_);
+
+        virtual ~NodeFactory();
+        /**
+         * Create a new node for the specific type.
+         * \note the shared_ptr object returned must properly delete the
+         * node. So, for shared libraries the second shared_ptr constructor
+         * parameter should be used.
+         * \param ker the kernel
+         * \param attr attributes for the new node which include
+         * the parameters
+         * \return a shared pointer to a concreate node object
+         */
+        virtual shared_ptr<NodeBase> Create(Kernel &ker, const NodeAttr &attr) = 0;
+
+        /**
+         * Get the node type name for this factory.
+         * \return the type name
+         */
+        const std::string &GetName(void) const { return name; }
+
+    private:
+        const std::string name;
+    };
+
+}
+
+#endif
+

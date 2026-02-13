@@ -1,0 +1,186 @@
+//=============================================================================
+//	Computational Process Networks class library
+//	Copyright (C) 1997-2006  Gregory E. Allen and The University of Texas
+//
+//	This library is free software; you can redistribute it and/or modify it
+//	under the terms of the GNU Library General Public License as published
+//	by the Free Software Foundation; either version 2 of the License, or
+//	(at your option) any later version.
+//
+//	This library is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//	Library General Public License for more details.
+//
+//	The GNU Public License is available in the file LICENSE, or you
+//	can write to the Free Software Foundation, Inc., 59 Temple Place -
+//	Suite 330, Boston, MA 02111-1307, USA, or you can find it on the
+//	World Wide Web at http://www.fsf.org.
+//=============================================================================
+/** \file
+ * \author John Bridgman
+ */
+#include "JSONParser.h"
+#include <istream>
+#include <cstdio>
+
+namespace JSON {
+    int Parser::StaticCallback(void *ctx, int type, const struct JSON_value_struct* value) {
+        Parser *parser = (Parser*)ctx;
+        return parser->Callback(type, value);
+    }
+
+
+    Parser::Parser()
+        : parser(0),
+        status(OK),
+        line(1),
+        column(0),
+        charcount(0),
+        depth(0)
+    {
+        AllocParser();
+    }
+
+    Parser::~Parser() {
+        delete_JSON_parser(parser);
+    }
+
+    void Parser::Reset() {
+        if (parser) { delete_JSON_parser(parser); }
+        parser = 0;
+        status = OK;
+        line = 1;
+        column = 0;
+        charcount = 0;
+        depth = 0;
+        AllocParser();
+    }
+
+    void Parser::AllocParser() {
+        JSON_config config;
+        init_JSON_config(&config);
+        config.callback = StaticCallback;
+        config.callback_ctx = this;
+        config.depth = -1;
+        config.allow_comments = 1;
+        parser = new_JSON_parser(&config);
+    }
+
+    bool Parser::Parse(int c) {
+        if (status != OK) { return false; }
+        ++charcount;
+        if (c == '\n') {
+            column = 0;
+            ++line;
+        } else {
+            ++column;
+        }
+        if (JSON_parser_char(parser, c)) {
+            status = OK;
+            if (depth == 0) {
+                if (JSON_parser_done(parser)) {
+                    status = DONE;
+                }
+            }
+            return true;
+        } else if (status == OK) {
+            status = ERROR;
+        }
+        return false;
+    }
+
+    unsigned Parser::Parse(const char *c, unsigned len) {
+        unsigned i = 0;
+        for (; i < len; ++i) {
+            if (!Parse((unsigned char)c[i])) {
+                break;
+            }
+        }
+        return i;
+    }
+
+    void Parser::ParseStream(std::istream &is) {
+        while (is.good() && Ok()) {
+            if (!Parse(is.get())) {
+                is.unget();
+                break;
+            }
+        }
+    }
+
+    void Parser::ParseFile(FILE *f) {
+        int c = 0;
+        while (!std::feof(f) && Ok() && (c = std::fgetc(f)) != EOF) {
+            if (!Parse(c)) {
+                std::ungetc(c, f);
+                break;
+            }
+        }
+    }
+
+    bool Parser::ParseFile(const std::string &filename) {
+        FILE *f = fopen(filename.c_str(), "r");
+        if (f) {
+            try {
+                ParseFile(f);
+            } catch (...) {
+                fclose(f);
+            }
+            fclose(f);
+        }
+        return Done();
+    }
+
+    int Parser::Callback(int type, const struct JSON_value_struct *value) {
+        bool retval = false;
+        switch(type) {
+        case JSON_T_ARRAY_BEGIN:    
+            retval = ArrayBegin();
+            ++depth;
+            break;
+        case JSON_T_ARRAY_END:
+            --depth;
+            retval = ArrayEnd();
+            break;
+        case JSON_T_OBJECT_BEGIN:
+            retval = ObjectBegin();
+            ++depth;
+            break;
+        case JSON_T_OBJECT_END:
+            --depth;
+            retval = ObjectEnd();
+            break;
+        case JSON_T_INTEGER:
+            retval = Integer(value->vu.integer_value);
+            break;
+        case JSON_T_FLOAT:
+            retval = Float(value->vu.float_value);
+            break;
+        case JSON_T_NULL:
+            retval = Null();
+            break;
+        case JSON_T_TRUE:
+            retval = True();
+            break;
+        case JSON_T_FALSE:
+            retval = False();
+            break;
+        case JSON_T_KEY:
+            retval = Key(value->vu.str.value);
+            break;
+        case JSON_T_STRING:
+            retval = String(value->vu.str.value);
+            break;
+        default:
+            break;
+        }
+        return retval;
+    }
+
+    std::istream &operator>>(std::istream &is, Parser &p) {
+        p.ParseStream(is);
+        return is;
+    }
+
+}

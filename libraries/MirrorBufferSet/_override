@@ -1,0 +1,10 @@
+USE_POSIX=1
+# Turn on all warnings
+CC_OTHER += -Wall
+LD_OTHER += -Wall
+ifeq ($(MBSTRACE),1)
+    CC_OTHER += -DMirrorBufferSet_VERBOSITY=1
+endif
+ifeq ($(MBSTRACE),2)
+    CC_OTHER += -DMirrorBufferSet_VERBOSITY=2
+endif

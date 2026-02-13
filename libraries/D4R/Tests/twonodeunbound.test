@@ -1,0 +1,76 @@
+{
+    "nodes" : [
+        {
+            "name" : "A",
+            "key" : 1,
+            "instructions" : [
+                [ "enqueue", "Q", 5],
+                [ "enqueue", "Q", 5],
+                [ "verify writer size", "Q", 10],
+                [ "enqueue", "P", 5],
+                [ "enqueue", "Q", 5],
+                [ "enqueue", "Q", 5],
+                [ "enqueue", "Q", 5],
+                [ "verify writer size", "Q", 15],
+                [ "enqueue", "P", 5],
+                [ "enqueue", "Q", 5],
+                [ "enqueue", "Q", 5],
+                [ "enqueue", "Q", 5],
+                [ "enqueue", "Q", 5],
+                [ "verify writer size", "Q", 20],
+                [ "enqueue", "P", 5],
+                [ "enqueue", "Q", 5],
+                [ "enqueue", "Q", 5],
+                [ "enqueue", "Q", 5],
+                [ "enqueue", "Q", 5],
+                [ "enqueue", "Q", 5],
+                [ "verify writer size", "Q", 25],
+                [ "enqueue", "P", 5],
+                [ "exit" ]
+            ]
+        },
+        {
+            "name" : "B",
+            "key" : 2,
+            "instructions" : [
+                [ "dequeue", "P", 5],
+                [ "dequeue", "Q", 5],
+                [ "dequeue", "Q", 5],
+                [ "verify reader size", "Q", 10],
+                [ "dequeue", "P", 5],
+                [ "dequeue", "Q", 5],
+                [ "dequeue", "Q", 5],
+                [ "dequeue", "Q", 5],
+                [ "verify reader size", "Q", 15],
+                [ "dequeue", "P", 5],
+                [ "dequeue", "Q", 5],
+                [ "dequeue", "Q", 5],
+                [ "dequeue", "Q", 5],
+                [ "dequeue", "Q", 5],
+                [ "verify reader size", "Q", 20],
+                [ "dequeue", "P", 5],
+                [ "dequeue", "Q", 5],
+                [ "dequeue", "Q", 5],
+                [ "dequeue", "Q", 5],
+                [ "dequeue", "Q", 5],
+                [ "dequeue", "Q", 5],
+                [ "verify reader size", "Q", 25],
+                [ "exit" ]
+            ]
+        }
+    ],
+    "queues" : [
+        {
+            "name" : "Q",
+            "size" : 5,
+            "reader" : "B",
+            "writer" : "A"
+        },
+        {
+            "name" : "P",
+            "size" : 5,
+            "reader" : "B",
+            "writer" : "A"
+        }
+    ]
+}

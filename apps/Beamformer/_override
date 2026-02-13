@@ -1,0 +1,4 @@
+ifneq ($(WITHOUT_OMP),1)
+    CC_OTHER += -fopenmp
+endif
+CC_OTHER += -msse3

@@ -1,0 +1,459 @@
+
+###
+### JMAKE ENVIRONMENT VARIABLES
+###
+	OS=Linux-x86_64
+	JMAKE_COMMAND=gmake -f Makefile.Linux-x86_64
+	JMAKE_MAKE_FLAGS=--no-builtin-rules --no-print-directory --jobs=5 --max-load=2
+	MAKEFLAGS+=--no-builtin-rules
+	JMAKE_OVERRIDE_FNAME=_override
+	JMAKE_PREFIX=_
+
+###
+### contents of _Linux-x86_64/_make-config
+###
+	LIBRARY       = $(OSDIR)/libJSONParser.a
+
+	OS            = Linux-x86_64
+
+	OSDIR         = _Linux-x86_64
+
+	APPNAME       = JSONParser
+
+	TARGET        = $(OSDIR)/JSONParser
+
+	LIBRARY       = $(OSDIR)/libJSONParser.a
+
+	SHAREDLIBRARY = $(OSDIR)/libJSONParser.so
+
+	ROOTRELPATH   = 
+
+	PATHTOROOT    = 
+
+	HEADERS       = 
+
+	SOURCES       = JSON_parser.c JSONParser.cc 
+
+	OBJECTS       = JSON_parser.o JSONParser.o 
+
+	LINKOBJECTS   = $(OSDIR)/JSON_parser.o $(OSDIR)/JSONParser.o 
+
+	SUBDIRS       = 
+
+	INCLUDES      = 
+
+	LIBDIRS       = 
+
+	LIBRARIES     = 
+
+	LIBDEPEND     = 
+
+	IGNORING      = FALSE
+
+#----------
+# Linux x86_64: PLATFORM SPECIFICS
+#----------
+OS_DEFS		= -DOS_LINUX -DOS_LINUX_X86 -DOS_LINUX_X86_64 \
+				-DENDIANESS_LITTLE -D_REENTRANT \
+				-DHAS_NAMESPACES
+OS_INCDIR	= 
+OS_LIBS		= 
+						
+CC			= gcc
+CC_OTHER 	+= -m64
+#CC_OTHER 	+=  -Werror
+CXX			= g++
+CXX_OTHER	+= $(CC_OTHER)
+#CXX_OTHER	+=  -Werror
+LD			= g++
+LD_OTHER	+= -m64
+#LD_OTHER	+=  -Werror
+AS			= g++
+AS_OTHER	=
+AR			= ar
+AR_OTHER	= -r
+RANLIB		= ranlib
+
+CC_FLAGS	= $(CC_OTHER) $(OS_DEFS) $(OS_INCDIR) $(INCLUDES)
+CXX_FLAGS	= $(CXX_OTHER) $(OS_DEFS) $(OS_INCDIR) $(INCLUDES)
+AS_FLAGS	= $(AS_OTHER) $(OS_DEFS) $(OS_INCDIR) $(INCLUDES)
+LD_FLAGS	= $(LD_OTHER) $(LIBDIRS) $(LIBRARIES) $(OS_LIBS)
+
+#PROFILE=1
+ifdef PROFILE
+  CC_OTHER += -pg
+  CXX_OTHER += -pg
+  LD_OTHER += -pg
+endif
+
+#DEBUG=1
+ifdef DEBUG
+	#CXX_OTHER += -g
+endif
+# No reason to not always include debug symbols
+CC_OTHER += -g
+LD_OTHER += -g
+
+OPTIMIZE=1
+ifdef OPTIMIZE
+  ifndef DEBUG
+	CC_OTHER 	+= -O3
+  endif
+endif
+
+#----------
+# PERFORMANCE UTILITIES
+#----------
+
+ifdef DISTCC_HOSTS
+ ifneq (,$(shell which distcc 2>/dev/null))
+     DISTCC  = distcc
+ endif
+endif
+
+ifdef CCACHE_DIR
+ ifneq (,$(shell which ccache 2>/dev/null))
+     CCACHE  = ccache
+ endif
+endif
+
+###
+### contents of /home/johnfb/repositories/jmake/lib/Makefile.rules-no-jmake}
+###
+###############################################################################
+# @(#) $Id$
+#
+# This makefile is part of the jmake distribution.
+#
+# jmake - automatic makefile generating build system
+# Copyright (C) 1999-2000 James Baughman
+# 
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+###############################################################################
+
+#----------
+# RULES
+#----------
+.PHONY : all help lib app applet subdirs clean real-clean full linkfile linkfiles links tgz tar .gdbinit version
+
+all :: subdirs japp
+	
+lib :: $(LIBRARY)
+
+sharedlib :: subdirs ${SHAREDLIBRARY}
+
+app : $(TARGET)
+	@for D in $(TARGET); do \
+		rm -f `basename $$D`; \
+		ln -fs $$D .; \
+	done
+
+japp : 
+	@$(JMAKE_COMMAND) $(JMAKE_MAKE_FLAGS) -$(MAKEFLAGS) app
+
+jlib : 
+	@$(JMAKE_COMMAND) $(JMAKE_MAKE_FLAGS) -$(MAKEFLAGS) lib
+
+subdirs : 
+	@for D in . ${SUBDIRS}; do \
+		SUCCESS=0; \
+		if [ "$$D" = "." ]; then \
+			${JMAKE_COMMAND} $(JMAKE_MAKE_FLAGS) -$(MAKEFLAGS) HAVE_CONFIG=1 lib && SUCCESS=1;\
+		else \
+			SAVED_PWD=`pwd`; export SAVED_PWD; \
+			cd $${D} ; \
+			${JMAKE_COMMAND} $(JMAKE_MAKE_FLAGS) -$(MAKEFLAGS) lib && SUCCESS=1;\
+			cd $${SAVED_PWD}; \
+		fi; \
+		if [ $${SUCCESS} -eq 0 ]; then exit 1; fi; \
+	done ;
+	@echo " ---------------------------------------------------";
+
+#		echo "--- PWD:  `basename $$PWD`"; \
+#		echo "SUBDIRS:  $(SUBDIRS)"; \
+
+clean :
+	@echo "  - Cleaning up workspace..."
+	@for F in `find . -type l -print`; do \
+		a=`basename $$F` ; b=`dirname $$F`; c=`basename $$b`; \
+		if [ "$$a" = "$$c" ] ; then rm -f $$F ; fi ; \
+		if [ "$$a" = "$$c.pyapp" ] ; then rm -f $$F ; fi ; \
+		a=`basename $$F` ; b=`pwd`; c=`basename $$b`; \
+		if [ "$$a" = "$$c" ] ; then rm -f $$F ; fi ; \
+		if [ "$$a" = "$$c.pyapp" ] ; then rm -f $$F ; fi ; \
+	done
+	@find . -follow -name core -type f -print 2>/dev/null | xargs rm -rf
+	@find . -follow -type d -name "$(JMAKE_PREFIX)${OS}" -print 2>/dev/null | xargs rm -rf
+
+real-clean :
+	@echo "  - Cleaning up workspace..."
+	@for F in `find . -type l -print`; do \
+		a=`basename $$F` ; b=`dirname $$F`; c=`basename $$b`; \
+		if [ "$$a" = "$$c" ] ; then rm -f $$F ; fi ; \
+		if [ "$$a" = "$$c.pyapp" ] ; then rm -f $$F ; fi ; \
+		a=`basename $$F` ; b=`pwd`; c=`basename $$b`; \
+		if [ "$$a" = "$$c" ] ; then rm -f $$F ; fi ; \
+		if [ "$$a" = "$$c.pyapp" ] ; then rm -f $$F ; fi ; \
+	done
+	@find . -follow -name core -type f -print 2>/dev/null | xargs rm -rf
+	@find . -follow -type d -name "${JMAKE_PREFIX}*" -print 2>/dev/null | xargs rm -rf
+
+full : clean subdirs app 
+	@echo "foo" > /dev/null
+
+$(OSDIR) : 
+	@mkdir -p $(OSDIR)
+
+install-all : install install-py install-glade
+
+install-py : 
+	@PY_FILES=$$(ls *.py 2>/dev/null) ;\
+	if [ "x$${PY_FILES}" != "x" ]; then \
+		INSTALL_DIRECTORY=; \
+		if [ "x$${JMAKE_INSTALL_DEST}" = "x" ]; then \
+			echo "### Can't install py:  JMAKE_INSTALL_DEST not set." 1>&2; \
+			exit -1 ;\
+		elif [ -d "$${JMAKE_INSTALL_DEST}/${OS}" ]; then \
+			INSTALL_DIRECTORY=${JMAKE_INSTALL_DEST}/${OS}; \
+		elif [ -d "$${JMAKE_INSTALL_DEST}" ]; then \
+			INSTALL_DIRECTORY=${JMAKE_INSTALL_DEST}; \
+		else \
+			echo "### Can't install py:  neither of the following are valid directories." 1>&2; \
+			echo "#   JMAKE_INSTALL_DEST/${OS}=${JMAKE_INSTALL_DEST}/${OS}" 1>&2; \
+			echo "#   JMAKE_INSTALL_DEST=${JMAKE_INSTALL_DEST}" 1>&2; \
+			exit -1 ;\
+		fi; \
+		if [ "x$${INSTALL_DIRECTORY}" != "x" ]; then \
+			\
+			echo " - Copying \"*.py\" to $${INSTALL_DIRECTORY}"; \
+			cp -fp $${PY_FILES} $${INSTALL_DIRECTORY}; \
+			echo $${PY_FILES} | xargs -n1 echo "    " ;\
+		fi ;\
+	fi
+
+
+install-glade : 
+	@GLADE_FILES=$$(ls *.glade 2>/dev/null) ;\
+	if [ "x$${GLADE_FILES}" != "x" ]; then \
+		if [ "x${JMAKE_REL_DEST_GLADE}" = "x" ]; then \
+			JMAKE_REL_DEST_GLADE=etc; \
+		fi ;\
+		INSTALL_DIRECTORY=; \
+		if [ "x$${JMAKE_INSTALL_DEST}" = "x" ]; then \
+			echo "### Can't install glade:  JMAKE_INSTALL_DEST not set." 1>&2; \
+			exit -1 ;\
+		elif [ -d "$${JMAKE_INSTALL_DEST}/$${JMAKE_REL_DEST_GLADE}" ]; then \
+			INSTALL_DIRECTORY=$${JMAKE_INSTALL_DEST}/$${JMAKE_REL_DEST_GLADE}; \
+		else \
+			echo "### Can't install glade:  the following is not a valid directory." 1>&2; \
+			echo "#   JMAKE_INSTALL_DEST/JMAKE_REL_DEST_GLADE=$${JMAKE_INSTALL_DEST}/$${JMAKE_REL_DEST_GLADE}" 1>&2; \
+			exit -1 ;\
+		fi; \
+		if [ "x$${INSTALL_DIRECTORY}" != "x" ]; then \
+			\
+			echo " - Copying \"*.glade\" to $${INSTALL_DIRECTORY}"; \
+			cp -fp $${GLADE_FILES} $${INSTALL_DIRECTORY}; \
+			echo $${GLADE_FILES} | xargs -n1 echo "    " ;\
+		fi ;\
+	fi
+
+
+install : all
+	@INSTALL_DIRECTORY=; \
+	if [ "x$${JMAKE_INSTALL_DEST}" = "x" ]; then \
+		echo "### Can't install:  JMAKE_INSTALL_DEST not set." 1>&2; \
+		exit -1 ;\
+	elif [ -d "$${JMAKE_INSTALL_DEST}/${OS}" ]; then \
+		INSTALL_DIRECTORY=${JMAKE_INSTALL_DEST}/${OS}; \
+	elif [ -d "$${JMAKE_INSTALL_DEST}" ]; then \
+		INSTALL_DIRECTORY=${JMAKE_INSTALL_DEST}; \
+	else \
+		echo "### Can't install:  neither of the following are valid directories." 1>&2; \
+		echo "#   JMAKE_INSTALL_DEST/${OS}=${JMAKE_INSTALL_DEST}/${OS}" 1>&2; \
+		echo "#   JMAKE_INSTALL_DEST=${JMAKE_INSTALL_DEST}" 1>&2; \
+		exit -1 ;\
+	fi; \
+	if [ "x$${INSTALL_DIRECTORY}" != "x" ]; then \
+		\
+		if [ "x${TARGET}" != "x" ]; then \
+			echo " - Copying ${TARGET} to $${INSTALL_DIRECTORY}"; \
+			rm -f $${INSTALL_DIRECTORY}/${APPNAME}; \
+			cp -p ${TARGET} $${INSTALL_DIRECTORY}; \
+		fi;\
+	fi
+
+###
+### contents of /home/johnfb/repositories/jmake/lib/Makefile.suffixes}
+###
+###############################################################################
+# @(#) $Id$
+#
+# This makefile is part of the jmake distribution.
+#
+# jmake - automatic makefile generating build system
+# Copyright (C) 1999-2000 James Baughman
+# 
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+###############################################################################
+
+.SECONDEXPANSION:
+#----------
+# SUFFIXES
+#----------
+${OSDIR}/%.o : %.c
+	@mkdir -p ${OSDIR}
+	@rm -f $@ ${LIBRARY} `basename ${TARGET}`
+	${CCACHE} ${DISTCC} ${CC}  -o $@ -c $(shell basename $<) ${CC_FLAGS}
+
+${OSDIR}/%.o : %.C
+	@mkdir -p ${OSDIR}
+	@rm -f $@ ${LIBRARY} `basename ${TARGET}`
+	${CCACHE} ${DISTCC} ${CXX} -o $@ -c $(shell basename $<) ${CXX_FLAGS}
+
+${OSDIR}/%.o : %.cc
+	@mkdir -p ${OSDIR}
+	@rm -f $@ ${LIBRARY} `basename ${TARGET}`
+	${CCACHE} ${DISTCC} ${CXX} -o $@ -c $(shell basename $<) ${CXX_FLAGS}
+
+${OSDIR}/%.o : %.cp
+	@mkdir -p ${OSDIR}
+	@rm -f $@ ${LIBRARY} `basename ${TARGET}`
+	${CCACHE} ${DISTCC} ${CXX} -o $@ -c $(shell basename $<) ${CXX_FLAGS}
+
+${OSDIR}/%.o : %.cpp
+	@mkdir -p ${OSDIR}
+	@rm -f $@ ${LIBRARY} `basename ${TARGET}`
+	${CCACHE} ${DISTCC} ${CXX} -o $@ -c $(shell basename $<) ${CXX_FLAGS}
+
+${OSDIR}/%.o : %.cxx
+	@mkdir -p ${OSDIR}
+	@rm -f $@ ${LIBRARY} `basename ${TARGET}`
+	${CCACHE} ${DISTCC} ${CXX} -o $@ -c $(shell basename $<) ${CXX_FLAGS}
+
+${OSDIR}/%.o : %.f
+	@mkdir -p ${OSDIR}
+	@rm -f $@ ${LIBRARY} `basename ${TARGET}`
+	${CCACHE} ${DISTCC} ${FC} -o $@ -c $(shell basename $<) ${FC_FLAGS}
+
+${OSDIR}/%.o : %.s
+	@mkdir -p ${OSDIR}
+	@rm -f $@ ${LIBRARY} `basename ${TARGET}`
+	${AS} -o $@ -c $(shell basename $<) ${AS_FLAGS}
+
+${OSDIR}/%.o : %.S
+	@mkdir -p ${OSDIR}
+	@rm -f $@ ${LIBRARY} `basename ${TARGET}`
+	${AS} -o $@ -c $(shell basename $<) ${AS_FLAGS}
+
+${OSDIR}/%.a : $${LINKOBJECTS}
+	@mkdir -p ${OSDIR}
+	${AR} ${AR_OTHER} $@ ${LINKOBJECTS}
+	${RANLIB} $@
+
+${OSDIR}/%.so : ${LIBDEPEND} ${LINKOBJECTS}
+	@mkdir -p ${OSDIR}
+	${LD} -fPIC -shared -W1,-soname,$@ -o $@ ${LIBLINKOBJECTS} ${LD_FLAGS}
+
+$(OSDIR)/$(APPNAME) :  ${LIBDEPEND} ${LINKOBJECTS}
+	${LD} -o ${TARGET} ${LINKOBJECTS} ${LD_FLAGS}
+
+${OSDIR}/%.lo : %.c
+	@mkdir -p ${OSDIR}
+	@rm -f $@ ${LIBRARY} `basename ${TARGET}`
+	${CCACHE} ${DISTCC} ${CC} -fPIC -o $@ -c $(shell basename $<) ${CC_FLAGS}
+
+${OSDIR}/%.lo : %.C
+	@mkdir -p ${OSDIR}
+	@rm -f $@ ${LIBRARY} `basename ${TARGET}`
+	${CCACHE} ${DISTCC} ${CXX} -fPIC -o $@ -c $(shell basename $<) ${CXX_FLAGS}
+
+${OSDIR}/%.lo : %.cc
+	@mkdir -p ${OSDIR}
+	@rm -f $@ ${LIBRARY} `basename ${TARGET}`
+	${CCACHE} ${DISTCC} ${CXX} -fPIC -o $@ -c $(shell basename $<) ${CXX_FLAGS}
+
+${OSDIR}/%.lo : %.cp
+	@mkdir -p ${OSDIR}
+	@rm -f $@ ${LIBRARY} `basename ${TARGET}`
+	${CCACHE} ${DISTCC} ${CXX} -fPIC -o $@ -c $(shell basename $<) ${CXX_FLAGS}
+
+${OSDIR}/%.lo : %.cpp
+	@mkdir -p ${OSDIR}
+	@rm -f $@ ${LIBRARY} `basename ${TARGET}`
+	${CCACHE} ${DISTCC} ${CXX} -fPIC -o $@ -c $(shell basename $<) ${CXX_FLAGS}
+
+${OSDIR}/%.lo : %.cxx
+	@mkdir -p ${OSDIR}
+	@rm -f $@ ${LIBRARY} `basename ${TARGET}`
+	${CCACHE} ${DISTCC} ${CXX} -fPIC -o $@ -c $(shell basename $<) ${CXX_FLAGS}
+
+${OSDIR}/%.lo : %.f
+	@mkdir -p ${OSDIR}
+	@rm -f $@ ${LIBRARY} `basename ${TARGET}`
+	${CCACHE} ${DISTCC} ${FC} -fPIC -o $@ -c $(shell basename $<) ${FC_FLAGS}
+
+${OSDIR}/%.lo : %.s
+	@mkdir -p ${OSDIR}
+	@rm -f $@ ${LIBRARY} `basename ${TARGET}`
+	${AS} -fPIC -o $@ -c $(shell basename $<) ${AS_FLAGS}
+
+${OSDIR}/%.lo : %.S
+	@mkdir -p ${OSDIR}
+	@rm -f $@ ${LIBRARY} `basename ${TARGET}`
+	${AS} -fPIC -o $@ -c $(shell basename $<) ${AS_FLAGS}
+
+${OSDIR}/%.la : ${SHAREDLINKOBJECTS}
+	@mkdir -p ${OSDIR}
+	${AR} ${AR_OTHER} $@ ${SHAREDLINKOBJECTS}
+	${RANLIB} $@
+
+
+###
+### contents of _make-flags
+###
+#----------
+# USES
+#----------
+
+#----------
+# DEFINITIONS
+#----------
+
+#----------
+# OVERRIDE
+#----------
+
+CC_OTHER += -Wall
+LD_OTHER += -Wall -rdynamic
+
+
+###
+### contents of _Linux-x86_64/_depend
+###
+_Linux-x86_64/JSON_parser.o: JSON_parser.c JSON_parser.h
+_Linux-x86_64/JSONParser.o: JSONParser.cc JSONParser.h JSON_parser.h
+

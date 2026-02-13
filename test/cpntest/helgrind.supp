@@ -1,0 +1,48 @@
+
+{
+    std::string::_Rep::_M_clone
+    Helgrind:Race
+    fun:_ZNSs4_Rep8_M_cloneERKSaIcEm
+    fun:_ZNSs7reserveEm
+}
+
+{
+    std::string::empty()
+    Helgrind:Race
+    fun:_ZNKSs5emptyEv
+}
+
+{
+    std::basic_string::basic_string
+    Helgrind:Race
+    fun:_ZNSsC1ERKSs
+}
+
+{
+    std::string::_M_mutate
+    Helgrind:Race
+    fun:_ZNSs9_M_mutateEmmm
+}
+
+{  
+   std::string::reserve
+   Helgrind:Race
+   fun:_ZNSs7reserveEm
+}
+{
+   std::string::swap
+   Helgrind:Race
+   fun:_ZNSs4swapERSs
+}
+
+{
+   std::string::clear
+   Helgrind:Race
+   fun:_ZNSs5clearEv
+}
+{
+   std::string::assign
+   Helgrind:Race
+   fun:_ZNSs6assignEPKcm
+}
+

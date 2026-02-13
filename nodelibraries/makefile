@@ -1,0 +1,38 @@
+
+KERNEL:= $(shell uname -s)
+CHIP:=$(shell uname -m)
+OS=$(KERNEL)-$(CHIP)
+OSDIR=_$(OS)
+
+SUBDIRS:= $(shell find . -maxdepth 1 -type d -not -name '.*' -not -name '_*')
+NODELISTS = $(addsuffix /$(OSDIR)/node.list,$(SUBDIRS))
+
+.PHONY : all clean
+
+all: node.list
+
+clean:
+	$(RM) node.list node.list.mk
+
+real-clean: clean
+	for dir in $(SUBDIRS); do\
+		pushd $$dir;\
+		make -f Makefile.$(OS) clean;\
+		popd;\
+	done
+
+node.list:  $(NODELISTS) node.list.mk
+	echo include > $@
+	echo $(NODELISTS) >> $@
+	echo ';' >> $@
+
+node.list.mk:
+	echo '#auto generator makefile' > $@
+	for dir in $(SUBDIRS); do\
+		echo "$$dir/$(OSDIR)/node.list: $$dir/*.cc" >> $@;\
+		echo "	pushd $$dir; make -f Makefile.$(OS) sharedlibs; popd;" >> $@;\
+		echo >> $@;\
+	done
+	echo '\n_node.list.mk: $$(NODELISTS)\n' >> $@
+
+-include node.list.mk

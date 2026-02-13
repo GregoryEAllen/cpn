@@ -1,0 +1,7 @@
+
+USE_XMLPP=1
+ifdef USE_XMLPP
+    OS_LIBS += $(shell pkg-config --libs libxml++-2.6)
+endif
+OS_INCDIR += $(shell pkg-config --cflags libxml++-2.6)
+

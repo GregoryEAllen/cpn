@@ -1,0 +1,11 @@
+
+{
+    "divisor": 4,
+    "maxprime": 1000000000, 
+    "ppf": [-10, 0, 0, 0.05 ], 
+    "primewheel": 5, 
+    "queuehint": "threshold", 
+    "queuesize": 50000, 
+    "threshold": 5000, 
+    "zerocopy": 0
+}
